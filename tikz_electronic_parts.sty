@@ -1,0 +1,4296 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                                                                                          	
+%% LaTeX Style File for typesetting symbols for common electronic parts   
+%% Created by John Liaperdos, May 2014 - Nov 2015 	
+%% [ioannis.liaperdos@gmail.com]    							
+%%                                                                    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Last update 11/04/2026 (added "\coordinate" macros to enable circuit_to_tikz support)
+%
+% Disclaimer: Use at your own risk
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{tikz_electronic_parts}[2015/04/19 JL's package for electronic part symbols]
+
+\usepackage{xstring}
+\usepackage{xparse}
+\usepackage{etoolbox}
+\usepackage{calculator}
+\usetikzlibrary{positioning, calc}
+\usetikzlibrary{patterns}
+
+% define some colors:
+\usepackage{xcolor}
+\definecolor{darkgreen}{rgb}{0.0, 0.42, 0.24}
+\definecolor{purple}{rgb}{0.6,0.6,1}
+
+% make overline thicker:
+\usepackage{accents}
+\edef\thickbarthickness{1.5}
+
+% define helper macros and environments:
+\newcommand{\getzoomfactor}{%
+\pgfgettransformentries{\myxscale}{\@tempa}{\@tempa}{\myyscale}{\@tempa}{\@tempa}
+\IfEq{\myxscale}{0}
+	{
+		\xdef\zoomfactor{1}
+	}
+	{
+		\xdef\zoomfactor{\myxscale}
+	}
+} 
+%
+\newcommand{\linewidthscalefactor}{1}
+%
+\newcommand{\settikzlinewidth}[1]
+{
+\getzoomfactor
+\IfStrEq{#1}{}
+	{
+		\renewcommand{\linewidthscalefactor}{1}
+		\MULTIPLY{1.2}{\zoomfactor}{\thickbarthickness}
+	}
+	{
+		\renewcommand{\linewidthscalefactor}{#1/ (1.5 * \zoomfactor)}
+		\MULTIPLY{0.8}{#1}{\thickbarthickness}
+	}
+}
+%
+\newcommand{\tikzlinewidth}{\linewidthscalefactor * \zoomfactor * 1.5pt}
+%
+\newenvironment{tikzpictureJL}{\begin{tikzpicture}}{%
+\getzoomfactor%
+ \end{tikzpicture}\ignorespacesafterend%
+}
+%
+%%%%%%%%%%%%%%%%%%%%
+%% ANALOG PARTS 
+%%%%%%%%%%%%%%%%%%%%
+
+%% Mechanical Switch
+\newcommand{\mechanicalswitch}[7]{%{position}{name}{closed/open}{state}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -12
+		\begin{scope}[shift={#1}, rotate=#5]
+				\getzoomfactor
+				% draw terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\filldraw  (1,0) circle(0.25);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3,0)  -- (4,0);
+					\filldraw  (3,0) circle (0.25);
+				% draw bridge
+					\ifstrequal{#3}{closed}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1,0.25);
+							\node[draw=none, align=center] at (2,1.2) {\textbf{#4}}; % draw state
+						}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1.2,1.2);
+							\node[draw=none, align=center] at (2,2) {\textbf{#4}}; % draw state
+						}
+				% draw name
+					\node[draw=none, align=center] at (2,-1) {#2};
+
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (4,3);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 0); % left terminal
+				\coordinate (pin2) at (4, 0); % right terminal
+		\end{scope}
+}
+
+%% Three-Port Mechanical Switch
+\newcommand{\mechanicalswitchthreeport}[6]{%{position}{name}{state1/state2}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 L 40 0 M 10 -20 L 28 -12
+		\begin{scope}[shift={#1}, rotate=#4]
+				\getzoomfactor
+				% draw terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\filldraw  (1,0) circle(0.25);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,2)  -- (1,2);
+					\filldraw  (1,2) circle(0.25);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3,1)  -- (4,1);
+					\filldraw  (3,1) circle (0.25);
+				% draw bridge
+					\ifstrequal{#3}{state1}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,1)  -- (0.8,0.25);
+						}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,1)  -- (0.8,1.75);
+						}
+				% draw name
+					\node[draw=none, align=center] at (2,-1) {#2};
+
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (4,3);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 0); % bottom left terminal
+				\coordinate (pin2) at (0, 2); % top left terminal
+				\coordinate (pin3) at (4, 0); % right terminal				
+		\end{scope}
+}
+
+%% Controlled Switch
+\newcommand{\controlledswitch}[7]{%{position}{name}{closed/open}{control_terminal}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -12 M 15 -20 L 25 -20 M 20 -20 L 20 -5
+		\begin{scope}[shift={#1}, rotate=#5]
+				\getzoomfactor
+				% draw terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\filldraw  (1,0) circle(0.25);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3,0)  -- (4,0);
+					\filldraw  (3,0) circle (0.25);
+				% draw control terminal
+					\ifstrequal{#4}{}
+						{
+						}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 2pt] (1.5,2)  -- (2.5,2);
+							\node[draw=none, align=center] at (2,3) {#4};
+							\ifstrequal{#3}{closed}
+								{
+									\draw [dashed, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] (2,2)  -- (2,0.1);
+								}
+								{
+									\draw [dashed, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] (2,2)  -- (2,0.75);
+								}
+						}
+				% draw bridge
+					\ifstrequal{#3}{closed}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1,0.25);
+						}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1.2,1.2);
+						}
+				% draw name
+					\node[draw=none, align=center] at (2,-1) {#2};
+
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (4,3);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 0); % left terminal
+				\coordinate (pin2) at (4, 0); % right terminal
+		\end{scope}
+}
+
+%% Controlled Switch - Box
+\newcommand{\controlledswitchbox}[7]{%{position}{name}{control value (0/1/other) [place '*' at  end for inverted value]}{type (n/p)}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 10 5 L 30 5 L 30 -15 L 10 -15 Z M 0 0 L 10 0 M 30 0 L 40 0 M 15 -20 L 25 -20 M 20 -20 L 20 -15 M 30 0 L 12 -12
+		\begin{scope}[shift={#1}, rotate=#5]
+				\getzoomfactor
+				% handle inverted control value
+					\edef\effectiveswitchtype{#4}	
+					\IfEndWith{#3}{*}
+						{
+							\ifstrequal{#4}{n}
+								{
+									\edef\effectiveswitchtype{p}
+								}
+								{
+									\edef\effectiveswitchtype{n}
+								}	
+						}
+						{
+						}
+				% choose box color
+					\ifstrequal{#4}{n}
+						{
+							\edef\controlledswitchboxcolor{green}
+						}
+						{
+							\edef\controlledswitchboxcolor{red}
+						}
+				% draw box
+					\shade[left color=\controlledswitchboxcolor!30!white, draw=none] (0.5,-0.5) rectangle (3.5,1.5) (4,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt] (0.5,-0.5) rectangle (3.5,1.5) (4,0);
+				% draw terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\filldraw  (1,0) circle(0.25);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3,0)  -- (4,0);
+					\filldraw  (3,0) circle (0.25);
+				% draw control terminal
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 2pt] (1.5,3)  -- (2.5,3);
+					\IfEndWith{#3}{*}
+						{
+							\node[draw=none, align=center] at (2,4) {\StrBefore{#3}{*}};	
+						}
+						{
+							\node[draw=none, align=center] at (2,4) {#3};	
+						}									
+				% draw bridge
+					\ifstrequal{#3}{1}
+						{
+							\IfStrEq{\effectiveswitchtype}{n}
+								{
+									\draw [dashed, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] (2,3)  -- (2,0.1);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1,0.25); %closed
+								}
+								{
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1.2,1.2); %open
+									\draw [dashed, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] (2,3)  -- (2,0.75);
+								}
+						}
+						{
+							\ifstrequal{#3}{0}
+								{
+									\IfStrEq{\effectiveswitchtype}{n}
+										{
+											\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1.2,1.2); %open	
+											\draw [dashed, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] (2,3)  -- (2,0.75);								
+										}
+										{
+											\draw [dashed, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] (2,3)  -- (2,0.1);
+											\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1,0.25); %closed									
+										}
+								}
+								{
+									\IfStrEq{\effectiveswitchtype}{p}
+										{
+											\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1.2,1.2); %open	
+											\draw [dashed, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] (2,3)  -- (2,0.75);
+										}
+										{
+											\draw [dashed, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] (2,3)  -- (2,0.1);
+											\draw [line width=\linewidthscalefactor * \zoomfactor * 1.7pt] (3,0)  -- (1,0.25); %closed	
+										}
+									
+								}
+						}
+				% draw name
+					\node[draw=none, align=center] at (2,-1) {#2};
+				% draw dot
+					\ifstrequal{#4}{p}
+						{
+							\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1pt]  (2,1.8) circle (0.3);
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (1.3,0) (2,1.8) circle (0.3);
+						}
+						{
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-1) grid (4,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal
+				\coordinate (pin2) at (4, 0); % right terminal
+		\end{scope}
+}
+
+%% Ground Terminal
+\newcommand{\groundterminal}[5]{%{position}{name}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 0 15 M -15 15 L 15 15 M -10 22 L 10 22 M -5 29 L 5 29
+		\IfSubStr{#3}{h}
+			{
+				\edef\xscalevalue{-1}
+				\edef\groundnameanchorstring{east}
+			}
+			{
+				\edef\xscalevalue{1}
+				\edef\groundnameanchorstring{west}
+			}
+		\IfSubStr{#3}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\StrBefore{#3}{,}[\groundrotationangle]
+		\ifx\groundrotationangle\@empty%
+			\edef\groundrotationangle{0}%
+		\fi%
+		\begin{scope}[shift={#1}, rotate=\groundrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw terminal
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1)  -- (0,0);
+				% draw lines
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 2.2pt] (-1,-1)  -- (1,-1);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 2pt] (-0.5,-1.5)  -- (0.5,-1.5);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 2pt] (-0.25,-2)  -- (0.25,-2);
+				% draw name
+					\node[draw=none, anchor=\groundnameanchorstring] at (0.5,0) {#2};
+
+				\ifstrequal{#4}{gridon}
+					{
+						\draw[step=1cm,color=gray] (-2,-2) grid (2,2);
+					}
+					{
+					}
+				\ifstrequal{#5}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 0); % top terminal
+		\end{scope}
+}
+
+%% Voltage Source (Independent/Controlled)
+\newcommand{\voltagesource}[7]{%{position}{name}{horizontal/vertical}{none/controlled}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0
+		\begin{scope}[shift={#1}, rotate=#5]
+				\getzoomfactor
+				% Draw body
+				\ifstrequal{#4}{controlled}
+					{
+						% Diamond shape for controlled source
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (0,2) -- (2,0) -- (0,-2) -- cycle;
+					}
+					{
+						% Circle shape for independent source
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) circle (2);
+					}
+				% draw terminals
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-3,0) -- (-2,0);
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (3,0);
+				% draw +/- symbols
+					% Plus sign on the left
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 0.8pt] (-1.2,0) -- (-0.4,0);
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 0.8pt] (-0.8,-0.4) -- (-0.8,0.4);
+					% Minus sign on the right
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 0.8pt] (0.4,0) -- (1.2,0);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\node[draw=none, anchor=south] at (0,2.2) {#2};
+						}
+						{
+						}
+					\ifstrequal{#3}{vertical}
+						{
+							\node[draw=none, anchor=east] at (-2.2,0) {#2};
+						}
+						{
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (-3,-3) grid (3,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (-3, 0); % positive terminal
+				\coordinate (pin2) at (3, 0);  % negative terminal
+		\end{scope}
+}
+
+%% Current Source (Independent/Controlled)
+\newcommand{\currentsource}[7]{%{position}{name}{horizontal/vertical}{none/controlled}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5
+		\begin{scope}[shift={#1}, rotate=#5]
+				\getzoomfactor
+				% Draw body
+				\ifstrequal{#4}{controlled}
+					{
+						% Diamond shape for controlled source
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (0,2) -- (2,0) -- (0,-2) -- cycle;
+					}
+					{
+						% Circle shape for independent source
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) circle (2);
+					}
+				% draw terminals
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-3,0) -- (-2,0);
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (3,0);
+				% draw current arrow (the core of the current source)
+					\draw[->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,0) -- (1,0);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\node[draw=none, anchor=south] at (0,2.2) {#2};
+						}
+						{
+						}
+					\ifstrequal{#3}{vertical}
+						{
+							\node[draw=none, anchor=east] at (-2.2,0) {#2};
+						}
+						{
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (-3,-3) grid (3,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (-3, 0); % terminal 1
+				\coordinate (pin2) at (3, 0); % terminal 2
+		\end{scope}
+}
+
+%% Lamp
+\newcommand{\lamp}[6]{%{position}{name}{rotation}{on/off}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 m -15 0 a 15 15 0 1 0 30 0 a 15 15 0 1 0 -30 0 M -10 -10 L 10 10 M -10 10 L 10 -10 M -20 20 L -20 0 L -15 0 M 20 20 L 20 0 L 15 0
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				% draw light and rays
+					\IfSubStr{#4}{on}
+						{
+							\filldraw[color=yellow]  (0,-1) (0,-0.2)  circle (1.5);
+							\foreach \currentray in {-90,-45,...,90} % draw rays
+								{
+									\draw [rotate=\currentray, line width=\linewidthscalefactor * \zoomfactor * 0.8pt] (0,1.7) -- (0,2.5)  ;
+								}
+						}
+						{
+							\filldraw[color=gray!50]  (0,-1) (0,-0.2)  circle (1.5);
+						}
+				% draw bulb
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-0.2)  circle (1.5);
+				% draw terminals and filament
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,-2)  -- (-0.5,-2) -- (-0.5,-1) -- (-1,-0.5) -- (-1,0) decorate[decoration={segment length=\zoomfactor * 0.334 * 2cm, amplitude=8.57*\zoomfactor,coil}]{ --  (1,0)} -- (1,-0.5) -- (0.5,-1) -- (0.5,-2) -- (2,-2);
+				% draw name
+					\node[draw=none, align=center, anchor=north, rotate=#3] at (0,-2) {#2};
+
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (-2,-2) grid (2,3);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (-2, -2); % left terminal
+				\coordinate (pin2) at (2, -2); % right terminal
+		\end{scope}
+}
+
+%% Function Generator
+\newcommand{\functiongenerator}[7]{%{position}{name}{horizontal/vertical}{sine/square/triangle}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0
+		\begin{scope}[shift={#1}, rotate=#5]
+				\getzoomfactor
+				% draw circle
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,0) circle (2);
+				% draw terminals
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-3,0) -- (-2,0);
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (2,0) -- (3,0);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\node[draw=none, anchor=south] at (0,2) {#2};
+						}
+						{
+						}
+					\ifstrequal{#3}{vertical}
+						{
+							\node[draw=none, anchor=east] at (0,2) {#2};
+						}
+						{
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (-3,-3) grid (3,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (-3, 0); % left terminal
+				\coordinate (pin2) at (3, 0); % right terminal
+		\end{scope}
+		% draw waveform
+			\begin{scope}[shift={#1}] % no rotation for waveform
+					\ifstrequal{#4}{sine}
+						{
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (-1.5,0) sin (-0.75,1);
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (-0.75,1) cos (0,0);
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (0,0) sin (0.75,-1);
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (0.75,-1) cos (1.5,0);
+						}
+						{
+						}
+					\ifstrequal{#4}{triangle}
+						{
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (-1.5,0) -- (-0.75,1) -- (0,0) -- (0.75,-1) -- (1.5,0);
+						}
+						{
+						}
+					\ifstrequal{#4}{square}
+						{
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (-1,0) -- (-1,1)  -- (0,1) -- (0,-1) --  (1,-1) -- (1,0);
+						}
+						{
+						}
+			\end{scope}
+}
+
+%% Multimeter
+\newcommand{\multimeter}[7]{%{position}{name}{horizontal/vertical}{value (0 to 100)}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -16 -3 A 17 17 0 0 1 16 -3 M 0 10 L 0 -10
+		% draw interior
+			\begin{scope}[shift={#1}] % no rotation for interior
+				%draw shade
+					\shade[left color=gray!40!white, draw=none] (0.5,-0.5)   (0,0) circle (2);
+				% draw circle
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,0) circle (2);
+				% draw arc
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt] (-1.6,0.3) arc (160:20:1.7) ;
+				% draw dot
+					\filldraw  (0,-1) circle(0.25);
+				% draw zero
+					\node[draw=none, anchor=north] at  (-1.6,0.3) {\tiny{0}};
+				% draw pointer					
+					\draw[->,line width=\linewidthscalefactor * \zoomfactor * 1pt] (0,-1) -- (165-1.5*#4:1.5) ;
+			\end{scope}
+		\begin{scope}[shift={#1}, rotate=#5]
+				\getzoomfactor
+				% draw terminals
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-3,0) -- (-2,0);
+					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (2,0) -- (3,0);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\node[draw=none, anchor=south] at (0,2) {#2};
+						}
+						{
+						}
+					\ifstrequal{#3}{vertical}
+						{
+							\node[draw=none, anchor=east] at (0,2) {#2};
+						}
+						{
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (-3,-3) grid (3,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (-3, 0); % left terminal
+				\coordinate (pin2) at (3, 0); % right terminal
+		\end{scope}
+}
+
+%% Resistor
+\newcommand{\resistor}[7]{%{position}{name}{horizontal/vertical/empty}{fixed/variable}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 L 80 0
+		\IfSubStr{#5}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{#5}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\ifstrequal{#3}{horizontal}
+			{
+				\edef\resistorrotationangle{0}
+			}
+			{
+				\ifstrequal{#3}{vertical}
+					{
+						\edef\resistorrotationangle{90}
+					}
+					{
+						\StrBefore{#5}{,}[\resistorrotationangle]
+					}
+			}
+		\begin{scope}[shift={#1}, rotate=\resistorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw zig-zag
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0) -- (1.5,1) -- (2.5,-1) -- (3.5,1) -- (4.5,-1) -- (5.5,1) -- (6.5,-1) -- (7,0) -- (8,0);
+				% draw arrow (if variable)
+					\ifstrequal{#4}{variable}
+						{
+							\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1)  -- (7,1);
+						}
+						{
+						}
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\node[draw=none, align=center] at (4,2) {#2};
+						}
+						{
+							\ifstrequal{#3}{vertical}
+								{
+									\node[draw=none, anchor=east] at (4,1) {#2};
+								}
+								{
+									\node[draw=none, align=center, rotate=\resistorrotationangle] at (4,2) {#2};
+								}
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (8,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal
+				\coordinate (pin2) at (8, 0); % right terminal
+		\end{scope}
+}
+
+%% Inductor
+\usetikzlibrary{decorations.pathmorphing,patterns}
+\newcommand{\inductor}[7]{%{position}{name}{horizontal/vertical/empty}{fixed/variable}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0
+		\IfSubStr{#5}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{#5}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\ifstrequal{#3}{horizontal}
+			{
+				\edef\inductorrotationangle{0}
+			}
+			{
+				\ifstrequal{#3}{vertical}
+					{
+						\edef\inductorrotationangle{90}
+					}
+					{
+						\StrBefore{#5}{,}[\inductorrotationangle]
+					}
+			}
+		\begin{scope}[shift={#1}, rotate=\inductorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw spring
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0) 
+					 decorate[decoration={aspect=0.5, segment length=9,amplitude=8,coil}] { --  (7,0)}
+					-- (8,0);
+				% draw arrow (if variable)
+					\ifstrequal{#4}{variable}
+						{
+							\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1)  -- (7,1);
+						}
+						{
+						}
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\node[draw=none, align=center] at (4,2) {#2};
+						}
+						{
+							\ifstrequal{#3}{vertical}
+								{
+									\node[draw=none, anchor=east] at (4,1) {#2};
+								}
+								{
+									\node[draw=none, align=center, rotate=\inductorrotationangle] at (4,2) {#2};
+								}
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (8,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal
+				\coordinate (pin2) at (8, 0); % right terminal
+		\end{scope}
+}
+
+%% Capacitor
+\newcommand{\capacitor}[7]{%{position}{name}{horizontal/vertical/empty-fixed/variable}{plus/minus/none}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -15 L 24 15 M 24 0 L 40 0
+		\IfSubStr{#5}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{#5}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\IfSubStr{#3}{horizontal}
+			{
+				\edef\capacitorrotationangle{0}
+			}
+			{
+				\IfSubStr{#3}{vertical}
+					{
+						\edef\capacitorrotationangle{90}
+					}
+					{
+						\StrBefore{#5}{,}[\capacitorrotationangle]
+					}
+			}
+		\begin{scope}[shift={#1}, rotate=\capacitorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw plates
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) -- (1.2,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2.8,0) -- (4,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 4pt] (1.2,-2) -- (1.2,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 4pt] (2.8,-2) -- (2.8,2);
+				% draw arrow (if variable)
+					\IfSubStr{#3}{variable}
+						{
+							\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0.25,-1)  -- (3.75,1);
+						}
+						{
+						}
+				% draw plus sign and name
+					\ifstrequal{#4}{plus}
+						{
+							\IfSubStr{#3}{horizontal}
+								{
+									\node[draw=none, align=center] at (0,2) {\Large\textbf{+}};
+									\node[draw=none, align=center] at (2,-3) {#2};
+								}
+								{
+									\IfSubStr{#3}{vertical}
+										{
+											\node[draw=none, align=center] at (4,2) {\Large\textbf{+}};
+											\node[draw=none, anchor=east] at (0,0) {#2};
+										}
+										{
+											\node[draw=none, align=center] at (0,2) {\Large\textbf{+}};
+											\node[draw=none, align=center, rotate=\capacitorrotationangle] at (2,-3) {#2};
+										}
+								}
+						}
+						{
+							\ifstrequal{#4}{minus}
+								{
+									\IfSubStr{#3}{horizontal}
+										{
+											\node[draw=none, align=center] at (4,2) {\Large\textbf{+}};
+											\node[draw=none, align=center] at (2,-3) {#2};
+										}
+										{
+											\IfSubStr{#3}{vertical}
+												{
+													\node[draw=none, align=center] at (0,-2) {\Large\textbf{+}};
+													\node[draw=none, anchor=east] at (0,0) {#2};
+												}
+												{
+													\node[draw=none, align=center] at (4,2) {\Large\textbf{+}};
+													\node[draw=none, align=center, rotate=\capacitorrotationangle] at (2,-3) {#2};
+												}
+										}
+								}
+								{
+									\IfSubStr{#3}{horizontal}
+										{
+											\node[draw=none, align=center] at (2,-3) {#2};
+										}
+										{
+											\IfSubStr{#3}{vertical}
+												{
+													\node[draw=none, anchor=east] at (0,0) {#2};
+												}
+												{
+													\node[draw=none, align=center, rotate=\capacitorrotationangle] at (2,-3) {#2};
+												}
+										}
+								}
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (4,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal
+				\coordinate (pin2) at (4, 0); % right terminal
+		\end{scope}
+}
+
+%% DC Voltage Source
+\newcommand{\dcvoltagesource}[7]{%{position}{name}{horizontal/vertical/empty-fixed/variable}{plus/none}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -7 L 24 7 M 24 0 L 40 0
+		\IfSubStr{#5}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{#5}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\IfSubStr{#3}{horizontal}
+			{
+				\ifstrequal{#5}{180}
+					{
+						\edef\dcsourcerotationangle{180}
+					}
+					{
+						\edef\dcsourcerotationangle{0}
+					}
+			}
+			{
+				\IfSubStr{#3}{vertical}
+					{
+						\edef\dcsourcerotationangle{90}
+					}
+					{
+						\edef\dcsourcerotationangle{#5}
+					}
+			}
+		\begin{scope}[shift={#1}, rotate=\dcsourcerotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw plates
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) -- (1.2,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2.3,0) -- (4,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 5pt] (1.2,-0.7) -- (1.2,0.7);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 2pt] (2.3,-2) -- (2.3,2);
+				% draw arrow (if variable)
+					\IfSubStr{#3}{variable}
+						{
+							\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0.25,-1)  -- (3.75,1);
+						}
+						{
+						}
+				% draw plus sign and name
+					\ifstrequal{#4}{plus}
+						{
+							\IfSubStr{#3}{horizontal}
+								{
+									\node[draw=none, align=center] at (3,1.5) {\Large\textbf{+}};
+									\node[draw=none, align=center] at (2,-3) {#2};
+								}
+								{
+									\IfSubStr{#3}{vertical}
+										{
+											\node[draw=none, align=center] at (3,1.5) {\Large\textbf{+}};
+											\node[draw=none, anchor=east] at (0,0) {#2};
+										}
+										{
+											\node[draw=none, align=center] at (0,2) {\Large\textbf{+}};
+											\node[draw=none, align=center, rotate=#5] at (2,-3) {#2};
+										}
+								}
+						}
+						{
+							\IfSubStr{#3}{horizontal}
+								{
+									\node[draw=none, align=center] at (2,-3) {#2};
+								}
+								{
+									\IfSubStr{#3}{vertical}
+										{
+											\node[draw=none, anchor=east] at (0,0) {#2};
+										}
+										{
+											\node[draw=none, align=center, rotate=#5] at (2,-3) {#2};
+										}
+								}
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (4,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal
+				\coordinate (pin2) at (4, 0); % right terminal
+		\end{scope}
+}
+
+%% DC battery
+\newcommand{\dcbattery}[7]{%{position}{name}{horizontal/vertical/empty-fixed/variable}{plus/none}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% icon: M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0
+		\IfSubStr{#5}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{#5}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\IfSubStr{#3}{horizontal}
+			{
+				\ifstrequal{#5}{180}
+					{
+						\edef\dcbatteryrotationangle{180}
+					}
+					{
+						\edef\dcbatteryrotationangle{0}
+					}
+			}
+			{
+				\IfSubStr{#3}{vertical}
+					{
+						\edef\dcbatteryrotationangle{90}
+					}
+					{
+						\edef\dcbatteryrotationangle{#5}
+					}
+			}
+		\begin{scope}[shift={#1}, rotate=\dcbatteryrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw plates
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-3,0) -- (-1.1,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2.3,0) -- (4,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 5pt] (1.2,-0.7) -- (1.2,0.7);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 2pt] (2.3,-2) -- (2.3,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 2pt] (0,-2) -- (0,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 5pt] (-1,-0.7) -- (-1,0.7);
+				% draw arrow (if variable)
+					\IfSubStr{#3}{variable}
+						{
+							\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,-1.5)  -- (3.75,1);
+						}
+						{
+						}
+				% draw plus sign and name
+					\ifstrequal{#4}{plus}
+						{
+							\IfSubStr{#3}{horizontal}
+								{
+									\node[draw=none, align=center] at (3,1.5) {\Large\textbf{+}};
+									\node[draw=none, align=center] at (0.5,-3) {#2};
+								}
+								{
+									\IfSubStr{#3}{vertical}
+										{
+											\node[draw=none, align=center] at (3,1.5) {\Large\textbf{+}};
+											\node[draw=none, anchor=east] at (1,1) {#2};
+										}
+										{
+											\node[draw=none, align=center] at (0,2) {\Large\textbf{+}};
+											\node[draw=none, align=center, rotate=#5] at (0.5,-3) {#2};
+										}
+								}
+						}
+						{
+							\IfSubStr{#3}{horizontal}
+								{
+									\node[draw=none, align=center] at (0.5,-3) {#2};
+								}
+								{
+									\IfSubStr{#3}{vertical}
+										{
+											\node[draw=none, anchor=east] at (1,1) {#2};
+										}
+										{
+											\node[draw=none, align=center, rotate=#5] at (0.5,-3) {#2};
+										}
+								}
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (-3,-2) grid (4,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (-3, 0); % left terminal
+				\coordinate (pin2) at (4, 0); % right terminal
+		\end{scope}
+}
+
+%% Bipolar Transistor
+\newcommand{\bipolartransistor}[7]{%{position}{name}{n/p}{terminals-case}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% icon: M -40 0 L -10 0 M -10 -15 L -10 15 M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M 10 25 L 4 25 L 8 18 Z M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0
+		\StrBefore{#5}{,}[\rotationvalue]
+		\StrBehind{#5}{,}[\flipvalue]
+		\IfSubStr{\flipvalue}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{\flipvalue}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\begin{scope}[shift={#1}, rotate=\rotationvalue , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw case
+					\IfSubStr{#4}{case}
+						{
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (0,0) circle (3);
+							\edef\nameposition{3}
+						}
+						{
+							\edef\nameposition{2.7}
+						}
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-4,0) -- (-1.5,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1.5,1) -- (1,2) -- (1,4);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1.5,-1) -- (1,-2) -- (1,-4);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 4pt] (-1.5,-2) -- (-1.5,2);
+				% draw emitter arrow
+					\ifstrequal{#3}{n}
+						{
+							\draw [->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1.5,-1) -- (1,-2);
+						}
+						{
+							\draw [->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-2) --  (-1.5,-1);							}
+				% draw terminals
+					\IfSubStr{#4}{terminals}
+						{
+							\node[draw=none, align=center] at (-4,1 * \yscalevalue) {B};
+							\node[draw=none, align=center] at (2,4) {C};
+							\node[draw=none, align=center] at (2,-4) {E};
+						}
+						{
+						}
+				% draw name
+					\node[draw=none, align=center] at (-1 * \nameposition,\yscalevalue * \nameposition) {#2};
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (-4,-4) grid (4,4);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (-4, 0); % left terminal (base)
+				\coordinate (pin2) at (1, 4); % top terminal (collector)
+				\coordinate (pin3) at (1, -4); % bottom terminal (emitter)
+		\end{scope}
+}
+
+%% MOS Transistor
+\newcommand{\mostransistor}[7]{%{position}{name}{n/p}{terminals-case-dot-arrow}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% icon: M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0  M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 M 10 15 L 6 12 M 10 15 L 6 18
+		\StrBefore{#5}{,}[\rotationvalue]
+		\StrBehind{#5}{,}[\flipvalue]
+		\IfSubStr{\flipvalue}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{\flipvalue}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\begin{scope}[shift={#1}, rotate=\rotationvalue, xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw case
+					\IfSubStr{#4}{case}
+						{
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (0,0) circle (3);
+							\edef\nameposition{3}
+						}
+						{
+							\edef\nameposition{2.5}
+						}
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-4,0) -- (-1.7,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,4) -- (1,1.5) -- (-0.5,1.5);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-4) -- (1,-1.5) -- (-0.5,-1.5);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 4pt] (-1.7,-1.5) -- (-1.7,1.5);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 3.5pt] (-0.5,-2.2) -- (-0.5,2.2);
+				% draw source arrow / gate dot
+					\ifstrequal{#3}{n}
+						{
+							\IfSubStr{#4}{arrow}
+								{
+									\draw [->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-0.5,-1.5) -- (1,-1.5);
+								}
+								{
+								}
+							
+						}
+						{
+							\IfSubStr{#4}{arrow}
+								{
+									\draw [->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,-1.5) -- (-0.5,-1.5);
+								}
+								{
+									\IfSubStr{#4}{dot}
+										{
+											\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.2pt]  ({-2.1cm-\linewidthscalefactor * \zoomfactor * 3.2pt},0) circle (0.4);
+											\draw[line width=\linewidthscalefactor * \zoomfactor * 1.2pt]  ({-2.1cm-\linewidthscalefactor * \zoomfactor * 3.2pt},0) circle (0.4);										
+										}
+										{
+										}
+								}					
+						}
+				% draw terminals
+					\IfSubStr{#4}{terminals}
+						{
+							\node[draw=none, align=center] at (-4,1 * \yscalevalue) {G};
+							\node[draw=none, align=center] at (2,4) {D};
+							\node[draw=none, align=center] at (2,-4) {S};
+						}
+						{
+						}
+				% draw name
+					\node[draw=none, align=center] at (-1*\nameposition ,\nameposition * \yscalevalue) {#2};
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (-4,-4) grid (4,4);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (-4, 0); % left terminal (gate)
+				\coordinate (pin2) at (1, 4); % top terminal (drain)
+				\coordinate (pin3) at (1, -4); % bottom terminal (source)
+		\end{scope}
+}
+
+%% Transmission Gate
+\newcommand{\passgate}[6]{%{position}{name}{symbol(normal or diamond)}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -40 0 L -20 0 M 20 0 L 40 0 M -20 -30 L 20 -30 M -20 30 L 20 30 M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -38 L 0 -50 M 0 30 L 0 50
+		\begin{scope}[shift={#1}, rotate=#4]
+				\getzoomfactor
+				% draw body
+					\ifstrequal{#3}{normal}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,-2) rectangle (2,2);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,3) -- (2,3);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,-3) -- (2,-3);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,3.5) -- (0,5);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-3) -- (0,-5);
+							\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
+								(0,{3.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
+								 (0,{3.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (-4,0);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (4,0);
+						}
+						{
+						}
+					\ifstrequal{#3}{diamond}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,2) -- (2,0) -- (2,2) %
+							-- (-2,0) -- cycle;
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,-2) -- (2,0) -- (2,-2) %
+							-- (-2,0) -- cycle;
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,1.5) -- (0,3);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1) -- (0,-3);
+							\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
+								(0,{1.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
+								 (0,{1.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (-4,0);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (4,0);
+						}
+						{
+						}
+				% draw name
+					\ifstrequal{#4}{0}
+						{
+							\node[draw=none, anchor=west] at (2,-2) {#2};
+						}
+						{
+						}
+					\ifstrequal{#4}{90}
+						{
+							\node[draw=none, anchor=south west] at (2,-2) {#2};
+						}
+						{
+						}
+					\ifstrequal{#4}{180}
+						{
+							\node[draw=none, anchor=north east] at (2,-2) {#2};
+						}
+						{
+						}
+					\ifstrequal{#4}{270}
+						{
+							\node[draw=none, anchor=north east] at (2,-2) {#2};
+						}
+						{
+						}
+				% draw grid
+					\ifstrequal{#5}{gridon}
+						{
+							\ifstrequal{#3}{diamond}
+								{
+									\draw[step=1cm,color=gray] (-4,-3) grid (4,3);
+								}
+								{
+									\draw[step=1cm,color=gray] (-4,-5) grid (4,5);
+								}
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#6}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (-4, 0); % left terminal
+				\coordinate (pin2) at (4, 0); % right terminal
+		\end{scope}
+}
+
+%% OPAMP
+\newcommand{\opamplifier}[7]{%{position}{name}{flip}{supplyvoltage}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 30 -25 L 30 -15 M 25 20 L 35 20
+		\begin{scope}[shift={#1}, rotate=#5]
+				\getzoomfactor
+				% draw input/output terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,2)  -- (2,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-2)  -- (2,-2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (10,0)  -- (12,0);
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,-4)  -- (2,4) -- (10,0) -- cycle;
+				% draw power supply
+					\ifstrequal{#4}{}
+						{
+						}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (6,2)  -- (6,4);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (6,-2)  -- (6,-4);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (5,4)  -- (7,4);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (5,-4)  -- (7,-4);
+							\node[draw=none, anchor=south] at (6,4) {+#4};
+							\node[draw=none, anchor=north] at (6,-4) {--#4};
+						}
+				% draw name
+					\node[draw=none, align=center] at (5,0) {#2};
+				% draw plus/minus
+					\ifstrequal{#3}{flip}
+						{
+							\node[draw=none, anchor=west] at (2,2) {\textbf{--}};
+							\node[draw=none, anchor=west] at (2,-2) {\textbf{+}};
+						}
+						{
+							\node[draw=none, anchor=west] at (2,2) {\textbf{+}};
+							\node[draw=none, anchor=west] at (2,-2) {\textbf{--}};
+						}					
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-4) grid (12,4);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 2); % top left terminal (non-inverting input)
+				\coordinate (pin2) at (0, -2); % bottom left terminal (inverting input)
+				\coordinate (pin3) at (12, 0); % right terminal (output)
+		\end{scope}
+}
+
+%% Diode
+\newcommand{\diode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0
+		\ifstrequal{#3}{vertical}
+			{
+				\ifstrequal{#4}{90}
+					{
+						\edef\dioderotationangle{90}
+					}
+					{
+					}
+				\ifstrequal{#4}{-90}
+					{
+						\edef\dioderotationangle{-90}
+					}
+					{
+					}
+			}
+			{
+				\ifstrequal{#3}{horizontal}
+					{
+						\ifstrequal{#4}{0}
+							{
+								\edef\dioderotationangle{0}
+							}
+							{
+							}
+						\ifstrequal{#4}{180}
+							{
+								\edef\dioderotationangle{180}
+							}
+							{
+							}
+					}
+					{						
+						\edef\dioderotationangle{#4}
+					}
+			}			
+		\begin{scope}[shift={#1}, rotate=\dioderotationangle]
+				\getzoomfactor
+				% draw input/output terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,0)  -- (5,0);
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1.5)  -- (1,1.5) -- (3.5,0) -- cycle;
+				% draw cathode
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 3pt] (3.5,-1.5)  -- (3.5,1.5);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\ifstrequal{#4}{0}
+								{
+									\node[draw=none, align=center] at (2,2) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{180}
+								{
+									\node[draw=none, align=center] at (2,2) {#2};	
+								}
+								{
+								}
+						}
+						{
+							\ifstrequal{#4}{90}
+								{
+									\node[draw=none, anchor=east] at (2,1) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{-90}
+								{
+									\node[draw=none, anchor=west] at (2,1) {#2};	
+								}
+								{
+								}
+						}				
+				% draw grid
+					\ifstrequal{#5}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (5,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#6}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal (anode)
+				\coordinate (pin2) at (5, 0); % right terminal (cathode)
+		\end{scope}
+}
+
+%% Zener Diode
+\newcommand{\zenerdiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 30 -15 L 35 -15 L 35 15 L 40 15 M 35 0 L 50 0
+		\ifstrequal{#3}{vertical}
+			{
+				\ifstrequal{#4}{90}
+					{
+						\edef\zenerdioderotationangle{90}
+					}
+					{
+					}
+				\ifstrequal{#4}{-90}
+					{
+						\edef\zenerdioderotationangle{-90}
+					}
+					{
+					}
+			}
+			{
+				\ifstrequal{#3}{horizontal}
+					{
+						\ifstrequal{#4}{0}
+							{
+								\edef\zenerdioderotationangle{0}
+							}
+							{
+							}
+						\ifstrequal{#4}{180}
+							{
+								\edef\zenerdioderotationangle{180}
+							}
+							{
+							}
+					}
+					{						
+						\edef\zenerdioderotationangle{#4}
+					}
+			}			
+		\begin{scope}[shift={#1}, rotate=\zenerdioderotationangle]
+				\getzoomfactor
+				% draw input/output terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,0)  -- (5,0);
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1.5)  -- (1,1.5) -- (3.5,0) -- cycle;
+				% draw cathode
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (4,-1.5) -- (3.5,-1.5)  -- (3.5,1.5) -- (3,1.5);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\ifstrequal{#4}{0}
+								{
+									\node[draw=none, align=center] at (2,2) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{180}
+								{
+									\node[draw=none, align=center] at (2,2) {#2};	
+								}
+								{
+								}
+						}
+						{
+							\ifstrequal{#4}{90}
+								{
+									\node[draw=none, anchor=east] at (2,1) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{-90}
+								{
+									\node[draw=none, anchor=west] at (2,1) {#2};	
+								}
+								{
+								}
+						}				
+				% draw grid
+					\ifstrequal{#5}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (5,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#6}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal (anode)
+				\coordinate (pin2) at (5, 0); % right terminal (cathode)
+		\end{scope}
+}
+
+%% LED 
+\newcommand{\leddiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 10 -20 L 20 -30 M 15 -30 L 20 -30 L 20 -25 M 15 -20 L 25 -30 M 20 -30 L 25 -30 L 25 -25
+		\ifstrequal{#3}{vertical}
+			{
+				\ifstrequal{#4}{90}
+					{
+						\edef\leddioderotationangle{90}
+					}
+					{
+					}
+				\ifstrequal{#4}{-90}
+					{
+						\edef\leddioderotationangle{-90}
+					}
+					{
+					}
+			}
+			{
+				\ifstrequal{#3}{horizontal}
+					{
+						\ifstrequal{#4}{0}
+							{
+								\edef\leddioderotationangle{0}
+							}
+							{
+							}
+						\ifstrequal{#4}{180}
+							{
+								\edef\leddioderotationangle{180}
+							}
+							{
+							}
+					}
+					{						
+						\edef\leddioderotationangle{#4}
+					}
+			}			
+		\begin{scope}[shift={#1}, rotate=\leddioderotationangle]
+				\getzoomfactor
+				% draw input/output terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,0)  -- (5,0);
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1.5)  -- (1,1.5) -- (3.5,0) -- cycle;
+				% draw cathode
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 3pt] (3.5,-1.5)  -- (3.5,1.5);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\ifstrequal{#4}{0}
+								{
+									% draw light ray
+										\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (1.8,1.3)  -- (2.5,2) -- (2.5,1.7) -- (3.2,2.4);
+									\node[draw=none, align=center] at (2,-2) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{180}
+								{
+									% draw light ray
+										\draw [->,yscale=-1, line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (1.8,1.3)  -- (2.5,2) -- (2.5,1.7) -- (3.2,2.4);
+									\node[draw=none, align=center] at (2,2) {#2};	
+								}
+								{
+								}
+						}
+						{
+							\ifstrequal{#4}{90}
+								{
+									% draw light ray
+										\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (1.8,1.3)  -- (2.5,2) -- (2.5,1.7) -- (3.2,2.4);
+									\node[draw=none, anchor=west] at (2,-1) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{-90}
+								{
+									% draw light ray
+										\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (1.8,1.3)  -- (2.5,2) -- (2.5,1.7) -- (3.2,2.4);
+									\node[draw=none, anchor=east] at (2,-1) {#2};	
+								}
+								{
+								}
+						}				
+				% draw grid
+					\ifstrequal{#5}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (5,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#6}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal (anode)
+				\coordinate (pin2) at (5, 0); % right terminal (cathode)
+		\end{scope}
+}
+
+%% Photodiode 
+\newcommand{\photodiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 20 -30 L 10 -20 M 10 -25 L 10 -20 L 15 -20 M 25 -30 L 15 -20 M 15 -25 L 15 -20 L 20 -20
+		\ifstrequal{#3}{vertical}
+			{
+				\ifstrequal{#4}{90}
+					{
+						\edef\photodioderotationangle{90}
+					}
+					{
+					}
+				\ifstrequal{#4}{-90}
+					{
+						\edef\photodioderotationangle{-90}
+					}
+					{
+					}
+			}
+			{
+				\ifstrequal{#3}{horizontal}
+					{
+						\ifstrequal{#4}{0}
+							{
+								\edef\photodioderotationangle{0}
+							}
+							{
+							}
+						\ifstrequal{#4}{180}
+							{
+								\edef\photodioderotationangle{180}
+							}
+							{
+							}
+					}
+					{						
+						\edef\photodioderotationangle{#4}
+					}
+			}			
+		\begin{scope}[shift={#1}, rotate=\photodioderotationangle]
+				\getzoomfactor
+				% draw input/output terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,0)  -- (5,0);
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1.5)  -- (1,1.5) -- (3.5,0) -- cycle;
+				% draw cathode
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 3pt] (3.5,-1.5)  -- (3.5,1.5);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\ifstrequal{#4}{0}
+								{
+									% draw light ray
+										\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt]  (3.2,2.4) -- (2.5,1.7)  -- (2.5,2) -- (1.8,1.3);
+									\node[draw=none, align=center] at (2,-2) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{180}
+								{
+									% draw light ray
+										\draw [->,yscale=-1, line width=\linewidthscalefactor * \zoomfactor * 0.7pt]  (3.2,2.4) -- (2.5,1.7)  -- (2.5,2) -- (1.8,1.3);
+									\node[draw=none, align=center] at (2,2) {#2};	
+								}
+								{
+								}
+						}
+						{
+							\ifstrequal{#4}{90}
+								{
+									% draw light ray
+										\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt]  (3.2,2.4) -- (2.5,1.7)  -- (2.5,2) -- (1.8,1.3);
+									\node[draw=none, anchor=west] at (2,-1) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{-90}
+								{
+									% draw light ray
+										\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt]  (3.2,2.4) -- (2.5,1.7)  -- (2.5,2) -- (1.8,1.3);
+									\node[draw=none, anchor=east] at (2,-1) {#2};	
+								}
+								{
+								}
+						}				
+				% draw grid
+					\ifstrequal{#5}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (5,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#6}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+				\coordinate (pin1) at (0, 0); % left terminal (anode)
+				\coordinate (pin2) at (5, 0); % right terminal (cathode)
+		\end{scope}
+}
+
+%% Supply Terminal
+\newcommand{\supplyterminal}[5]{%{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 10 L 0 0 M -15 0 L 15 0
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				% draw terminal
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1)  -- (0,0);
+				% draw line
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 3pt] (-1,0)  -- (1,0);
+				% draw name
+					\ifstrequal{#3}{}
+					{
+						\node[draw=none, anchor=south] at (0,0.05) {#2};
+					}
+					{
+					}
+					\ifstrequal{#3}{0}
+					{
+						\node[draw=none, anchor=south] at (0,0.05) {#2};
+					}
+					{
+					}
+					\ifstrequal{#3}{90}
+					{
+						\node[draw=none, anchor=east] at (0,0.05) {#2};
+					}
+					{
+					}
+					\ifstrequal{#3}{-90}
+					{
+						\node[draw=none, anchor=west] at (0,0.05) {#2};
+					}
+					{
+					}
+					\ifstrequal{#3}{180}
+					{
+						\node[draw=none, anchor=north] at (0,0.05) {#2};
+					}
+					{
+					}
+					\ifstrequal{#3}{-180}
+					{
+						\node[draw=none, anchor=north] at (0,0.05) {#2};
+					}
+					{
+					}
+
+				\ifstrequal{#4}{gridon}
+					{
+						\draw[step=1cm,color=gray] (-2,-2) grid (2,2);
+					}
+					{
+					}
+				\ifstrequal{#5}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, -1); % bottom terminal
+		\end{scope}
+}
+
+%% Input/Output Port
+\newcommand{\ioport}[6]{%{position}{name}{input/output/top/bottom}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 5 0 M 11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0
+		\begin{scope}[shift={#1}, rotate=#4]
+				\getzoomfactor
+				\ifstrequal{#3}{output}
+					{
+						% draw line
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+						% draw terminal
+							\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (1.3,0) circle (0.3);
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (1.3,0) circle (0.3);
+						% draw name
+							\node[draw=none, anchor=west] at (1.6,0) {#2};
+						\coordinate (pin1) at (0, 0); % terminal
+					}
+					{
+						\ifstrequal{#3}{input}
+							{
+								% draw line
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+								% draw terminal
+									\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (-0.3,0) circle (0.3);
+									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (-0.3,0) circle (0.3);
+								% draw name
+									\node[draw=none, anchor=east] at (-0.6,0) {#2};
+								\coordinate (pin1) at (1, 0); % terminal
+							}
+							{
+								\ifstrequal{#3}{top}
+									{
+										% draw line
+											\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (0,1);
+										% draw terminal
+											\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,1.3) circle (0.3);
+											\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,1.3) circle (0.3);
+										% draw name
+											\node[draw=none, anchor=south] at (0,1.6) {#2};
+										\coordinate (pin1) at (0, 0); % terminal
+									}
+									{
+										% draw line
+											\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (0,1);
+										% draw terminal
+											\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,-0.3) circle (0.3);
+											\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,-0.3) circle (0.3);
+										% draw name
+											\node[draw=none, anchor=north] at (0,-0.6) {#2};
+										\coordinate (pin1) at (0, 1); % terminal
+									}
+							}
+					}
+
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (-2,-2) grid (2,2);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+		\end{scope}
+}
+
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% DIGITAL PARTS 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% AND-3
+\newcommand{\andthree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=green!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,0) arc (-90:90:2) ;
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\StrMid{#1}{3}{3}[\thirdinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},2) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},2) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\thirdinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 2); % middle left terminal (input-2)
+				\coordinate (pin3) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin4) at (7, 2); % right terminal (output)			
+		\end{scope}
+}
+
+%% AND - n inputs
+\newcommand{\andninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
+% disabled
+		\begin{scope}[shift={#1}, rotate=#4, xshift=1]
+				\getzoomfactor
+				\shade[left color=green!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{2+int(#3 / 2)-0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{2-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}) ;
+				\foreach \currentinput in {1,...,#3} % draw input lines
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-1,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))});
+						\coordinate (pin\currentinput) at (-1, {\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}); % current left terminal (input-i)
+					}
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt]  (0.4,1.5)  -- (0.6,2.5);
+				\node[draw=none, align=center] at (0.5,3) {#3};
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,0) arc (-90:90:2) ;
+				\ifstrequal{#5}{gridon}
+					{
+						\MAX{#3}{5}{\gridheight}
+						\draw[step=1cm,color=gray] (-1,{2-int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))}) grid (7,{2+int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))});
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pinRight) at (7, 2); % right terminal (output)
+		\end{scope}
+}
+
+%% NAND - n inputs
+\newcommand{\nandninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
+% disabled
+		\begin{scope}[shift={#1}, rotate=#4, xshift=1]
+				\getzoomfactor
+				\shade[left color=blue!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{2+int(#3 / 2)-0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{2-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}) ;
+				\foreach \currentinput in {1,...,#3} % draw input lines
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-1,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))});
+						\coordinate (pin\currentinput) at (-1, {\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}); % current left terminal (input-i)
+					}
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt]  (0.4,1.5)  -- (0.6,2.5);
+				\node[draw=none, align=center] at (0.5,3) {#3};
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,0) arc (-90:90:2) ;
+				\filldraw[white]  (6.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
+				\ifstrequal{#5}{gridon}
+					{
+						\MAX{#3}{5}{\gridheight}
+						\draw[step=1cm,color=gray] (-1,{2-int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))}) grid (7,{2+int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))});
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pinRight) at (7, 2); % right terminal (output)
+		\end{scope}
+}
+
+%% NAND-3
+\newcommand{\nandthree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=blue!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,0) arc (-90:90:2) ;
+				\filldraw[white]  (6.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\StrMid{#1}{3}{3}[\thirdinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},2) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},2) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\thirdinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 2); % middle left terminal (input-2)
+				\coordinate (pin3) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin4) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% AND-2
+\newcommand{\andtwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=green!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,0) arc (-90:90:2) ;
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin3) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% NAND-2
+\newcommand{\nandtwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=blue!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,0) arc (-90:90:2) ;
+				\filldraw[white]  (6.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin3) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% OR-3
+\newcommand{\orthree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=red!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1.8,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1.6,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\StrMid{#1}{3}{3}[\thirdinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({1.5cm - \linewidthscalefactor * \zoomfactor * 1.5pt},2) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.5cm - \linewidthscalefactor * \zoomfactor * 1.5pt},2) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\thirdinputinverted}{1}
+					{
+						\filldraw[white]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 2); % middle left terminal (input-2)
+				\coordinate (pin3) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin4) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% NOR-3
+\newcommand{\northree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=yellow!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1.8,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1.6,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
+				\filldraw[white]  (6.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\StrMid{#1}{3}{3}[\thirdinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({1.5cm - \linewidthscalefactor * \zoomfactor * 1.5pt},2) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.5cm - \linewidthscalefactor * \zoomfactor * 1.5pt},2) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\thirdinputinverted}{1}
+					{
+						\filldraw[white]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 2); % middle left terminal (input-2)
+				\coordinate (pin3) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin4) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% OR-2
+\newcommand{\ortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=red!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1.6,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin3) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% OR - n inputs
+\newcommand{\orninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
+% disabled
+		\begin{scope}[shift={#1}, rotate=#4, xshift=1]
+				\getzoomfactor
+				\shade[left color=red!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1.8,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{2+int(#3 / 2)-0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{2-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}) ;
+				\foreach \currentinput in {1,...,#3} % draw input lines
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-1,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))});
+						\coordinate (pin\currentinput) at (-1, {\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}); % current left terminal (input-i)
+					}
+				\draw [line width=0.75pt]  (0.4,1.5)  -- (0.6,2.5);
+				\node[draw=none, align=center] at (0.5,3) {#3};
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
+				\ifstrequal{#5}{gridon}
+					{
+						\MAX{#3}{5}{\gridheight}
+						\draw[step=1cm,color=gray] (-1,{2-int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))}) grid (7,{2+int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))});
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pinRight) at (7, 2); % right terminal (output)
+		\end{scope}
+}
+
+%% NOR-2
+\newcommand{\nortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=yellow!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1.6,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
+				\filldraw[white]  (6.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({1.25cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin3) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% NOR-2 Flipped (only to be used by the \dipic macro)
+\newcommand{\nortwoflipped}[1]{%{position}
+% disabled
+		\begin{scope}[shift={#1}]
+				\getzoomfactor
+				\shade[left color=yellow!20!white, draw=none]  (-1,0)  .. controls (-4,0) and (-5,1) .. (-6,2) .. controls  (-5,3) and (-4,4) ..  (-1,4) arc (139:220.5:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (-1.6,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (-1.6,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-6,2)  -- (-7,2);
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,0)  .. controls (-4,0) and (-5,1) .. (-6,2) .. controls  (-5,3) and (-4,4) ..  (-1,4) arc (139:220.5:3) -- cycle;
+				\filldraw[white]  (-6.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-6.25,2) circle(0.25);
+		\end{scope}
+}
+
+%% NOR - n inputs
+\newcommand{\norninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
+% disabled
+		\begin{scope}[shift={#1}, rotate=#4, xshift=1]
+				\getzoomfactor
+				\shade[left color=yellow!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1.8,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{2+int(#3 / 2)-0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{2-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}) ;
+				\foreach \currentinput in {1,...,#3} % draw input lines
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-1,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))});
+						\coordinate (pin\currentinput) at (-1, {\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}); % current left terminal (input-i)
+					}
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt]  (0.4,1.5)  -- (0.6,2.5);
+				\node[draw=none, align=center] at (0.5,3) {#3};
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
+				\filldraw[white]  (6.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
+				\ifstrequal{#5}{gridon}
+					{
+						\MAX{#3}{5}{\gridheight}
+						\draw[step=1cm,color=gray] (-1,{2-int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))}) grid (7,{2+int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))});
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pinRight) at (7, 2); % right terminal (output)
+		\end{scope}
+}
+
+%% XOR-2
+\newcommand{\xortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=orange!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1.6,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0.5,0) arc (-42:42:3) ;
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin3) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% XNOR-2
+\newcommand{\xnortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 45 -10 50 -20 C 45 -30 40 -40 15 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
+		\begin{scope}[shift={#2}, rotate=#4]
+				\getzoomfactor
+				\shade[left color=brown!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1.6,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\node[draw=none, align=center] at (3.5,2) {#3};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0.5,0) arc (-42:42:3) ;
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
+				\filldraw[white]  (6.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
+				\StrMid{#1}{1}{1}[\firstinputinverted]
+				\StrMid{#1}{2}{2}[\secondinputinverted]
+				\IfEq{\firstinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},1) circle(0.25);
+					}
+					{
+					}
+				\IfEq{\secondinputinverted}{1}
+					{
+						\filldraw[white]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  ({0.75cm - \linewidthscalefactor * \zoomfactor * 1.5pt},3) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#2};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
+				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
+				\coordinate (pin3) at (7, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% NOT
+\newcommand{\inverter}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 35 -20 Z M 39 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 43 -20 L 50 -20
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\ifstrequal{#4}{nocolor}
+				{
+				}
+				{
+					\shade[left color=magenta!20!white, draw=none]  (1,0)  -- (1,4) -- (4,2)  -- (1,0);
+				}				
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,2)  -- (5,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0)  -- (1,4) -- (4,2)  -- (1,0) -- cycle;
+				\node[draw=none, align=center] at (2,2) {#2};
+				\filldraw[white]  (4.25,2) circle(0.25);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4.25,2) circle(0.25);
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (5,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 2); % left terminal (input)
+				\coordinate (pin2) at (5, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% BUFFER
+\newcommand{\buffer}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\ifstrequal{#4}{nocolor}
+				{
+				}
+				{
+					\shade[left color=purple!20!white, draw=none]  (1,0)  -- (1,4) -- (4,2)  -- (1,0);
+				}				
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,2)  -- (5,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0)  -- (1,4) -- (4,2)  -- (1,0) -- cycle;
+				\node[draw=none, align=center] at (2,2) {#2};
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (5,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 2); % left terminal (input)
+				\coordinate (pin2) at (5, 2); % right terminal (output)	
+		\end{scope}
+}
+
+%% J-K Flip Flop
+\newcommand{\jkflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
+% enabled
+% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\shade[left color=purple!20!white, draw=none] (1,0) rectangle (6,10);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,5)  -- (1,5);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,8)  -- (7,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4.5)  -- (1.5,5) -- (1,5.5);
+				\node[draw=none, anchor=west] at (1.2,5) {CLK};
+				\node[draw=none, anchor=west] at (1,8) {J};
+				\node[draw=none, anchor=west] at (1,2) {K};
+				\node[draw=none, anchor=east] at (6,8) {Q};
+				\node[draw=none, anchor=east] at (6,2) {$\accentset{\rule{0.75em}{\thickbarthickness pt}}{\text{Q}}$};
+				\node[draw=none, align=center] at (3.5,6.5) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) rectangle (6,10);
+				\ifstrequal{#4}{reset}
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
+						\node[draw=none, align=center] at (3.5,0.7) {clr};
+						\coordinate (pin4) at (3.5, -1); % bottom terminal (clr)
+					}
+					{
+						\ifstrequal{#4}{resetn}
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
+								\node[draw=none, align=center] at (3.5,0.7) {clr};
+								\filldraw[white]  (3.5,-0.3) circle(0.25);
+								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,-0.3) circle(0.25);
+								\coordinate (pin4) at (3.5, -1); % bottom terminal (clr)
+							}
+							{
+							}
+					}
+				\ifstrequal{#5}{negative}
+					{
+						\filldraw[white]  (0.65,5) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0.65,5) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (7,10);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 8); % top left terminal (J)
+				\coordinate (pin2) at (0, 5); % middle left terminal (CLK)
+				\coordinate (pin3) at (0, 2); % bottom left terminal (K)
+				\coordinate (pin5) at (7, 8); % top right terminal (Q)	
+				\coordinate (pin6) at (7, 2); % bottom right terminal (Qn)	
+		\end{scope}
+}
+
+
+%% S-R Latch
+\newcommand{\srlatch}[6]{%{position}{name}{rotation}{enable}{grid}{show (0,0)}
+% enabled
+% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 60 -80 L 70 -80 M 60 -20 L 70 -20
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\shade[left color=magenta!20!white, draw=none] (1,0) rectangle (6,10);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,8)  -- (7,8);
+				\ifstrequal{#4}{enable}
+					{
+						\node[draw=none, anchor=west] at (1,5) {E};
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,5)  -- (1,5);
+						\coordinate (pin2) at (0, 5); % middle left terminal (E)
+					}
+					{
+					}
+				\node[draw=none, anchor=west] at (1,8) {S};
+				\node[draw=none, anchor=west] at (1,2) {R};
+				\node[draw=none, anchor=east] at (6,8) {Q};
+				\node[draw=none, anchor=east] at (6,2) {$\accentset{\rule{0.75em}{\thickbarthickness pt}}{\text{Q}}$};
+				\node[draw=none, align=center] at (3.5,6.5) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) rectangle (6,10);
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,10);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 8); % top left terminal (S)
+				\coordinate (pin3) at (0, 2); % bottom left terminal (R)
+				\coordinate (pin4) at (7, 8); % top right terminal (Q)	
+				\coordinate (pin5) at (7, 2); % bottom right terminal (Qn)	
+		\end{scope}
+}
+
+%% S-R Flip Flop
+\newcommand{\srflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
+% enabled
+% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\shade[left color=cyan!20!white, draw=none] (1,0) rectangle (6,10);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,5)  -- (1,5);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,8)  -- (7,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4.5)  -- (1.5,5) -- (1,5.5);
+				\node[draw=none, anchor=west] at (1.2,5) {CLK};
+				\node[draw=none, anchor=west] at (1,8) {S};
+				\node[draw=none, anchor=west] at (1,2) {R};
+				\node[draw=none, anchor=east] at (6,8) {Q};
+				\node[draw=none, anchor=east] at (6,2) {$\accentset{\rule{0.75em}{\thickbarthickness pt}}{\text{Q}}$};
+				\node[draw=none, align=center] at (3.5,6.5) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) rectangle (6,10);
+				\ifstrequal{#4}{reset}
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
+						\node[draw=none, align=center] at (3.5,0.7) {clr};
+						\coordinate (pin4) at (3.5, -1); % bottom terminal (clr)
+					}
+					{
+						\ifstrequal{#4}{resetn}
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
+								\node[draw=none, align=center] at (3.5,0.7) {clr};
+								\filldraw[white]  (3.5,-0.3) circle(0.25);
+								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,-0.3) circle(0.25);
+								\coordinate (pin4) at (3.5, -1); % bottom terminal (clr)
+							}
+							{
+							}
+					}
+				\ifstrequal{#5}{negative}
+					{
+						\filldraw[white]  (0.65,5) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0.65,5) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (7,10);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 8); % top left terminal (S)
+				\coordinate (pin2) at (0, 5); % middle left terminal (CLK)
+				\coordinate (pin3) at (0, 2); % bottom left terminal (R)
+				\coordinate (pin5) at (7, 8); % top right terminal (Q)	
+				\coordinate (pin6) at (7, 2); % bottom right terminal (Qn)	
+		\end{scope}
+}
+
+%% D Flip Flop
+\newcommand{\dflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
+% enabled
+% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\shade[left color=gray!20!white, draw=none] (1,0) rectangle (6,10);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,8)  -- (7,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,1.5)  -- (1.5,2) -- (1,2.5);
+				\node[draw=none, anchor=west] at (1.2,2) {CLK};
+				\node[draw=none, anchor=west] at (1,8) {D};
+				\node[draw=none, anchor=east] at (6,8) {Q};
+				\node[draw=none, anchor=east] at (6,2) {$\accentset{\rule{0.75em}{\thickbarthickness pt}}{\text{Q}}$};
+				\node[draw=none, align=center] at (3.5,5.5) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) rectangle (6,10);
+				\ifstrequal{#4}{reset}
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
+						\node[draw=none, align=center] at (3.5,0.7) {clr};
+						\coordinate (pin3) at (3.5, -1); % bottom terminal (clr)
+					}
+					{
+						\ifstrequal{#4}{resetn}
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
+								\node[draw=none, align=center] at (3.5,0.7) {clr};
+								\filldraw[white]  (3.5,-0.3) circle(0.25);
+								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,-0.3) circle(0.25);
+								\coordinate (pin3) at (3.5, -1); % bottom terminal (clr)
+							}
+							{
+							}
+					}
+				\ifstrequal{#5}{negative}
+					{
+						\filldraw[white]  (0.65,2) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0.65,2) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (7,10);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 8); % top left terminal (D)
+				\coordinate (pin2) at (0, 2); % bottom left terminal (CLK)
+				\coordinate (pin4) at (7, 8); % top right terminal (Q)	
+				\coordinate (pin5) at (7, 2); % bottom right terminal (Qn)	
+		\end{scope}
+}
+
+%% D Latch
+\newcommand{\dlatch}[6]{%{position}{name}{rotation}{enable}{grid}{show (0,0)}
+% enabled
+% icon: M 10 0 L 60 0 L 60 -70 L 10 -70 Z M 0 -50 L 10 -50 M 0 -20 L 10 -20 M 60 -50 L 70 -50 M 60 -20 L 70 -20
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\shade[left color=orange!20!white, draw=none] (1,0) rectangle (6,7);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,5)  -- (1,5);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,5)  -- (7,5);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\ifstrequal{#4}{enable}
+					{
+						\node[draw=none, align=center] at (1.5,2) {$E$};
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+						\coordinate (pin2) at (0, 2); % bottom left terminal (E)
+					}
+					{
+					}
+
+				\node[draw=none, anchor=west] at (1,5) {D};
+				\node[draw=none, anchor=east] at (6,5) {Q};
+				\node[draw=none, anchor=east] at (6,2) {$\accentset{\rule{0.75em}{\thickbarthickness pt}}{\text{Q}}$};
+				\node[draw=none, align=center] at (3.5,3.5) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) rectangle (6,7);
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (7,7);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 5); % top left terminal (D)				
+				\coordinate (pin3) at (7, 5); % top right terminal (Q)	
+				\coordinate (pin4) at (7, 2); % bottom right terminal (Qn)	
+		\end{scope}
+}
+
+%% T Flip Flop
+\newcommand{\tflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
+% enabled
+% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\shade[left color=brown!20!white, draw=none] (1,0) rectangle (6,10);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,8)  -- (7,8);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,1.5)  -- (1.5,2) -- (1,2.5);
+				\node[draw=none, anchor=west] at (1.2,2) {CLK};
+				\node[draw=none, anchor=west] at (1,8) {T};
+				\node[draw=none, anchor=east] at (6,8) {Q};
+				\node[draw=none, anchor=east] at (6,2) {$\accentset{\rule{0.75em}{\thickbarthickness pt}}{\text{Q}}$};
+				\node[draw=none, align=center] at (3.5,5.5) {#2};
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) rectangle (6,10);
+				\ifstrequal{#4}{reset}
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
+						\node[draw=none, align=center] at (3.5,0.7) {clr};
+						\coordinate (pin3) at (3.5, -1); % bottom terminal (clr)
+					}
+					{
+						\ifstrequal{#4}{resetn}
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
+								\node[draw=none, align=center] at (3.5,0.7) {clr};
+								\filldraw[white]  (3.5,-0.3) circle(0.25);
+								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,-0.3) circle(0.25);
+								\coordinate (pin3) at (3.5, -1); % bottom terminal (clr)
+							}
+							{
+							}
+					}
+				\ifstrequal{#5}{negative}
+					{
+						\filldraw[white]  (0.65,2) circle(0.25);
+						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0.65,2) circle(0.25);
+					}
+					{
+					}
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (7,10);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 8); % top left terminal (T)
+				\coordinate (pin2) at (0, 2); % bottom left terminal (CLK)
+				\coordinate (pin4) at (7, 8); % top right terminal (Q)	
+				\coordinate (pin5) at (7, 2); % bottom right terminal (Qn)	
+		\end{scope}
+}
+
+%% Multiplexer with n inputs
+\newcommand{\muxninputs}[7]{%{position}{name}{number of inputs}{rotation}{select at top/bottom}{grid}{show (0,0)}
+% disabled
+		\begin{scope}[shift={#1}, rotate=#4, yshift=1]
+				\getzoomfactor
+				\LOG[2]{#3}{\numberofselectterminalstmp}				
+				\FLOOR{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
+				\IfEq{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
+					{
+						\ADD{0}{\numberofselectterminalsfloor}{\numberofselectterminals}
+					}
+					{
+						\ADD{1}{\numberofselectterminalsfloor}{\numberofselectterminals}
+					}
+				\ADD{1}{\numberofselectterminals}{\muxrectanglewidth}				
+				\ADD{1}{#3}{\muxrectangleheight}
+
+				\foreach \currentinput in {1,...,#3} % draw input lines
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,\currentinput)  -- (1,\currentinput);
+						\SUBTRACT{\currentinput}{1}{\currentinputindex}
+						\node[draw=none, align=center] at (0.5,\currentinput + 0.5) {I\textsubscript{\currentinputindex}}; % draw input symbol
+						\coordinate (pin\currentinput) at (0, \currentinput); % left terminal (input-i)
+					}
+				\ifstrequal{#5}{top}
+					{
+						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at top
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 1+#3-0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  #3+2); % draw select lines at top
+								\coordinate (pinSelect\currentselectterminal) at (1 + \currentselectterminal,  #3+2); % top terminal (select-i)
+								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
+								\IfEq{\numberofselectterminals}{1}
+									{
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,#3+1.5) {s}; % draw select symbols
+									}
+									{
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,#3+1.5) {s\textsubscript{\currentselectterminalindex}}; % draw select symbols
+									}
+							}
+						\ifstrequal{#2}{}	
+							{
+							}
+							{					
+								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},-1) {#2}; % draw name at bottom
+							}
+					}
+					{
+						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at bottom
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  -1); % draw select lines at bottom
+								\coordinate (pinSelect\currentselectterminal) at (1 + \currentselectterminal,  -1); % bottom terminal (select-i)
+								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
+								\IfEq{\numberofselectterminals}{1}
+									{
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,-0.5) {s}; % draw select symbols
+									}
+									{
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,-0.5) {s\textsubscript{\currentselectterminalindex}}; % draw select symbols
+									}
+							}
+						\ifstrequal{#2}{}	
+							{
+							}
+							{					
+								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},#3+2) {#2}; % draw name at top
+							}
+					}
+
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (\muxrectanglewidth + 1,{(#3+1) / 2})  -- (\muxrectanglewidth + 2,{(#3+1) / 2}); % draw output line
+					\coordinate (pinOutput) at (\muxrectanglewidth + 1,{(#3+1) / 2}); % right terminal (output)
+					\node[draw=none, align=center] at (\muxrectanglewidth + 1.5,{0.5 + (#3+1) / 2}) {O}; % draw output symbol
+					\shade[left color=gray!50!white, draw=none] (1,0) -- (1, #3+1) -- (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) -- cycle; % draw shade
+					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1pt, color=gray!70]  (1,0) -- (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth); % draw diagonal
+					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) -- (1, #3+1) -- (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) -- cycle; % draw box 
+					% draw number of inputs/outputs
+						% define dummy nodes
+							\node[draw=none] (BL) at (1,0) {}; % bottom-left body corner
+							\node[draw=none] (TL) at (1, #3+1) {}; % top-left body corner
+							\node[draw=none] (TR) at (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth) {}; % top-right body corner
+							\node[draw=none] (BR) at (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) {}; % bottom-right body corner
+						%place numbers 
+							\node[draw=none, align=center] at  (barycentric cs:BL=1/3,TL=1/3,TR=1/3) {#3}; % draw number of inputs
+							\node[draw=none, align=center] at  (barycentric cs:BL=1/3,BR=1/3,TR=1/3) {1}; % draw number of outputs
+
+				% other options
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (\muxrectanglewidth + 2,#3+2);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+		\end{scope}
+}
+
+%% Demultiplexer with n outputs
+\newcommand{\demuxnoutputs}[7]{%{position}{name}{number of outputs}{rotation}{select at top/bottom}{grid}{show (0,0)}
+% disabled
+		\begin{scope}[shift={#1}, rotate=#4, yshift=1]
+				\getzoomfactor
+				\LOG[2]{#3}{\numberofselectterminalstmp}				
+				\FLOOR{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
+				\IfEq{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
+					{
+						\ADD{0}{\numberofselectterminalsfloor}{\numberofselectterminals}
+					}
+					{
+						\ADD{1}{\numberofselectterminalsfloor}{\numberofselectterminals}
+					}
+				\ADD{1}{\numberofselectterminals}{\muxrectanglewidth}
+				\ADD{1}{#3}{\muxrectangleheight}
+
+				\foreach \currentoutput in {1,...,#3} % draw output lines
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \muxrectanglewidth,\currentoutput)  -- (2 + \muxrectanglewidth,\currentoutput);
+						\coordinate (pin\currentoutput) at (1 + \muxrectanglewidth,\currentoutput); % right terminal (output-i)
+						\SUBTRACT{\currentoutput}{1}{\currentoutputindex}
+						\node[draw=none, align=center] at (1.5 + \muxrectanglewidth, 0.5 + \currentoutput) {O\textsubscript{\currentoutputindex}}; % draw output symbol
+					}
+				\ifstrequal{#5}{top}
+					{
+						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at top
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 1+#3-0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  #3+2); % draw select lines at top
+								\coordinate (pinSelect\currentselectterminal) at (1 + \currentselectterminal,  #3+2); % top terminal (select-i)
+								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
+								\IfEq{\numberofselectterminals}{1}
+									{
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,#3+1.5) {s}; % draw select symbols
+									}
+									{
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,#3+1.5) {s\textsubscript{\currentselectterminalindex}}; % draw select symbols
+									}
+							}
+						\ifstrequal{#2}{}	
+							{
+							}
+							{						
+								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},-1) {#2}; % draw name at bottom
+							}
+					}
+					{
+						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at bottom
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  -1); % draw select lines at bottom
+								\coordinate (pinSelect\currentselectterminal) at (1 + \currentselectterminal,  -1); % bottom terminal (select-i)
+								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
+								\IfEq{\numberofselectterminals}{1}
+									{
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,-0.5) {s}; % draw select symbols
+									}
+									{
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,-0.5) {s\textsubscript{\currentselectterminalindex}}; % draw select symbols
+									}
+							}
+						\ifstrequal{#2}{}	
+							{
+							}
+							{					
+								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},#3+2) {#2}; % draw name at top
+							}
+					}
+
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{(#3+1) / 2})  -- (1,{(#3+1) / 2}); % draw input line
+					\coordinate (pinInput) at (0,{(#3+1) / 2}); % left terminal (input)
+					\node[draw=none, align=center] at (0.5,{0.5 + (#3+1) / 2}) {I}; % draw input symbol
+					\shade[left color=gray!50!white, draw=none] (1,0.4*\muxrectanglewidth) -- (1, 1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,#3+1) -- (1 + \muxrectanglewidth,0) -- cycle; % draw shade
+					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1pt, color=gray!70]  (1,0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,#3+1); % draw diagonal
+					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0.4*\muxrectanglewidth) -- (1, 1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,#3+1) -- (1 + \muxrectanglewidth,0) -- cycle;  % draw box
+					% draw number of inputs/outputs
+						% define dummy nodes
+							\node[draw=none] (BL) at (1,0.4*\muxrectanglewidth) {}; % bottom-left body corner
+							\node[draw=none] (TL) at (1, 1+#3-0.4*\muxrectanglewidth) {}; % top-left body corner
+							\node[draw=none] (TR) at (1 + \muxrectanglewidth,#3+1) {}; % top-right body corner
+							\node[draw=none] (BR) at (1 + \muxrectanglewidth,0) {}; % bottom-right body corner
+						%place numbers 
+							\node[draw=none, align=center] at  (barycentric cs:BL=1/3,TL=1/3,TR=1/3) {1}; % draw number of inputs
+							\node[draw=none, align=center] at  (barycentric cs:BL=1/3,BR=1/3,TR=1/3) {#3}; % draw number of outputs
+
+				% other options
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (\muxrectanglewidth + 2,#3+2);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+		\end{scope}
+}
+
+%% Generic digital circuit (n-inputs, m-outputs)
+\newcommand{\genericdigitalcircuit}[7]{%{position}{name}{number of inputs-enable}{number of outputs}{rotation}{grid}{show (0,0)}
+% disabled
+		\StrBehind{#3}{-}[\genericcircuitwithenable]
+		\StrBefore{#3}{-}[\numberofinputswithoutenable]
+		\IfStrEq{\genericcircuitwithenable}{}
+			{
+				\edef\numberofinputterminals{#3}
+				\edef\foreachstartindex{1}
+				\edef\foreachsubtractvalue{1}
+			}
+			{
+				\IfStrEq{\genericcircuitwithenable}{enable}
+					{
+						\ADD{\numberofinputswithoutenable}{2}{\numberofinputterminals}
+						\edef\foreachstartindex{3}
+						\edef\foreachsubtractvalue{3}
+					}
+					{
+						\edef\numberofinputterminals{\numberofinputswithoutenable}
+						\edef\foreachstartindex{1}
+						\edef\foreachsubtractvalue{1}
+					}
+			}
+		\begin{scope}[shift={#1}, rotate=#5, yshift=1]
+				\getzoomfactor
+				\MAX{\numberofinputterminals}{#4}{\maxterminals}
+				\foreach \currentinput in {\foreachstartindex,...,\numberofinputterminals} % draw input lines
+					{
+						\SUBTRACT{\currentinput}{\foreachsubtractvalue}{\currentinputindex}
+			
+						\IfEq{\maxterminals}{\numberofinputterminals}
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,\currentinput)  -- (1,\currentinput);
+								\coordinate (pinInput\currentinput) at (0,\currentinput); % left terminal (input-i)
+								\IfEq{\numberofinputterminals}{1}
+									{
+										\node[draw=none, align=center] at (0.5, 0.5 + \currentinput) {I}; % draw input symbols
+									}
+									{
+										\node[draw=none, align=center] at (0.5, 0.5 + \currentinput) {I\textsubscript{\currentinputindex}}; % draw input symbols
+									}
+							}
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{\currentinput +  round((\maxterminals - \numberofinputterminals) / 2)})  -- (1,{\currentinput +  round((\maxterminals - \numberofinputterminals) / 2)});
+								\coordinate (pinInput\currentinput) at (0,{\currentinput +  round((\maxterminals - \numberofinputterminals) / 2)}); % left terminal (input-i)
+								\IfEq{\numberofinputterminals}{1}
+									{
+										\node[draw=none, align=center] at (0.5,{0.5 + \currentinput +  round((\maxterminals - \numberofinputterminals) / 2)}) {I}; % draw input symbols
+									}
+									{
+										\node[draw=none, align=center] at (0.5,{0.5 + \currentinput +  round((\maxterminals - \numberofinputterminals) / 2)}) {I\textsubscript{\currentinputindex}}; % draw input symbols
+									}
+							}				
+					}
+				\foreach \currentoutput in {1,...,#4} % draw output lines
+					{
+						\SUBTRACT{\currentoutput}{1}{\currentoutputindex}
+
+						\IfEq{\maxterminals}{#4}
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,\currentoutput)  -- (7,\currentoutput);
+								\coordinate (pinOutput\currentoutput) at (7,\currentoutput); % right terminal (output-i)
+								\IfEq{#4}{1}
+									{
+										\node[draw=none, align=center] at (6.5, 0.5 + \currentoutput) {O}; % draw output symbols
+									}
+									{
+										\node[draw=none, align=center] at (6.5, 0.5 + \currentoutput) {O\textsubscript{\currentoutputindex}}; % draw output symbols
+									}
+							}
+							{
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,{\currentoutput +  round((\maxterminals - #4) / 2)})  -- (7,{\currentoutput +  round((\maxterminals - #4) / 2)});
+								\coordinate (pinOutput\currentoutput) at (7,{\currentoutput +  round((\maxterminals - #4) / 2)}); % right terminal (output-i)
+								\IfEq{#4}{1}
+									{
+										\node[draw=none, align=center] at  (6.5,{0.5 + \currentoutput +  round((\maxterminals - #4) / 2)})  {O}; % draw output symbols
+									}
+									{
+										\node[draw=none, align=center] at  (6.5,{0.5 + \currentoutput +  round((\maxterminals - #4) / 2)})  {O\textsubscript{\currentoutputindex}}; % draw output symbols
+									}
+							}
+					}
+				\shade[left color=gray!20!blue!30, draw=none] (1,0) rectangle (6,\maxterminals+1); % draw shade
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) rectangle (6,\maxterminals+1); % draw box
+				\node[draw=none, align=center] at (3.5,{(\maxterminals + 1)/ 2}) {#2}; % draw name at center
+				% draw 'enable' terminal
+					\IfStrEq{\genericcircuitwithenable}{enable}
+						{
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1,1);
+							\coordinate (pinEnable) at (0,1); % bottom left terminal (enable)
+							\node[draw=none, align=center, anchor=west] at (1,1) {En};
+						}
+						{
+						}
+				%
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,-1) grid (7,\maxterminals+2);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+		\end{scope}
+}
+
+%% Seven-segment display
+\newcommand{\sevensegmentdisplay}[6]{%{position}{name}{displayed number}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M 0 0 L 80 0 L 80 -100 L 0 -100 Z M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z M 10 0 L 10 10 M 20 0 L 20 10 M 30 0 L 30 10 M 40 0 L 40 10 M 50 0 L 50 10 M 60 0 L 60 10 M 70 0 L 70 10
+		\begin{scope}[shift={#1}, rotate=#4, yshift=1]
+				\getzoomfactor
+				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,0) rectangle (8,10); % draw box
+				\node[draw=none, align=center] at (4,10.5) {#2}; % draw name
+
+				%draw segment shapes:
+				\ifstrequal{#3}{0}
+					{
+						\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,1.5) rectangle (5.5,2.5); % d
+						\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,7.5) rectangle (5.5,8.5); % a
+						\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,4.5) rectangle (5.5,5.5); % g
+						\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,2) rectangle (2.5,5); % e
+						\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,5) rectangle (2.5,8); % f
+						\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+						\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,5) rectangle (6.5,8); % b
+					}
+					{
+						\ifstrequal{#3}{1}
+						{
+							\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,1.5) rectangle (5.5,2.5); % d
+							\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,7.5) rectangle (5.5,8.5); % a
+							\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,4.5) rectangle (5.5,5.5); % g
+							\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,2) rectangle (2.5,5); % e
+							\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,5) rectangle (2.5,8); % f
+							\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+							\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,5) rectangle (6.5,8); % b
+						}
+						{
+							\ifstrequal{#3}{2}
+							{
+								\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,1.5) rectangle (5.5,2.5); % d
+								\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,7.5) rectangle (5.5,8.5); % a
+								\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,4.5) rectangle (5.5,5.5); % g
+								\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,2) rectangle (2.5,5); % e
+								\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,5) rectangle (2.5,8); % f
+								\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (5.5,2) rectangle (6.5,5); % c
+								\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,5) rectangle (6.5,8); % b
+							}
+							{
+								\ifstrequal{#3}{3}
+								{
+									\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,1.5) rectangle (5.5,2.5); % d
+									\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,7.5) rectangle (5.5,8.5); % a
+									\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,4.5) rectangle (5.5,5.5); % g
+									\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,2) rectangle (2.5,5); % e
+									\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,5) rectangle (2.5,8); % f
+									\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+									\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,5) rectangle (6.5,8); % b
+								}
+								{
+									\ifstrequal{#3}{4}
+									{
+										\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,1.5) rectangle (5.5,2.5); % d
+										\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,7.5) rectangle (5.5,8.5); % a
+										\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,4.5) rectangle (5.5,5.5); % g
+										\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,2) rectangle (2.5,5); % e
+										\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,5) rectangle (2.5,8); % f
+										\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+										\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,5) rectangle (6.5,8); % b
+									}
+									{
+										\ifstrequal{#3}{5}
+										{
+											\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,1.5) rectangle (5.5,2.5); % d
+											\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,7.5) rectangle (5.5,8.5); % a
+											\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,4.5) rectangle (5.5,5.5); % g
+											\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,2) rectangle (2.5,5); % e
+											\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,5) rectangle (2.5,8); % f
+											\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+											\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (5.5,5) rectangle (6.5,8); % b
+										}
+										{
+											\ifstrequal{#3}{6}
+											{
+												\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,1.5) rectangle (5.5,2.5); % d
+												\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,7.5) rectangle (5.5,8.5); % a
+												\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,4.5) rectangle (5.5,5.5); % g
+												\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,2) rectangle (2.5,5); % e
+												\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,5) rectangle (2.5,8); % f
+												\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+												\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (5.5,5) rectangle (6.5,8); % b
+											}
+											{
+												\ifstrequal{#3}{7}
+												{
+													\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,1.5) rectangle (5.5,2.5); % d
+													\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,7.5) rectangle (5.5,8.5); % a
+													\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,4.5) rectangle (5.5,5.5); % g
+													\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,2) rectangle (2.5,5); % e
+													\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,5) rectangle (2.5,8); % f
+													\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+													\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,5) rectangle (6.5,8); % b
+												}
+												{
+													\ifstrequal{#3}{8}
+													{
+														\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,1.5) rectangle (5.5,2.5); % d
+														\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,7.5) rectangle (5.5,8.5); % a
+														\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,4.5) rectangle (5.5,5.5); % g
+														\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,2) rectangle (2.5,5); % e
+														\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,5) rectangle (2.5,8); % f
+														\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+														\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,5) rectangle (6.5,8); % b
+													}
+													{
+														\ifstrequal{#3}{9}
+														{
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,1.5) rectangle (5.5,2.5); % d
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,7.5) rectangle (5.5,8.5); % a
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (2.5,4.5) rectangle (5.5,5.5); % g
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,2) rectangle (2.5,5); % e
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (1.5,5) rectangle (2.5,8); % f
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,2) rectangle (6.5,5); % c
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=red] (5.5,5) rectangle (6.5,8); % b
+														}
+														{% any non-valid case
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,1.5) rectangle (5.5,2.5); % d
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,7.5) rectangle (5.5,8.5); % a
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (2.5,4.5) rectangle (5.5,5.5); % g
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,2) rectangle (2.5,5); % e
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (1.5,5) rectangle (2.5,8); % f
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (5.5,2) rectangle (6.5,5); % c
+															\fill[line width=\linewidthscalefactor * \zoomfactor * 1pt, rounded corners=2mm, color=gray!40] (5.5,5) rectangle (6.5,8); % b
+														}
+													}
+												}
+											}
+										}
+									}
+								}	
+							}
+						}
+					}
+
+				% draw segment names:
+					\node[draw=none, align=center] at (4,9) {a}; 
+					\node[draw=none, align=center] at (4,1) {d}; 
+					\node[draw=none, align=center] at (4,4) {g}; 
+					\node[draw=none, align=center] at (7,6.5) {b}; 
+					\node[draw=none, align=center] at (1,6.5) {f}; 
+					\node[draw=none, align=center] at (7,3.5) {c}; 
+					\node[draw=none, align=center] at (1,3.5) {e}; 
+
+				% draw segment input terminals:
+					\foreach \currentsegment in {1,...,7}
+					{
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (\currentsegment,-1)  -- (\currentsegment,0);
+					}
+
+				% draw segment input terminal names:
+					\node[draw=none, anchor=north, align=center] at (1.5,0) {a}; 
+					\node[draw=none, anchor=north, align=center] at (2.5,0) {b}; 
+					\node[draw=none, anchor=north, align=center] at (3.5,0) {c}; 
+					\node[draw=none, anchor=north, align=center] at (4.5,0) {d}; 
+					\node[draw=none, anchor=north, align=center] at (5.5,0) {e}; 
+					\node[draw=none, anchor=north, align=center] at (6.5,0) {f}; 
+					\node[draw=none, anchor=north, align=center] at (7.5,0) {g}; 
+
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (-1,-1) grid (9,11);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (1,-1);
+				\coordinate (pin2) at (2,-1);
+				\coordinate (pin3) at (3,-1);
+				\coordinate (pin4) at (4,-1);
+				\coordinate (pin5) at (5,-1);
+				\coordinate (pin6) at (6,-1);
+				\coordinate (pin7) at (7,-1);
+		\end{scope}
+}
+
+%% FULL ADDER (one digit numbers)
+\newcommand{\fulladder}[6]{%{position}{name}{rotation}{grid}{show (0,0)}{right/left}
+% enabled
+% icon: M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20
+		\ifstrequal{#6}{right}
+					{
+						\edef\arrowdirection{<-}
+					}
+					{
+						\edef\arrowdirection{->}
+					}
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\shade[left color=magenta!20!white, draw=none] (0,0) rectangle (8,8);
+				\draw [\arrowdirection, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (10,4) -- (8,4);
+				\draw [\arrowdirection, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,4) -- (-2,4);
+				\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,0) -- (4,-2);
+				\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,0) -- (4,-2);
+				\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,10) -- (2,8);
+				\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (6,10) -- (6,8);
+				\ifstrequal{#6}{right}
+					{
+						\node[draw=none, align=center] at (1,4) {\textbf{\textcolor{blue}{c\textsubscript{i}}}};
+						\node[draw=none, align=center] at (7,4) {\textbf{\textcolor{blue}{c\textsubscript{o}}}};
+						\coordinate (pin4) at (-2,4); % left terminal (ci)
+						\coordinate (pin5) at (10,4); % right terminal (co)
+					}
+					{
+						\node[draw=none, align=center] at (7,4) {\textbf{\textcolor{blue}{c\textsubscript{i}}}};
+						\node[draw=none, align=center] at (1,4) {\textbf{\textcolor{blue}{c\textsubscript{o}}}};
+						\coordinate (pin4) at (-2,4); % left terminal (co)
+						\coordinate (pin5) at (10,4); % right terminal (ci)
+					}
+				\node[draw=none, align=center] at (4,1) {\textbf{\textcolor{blue}{s}}};
+				\node[draw=none, align=center] at (2,7) {\textbf{\textcolor{blue}{b}}};
+				\node[draw=none, align=center] at (6,7) {\textbf{\textcolor{blue}{a}}};
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) rectangle (8,8);
+				\node[draw=none, align=center] at (4,3) {#2};
+				\ifstrequal{#4}{gridon}
+					{
+						\draw[step=1cm,color=gray] (-2,-2) grid (10,10);
+					}
+					{
+					}
+				\ifstrequal{#5}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (6,10); % top right terminal (a)
+				\coordinate (pin2) at (2,10); % top left terminal (b)
+				\coordinate (pin3) at (4,-2); % bottom terminal (s)
+		\end{scope}
+}
+
+%% FULL SUBTRACTOR (one digit numbers)
+\newcommand{\fullsubtractor}[6]{%{position}{name}{rotation}{grid}{show (0,0)}{right/left}
+% enabled
+% icon: M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20
+		\ifstrequal{#6}{right}
+					{
+						\edef\arrowdirection{<-}
+					}
+					{
+						\edef\arrowdirection{->}
+					}
+		\begin{scope}[shift={#1}, rotate=#3]
+				\getzoomfactor
+				\shade[left color=darkgreen!20!white, draw=none] (0,0) rectangle (8,8);
+				\draw [\arrowdirection, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (10,4) -- (8,4);
+				\draw [\arrowdirection, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,4) -- (-2,4);
+				\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,0) -- (4,-2);
+				\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,0) -- (4,-2);
+				\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,10) -- (2,8);
+				\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (6,10) -- (6,8);
+				\ifstrequal{#6}{right}
+					{
+						\node[draw=none, align=center] at (1,4) {\textbf{\textcolor{blue}{b\textsubscript{i}}}};
+						\node[draw=none, align=center] at (7,4) {\textbf{\textcolor{blue}{b\textsubscript{o}}}};
+						\coordinate (pin4) at (-2,4); % left terminal (bi)
+						\coordinate (pin5) at (10,4); % right terminal (bo)
+					}
+					{
+						\node[draw=none, align=center] at (7,4) {\textbf{\textcolor{blue}{b\textsubscript{i}}}};
+						\node[draw=none, align=center] at (1,4) {\textbf{\textcolor{blue}{b\textsubscript{o}}}};
+						\coordinate (pin4) at (-2,4); % left terminal (bo)
+						\coordinate (pin5) at (10,4); % right terminal (bi)
+					}
+				\node[draw=none, align=center] at (4,1) {\textbf{\textcolor{blue}{d}}};
+				\node[draw=none, align=center] at (2,7) {\textbf{\textcolor{blue}{B}}};
+				\node[draw=none, align=center] at (6,7) {\textbf{\textcolor{blue}{A}}};
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) rectangle (8,8);
+				\node[draw=none, align=center] at (4,3) {#2};
+				\ifstrequal{#4}{gridon}
+					{
+						\draw[step=1cm,color=gray] (-2,-2) grid (10,10);
+					}
+					{
+					}
+				\ifstrequal{#5}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (6,10); % top right terminal (A)
+				\coordinate (pin2) at (2,10); % top left terminal (B)
+				\coordinate (pin3) at (4,-2); % bottom terminal (d)
+		\end{scope}
+}
+
+%% DIP INTEGRATED CIRCUIT
+% define helper macros:
+\newcommand{\drawembeddedgateconnections}
+% disabled
+{
+	\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (-2,3) -- (-2,-3.5);
+	\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (-1,1) -- (-1,-2) -- (2.5,-2) -- (2.5,-3.5) ;
+	\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (7,2)  -- (7,-3.5);
+}
+%
+% MAIN macro:
+\newcommand{\dipic}[7]{%{position}{name}{rotation}{number of pins}{code}{grid}{show (0,0)}
+% disabled
+	% find width
+		\IfEq{#5}{741}
+			{
+				\edef\numpinsperside{4}
+			}
+			{
+				\IfBeginWith{#5}{74}
+					{
+						\edef\numpinsperside{7}
+					}
+					{
+						\DIVIDE{#4}{2}{\numpinspersidetmp}
+						\FLOOR{\numpinspersidetmp}{\numpinspersidefloor}
+						\IfEq{\numpinspersidetmp}{\numpinspersidefloor}
+							{
+								\ADD{\numpinspersidefloor}{0}{\numpinsperside}
+							}
+							{
+								\ADD{\numpinspersidefloor}{1}{\numpinsperside}
+							}		
+					}
+			}		
+	% draw		
+		\begin{scope}[shift={#1}, rotate=#3]
+			% draw pins
+				\foreach \currenticside in {1, 2} 
+					{
+						\IfEq{\currenticside}{1}
+							{
+								\edef\pinverticalshift{0}
+								\edef\pinrotation{0}
+							}
+							{
+								\edef\pinverticalshift{6}
+								\edef\pinrotation{180}
+							}
+						\foreach \currentpinindex in {1, ..., \numpinsperside} 
+							{
+								\begin{scope}[shift={(1+\currentpinindex,\pinverticalshift)}, rotate=\pinrotation]
+									\shade[top color=gray!50!white, draw=none]   (-0.1,0)  -- (0.1,0) -- (0.3,1)  -- (-0.3,1) -- cycle;
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt]  (-0.1,0)  -- (0.1,0) -- (0.3,1)  -- (-0.3,1) -- cycle;
+									\coordinate (pin\currenticside .\currentpinindex) at (0,0); % ic pin
+								\end{scope}
+							}
+					}
+			% draw package body
+				\shade[right color=gray!20!black, draw=none]  (1,1)  rectangle (2+\numpinsperside,5);
+			% draw orientation mark
+				\draw[fill=black]  (1,3.75)  arc (90:-90:0.75);
+			% draw code
+				\node[draw=none, align=center, color=black, rotate=90] at (3+\numpinsperside,3) {#5};
+			% draw name
+				\ifstrequal{#5}{}
+					{
+						\ADD{\numpinsperside}{3}{\iccanvaswidth}						
+						\DIVIDE{\iccanvaswidth}{2}{\namehorizontalposition}
+						\node[draw=none, align=center, color=white] at (\namehorizontalposition,3) {\textbf{#2}};
+					}
+					{
+						\node[draw=none, align=center, color=blue, rotate=90] at (0,3) {#2};
+					}
+			% draw interior for known ICs
+				\IfEq{#5}{7404}
+					{
+						\foreach \currenticside in {1, 2} 
+							{
+								\IfEq{\currenticside}{1}
+									{
+										\edef\gateverticalshift{0}
+										\edef\gatehorizontalshift{0}
+										\edef\gateyscale{1}
+									}
+									{
+										\edef\gateverticalshift{18}
+										\edef\gatehorizontalshift{5}
+										\edef\gateyscale{-1}
+									}
+								\foreach \currentembeddedgate in {1, ..., 3} 
+									{
+										\begin{scope}[scale=0.2]
+											\begin{scope}[shift={(\gatehorizontalshift + 10 * \currentembeddedgate , 6 + \gateverticalshift)}, yscale=\gateyscale, color=white]
+													\getzoomfactor
+													\tikzset{every path}=[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]
+													\inverter{(0,0)}{}{0}{gridoff}{showoff}
+													\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (0,-1);
+													\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (5,2)  -- (5,-1);
+											\end{scope}
+										\end{scope}
+									}
+							}
+					}
+					{
+						% draw embedded gates
+						\foreach \currenticside in {1, 2} 
+							{
+								\IfEq{\currenticside}{1}
+									{
+										\edef\gateverticalshift{0}
+										\edef\gatehorizontalshift{11}
+										\edef\gateyscale{1}
+									}
+									{
+										\edef\gateverticalshift{11}
+										\edef\gatehorizontalshift{15.5}
+										\edef\gateyscale{-1}
+									}
+								\foreach \currentembeddedgate in {0,1} 
+									{
+										\begin{scope}[scale=0.22]
+											\begin{scope}[shift={(\gatehorizontalshift + 14 * \currentembeddedgate , 8 + \gateverticalshift)}, yscale=\gateyscale, color=white]																				\getzoomfactor
+												\IfEq{#5}{7408}{\andtwo{(0,0)}{}{0}{gridoff}{showoff} \drawembeddedgateconnections}{}
+												\IfEq{#5}{7432}{\ortwo{(0,0)}{}{0}{gridoff}{showoff} \drawembeddedgateconnections}{}
+												\IfEq{#5}{7400}{\nandtwo{(0,0)}{}{0}{gridoff}{showoff} \drawembeddedgateconnections}{}																
+												\IfEq{#5}{7402}
+													{
+														\nortwoflipped{(5,0)}
+														\begin{scope}[shift={(5,0)}, rotate=180, yscale=-1]
+															\drawembeddedgateconnections									
+														\end{scope}
+													}{}								
+											\end{scope}	
+										\end{scope}
+									}
+							}
+					}
+
+			% draw package border
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,1)  rectangle (2+\numpinsperside,5);
+
+			% grid and coordinates
+				\ifstrequal{#6}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (3+\numpinsperside,6);
+					}
+					{
+					}
+				\ifstrequal{#7}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+		\end{scope}
+}
+
+%
+%%%%%%%%%%%%%%%%%
+%%%%  MISC PARTS 	%%%%%
+%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%
+%% State Diagram
+%%%%%%%%%%%%%%%%%%%%%
+%
+\usepackage{calc} 
+\usepackage{forloop} 
+\newcounter{forloopcounter}
+\newlength{\overallnodetextwidth}%in inches
+\newlength{\overallLinearNodeTextWidth}%in inches
+\newcommand{\statediagram}[6]{%{position}{circle radius ["auto" for automatic calculation]}{state data}{rotation}{grid}{show (0,0)}
+		\edef \gridwidthcyclic {0}
+		\edef \gridwidthlinear {0}
+		\begin{scope}[shift={#1}, rotate=#4]
+			\getzoomfactor
+			\StrBefore{#3}{(}[\linearnodes]
+			\IfBeginWith{#3}{(}
+				{
+					\StrBetween{#3}{(}{)}[\cyclicnodes]
+					\StrCount{\cyclicnodes -}{-}[\numcyclicnodes]
+					% find proper margin value
+						\setlength{\overallnodetextwidth}{0in}
+						\ADD{\numcyclicnodes}{1}{\numcyclicnodesforlooplimit}
+						\forloop{forloopcounter}{1}{\value{forloopcounter} < \numcyclicnodesforlooplimit}
+						{
+							\StrBefore[\value{forloopcounter}]{\cyclicnodes -}{-}[\cyclicnodetexttmp]
+							\StrBehind[\value{forloopcounter}]{-\cyclicnodetexttmp}{-}[\cyclicnodetext]
+							\addtolength{\overallnodetextwidth}{\widthof{\cyclicnodetext}}
+							\addtolength{\overallnodetextwidth}{\widthof{WW}}% take into account 2 "safety" characters
+						}
+						% convert \overallnodetextwidth from pt to inches
+							\edef\overallnodetextwidthinpt{\strip@pt\overallnodetextwidth}
+							\MULTIPLY{0.01389}{\overallnodetextwidthinpt}{\overallnodetextwidthininches}
+						\IfStrEq{#2}{auto}
+							{
+								% find circle perimeter in inches
+									\MULTIPLY{2}{\overallnodetextwidthininches}{\circularpartperimeterininches}
+								% find circle radius in inches
+									\DIVIDE{\circularpartperimeterininches}{6.28}{\circularpartradiusininches}
+								% find circle radius in centimeters
+									\DIVIDE{\circularpartperimeterininches}{0.393701}{\circularpartradius}
+									\edef\originalcircularpartradius{\circularpartradius}
+							}
+							{
+								\edef\originalcircularpartradius{#2}							
+							}
+						% correct circle radius according to current zoom factor
+							\ABSVALUE{\zoomfactor}{\abszoomfactor}
+							\MULTIPLY{\originalcircularpartradius}{\abszoomfactor}{\circularpartradius}
+						% find cyclic part perimeter (in cm)		
+							\MULTIPLY{6.28}{\circularpartradius}{\circularpartperimeter}
+						% convert cyclic part perimeter to inches		
+							\MULTIPLY{0.393701}{\circularpartperimeter}{\circularpartperimeterininches}
+						% find fraction of perimeter occupied by node circles 
+							\DIVIDE{\overallnodetextwidthininches}{\circularpartperimeterininches}{\circularpartnodefraction}
+						% find fraction of perimeter occupied by node circles (in degrees) 
+							\MULTIPLY{\circularpartnodefraction}{360}{\circularpartnodefractiondegrees}
+						% find degrees per node 
+							\DIVIDE{\circularpartnodefractiondegrees}{\numcyclicnodes}{\circularpartnodefractiondegreespernode}
+						% find final margin 
+							\MULTIPLY{0.5}{\circularpartnodefractiondegreespernode}{\margin}
+						% assign a +/-5% margin tolerance per node 
+							\MULTIPLY{1.05}{\margin}{\margin}	
+
+					% draw cyclic part
+					\begin{scope}[xscale=-1]
+						\getzoomfactor
+						\foreach \s in {1,...,\numcyclicnodes}
+						{
+							\StrBefore[{\s}]{\cyclicnodes -}{-}[\cyclicnodetexttmp]
+							\StrBehind[{\s}]{-\cyclicnodetexttmp}{-}[\cyclicnodetext]
+						 	\node[draw, circle, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (C\s) at ({360/\numcyclicnodes * (\s - 1)}:\originalcircularpartradius) {$\cyclicnodetext$};
+						  	\draw[->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] ({360/\numcyclicnodes * (\s - 1)+\margin}:\originalcircularpartradius) 
+						   	arc ({360/\numcyclicnodes * (\s - 1)+\margin}:{360/\numcyclicnodes * (\s)-\margin}:\originalcircularpartradius);
+						}
+					\end{scope}
+					\MULTIPLY{2}{\originalcircularpartradius}{\gridwidthcyclic}
+				}
+				{
+					\IfEndWith{\linearnodes}{-}
+						{
+						}
+						{
+							\edef \linearnodes {#3-}
+						}
+
+					\StrCount{\linearnodes}{-}[\numlinearnodes]
+
+					% find distance between linear nodes
+						\setlength{\overallLinearNodeTextWidth}{0in}
+						\ADD{\numlinearnodes}{1}{\numlinearnodesforlooplimit}
+						\forloop{forloopcounter}{1}{\value{forloopcounter} < \numlinearnodesforlooplimit}
+						{ 
+							\StrBefore[\value{forloopcounter}]{\linearnodes}{-}[\linearnodetexttmp]
+							\StrBehind[\value{forloopcounter}]{-\linearnodetexttmp}{-}[\linearnodetext]
+							\addtolength{\overallLinearNodeTextWidth}{\widthof{\linearnodetext}}
+							\addtolength{\overallLinearNodeTextWidth}{\widthof{WW}}% take into account 2 "safety" characters
+						}
+						% convert \overallLinearNodeTextWidth from pt to inches
+							\edef\overallLinearNodeTextWidthinpt{\strip@pt\overallLinearNodeTextWidth}
+							\MULTIPLY{0.01389}{\overallLinearNodeTextWidthinpt}{\overallLinearNodeTextWidthininches}
+						% convert \overallLinearNodeTextWidth from inches to centimeters
+							\MULTIPLY{\overallLinearNodeTextWidthininches}{2.54}{\overallLinearNodeTextWidthinCM}	
+						% calculate node separation
+							\SUBTRACT{\numlinearnodes}{1}{\numlinearnodesminusone}
+							\IfEq{\numlinearnodesminusone}{0}
+								{
+									\ADD{1}{\numlinearnodesminusone}{\numlinearnodesminusone}
+									\MULTIPLY{6}{\overallLinearNodeTextWidthinCM}{\TMPOverallLinearNodeTextWidthinCM}
+								}
+								{
+									\MULTIPLY{3}{\overallLinearNodeTextWidthinCM}{\TMPOverallLinearNodeTextWidthinCM}
+								}
+							\DIVIDE{\TMPOverallLinearNodeTextWidthinCM}{\numlinearnodesminusone}{\linearNodeSeparation}
+					
+					\foreach \s in {1,...,\numlinearnodes}
+						{
+							\StrBefore[{\s}]{\linearnodes}{-}[\linearnodetexttmp]
+							\StrBehind[{\s}]{-\linearnodetexttmp}{-}[\linearnodetext]
+							\node[draw, circle, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (L\s) at ({\linearNodeSeparation*(\s - 1)},0) {$\linearnodetext$};
+						}
+					\ADD{\numlinearnodes}{-1}{\numlinearnodesminusone}
+					\IfEq{\numlinearnodesminusone}{0}
+						{
+						}
+						{
+							\foreach \s in {1,...,\numlinearnodesminusone}
+								{
+									\ADD{1}{\s}{\nexts}
+									\draw[->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (L\s) to (L\nexts);
+								}
+						}
+					\StrBehind{#3}{(}[\commonnodetexttmp]
+					\StrBefore{\commonnodetexttmp}{-}[\commonnodetext]
+					\ADD{\numlinearnodes}{1}{\numlinearnodesplusone}
+					\MULTIPLY{\linearNodeSeparation}{\numlinearnodes}{\gridwidthlinear}
+					\IfStrEq{\linearnodes}{#3-}
+						{
+						}
+						{
+							\node[draw=none, circle,  line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (L\numlinearnodesplusone) at ({\linearNodeSeparation*\numlinearnodes},0) {$\commonnodetext$};
+						}
+
+					\IfEndWith{#3}{)}
+						{
+							\getzoomfactor
+							\StrBetween{#3}{(}{)}[\cyclicnodes]
+							\StrCount{\cyclicnodes -}{-}[\numcyclicnodes]
+							% find proper margin value
+								\setlength{\overallnodetextwidth}{0in}
+								\ADD{\numcyclicnodes}{1}{\numcyclicnodesforlooplimit}
+								\forloop{forloopcounter}{1}{\value{forloopcounter} < \numcyclicnodesforlooplimit}
+								{
+									\StrBefore[\value{forloopcounter}]{\cyclicnodes -}{-}[\cyclicnodetexttmp]
+									\StrBehind[\value{forloopcounter}]{-\cyclicnodetexttmp}{-}[\cyclicnodetext]
+									\addtolength{\overallnodetextwidth}{\widthof{\cyclicnodetext}}
+									\addtolength{\overallnodetextwidth}{\widthof{WW}}% take into account 2 "safety" characters
+								}
+								% convert \overallnodetextwidth from pt to inches
+									\edef\overallnodetextwidthinpt{\strip@pt\overallnodetextwidth}
+									\MULTIPLY{0.01389}{\overallnodetextwidthinpt}{\overallnodetextwidthininches}
+								\IfStrEq{#2}{auto}
+									{
+										% find circle perimeter in inches
+											\MULTIPLY{2}{\overallnodetextwidthininches}{\circularpartperimeterininches}
+										% find circle radius in inches
+											\DIVIDE{\circularpartperimeterininches}{6.28}{\circularpartradiusininches}
+										% find circle radius in centimeters
+											\DIVIDE{\circularpartperimeterininches}{0.393701}{\circularpartradius}
+											\edef\originalcircularpartradius{\circularpartradius}
+									}
+									{
+										\edef\originalcircularpartradius{#2}							
+									}
+								% correct circle radius according to current zoom factor
+									\ABSVALUE{\zoomfactor}{\abszoomfactor}
+									\MULTIPLY{\originalcircularpartradius}{\abszoomfactor}{\circularpartradius}
+								% find cyclic part perimeter (in cm)		
+									\MULTIPLY{6.28}{\circularpartradius}{\circularpartperimeter}
+								% convert cyclic part perimeter to inches		
+									\MULTIPLY{0.393701}{\circularpartperimeter}{\circularpartperimeterininches}
+								% find fraction of perimeter occupied by node circles 
+									\DIVIDE{\overallnodetextwidthininches}{\circularpartperimeterininches}{\circularpartnodefraction}
+								% find fraction of perimeter occupied by node circles (in degrees) 
+									\MULTIPLY{\circularpartnodefraction}{360}{\circularpartnodefractiondegrees}
+								% find degrees per node 
+									\DIVIDE{\circularpartnodefractiondegrees}{\numcyclicnodes}{\circularpartnodefractiondegreespernode}
+								% find final margin 
+									\MULTIPLY{0.5}{\circularpartnodefractiondegreespernode}{\margin}
+								% assign a +/-5% margin tolerance per node 
+									\MULTIPLY{1.05}{\margin}{\margin}
+	
+							\getzoomfactor
+							\begin{scope}[shift={($(L\numlinearnodesplusone) + (\originalcircularpartradius,0)$)}, xscale=-1]		
+								% draw cyclic part
+								\foreach \s in {1,...,\numcyclicnodes}
+								{
+									\StrBefore[{\s}]{\cyclicnodes -}{-}[\cyclicnodetexttmp]
+									\StrBehind[{\s}]{-\cyclicnodetexttmp}{-}[\cyclicnodetext]
+									\IfEq{\cyclicnodetext}{}
+									{
+									}
+									{
+								 		\node[draw, circle, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (C\s) at ({360/\numcyclicnodes * (\s - 1)}:\originalcircularpartradius) {$\cyclicnodetext$};
+									}
+								}
+								\foreach \s in {1,...,\numcyclicnodes}
+								{
+									\StrBefore[{\s}]{\cyclicnodes -}{-}[\cyclicnodetexttmp]
+									\StrBehind[{\s}]{-\cyclicnodetexttmp}{-}[\cyclicnodetext]
+								  	\draw[->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] ({360/\numcyclicnodes * (\s - 1)+\margin}:\originalcircularpartradius) 
+								   	arc ({360/\numcyclicnodes * (\s - 1)+\margin}:{360/\numcyclicnodes * (\s)-\margin}:\originalcircularpartradius);
+								}
+								% connect linear to cyclic part
+								\draw[->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (L\numlinearnodes.east) to (C1.west);
+							\end{scope}
+							\MULTIPLY{2}{\originalcircularpartradius}{\gridwidthcyclic}
+						}
+						{
+						}
+				}
+
+			\ifstrequal{#5}{gridon}
+				{
+					\ADD{\gridwidthcyclic}{\gridwidthlinear}{\gridwidthtotal}
+					\IfEq{\gridwidthcyclic}{0}
+						{
+							\edef \gridheighttotal {6}
+						}
+						{
+							\edef \gridheighttotal {\gridwidthcyclic}
+						}
+					\IfBeginWith{#3}{(}
+						{
+							\edef \gridoffsethorizontal {-\gridwidthtotal}
+						}
+						{
+							\edef \gridoffsethorizontal {0}
+						}
+					\begin{scope}[shift={({\gridoffsethorizontal / 2},{-round(\gridheighttotal  / 2)})}]
+						\draw[step=1cm,color=gray] (0,0) grid (\gridwidthtotal,\gridheighttotal);
+					\end{scope}
+				}
+				{
+				}
+			\ifstrequal{#6}{show}
+				{
+					\node[draw=none, align=center, color=red] at (0,0) {#1};
+				}
+				{
+				}
+		\end{scope}
+}
+
+%%%%%%%%%%%%%%%%%%%%%
+%% Timing Diagram
+%%%%%%%%%%%%%%%%%%%%%
+%
+% define helper macro
+\newcommand{\drawwaveform}[3]{%{position}{bitstream}{linecolor}
+	% split bits and name
+		\StrBefore{#2}{-}[\purebitstream]% bitstream
+		\StrBehind{#2}{-}[\waveformname]% waveform name
+	% find number of bits
+		\StrLen{\purebitstream}[\numberofbitsinbitstream]
+	% find bit length (given a timeline of length 15)
+		\DIVIDE{15}{\numberofbitsinbitstream}{\bitstreambitlength}
+	% generate don't-care rectangles
+		\xdef\rectangleFlag{0}
+		\xdef\rectangleshapestring{}
+		\foreach \currentbitindex in {1, ..., \numberofbitsinbitstream} 
+			{
+				% get current bit value
+					\StrChar{\purebitstream}{\currentbitindex}[\currentbitvalue]
+				% get next bit value
+					\ADD{\currentbitindex}{1}{\nextbitindex} 
+					\StrChar{\purebitstream}{\nextbitindex}[\nextbitvalue] 
+				% generate rectangle
+					\IfStrEq{\rectangleFlag}{1}
+						{
+							\IfEq{\nextbitvalue}{X}
+								{
+								}
+								{
+									\xdef\rectangleendindex{\nextbitindex}
+									\MULTIPLY{\rectanglestartindex}{\bitstreambitlength}{\rectangleleftXcoordinate}
+									\MULTIPLY{\rectangleendindex}{\bitstreambitlength}{\rectanglerightXcoordinate}
+									\xdef\rectangleshapestring{\rectangleshapestring  (\rectangleleftXcoordinate-\bitstreambitlength,0) rectangle (\rectanglerightXcoordinate-\bitstreambitlength,1)}												
+									\xdef\rectangleFlag{0}								
+								}
+						}
+						{
+							\IfEq{\currentbitvalue}{X}
+								{
+									\xdef\rectangleFlag{1}
+									\xdef\rectanglestartindex{\currentbitindex}
+									\IfEq{\nextbitvalue}{X}
+										{
+										}
+										{
+											\xdef\rectangleendindex{\nextbitindex}
+											\MULTIPLY{\rectanglestartindex}{\bitstreambitlength}{\rectangleleftXcoordinate}
+											\MULTIPLY{\rectangleendindex}{\bitstreambitlength}{\rectanglerightXcoordinate}
+											\xdef\rectangleshapestring{\rectangleshapestring  (\rectangleleftXcoordinate-\bitstreambitlength,0) rectangle (\rectanglerightXcoordinate-\bitstreambitlength,1)}												
+											\xdef\rectangleFlag{0}								
+										} 
+								}
+								{									
+								}							
+			
+						}  			
+			}		
+	% generate point coordinate string
+		\edef\pointcoordinatestring{(0,0)}
+		\foreach \currentbitindex in {1, ..., \numberofbitsinbitstream} 
+			{
+				% get current bit value
+					\StrChar{\purebitstream}{\currentbitindex}[\currentbitvalue]
+				% detect don't-cares
+					\IfEq{\currentbitvalue}{X}
+						{
+							\edef\currentbitvalue{0}
+						}
+						{
+						}
+				% get previous bit value
+					\SUBTRACT{\currentbitindex}{1}{\previoustbitindex}
+					\IfEq{\previoustbitindex}{0}
+						{
+							\edef\previousbitvalue{0}
+						}
+						{
+							\StrChar{\purebitstream}{\previoustbitindex}[\previousbitvalue]
+							% detect don't-cares
+								\IfEq{\previousbitvalue}{X}
+									{
+										\edef\previousbitvalue{0}
+									}
+									{
+									}				
+						}
+				% define points
+					\MULTIPLY{\currentbitindex}{\bitstreambitlength}{\currentbitXcoordinate}
+					\MULTIPLY{\previoustbitindex}{\bitstreambitlength}{\previousbitXcoordinate}
+					% note the use of "xdef" !! :
+					\xdef\pointcoordinatestring{\pointcoordinatestring{} -- (\previousbitXcoordinate ,\previousbitvalue) -- (\previousbitXcoordinate ,\currentbitvalue) -- ( \currentbitXcoordinate ,\currentbitvalue)}					
+			}
+	% draw waveform and its name
+		\begin{scope}[shift={#1}]
+			\getzoomfactor
+			\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt, color=#3]  \pointcoordinatestring ;
+			\node[anchor=east, color=#3] at (0,0) {\waveformname};
+			% draw don't-care rectangles
+				\fill [pattern=north west lines, pattern color=#3, line width=\linewidthscalefactor * \zoomfactor * 0.2pt] \rectangleshapestring ; 
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt, color=#3] \rectangleshapestring ; 
+		\end{scope}
+}
+\newcommand{\timingdiagram}[7]{%{position}{bitstream-1}{bitstream-2}{bitstream-3}{bitstream-4}{grid}{show (0,0)}
+%
+% bitstream format: 01X001-NAME (use "010001-" if no name is to be shown, use "X" for "don't care")
+%
+% find number of bitstreams
+	\edef\numberofbitstreams{0}
+% draw waveforms
+	\begin{scope}[shift={#1}]
+		\ifstrequal{#2}{}
+			{
+			}
+			{
+				\ADD{1}{\numberofbitstreams}{\numberofbitstreams}
+			}
+		\ifstrequal{#3}{}
+			{
+			}
+			{
+				\ADD{1}{\numberofbitstreams}{\numberofbitstreams}
+			}
+		\ifstrequal{#4}{}
+			{
+			}
+			{
+				\ADD{1}{\numberofbitstreams}{\numberofbitstreams}
+			}
+		\ifstrequal{#5}{}
+			{
+			}
+			{
+				\ADD{1}{\numberofbitstreams}{\numberofbitstreams}
+			}
+		% draw grid etc.
+			\ifstrequal{#6}{gridon}
+				{
+					\draw[step=1cm,color=gray] (0,0) grid (15,2*\numberofbitstreams-1);
+				}
+				{
+				}
+			\ifstrequal{#7}{show}
+				{
+					\node[draw=none, align=center, color=red] at (0,0) {#1};
+				}
+				{
+				}
+		% draw waveforms on top
+			\edef\numberofbitstreams{0}
+			\ifstrequal{#2}{}
+				{
+				}
+				{
+					\drawwaveform{(0,2*\numberofbitstreams)}{#2}{black}
+					\ADD{1}{\numberofbitstreams}{\numberofbitstreams}
+				}
+			\ifstrequal{#3}{}
+				{
+				}
+				{
+					\drawwaveform{(0,2*\numberofbitstreams)}{#3}{blue}
+					\ADD{1}{\numberofbitstreams}{\numberofbitstreams}
+				}
+			\ifstrequal{#4}{}
+				{
+				}
+				{
+					\drawwaveform{(0,2*\numberofbitstreams)}{#4}{brown}
+					\ADD{1}{\numberofbitstreams}{\numberofbitstreams}
+				}
+			\ifstrequal{#5}{}
+				{
+				}
+				{
+					\drawwaveform{(0,2*\numberofbitstreams)}{#5}{magenta}
+					\ADD{1}{\numberofbitstreams}{\numberofbitstreams}
+				}
+	\end{scope}
+}
+
+%% Connector Dot
+\newcommand{\connectordot}[1]{%{position}
+	\filldraw  #1 circle(0.25);
+	\coordinate (pin1) at (0, 0); % center terminal
+}
+
+%% Scaled Connector Dot
+\newcommand{\connectordotscaled}[1]{%{position}
+	\getzoomfactor
+	\filldraw  #1 circle(0.14*\linewidthscalefactor * \zoomfactor * 1.5 cm);
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

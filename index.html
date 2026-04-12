@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <title>JL TikZ CAD </title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jointjs/3.7.0/joint.min.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background: #f0f2f5; overflow: hidden; }
+        #toolbar { background: #2c3e50; color: white; padding: 10px; display: flex; gap: 8px; align-items: center; z-index: 2000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); flex-wrap: wrap; }
+        .tool-btn { background: #34495e; color: white; border: 1px solid #5d6d7e; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-size: 13px; transition: background 0.2s; }
+        .tool-btn:hover { background: #4a6278; }
+        .tool-btn.active { background: #3498db; border-color: #2980b9; }
+        .v-separator { width: 1px; height: 20px; background: #5d6d7e; margin: 0 4px; }
+        #main { display: flex; flex: 1; overflow: hidden; position: relative; }
+        #sidebar { width: 220px; border-right: 1px solid #bdc3c7; overflow-y: auto; padding: 15px; background: #fff; z-index: 10; flex-shrink: 0; }
+        .comp-item { padding: 10px; margin-bottom: 8px; background: #ecf0f1; cursor: pointer; border-radius: 5px; font-size: 12px; border-left: 4px solid #3498db; transition: transform 0.1s; }
+        
+        #paper-container { flex: 1; background: #cbd5e0; overflow: hidden; position: relative; outline: none; cursor: grab; }
+        #paper-container:active { cursor: grabbing; }
+        #my-paper { width: 100%; height: 100%; background: white; }
+        
+        #draw-glasspane { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1500; cursor: crosshair; display: none; background: rgba(255,255,255,0.01); }
+		
+		#output-panel { 
+            height: 160px; 
+            background: #1e1e1e; 
+            border-top: 3px solid #3498db; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 10px;
+            /* Προσθήκη για resize */
+            resize: vertical; 
+            overflow: auto; 
+            min-height: 100px; 
+            max-height: 80vh;
+        }
+        
+        #latex-output { 
+            color: #d4d4d4; 
+            font-family: 'Consolas', monospace; 
+            font-size: 13px; 
+            white-space: pre; 
+            flex: 1; /* Για να γεμίζει το resizable panel */
+        }
+
+        /* Προαιρετικά: Μια όμορφη λαβή για το resize */
+        #output-panel::-webkit-resizer {
+            background-color: #3498db;
+            border: 3px solid #1e1e1e;
+            outline: 1px solid #3498db;
+        }
+		
+		#latex-output:focus {
+			outline: none;
+			background: #1a252f; /* Λίγο πιο σκούρο για να δείχνει ότι είναι active */
+			box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+		}
+		
+        .highlight { background: rgba(52, 152, 219, 0.4); border-left: 3px solid #3498db; margin-left: -3px; border-radius: 2px; }
+        .joint-selection-rect { border: 2px dashed #3498db; background: rgba(52, 152, 219, 0.2); position: absolute; pointer-events: none; z-index: 3000; }
+		
+		/* Νέο στυλ για την επιλογή εξαρτημάτων */
+        .joint-highlighted[magnitude="0"] rect {
+            stroke: #3498db !important;
+            stroke-width: 1px !important;
+            stroke-dasharray: 5,5 !important; /* Διακεκομμένη γραμμή */
+            fill: rgba(52, 152, 219, 0.05) !important;
+        }
+		
+		.comp-item { 
+			padding: 8px; 
+			margin-bottom: 6px; 
+			background: #ecf0f1; 
+			cursor: pointer; 
+			border-radius: 6px; 
+			border-left: 4px solid #3498db; 
+			display: flex; 
+			align-items: center; 
+			min-height: 44px; /* Εξασφαλίζει σταθερό ύψος για να μην υπάρχει επικάλυψη */
+			overflow: hidden; 
+		}	
+		.comp-item:hover {
+			background: #dff9fb; /* Ένα πολύ απαλό γαλάζιο */
+			border-left: 4px solid #2980b9;
+			transform: translateX(5px);
+			transition: all 0.2s ease;
+		}
+		
+		/* Syntax Highlighting για το LaTeX */
+				.tex-cmd { color: #c678dd; font-weight: bold; }      /* Μοβ για τις εντολές π.χ. \draw */
+				.tex-brace { color: #56b6c2; }                       /* Γαλάζιο για τις αγκύλες { } */
+				.tex-place { color: #e06c75; font-style: italic; }   /* Απαλό κόκκινο για τα placeholders και το $NAME$ */
+    </style>
+</head>
+<body>
+
+<div id="toolbar">
+    <button id="tool-pan" class="tool-btn active">🖐️ Select</button>
+    <button id="tool-draw" class="tool-btn">✏️ Wire</button>
+    <div class="v-separator"></div>
+    
+    <button onclick="copySelected()" class="tool-btn" style="color:#f39c12">📋 Copy</button>
+    <button onclick="pasteCopied()" class="tool-btn" style="color:#f1c40f">📝 Paste</button>
+	<button onclick="deleteSelected()" class="tool-btn" style="color:#ff7675">✖ Delete</button>
+    <button onclick="rotateSelected()" class="tool-btn">↻ Rotate</button>
+    <button onclick="flipHorizontal()" class="tool-btn">↔ Flip H</button>
+    <button onclick="flipVertical()" class="tool-btn">↕ Flip V</button>
+	<label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
+		<input type="checkbox" id="toggle-pin-names" checked> Show Pin Names
+	</label>
+    
+    <div class="v-separator"></div>
+    <button onclick="zoomFit()" class="tool-btn" style="background:#2980b9; font-weight:bold;">🎯 Fit</button>
+    <span id="zoom-level" style="font-size: 11px; min-width: 40px; text-align:center;">100%</span>
+    
+    <div class="v-separator"></div>
+    <button onclick="saveProject()" class="tool-btn" style="background:#8e44ad">💾 Save JSON</button>
+    <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Load JSON</button>
+    <input type="file" id="importFile" style="display:none" onchange="importProject(event)" accept=".json">
+    
+    <button onclick="downloadLatex()" style="margin-left:auto; background: #27ae60; color:white;" class="tool-btn">📄 Export LaTeX (.tex)</button>
+</div>
+
+<div id="main">
+    <div id="paper-container" tabindex="0">
+        <div id="draw-glasspane"></div>
+        <div id="my-paper"></div>
+    </div>
+    <div id="sidebar">
+        <strong style="display:block; margin-bottom:15px; color:#2c3e50;">ΕΞΑΡΤΗΜΑΤΑ</strong>
+        <div id="items-container"></div>
+    </div>
+</div>
+
+<div id="output-panel">
+    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 5px;">
+        <button onclick="runLinterUI()" class="tool-btn" style="background: #e67e22; font-size: 11px;">🔍 Check Syntax</button>
+        <button onclick="copyLatexToClipboard()" class="tool-btn" style="background: #34495e; font-size: 11px;">📋 Copy Code</button>
+    </div>
+    <div id="latex-output" contenteditable="true" spellcheck="false"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.4.1/backbone-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jointjs/3.7.0/joint.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="components_db.js"></script>
+
+<script>
+    // --- ΟΡΙΣΜΟΣ CUSTOM CONNECTORDOT ---
+    window.joint.shapes.jl = {}; 
+    joint.shapes.jl.ConnectorDot = joint.dia.Element.define('jl.ConnectorDot', {
+        size: { width: 20, height: 20 },
+        attrs: {
+            hitbox: { width: 20, height: 20, fill: '#ffffff', 'fill-opacity': 0, stroke: 'none', 'pointer-events': 'all' },
+            dot: { cx: 10, cy: 10, r: 3.5, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
+        }
+    }, {
+        markup: [{ tagName: 'rect', selector: 'hitbox' }, { tagName: 'circle', selector: 'dot' }]
+    });
+
+    const graph = new joint.dia.Graph();
+    let currentScale = 1;
+    const container = document.getElementById('paper-container');
+    window.rawLatexCode = ""; 
+
+    const paper = new joint.dia.Paper({
+        el: document.getElementById('my-paper'),
+        model: graph,
+        width: '100%', height: '100%', 
+        gridSize: 10, drawGrid: true,
+        snapLinks: { radius: 15 },
+        linkPinning: false,
+        defaultLink: new joint.shapes.standard.Link({
+            attrs: { line: { stroke: '#333', strokeWidth: 2, targetMarker: null } }
+        })
+    });
+	
+	let latexEdited = false;
+    let suppressWarning = false;
+    let isSwalOpen = false;
+
+    // Ανιχνεύουμε αν ο χρήστης γράφει με το χέρι μέσα στο LaTeX Box
+    $(document).on('input', '#latex-output', function() {
+        latexEdited = true;
+    });
+
+    window.onload = () => {
+        container.scrollLeft = 2500 - (container.clientWidth / 2);
+        container.scrollTop = 2500 - (container.clientHeight / 2);
+    };
+    container.focus();
+
+    // --- 1. ZOOM & FIT ---
+    function updateZoomDisplay() { document.getElementById('zoom-level').innerText = Math.round(currentScale * 100) + '%'; }
+
+    function zoomFit() {
+        const bbox = graph.getCellsBBox();
+        if (!bbox) { paper.translate(0, 0); paper.scale(1, 1); currentScale = 1; updateZoomDisplay(); return; }
+        paper.scaleContentToFit({ padding: 80, minScale: 0.2, maxScale: 1.5 });
+        currentScale = paper.scale().sx; updateZoomDisplay();
+    }
+
+    $(container).on('mousewheel DOMMouseScroll', function(e) {
+        if (e.ctrlKey) {
+            e.preventDefault();
+            const delta = Math.max(-1, Math.min(1, (e.originalEvent.wheelDelta || -e.originalEvent.detail)));
+            const p = paper.clientToLocalPoint({ x: e.clientX, y: e.clientY });
+            if (delta > 0) currentScale = Math.min(currentScale + 0.1, 3);
+            else currentScale = Math.max(currentScale - 0.1, 0.2);
+            paper.scale(currentScale, currentScale, p.x, p.y);
+            updateZoomDisplay();
+        }
+    });
+
+    // --- 2. ΕΠΙΛΟΓΗ ΚΑΙ PANNING ---
+    let selectionRect = null, selectionStart = null, selectedElements = [], selectedLinks = [];
+    let dragPanStart = null, groupDragData = null;
+
+    function clearSelection() {
+        selectedElements.forEach(el => { const v = paper.findViewByModel(el); if(v) v.unhighlight(); });
+        selectedLinks.forEach(l => { const v = paper.findViewByModel(l); if(v) v.unhighlight(); });
+        selectedElements = []; selectedLinks = [];
+        exportLatex();
+    }
+
+    paper.on('blank:pointerdown', function(evt, x, y) {
+        if (evt.button === 1 || (evt.button === 0 && evt.altKey)) {
+            const translate = paper.translate();
+            dragPanStart = { x: evt.clientX, y: evt.clientY, tx: translate.tx, ty: translate.ty };
+        } else if (evt.button === 0) {
+            clearSelection();
+            selectionStart = { x: evt.clientX, y: evt.clientY };
+            selectionRect = $('<div class="joint-selection-rect">').appendTo('body');
+            container.focus();
+        }
+    });
+
+    $(document).on('mousemove', function(evt) {
+        if (dragPanStart) paper.translate(dragPanStart.tx + (evt.clientX - dragPanStart.x), dragPanStart.ty + (evt.clientY - dragPanStart.y));
+        if (selectionStart && selectionRect) {
+            const left = Math.min(selectionStart.x, evt.clientX), top = Math.min(selectionStart.y, evt.clientY);
+            const width = Math.abs(selectionStart.x - evt.clientX), height = Math.abs(selectionStart.y - evt.clientY);
+            selectionRect.css({ left, top, width, height });
+        }
+    });
+
+    $(document).on('mouseup', function(evt) {
+        dragPanStart = null;
+        if (selectionStart && selectionRect) {
+            const p1 = paper.clientToLocalPoint({ x: selectionStart.x, y: selectionStart.y });
+            const p2 = paper.clientToLocalPoint({ x: evt.clientX, y: evt.clientY });
+            const selRect = new g.rect(Math.min(p1.x, p2.x), Math.min(p1.y, p2.y), Math.max(1, Math.abs(p1.x - p2.x)), Math.max(1, Math.abs(p1.y - p2.y)));
+
+            graph.getElements().forEach(el => { if (selRect.intersect(el.getBBox().inflate(2))) { selectedElements.push(el); const v = paper.findViewByModel(el); if(v) v.highlight(); } });
+            graph.getLinks().forEach(link => { if (selRect.intersect(link.getBBox().inflate(2))) { selectedLinks.push(link); const v = paper.findViewByModel(link); if(v) v.highlight(); } });
+
+            selectionRect.remove(); selectionRect = null; selectionStart = null;
+            exportLatex(); 
+        }
+    });
+
+    // --- 3. GROUP MOVE ---
+    paper.on('cell:pointerdown', function(cellView) {
+        container.focus();
+        let model = cellView.model;
+        if (!selectedElements.includes(model) && !selectedLinks.includes(model)) {
+            clearSelection();
+            if (model.isLink()) selectedLinks.push(model); else selectedElements.push(model);
+            cellView.highlight();
+            exportLatex(); 
+        }
+        
+        groupDragData = { originCell: model, startPos: model.isLink() ? null : model.position(), initials: new Map() };
+        [...selectedElements, ...selectedLinks].forEach(c => {
+            if (c.isLink()) groupDragData.initials.set(c.id, { source: _.cloneDeep(c.source()), target: _.cloneDeep(c.target()), vertices: _.cloneDeep(c.vertices() || []) });
+            else groupDragData.initials.set(c.id, _.cloneDeep(c.position()));
+        });
+    });
+
+    graph.on('change:position', function(cell, newPos, opt) {
+        if (opt.groupMove || !groupDragData || groupDragData.originCell !== cell || !groupDragData.startPos) return;
+        const dx = newPos.x - groupDragData.startPos.x, dy = newPos.y - groupDragData.startPos.y;
+
+        selectedElements.forEach(other => {
+            if (other === cell) return;
+            const init = groupDragData.initials.get(other.id);
+            if (init) other.position(init.x + dx, init.y + dy, { groupMove: true });
+        });
+
+        selectedLinks.forEach(other => {
+            const init = groupDragData.initials.get(other.id);
+            if (init) {
+                const s = init.source, t = init.target;
+                if (!s.id) other.source({ x: s.x + dx, y: s.y + dy }, { groupMove: true });
+                if (!t.id) other.target({ x: t.x + dx, y: t.y + dy }, { groupMove: true });
+                if (init.vertices.length) other.vertices(init.vertices.map(v => ({ x: v.x + dx, y: v.y + dy })));
+            }
+        });
+        exportLatex();
+    });
+
+    graph.on('change:source change:target change:vertices', function(cell, newVal, opt) {
+        if (opt.groupMove || !groupDragData || groupDragData.originCell !== cell) return;
+        const init = groupDragData.initials.get(cell.id);
+        if (!init) return;
+
+        let dx = 0, dy = 0;
+        const s = cell.source(), t = cell.target();
+        if (s && s.x !== undefined && init.source && init.source.x !== undefined) { dx = s.x - init.source.x; dy = s.y - init.source.y; } 
+        else if (t && t.x !== undefined && init.target && init.target.x !== undefined) { dx = t.x - init.target.x; dy = t.y - init.target.y; }
+
+        if (dx === 0 && dy === 0) return;
+
+        selectedElements.forEach(other => {
+            const otherInit = groupDragData.initials.get(other.id);
+            if (otherInit) other.position(otherInit.x + dx, otherInit.y + dy, { groupMove: true });
+        });
+
+        selectedLinks.forEach(other => {
+            if (other === cell) return;
+            const otherInit = groupDragData.initials.get(other.id);
+            if (otherInit) {
+                const os = otherInit.source, ot = otherInit.target;
+                if (!os.id) other.source({ x: os.x + dx, y: os.y + dy }, { groupMove: true });
+                if (!ot.id) other.target({ x: ot.x + dx, y: ot.y + dy }, { groupMove: true });
+                if (otherInit.vertices && otherInit.vertices.length) other.vertices(otherInit.vertices.map(v => ({ x: v.x + dx, y: v.y + dy })));
+            }
+        });
+        exportLatex();
+    });
+
+    paper.on('cell:pointerup', () => { groupDragData = null; });
+
+    // --- 4. COPY / PASTE / ROTATE / FLIP ---
+    let clipboard = [];
+    function copySelected() { if (selectedElements.length > 0 || selectedLinks.length > 0) clipboard = [...selectedElements, ...selectedLinks].map(cell => cell.toJSON()); }
+
+    function pasteCopied() {
+        if (!clipboard || clipboard.length === 0) return;
+        const idMap = {}, newCellsData = [];
+
+        clipboard.forEach(cellData => {
+            const newId = 'cell-' + Math.random().toString(36).substr(2, 9);
+            idMap[cellData.id] = newId;
+            const newData = JSON.parse(JSON.stringify(cellData));
+            newData.id = newId;
+            if (newData.position) { newData.position.x += 20; newData.position.y += 20; }
+            if (newData.vertices) { newData.vertices = newData.vertices.map(v => ({ x: v.x + 20, y: v.y + 20 })); }
+            newCellsData.push(newData);
+        });
+
+        newCellsData.forEach(data => {
+            if (data.type === 'standard.Link') {
+                if (data.source && data.source.id && idMap[data.source.id]) data.source.id = idMap[data.source.id];
+                else if (data.source && data.source.x !== undefined) { data.source.x += 20; data.source.y += 20; }
+                if (data.target && data.target.id && idMap[data.target.id]) data.target.id = idMap[data.target.id];
+                else if (data.target && data.target.x !== undefined) { data.target.x += 20; data.target.y += 20; }
+            }
+        });
+
+        const models = newCellsData.map(data => {
+            if (data.type === 'standard.Link') return new joint.shapes.standard.Link(data);
+            if (data.type === 'jl.ConnectorDot') return new joint.shapes.jl.ConnectorDot(data);
+            return new joint.shapes.standard.Rectangle(data);
+        });
+
+        graph.addCells(models);
+        clearSelection();
+        models.forEach(m => {
+            if (m.isLink()) selectedLinks.push(m); else selectedElements.push(m);
+            setTimeout(() => { const v = paper.findViewByModel(m); if (v) v.highlight(); }, 10);
+        });
+        exportLatex();
+    }
+
+    function rotateSelected() { selectedElements.forEach(el => { if(el.get('latexMacro') !== 'connectordot') el.rotate(90); }); exportLatex(); }
+
+	// --- Διορθωμένα Flips για το νέο Συμμετρικό Bounding Box ---
+	function flipHorizontal() {
+        selectedElements.forEach(el => {
+            if(el.get('latexMacro') !== 'connectordot') {
+                const w = el.size().width, h = el.size().height;
+                const ports = el.getPorts();
+                ports.forEach(port => { el.portProp(port.id, 'args/x', w - port.args.x); });
+                
+                const flipH = !(el.get('flipH') || false); el.set('flipH', flipH);
+                const flipV = el.get('flipV') || false;
+                const sx = flipH ? -1 : 1, sy = flipV ? -1 : 1;
+                
+                el.attr('icon/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${el.get('shiftX')}, ${el.get('shiftY')})`);
+            }
+        });
+        exportLatex();
+    }
+
+    // ΝΕΟ: Κατακόρυφη Αναστροφή
+	function flipVertical() {
+        selectedElements.forEach(el => {
+            if(el.get('latexMacro') !== 'connectordot') {
+                const w = el.size().width, h = el.size().height;
+                const ports = el.getPorts();
+                ports.forEach(port => { el.portProp(port.id, 'args/y', h - port.args.y); });
+                
+                const flipV = !(el.get('flipV') || false); el.set('flipV', flipV);
+                const flipH = el.get('flipH') || false;
+                const sx = flipH ? -1 : 1, sy = flipV ? -1 : 1;
+                
+                el.attr('icon/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${el.get('shiftX')}, ${el.get('shiftY')})`);
+            }
+        });
+        exportLatex();
+    }
+
+    function deleteSelected() { [...selectedElements, ...selectedLinks].forEach(c => c.remove()); clearSelection(); exportLatex(); }
+
+    $(document).on('keydown', function(e) {
+        if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return; 
+        if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) copySelected();
+        else if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) pasteCopied();
+        else if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+    });
+
+
+	// --- 5. ΣΥΣΤΗΜΑ ΕΞΑΡΤΗΜΑΤΩΝ (Τελική Διόρθωση Thumbnails) ---
+    if (typeof JL_DATABASE !== 'undefined') {
+        const list = document.getElementById('items-container');
+        Object.keys(JL_DATABASE).sort().forEach(k => {
+            const data = JL_DATABASE[k];
+            const d = document.createElement('div');
+            d.className = 'comp-item';
+            
+            let iconSvg = '';
+			if (k === 'connectordot') {
+                // radius 3 αντί για 6 για να είναι διακριτικό
+                iconSvg = `<svg width="100%" height="100%" viewBox="-15 -15 30 30">
+                               <circle cx="0" cy="0" r="3" fill="#2c3e50"/>
+                           </svg>`;
+            }
+			else if (data.icon) {
+                // 1. Βρίσκουμε τα όρια των Pins
+                const xs = data.pins.map(p => p.x), ys = data.pins.map(p => p.y);
+                let minX = xs.length ? Math.min(...xs) : 0;
+                let maxX = xs.length ? Math.max(...xs) : 0;
+                let minY = ys.length ? Math.min(...ys) : 0;
+                let maxY = ys.length ? Math.max(...ys) : 0;
+
+                // 2. Δημιουργούμε ένα προσωρινό Path για να μετρήσουμε τα όρια του Γραφικού
+                const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                tempPath.setAttribute('d', data.icon);
+                const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svgContainer.appendChild(tempPath);
+                document.body.appendChild(svgContainer);
+                const bbox = tempPath.getBBox();
+                document.body.removeChild(svgContainer);
+
+                // 3. Ενοποιούμε τα όρια (Pins + Γραφικό)
+                minX = Math.min(minX, bbox.x);
+                maxX = Math.max(maxX, bbox.x + bbox.width);
+                minY = Math.min(minY, bbox.y);
+                maxY = Math.max(maxY, bbox.y + bbox.height);
+
+                const w = maxX - minX;
+                const h = maxY - minY;
+
+                // 4. Padding 20% για να "αναπνέει"
+                const padW = Math.max(w * 0.2, 10);
+                const padH = Math.max(h * 0.2, 10);
+
+                const vbX = minX - padW;
+                const vbY = minY - padH;
+                const vbW = w + (padW * 2);
+                const vbH = h + (padH * 2);
+
+                iconSvg = `
+                    <svg width="100%" height="100%" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet">
+                        <path d="${data.icon}" 
+                              style="vector-effect: non-scaling-stroke;" 
+                              stroke="#2c3e50" stroke-width="2.5" fill="none" 
+                              stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>`;
+            }
+            
+            d.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                    <div style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #ffffff; border: 1px solid #d1d8e0; border-radius: 6px; padding: 4px; box-sizing: border-box; overflow: hidden;">
+                        ${iconSvg}
+                    </div>
+                    <span style="font-weight: 500; font-size: 13px; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${data.name}
+                    </span>
+                </div>
+            `;
+            
+            d.onclick = () => addComponent(k);
+            list.appendChild(d);
+        });
+    }
+	
+	
+	function addComponent(type) {
+        const data = JL_DATABASE[type];
+        let element;
+        const rect = container.getBoundingClientRect();
+        const centerPos = paper.clientToLocalPoint({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+        const snappedX = Math.round(centerPos.x / 10) * 10, snappedY = Math.round(centerPos.y / 10) * 10;
+        
+        if (type === 'connectordot') {
+            element = new joint.shapes.jl.ConnectorDot();
+            element.addPort({ id: 'p1', group: 'absolute', args: {x: 10, y: 10}, markup: '<g/>' });
+            element.set({'latexMacro': 'connectordot', 'offsetX': -10, 'offsetY': -10});
+            element.position(snappedX - 10, snappedY - 10);
+        } else {
+            element = new joint.shapes.standard.Rectangle({
+                markup: [{ tagName: 'rect', selector: 'body' }, { tagName: 'path', selector: 'icon' }, { tagName: 'text', selector: 'label' }]
+            });
+
+            let iconPath = data.icon || ''; 
+
+			// Καθαρισμός διπλότυπων Pins (και διατήρηση των Labels)
+            const uniquePins = [];
+            const seenIds = new Set();
+            data.pins.forEach(p => {
+                if (!seenIds.has(p.id)) { 
+                    seenIds.add(p.id); 
+                    uniquePins.push(p); 
+                } else {
+                    const existing = uniquePins.find(up => up.id === p.id);
+                    if (existing && !existing.label && p.label) existing.label = p.label;
+                }
+            });
+
+            // Bulletproof Μέτρηση του SVG
+            let bbox = { x: 0, y: 0, width: 0, height: 0 };
+            if (iconPath) {
+                const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                tempSvg.setAttribute('width', '500'); tempSvg.setAttribute('height', '500');
+                const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                tempPath.setAttribute('d', iconPath);
+                tempSvg.appendChild(tempPath);
+                Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
+                document.body.appendChild(tempSvg);
+                try { 
+                    const b = tempPath.getBBox(); 
+                    if (b.width > 0 || b.height > 0) bbox = b;
+                } catch(e) {}
+                document.body.removeChild(tempSvg);
+            }
+
+            // Απόλυτα Όρια: Tα Pins και το SVG βρίσκονται ΉΔΗ στο ίδιο σύστημα συντεταγμένων!
+            const xs = uniquePins.map(p => p.x), ys = uniquePins.map(p => p.y);
+            const minPinX = xs.length ? Math.min(...xs) : 0;
+            const maxPinX = xs.length ? Math.max(...xs) : 0;
+            const minPinY = ys.length ? Math.min(...ys) : 0;
+            const maxPinY = ys.length ? Math.max(...ys) : 0;
+
+            const absMinX = bbox.width > 0 ? Math.min(minPinX, bbox.x) : minPinX;
+            const absMaxX = bbox.width > 0 ? Math.max(maxPinX, bbox.x + bbox.width) : maxPinX;
+            const absMinY = bbox.height > 0 ? Math.min(minPinY, bbox.y) : minPinY;
+            const absMaxY = bbox.height > 0 ? Math.max(maxPinY, bbox.y + bbox.height) : maxPinY;
+
+            // Snapping στο Grid με περιθώριο 10px
+            const pad = 10;
+            const boxOriginX = Math.floor((absMinX - pad) / 10) * 10;
+            const boxOriginY = Math.floor((absMinY - pad) / 10) * 10;
+            const boxMaxX = Math.ceil((absMaxX + pad) / 10) * 10;
+            const boxMaxY = Math.ceil((absMaxY + pad) / 10) * 10;
+
+            const boxWidth = Math.max(boxMaxX - boxOriginX, 20);
+            const boxHeight = Math.max(boxMaxY - boxOriginY, 20);
+
+            // Η ΜΑΓΕΙΑ: Καμία "έξυπνη" μετατόπιση. Απλά φέρνουμε το (0,0) του TikZ στην πάνω αριστερή γωνία του κουτιού!
+            const shiftX = -boxOriginX;
+            const shiftY = -boxOriginY;
+
+            element.resize(boxWidth, boxHeight);
+            element.attr({ 
+				body: { 
+                    fill: 'transparent', // Διάφανο γέμισμα
+                    stroke: 'transparent', // Διάφανο περίγραμμα
+                    rx: 0, ry: 0 
+                },
+                icon: { 
+                    d: iconPath, stroke: '#2c3e50', strokeWidth: 1.8, fill: 'none', 
+                    transform: `translate(${shiftX}, ${shiftY})` 
+                }, 
+                label: { text: data.name, fontSize: 10, fill: '#34495e', refX: '50%', textAnchor: 'middle', refY: '100%', refY2: -6 } 
+            });
+
+			const ports = uniquePins.map(p => ({ 
+                id: p.id, group: 'absolute', 
+                args: { x: p.x + shiftX, y: p.y + shiftY }, 
+                markup: [
+                    { tagName: 'rect', selector: 'portBody' },
+                    { tagName: 'title', selector: 'portTitle' }, // Native Tooltip
+                    { tagName: 'text', selector: 'portLabel' }   // Ορατό κειμενάκι
+                ],
+                attrs: { 
+                    portBody: { width: 8, height: 8, x: -4, y: -4, fill: '#ff9800' },
+                    portTitle: { text: p.label || p.id },
+                    portLabel: { 
+                        text: p.label || '', 
+						display: showPinNames ? 'block' : 'none',
+                        fontSize: 9, 
+                        fill: '#c0392b', // Σκούρο κόκκινο χρώμα γραμματοσειράς
+                        fontWeight: 'bold',
+                        fontFamily: 'monospace',
+                        x: 6,    // Offset για να μην πέφτει πάνω στο καλώδιο
+                        y: -6, 
+                        textAnchor: 'start' 
+                    }
+                } 
+            }));
+            
+            element.prop('ports', { groups: { 'absolute': { position: { name: 'absolute' } } } });
+            element.addPorts(ports);
+            element.set({
+                'latexMacro': data.name, 
+                'offsetX': boxOriginX, 
+                'offsetY': boxOriginY,
+                'shiftX': shiftX,
+                'shiftY': shiftY,
+                'flipH': false,
+                'flipV': false
+            });
+            
+            element.position(snappedX - boxWidth / 2, snappedY - boxHeight / 2);
+        }
+        graph.addCell(element); clearSelection(); selectedElements.push(element);
+        setTimeout(() => { const v = paper.findViewByModel(element); if(v) v.highlight(); }, 10);
+        exportLatex();
+    }
+
+    // --- 6. ΚΑΛΩΔΙΑ ---
+    $('#tool-draw').click(function() { $('#draw-glasspane').show(); $('.tool-btn').removeClass('active'); $(this).addClass('active'); });
+    $('#tool-pan').click(function() { $('#draw-glasspane').hide(); $('.tool-btn').removeClass('active'); $(this).addClass('active'); });
+
+    let drawing = false, wire = null;
+    $('#draw-glasspane').on('mousedown', function(e) {
+        drawing = true;
+        let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
+        let s = { x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 };
+        wire = new joint.shapes.standard.Link({ source: s, target: s, attrs: { line: { stroke: '#333', strokeWidth: 2, targetMarker: null } } });
+        wire.addTo(graph);
+    });
+    $(document).on('mousemove', function(e) {
+        if (!drawing) return;
+        let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
+        let tx = Math.round(p.x/10)*10, ty = Math.round(p.y/10)*10;
+        let s = wire.source();
+        if (Math.abs(tx - s.x) > Math.abs(ty - s.y)) wire.target({ x: tx, y: s.y });
+        else wire.target({ x: s.x, y: ty });
+    }).on('mouseup', function() { if (drawing) { drawing = false; exportLatex(); } });
+
+    // --- 7. EXPORT HTML/TEXT & CODE HIGHLIGHTING ---
+    function escapeHTML(str) { return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
+
+	// ΝΕΑ ΣΥΝΑΡΤΗΣΗ: Εφαρμόζει χρώματα στον κώδικα
+    function highlightLatex(text) {
+        let html = text;
+        // 1. Βάφει τις εντολές (π.χ. \draw, \connectordot)
+        html = html.replace(/(\\[a-zA-Z]+)/g, '<span class="tex-cmd">$1</span>');
+        // 2. Βάφει τα placeholders και το $NAME$
+        html = html.replace(/(\$NAME\$|\{\.\.\.\}|type "[^"]+" to [^}]+)/g, '<span class="tex-place">$1</span>');
+		// 3. Βάφει τις αγκύλες {} και []
+        html = html.replace(/([{}\[\]])/g, '<span class="tex-brace">$1</span>');
+        return html;
+    }
+
+	function exportLatex() {
+        // Αν ΔΕΝ έχει πειραχτεί ο κώδικας Ή έχει τσεκαριστεί το "Μην με ξαναρωτήσεις"
+        if (!latexEdited || suppressWarning) {
+            forceExportLatex();
+            return;
+        }
+
+        // Αν το παράθυρο είναι ήδη ανοιχτό, αγνοούμε τα πολλαπλά events (πχ κατά το σύρσιμο)
+        if (isSwalOpen) return;
+
+        isSwalOpen = true;
+        Swal.fire({
+            title: 'Προσοχή: Χειροκίνητος Κώδικας!',
+            html: `
+                <p style="font-size: 14px; color: #34495e;">Έχετε κάνει χειροκίνητες επεξεργασίες στον κώδικα LaTeX.<br>Αν ενημερωθεί ο κώδικας από τον καμβά, οι αλλαγές σας <b>θα διαγραφούν</b>.</p>
+                <label style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 15px; font-size: 13px; cursor: pointer;">
+                    <input type="checkbox" id="swal-dont-ask" style="width: 16px; height: 16px;">
+                    Μην με ξαναρωτήσεις (για αυτή τη συνεδρία)
+                </label>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Ναι, Overwrite',
+            cancelButtonText: 'Διατήρηση Αλλαγών μου',
+			preConfirm: () => {
+                // Επιστρέφουμε ένα object ώστε το Swal να μην το δει ποτέ ως 'false'
+                return { isChecked: document.getElementById('swal-dont-ask').checked };
+            }
+        }).then((result) => {
+            isSwalOpen = false;
+            if (result.isConfirmed) {
+                // Αν ο χρήστης πάτησε "Ναι, Overwrite"
+                if (result.value && result.value.isChecked) {
+                    suppressWarning = true; // Αποθηκεύουμε την επιλογή του Checkbox
+                }
+                forceExportLatex(); // Κάνουμε την εξαγωγή
+            }
+        });
+    }
+
+    function forceExportLatex() {
+		latexEdited = false;
+        let outText = "\\begin{tikzpictureJL}\n";
+        let outHTML = "\\begin{tikzpictureJL}\n";
+        const isSelected = (id) => selectedElements.some(e=>e.id===id) || selectedLinks.some(l=>l.id===id);
+
+        graph.getElements().forEach(el => {
+            const p = el.position(), macro = el.get('latexMacro');
+            let line = "";
+            if (macro === 'connectordot') {
+                line = "  \\connectordot{(" + ((p.x + 10) / 10).toFixed(1) + "," + (-(p.y + 10) / 10).toFixed(1) + ")}\n";
+			} else {
+				// --- ΕΞΥΠΝΟΣ ΥΠΟΛΟΓΙΣΜΟΣ OFFSET ΓΙΑ FLIP & ROTATION ---
+                const rot = el.get('angle') || 0;
+                const w = el.size().width;
+                const h = el.size().height;
+                let effOffsetX = el.get('offsetX');
+                let effOffsetY = el.get('offsetY');
+                
+                // 1. Εφαρμογή του Flip (αντανακλά το (0,0) γύρω από το κέντρο)
+                if (el.get('flipH')) effOffsetX = -w - effOffsetX;
+                if (el.get('flipV')) effOffsetY = -h - effOffsetY;
+
+                // 2. Το σημείο (0,0) του TikZ (ΠΡΙΝ την περιστροφή)
+                const ox = p.x - effOffsetX;
+                const oy = p.y - effOffsetY;
+
+                // 3. Το κέντρο του Bounding Box (γύρω από το οποίο περιστρέφει το JointJS)
+                const cx = p.x + w / 2;
+                const cy = p.y + h / 2;
+
+                // 4. Εφαρμογή της Περιστροφής (Rotation 2D Matrix γύρω από το κέντρο)
+                const rad = rot * Math.PI / 180;
+                const cos = Math.cos(rad);
+                const sin = Math.sin(rad);
+
+                const dx = ox - cx;
+                const dy = oy - cy;
+
+                // Υπολογίζουμε τις νέες συντεταγμένες και τις στρογγυλοποιούμε 
+                // για να αποφύγουμε σφάλματα δεκαδικών π.χ. (cos(90) = 0.0000000001)
+                const rotatedOx = Math.round(cx + (dx * cos) - (dy * sin));
+                const rotatedOy = Math.round(cy + (dx * sin) + (dy * cos));
+
+                // Υπολογισμός τελικών συντεταγμένων
+                const tx = (rotatedOx / 10).toFixed(1);
+                const ty = (-(rotatedOy) / 10).toFixed(1);
+                // ---------------------------------------------------------
+
+                // Υπολογισμός του Flip String
+                const flipH = el.get('flipH') || false;
+                const flipV = el.get('flipV') || false;
+                let flipStr = 'none'; // Προεπιλογή "none"
+                if (flipH && flipV) flipStr = 'hv';
+                else if (flipH) flipStr = 'h';
+                else if (flipV) flipStr = 'v';
+
+                const data = JL_DATABASE[macro];
+                const argsCount = (data && data.argsCount) ? data.argsCount : 7;
+                const argNames = (data && data.argNames) ? data.argNames : [];
+                
+				let args = [];
+                for (let i = 0; i < argsCount; i++) {
+                    // Διαβάζουμε το αντικείμενο του argument (αν υπάρχει)
+                    let argDef = argNames[i] || { name: '', optional: false };
+                    let desc = argDef.name.toLowerCase();
+                    let isOpt = argDef.optional;
+                    
+                    let innerVal = "...";
+
+                    if (desc.includes('position')) {
+                        innerVal = `(${tx},${ty})`;
+                    } else if (desc === 'name') {
+                        innerVal = `$NAME$`;
+                    } else if (desc.includes('grid')) {
+                        innerVal = `type "gridon" to show grid`;
+                    } else if (desc.includes('show')) {
+                        innerVal = `type "show" to display (0,0)`;
+					} else if (desc.includes('rotation')) {
+						// Ελέγχουμε αν η περιγραφή ζητάει ΚΑΙ flip
+						if (desc.includes('flip')) {
+							innerVal = `${rot},${flipStr}`; // Θα βγάλει π.χ. {0,none} ή {90,v}
+						} else {
+							innerVal = `${rot}`; // Θα βγάλει σκέτο {0} αν το macro δεν υποστηρίζει flip
+						}
+					} else {
+						innerVal = argDef.name ? argDef.name : "...";
+					}
+                    
+                    // Αν είναι προαιρετικό βάζουμε [ ], αλλιώς { }
+                    if (isOpt) {
+                        args.push(`[${innerVal}]`);
+                    } else {
+                        args.push(`{${innerVal}}`);
+                    }
+                }
+
+                line = "  \\" + macro + args.join("") + "\n";
+            }
+            outText += line;
+			let safeLine = highlightLatex(escapeHTML(line));
+            if (isSelected(el.id)) outHTML += `<span class="highlight">${safeLine}</span>`;
+            else outHTML += safeLine;
+        });
+
+		let segments = [];
+        graph.getLinks().forEach(link => {
+            let pts = [link.getSourcePoint(), ...(link.vertices() || []), link.getTargetPoint()];
+            for (let i = 0; i < pts.length - 1; i++) {
+                // Απόλυτη στρογγυλοποίηση στον κοντινότερο ακέραιο της δεκάδας 
+                // για να "κουμπώνουν" τέλεια τα καλώδια στα pins
+                let x1 = (Math.round(pts[i].x / 10)).toFixed(1);
+                let y1 = (Math.round(-pts[i].y / 10)).toFixed(1);
+                let x2 = (Math.round(pts[i+1].x / 10)).toFixed(1);
+                let y2 = (Math.round(-pts[i+1].y / 10)).toFixed(1);
+                
+                segments.push({ 
+                    linkId: link.id, 
+                    p1: `${x1},${y1}`, 
+                    p2: `${x2},${y2}` 
+                });
+            }
+        });
+
+        let paths = [];
+        while (segments.length > 0) {
+            let seg = segments.shift();
+            let currentPath = [seg.p1, seg.p2], currentLinkIds = new Set([seg.linkId]), added = true;
+            while (added) {
+                added = false;
+                for (let i = 0; i < segments.length; i++) {
+                    let s = segments[i];
+                    if (s.p1 === currentPath[currentPath.length - 1]) { currentPath.push(s.p2); currentLinkIds.add(s.linkId); segments.splice(i, 1); added = true; break; } 
+                    else if (s.p2 === currentPath[currentPath.length - 1]) { currentPath.push(s.p1); currentLinkIds.add(s.linkId); segments.splice(i, 1); added = true; break; } 
+                    else if (s.p2 === currentPath[0]) { currentPath.unshift(s.p1); currentLinkIds.add(s.linkId); segments.splice(i, 1); added = true; break; } 
+                    else if (s.p1 === currentPath[0]) { currentPath.unshift(s.p2); currentLinkIds.add(s.linkId); segments.splice(i, 1); added = true; break; }
+                }
+            }
+            paths.push({ points: currentPath, linkIds: Array.from(currentLinkIds) });
+        }
+
+        paths.forEach(pathObj => {
+            let line = "  \\draw (" + pathObj.points.join(") -- (") + ");\n";
+            outText += line;
+			let safeLine = highlightLatex(escapeHTML(line));
+            if (pathObj.linkIds.some(id => isSelected(id))) outHTML += `<span class="highlight">${safeLine}</span>`;
+            else outHTML += safeLine;
+        });
+
+        outText += "\\end{tikzpictureJL}";
+        outHTML += "\\end{tikzpictureJL}";
+        
+        window.rawLatexCode = outText; 
+        document.getElementById('latex-output').innerHTML = outHTML;
+    }
+
+	// --- 8. SAVE / LOAD / DOWNLOAD ---
+    function saveProject() { 
+        // 1. Παίρνουμε τον τρέχοντα (ίσως χειροκίνητα επεξεργασμένο) κώδικα από το div
+        const currentLatex = document.getElementById('latex-output').innerText;
+        
+        // 2. Τον αποθηκεύουμε ως ιδιότητα μέσα στο ίδιο το JointJS γράφημα!
+        graph.set('customLatex', currentLatex);
+        
+        // 3. Εξάγουμε το JSON κανονικά (τώρα θα περιέχει ΚΑΙ τον κώδικά μας)
+        const a = document.createElement('a'); 
+        a.href = URL.createObjectURL(new Blob([JSON.stringify(graph.toJSON())], {type:'application/json'})); 
+        a.download='circuit.json'; 
+        a.click(); 
+    }
+
+    function importProject(e) { 
+        const f = e.target.files[0]; 
+        if(!f) return; 
+        
+        const r = new FileReader(); 
+        r.onload = ev => {
+            // 1. Φορτώνουμε το γράφημα (τα σχήματα)
+            graph.fromJSON(JSON.parse(ev.target.result)); 
+            zoomFit(); 
+            clearSelection(); // Καθαρίζουμε τυχόν παλιές επιλογές
+            
+            // 2. Ελέγχουμε αν αυτό το JSON έχει αποθηκευμένο χειροκίνητο LaTeX
+			const savedLatex = graph.get('customLatex');
+            if (savedLatex) {
+                window.rawLatexCode = savedLatex;
+                // Χρωματίζουμε τον αποθηκευμένο κώδικα γραμμή-γραμμή!
+                const highlighted = savedLatex.split('\n').map(line => highlightLatex(escapeHTML(line))).join('\n');
+                document.getElementById('latex-output').innerHTML = highlighted;
+                latexEdited = true;
+            } else {
+                // Αν είναι παλιό αρχείο (πριν από αυτό το update), κάνουμε auto-generate
+                forceExportLatex();
+            }
+        }; 
+        r.readAsText(f); 
+    }
+
+	function runLinterUI(onSuccessCallback = null) {
+        const rawText = document.getElementById('latex-output').innerText;
+        const errors = validateLatexSyntax(rawText);
+        
+        if (errors.length === 0) {
+            if (onSuccessCallback) {
+                onSuccessCallback(rawText); // Αν κλήθηκε από Copy/Download, προχώρα κατευθείαν
+            } else {
+                // Αν ο χρήστης πάτησε απλά "Check Syntax", δείξε του ότι όλα είναι τέλεια!
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Κώδικας Άψογος!',
+                    text: 'Δεν βρέθηκαν συντακτικά σφάλματα.',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        } else {
+            // Αν βρέθηκαν λάθη, δείξε τη λίστα!
+            const errorHtml = `<ul style="text-align: left; font-size: 14px; color: #c0392b; background: #fad390; padding: 15px; border-radius: 5px;">` + 
+                              errors.map(e => `<li style="margin-bottom: 8px;">${e}</li>`).join('') + 
+                              `</ul>`;
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Βρέθηκαν Συντακτικά Λάθη',
+                html: errorHtml,
+                showCancelButton: onSuccessCallback ? true : false,
+                confirmButtonText: onSuccessCallback ? 'Αγνόηση & Συνέχεια' : 'ΟΚ, θα τα φτιάξω',
+                cancelButtonText: 'Ακύρωση',
+                confirmButtonColor: '#e74c3c'
+            }).then((result) => {
+                // Αν ο χρήστης αποφασίσει να τα αγνοήσει και να προχωρήσει (π.χ. στο Export)
+                if (result.isConfirmed && onSuccessCallback) {
+                    onSuccessCallback(rawText);
+                }
+            });
+        }
+    }
+
+    function copyLatexToClipboard() {
+        // Τώρα, πριν κάνει copy, τρέχει τον Linter!
+        runLinterUI((textToCopy) => {
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                Swal.fire({ icon: 'success', title: 'Αντιγράφηκε!', timer: 1000, showConfirmButton: false });
+            });
+        });
+    }
+
+    function downloadLatex() {
+        // Αντίστοιχα προστατεύεται και το Export!
+        runLinterUI((textToDownload) => {
+            const blob = new Blob([textToDownload], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'circuit.tex';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        });
+    }
+	
+	// --- 9. LATEX LINTER (ΣΥΝΤΑΚΤΙΚΟΣ ΕΛΕΓΧΟΣ) ---
+    function validateLatexSyntax(text) {
+        let errors = [];
+        
+        // 1. Έλεγχος Συνολικής Ισορροπίας Αγκυλών { }
+        let openBraces = (text.match(/\{/g) || []).length;
+        let closeBraces = (text.match(/\}/g) || []).length;
+        if (openBraces !== closeBraces) {
+            errors.push(`<b>Ανισορροπία Αγκυλών:</b> Βρέθηκαν ${openBraces} ανοιχτές <code>{</code> και ${closeBraces} κλειστές <code>}</code>.`);
+        }
+        
+        // Λίστα με τις στάνταρ εντολές του TikZ που επιτρέπουμε
+        const knownSystemMacros = ['begin', 'end', 'draw', 'tikzpictureJL', 'connectordot'];
+        const macroRegex = /\\([a-zA-Z]+)/g;
+        let match;
+        
+        // Σαρώνουμε όλο το κείμενο για εντολές που ξεκινάνε με \
+        while ((match = macroRegex.exec(text)) !== null) {
+            const macroName = match[1];
+            const macroIndex = match.index;
+            
+            // 2. Έλεγχος αν η εντολή υπάρχει
+            if (!knownSystemMacros.includes(macroName) && (!JL_DATABASE || !JL_DATABASE[macroName])) {
+                errors.push(`<b>Άγνωστη εντολή:</b> <code>\\${macroName}</code>. Μήπως υπάρχει τυπογραφικό λάθος;`);
+                continue;
+            }
+            
+            // 3. Έλεγχος Ορισμάτων (μόνο για τα εξαρτήματα της βάσης μας)
+            if (JL_DATABASE && JL_DATABASE[macroName]) {
+                const expectedArgs = JL_DATABASE[macroName].argsCount || 7;
+                let argCount = 0;
+                let i = macroIndex + match[0].length;
+                
+                // Σαρώνουμε γραμμικά για να πιάσουμε σωστά τα φωλιασμένα {} και []
+                while (i < text.length) {
+                    let char = text[i];
+                    
+                    // Αγνοούμε τα κενά ανάμεσα στα ορίσματα
+                    if (char === ' ' || char === '\n' || char === '\r' || char === '\t') { i++; continue; }
+                    
+                    if (char === '{' || char === '[') {
+                        argCount++;
+                        let openChar = char;
+                        let closeChar = char === '{' ? '}' : ']';
+                        let depth = 1;
+                        i++;
+                        // Προχωράμε μέχρι να κλείσει το τρέχον όρισμα (ακόμα κι αν έχει μέσα άλλα {})
+                        while (i < text.length && depth > 0) {
+                            if (text[i] === openChar) depth++;
+                            else if (text[i] === closeChar) depth--;
+                            i++;
+                        }
+                    } else {
+                        // Βρήκαμε κάτι άλλο (π.χ. κανονικό κείμενο ή νέα εντολή), άρα σταματάμε το μέτρημα για αυτή την εντολή
+                        break;
+                    }
+                }
+                
+                if (argCount !== expectedArgs) {
+                    errors.push(`<b>Λάθος αριθμός ορισμάτων στην εντολή <code>\\${macroName}</code>:</b><br>Βρέθηκαν ${argCount}, ενώ η βιβλιοθήκη απαιτεί ${expectedArgs}.`);
+                }
+            }
+        }
+        
+        return errors;
+    }
+	
+	let showPinNames = true;
+
+	$('#toggle-pin-names').change(function() {
+		showPinNames = this.checked;
+		// Ενημέρωση όλων των υπαρχόντων εξαρτημάτων στο γράφημα
+		graph.getElements().forEach(el => {
+			if (el.get('latexMacro') === 'connectordot') return;
+			const ports = el.getPorts();
+			ports.forEach(port => {
+				el.portProp(port.id, 'attrs/portLabel/display', showPinNames ? 'block' : 'none');
+			});
+		});
+	});
+</script>
+</body>
+</html>
