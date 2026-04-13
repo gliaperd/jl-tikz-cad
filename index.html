@@ -2,18 +2,22 @@
 <html lang="el">
 <head>
     <meta charset="UTF-8">
-    <title>JL TikZ CAD </title>
+    <title>JL TikZ CAD</title>
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jointjs/3.7.0/joint.min.css">
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+
     <style>
         body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background: #f0f2f5; overflow: hidden; }
         #toolbar { background: #2c3e50; color: white; padding: 10px; display: flex; gap: 8px; align-items: center; z-index: 2000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); flex-wrap: wrap; }
-        .tool-btn { background: #34495e; color: white; border: 1px solid #5d6d7e; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-size: 13px; transition: background 0.2s; }
+        .tool-btn { background: #34495e; color: white; border: 1px solid #5d6d7e; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-size: 13px; transition: all 0.2s; }
         .tool-btn:hover { background: #4a6278; }
         .tool-btn.active { background: #3498db; border-color: #2980b9; }
         .v-separator { width: 1px; height: 20px; background: #5d6d7e; margin: 0 4px; }
         #main { display: flex; flex: 1; overflow: hidden; position: relative; }
         #sidebar { width: 220px; border-right: 1px solid #bdc3c7; overflow-y: auto; padding: 15px; background: #fff; z-index: 10; flex-shrink: 0; }
-        .comp-item { padding: 10px; margin-bottom: 8px; background: #ecf0f1; cursor: pointer; border-radius: 5px; font-size: 12px; border-left: 4px solid #3498db; transition: transform 0.1s; }
         
         #paper-container { flex: 1; background: #cbd5e0; overflow: hidden; position: relative; outline: none; cursor: grab; }
         #paper-container:active { cursor: grabbing; }
@@ -29,10 +33,10 @@
             flex-direction: column; 
             padding: 10px;
             resize: vertical; 
-            overflow: hidden; /* Αλλάζουμε το auto σε hidden εδώ... */
+            overflow: hidden; /* Αλλάζουμε το auto σε hidden εδώ */
             min-height: 100px; 
             max-height: 80vh;
-            position: relative; /* <--- ΠΡΟΣΘΗΚΗ */
+            position: relative; /* ΠΡΟΣΘΗΚΗ */
         }
         
         /* ΝΕΑ ΚΛΑΣΗ ΓΙΑ ΤΑ ΚΟΥΜΠΙΑ */
@@ -51,8 +55,8 @@
             font-size: 13px; 
             white-space: pre; 
             flex: 1; 
-            overflow-y: auto; /* ...και το βάζουμε εδώ για να κάνει scroll ΜΟΝΟ το κείμενο */
-            padding-top: 30px; /* Χώρος για να μην κρύβεται το κείμενο κάτω από τα κουμπιά */
+            overflow-y: auto; /* κάνει scroll ΜΟΝΟ το κείμενο */
+            padding-top: 30px; /* Χώρος για να μην κρύβεται το κείμενο */
         }
 
         /* Προαιρετικά: Μια όμορφη λαβή για το resize */
@@ -79,33 +83,43 @@
             fill: rgba(52, 152, 219, 0.05) !important;
         }
 		
+		/* Ενοποιημένο comp-item */
 		.comp-item { 
 			padding: 8px; 
 			margin-bottom: 6px; 
 			background: #ecf0f1; 
 			cursor: pointer; 
 			border-radius: 6px; 
+			font-size: 12px;
 			border-left: 4px solid #3498db; 
 			display: flex; 
 			align-items: center; 
-			min-height: 44px; /* Εξασφαλίζει σταθερό ύψος για να μην υπάρχει επικάλυψη */
+			min-height: 44px; 
 			overflow: hidden; 
+			transition: all 0.2s ease;
 		}	
 		.comp-item:hover {
-			background: #dff9fb; /* Ένα πολύ απαλό γαλάζιο */
+			background: #dff9fb; 
 			border-left: 4px solid #2980b9;
 			transform: translateX(5px);
-			transition: all 0.2s ease;
 		}
 		
 		/* Syntax Highlighting για το LaTeX */
-				.tex-cmd { color: #c678dd; font-weight: bold; }      /* Μοβ για τις εντολές π.χ. \draw */
-				.tex-brace { color: #56b6c2; }                       /* Γαλάζιο για τις αγκύλες { } */
-				.tex-place { color: #e06c75; font-style: italic; }   /* Απαλό κόκκινο για τα placeholders και το $NAME$ */
+        .tex-cmd { color: #c678dd; font-weight: bold; }      /* Μοβ για τις εντολές */
+        .tex-brace { color: #56b6c2; }                       /* Γαλάζιο για τις αγκύλες */
+        .tex-place { color: #e06c75; font-style: italic; }   /* Απαλό κόκκινο */
 				
 		/* Εξασφαλίζει ότι τα popup μηνύματα εμφανίζονται πάνω από το Wire Layer */
         .swal2-container {
             z-index: 10000 !important;
+        }
+		#my-paper { 
+            width: 100%; height: 100%; 
+            background-color: #ffffff !important; 
+            background-image: 
+                radial-gradient(circle at 0px 0px, #bdc3c7 1.5px, transparent 1.5px),
+                radial-gradient(circle at 0px 0px, #2c3e50 2.5px, transparent 2.5px);
+            background-repeat: repeat;
         }
     </style>
 </head>
@@ -122,8 +136,6 @@
     <button onclick="rotateSelected()" class="tool-btn">↻ Rotate</button>
     <button onclick="flipHorizontal()" class="tool-btn">↔ Flip H</button>
     <button onclick="flipVertical()" class="tool-btn">↕ Flip V</button>
-	<button id="btn-scale-up" class="btn btn-sm btn-secondary">🔍 Scale +</button>
-	<button id="btn-scale-down" class="btn btn-sm btn-secondary">🔍 Scale -</button>
 	<label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
 		<input type="checkbox" id="toggle-pin-names" checked> Show Pin Names
 	</label>
@@ -156,6 +168,7 @@
 
 <div id="output-panel">
     <div class="floating-buttons">
+		<button onclick="syncFromLatex()" class="tool-btn" style="background: #8e44ad; font-size: 11px;">🔄 Sync to Canvas</button>
         <button onclick="runLinterUI()" class="tool-btn" style="background: #e67e22; font-size: 11px;">🔍 Check Syntax</button>
         <button onclick="copyLatexToClipboard()" class="tool-btn" style="background: #34495e; font-size: 11px;">📋 Copy TikZ Code</button>
     </div>
@@ -181,23 +194,182 @@
     }, {
         markup: [{ tagName: 'rect', selector: 'hitbox' }, { tagName: 'circle', selector: 'dot' }]
     });
+	
+	// --- ΕΞΥΠΝΟ ΕΞΑΡΤΗΜΑ (Διορθωμένο Z-Index & Hitbox) ---
+		joint.shapes.jl.Component = joint.dia.Element.define('jl.Component', {
+			size: { width: 40, height: 40 },
+			attrs: {
+				// Το body παραμένει στη βάση για να πιάνει το κλικ
+				body: { 
+					refWidth: '100%', refHeight: '100%', 
+					fill: '#ffffff', fillOpacity: 0.01, stroke: 'none', 
+					'pointer-events': 'all', cursor: 'pointer' 
+				},
+				// Το foreignObject (fo) ξεκινάει ως 1x1 "κουκκίδα" για να μην καλύπτει τίποτα
+				fo: { display: 'none', width: 1, height: 1, 'pointer-events': 'none' }
+			}
+		}, {
+			markup: [
+				{ tagName: 'text', selector: 'label' },           // 1ο: Το απλό κείμενο (πίσω)
+				{ tagName: 'foreignObject', selector: 'fo' },    // 2ο: Τα μαθηματικά (πίσω)
+				{ tagName: 'rect', selector: 'body' },            // 3ο: Το σώμα επιλογής
+				{ tagName: 'path', selector: 'icon' }             // 4ο: Το σύμβολο (πάνω)
+			]
+		});
 
-    const graph = new joint.dia.Graph();
+	// Το View που φτιάχνει ένα ΠΡΑΓΜΑΤΙΚΟ HTML div (ώστε ο browser να το κάνει render)
+		joint.shapes.jl.ComponentView = joint.dia.ElementView.extend({
+			initialize: function() {
+				joint.dia.ElementView.prototype.initialize.apply(this, arguments);
+				this.listenTo(this.model, 'change:mathHtml', this.updateHTML);
+				
+				// Το Μυστικό: Φτιάχνουμε το div με το επίσημο HTML Namespace!
+				this.htmlContainer = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+				this.htmlContainer.style.width = '100%';
+				this.htmlContainer.style.height = '100%';
+				this.htmlContainer.style.display = 'flex';
+				this.htmlContainer.style.justifyContent = 'center';
+				this.htmlContainer.style.alignItems = 'center';
+				this.htmlContainer.style.pointerEvents = 'none';
+			},
+			render: function() {
+				joint.dia.ElementView.prototype.render.apply(this, arguments);
+				
+				const fo = this.el.querySelector('foreignObject');
+				if (fo && !fo.contains(this.htmlContainer)) {
+					fo.appendChild(this.htmlContainer);
+				}
+				
+				this.updateHTML();
+				return this;
+			},
+			updateHTML: function() {
+				let htmlStr = this.model.get('mathHtml');
+				if (htmlStr !== undefined) {
+					this.htmlContainer.innerHTML = htmlStr;
+				}
+			}
+		});
+
+
+	const graph = new joint.dia.Graph();
+
     let currentScale = 1;
     const container = document.getElementById('paper-container');
-    window.rawLatexCode = ""; 
+    window.rawLatexCode = "";
 
-    const paper = new joint.dia.Paper({
+    // --- 2. ΚΛΙΜΑΚΕΣ ΚΑΙ ΜΑΓΝΗΤΗΣ (ΑΠΟΛΥΤΗ ΤΑΥΤΙΣΗ) ---
+    const PPU_MULT = 4; 
+    const EXPORT_DIV = PPU_MULT * 10; 
+      
+    function updateElementLabel(el, newText) {
+        if (newText !== undefined) el.set('displayedText', newText);
+        let text = el.get('displayedText') || "";
+        
+        let isFreeText = el.get('latexMacro') === 'freetext';
+        let scale = el.get('customScale') || 1;
+        let isEmpty = text.trim() === "";
+        let displayText = text;
+        if (isEmpty && isFreeText) displayText = "[ Κενό ]"; 
+
+        if (isFreeText) { el.resize(80 * scale, 40 * scale); }
+
+        let isMath = displayText.includes('$');
+        let fontSize = isFreeText ? Math.round(14 * PPU_MULT * scale) : 11 * PPU_MULT; 
+        
+        let centerX = el.size().width / 2;
+        let centerY = isFreeText ? el.size().height / 2 : el.size().height + (12 * PPU_MULT);
+
+        if (isMath) {
+            el.attr('label/display', 'none'); 
+            
+            let mathRendered = displayText.replace(/\$(.*?)\$/g, (match, mathExpr) => {
+                try { return katex.renderToString(mathExpr, { throwOnError: false, displayMode: false }); } 
+                catch(e) { return match; }
+            });
+            
+            el.attr('fo/display', 'block');
+            el.attr('fo/x', centerX);
+            el.attr('fo/y', centerY);
+            el.attr('fo/style', 'overflow: visible; pointer-events: none;');
+            
+            let htmlStr = `<div style="position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-size: ${fontSize}px; color: #2c3e50; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">${mathRendered}</div>`;
+            el.set('mathHtml', htmlStr);
+        } else {
+            el.attr('fo/display', 'none'); 
+            el.attr('label/display', 'block'); 
+            el.attr('label/text', displayText);
+            el.attr('label/refX', '50%');
+            el.attr('label/refY', isFreeText ? '50%' : '100%');
+            el.attr('label/refY2', isFreeText ? 0 : 10 * PPU_MULT);
+            el.attr('label/fontSize', fontSize);
+            el.attr('label/opacity', isEmpty ? 0.3 : 1);
+            el.set('mathHtml', ''); 
+        }
+    }
+
+	const paper = new joint.dia.Paper({
         el: document.getElementById('my-paper'),
         model: graph,
         width: '100%', height: '100%', 
-        gridSize: 10, drawGrid: true,
+        gridSize: 10, 
+        background: { color: 'transparent' }, // Αφήνουμε το λευκό του CSS να φανεί
+        // ΤΕΛΟΣ ΤΟ drawGrid! Το κάνει το CSS.
+        
         snapLinks: { radius: 15 },
         linkPinning: false,
         defaultLink: new joint.shapes.standard.Link({
-            attrs: { line: { stroke: '#333', strokeWidth: 2, targetMarker: null } }
-        })
+            attrs: { line: { stroke: '#333', strokeWidth: 1.5 * PPU_MULT, targetMarker: null } }
+        }),
+        useModelGeometry: true,
+        cellViewNamespace: joint.shapes,
+        highlighting: {
+            'default': {
+                name: 'stroke',
+                options: { padding: 3, rx: 5, ry: 5, attrs: { 'stroke-width': 3, stroke: '#f39c12' } }
+            }
+        }
     });
+
+// --- ΤΟ ΑΠΟΛΥΤΟ TRICK: CSS Grid που ακολουθεί την κάμερα ΚΑΙ το Zoom! ---
+    function updateDynamicGrid() {
+        let t = paper.translate();
+        let s = paper.scale().sx;
+        
+        // 1. Υπολογισμός Αποστάσεων (Κενά ανάμεσα στις τελείες)
+        let minorSize = 20 * PPU_MULT * s; 
+        let majorSize = 80 * PPU_MULT * s; 
+        
+        // 2. Πάχος Τελείας: Αυξήσαμε τους συντελεστές (3 και 5) για να "ακούνε" σωστά στο μεγάλο zoom
+        let minorDot = Math.max(1.5, 3 * s); 
+        let majorDot = Math.max(2.5, 5 * s);
+        
+        // 3. Εφαρμογή με Anti-Aliasing (+0.5px στο transparent) για πιο "γεμάτες" κουκκίδες
+        $('#my-paper').css({
+            'background-image': `
+                radial-gradient(circle at 0px 0px, #bdc3c7 ${minorDot}px, transparent ${minorDot + 0.5}px),
+                radial-gradient(circle at 0px 0px, #7f8c8d ${majorDot}px, transparent ${majorDot + 0.5}px)
+            `,
+            'background-size': `${minorSize}px ${minorSize}px, ${majorSize}px ${majorSize}px`,
+            'background-position': `${t.tx}px ${t.ty}px, ${t.tx}px ${t.ty}px`
+        });
+    }
+
+    // Καλούμε τη συνάρτηση ΚΑΘΕ φορά που κάνουμε Pan ή Zoom!
+    paper.on('translate scale', updateDynamicGrid);
+
+	
+	
+	// --- NATIVE CAD FAKE SCALING (PPU = 40) ---
+		// Μεγεθύνουμε αυτόματα όλα τα Pins της βάσης κατά τη φόρτωση
+		if (typeof JL_DATABASE !== 'undefined') {
+			Object.keys(JL_DATABASE).forEach(k => {
+				if (JL_DATABASE[k].pins && !JL_DATABASE[k].scaled) {
+					JL_DATABASE[k].pins.forEach(p => { p.x *= PPU_MULT; p.y *= PPU_MULT; });
+					JL_DATABASE[k].scaled = true; // Flag για να μην το ξανατρέξουμε 
+				}
+			});
+		}
 	
 	let latexEdited = false;
     let suppressWarning = false;
@@ -213,25 +385,79 @@
         container.scrollTop = 2500 - (container.clientHeight / 2);
     };
     container.focus();
+	
+	// --- DRAG & DROP DROPZONE ---
+		container.addEventListener('dragover', (e) => {
+			e.preventDefault(); // Απαραίτητο για να επιτραπεί το drop
+			e.dataTransfer.dropEffect = 'copy';
+		});
 
-    // --- 1. ZOOM & FIT ---
-    function updateZoomDisplay() { document.getElementById('zoom-level').innerText = Math.round(currentScale * 100) + '%'; }
+		container.addEventListener('drop', (e) => {
+			e.preventDefault();
+			const type = e.dataTransfer.getData('application/jl-component');
+			if (type) {
+				// Καλούμε την addComponent περνώντας τις συντεταγμένες του ποντικιού!
+				addComponent(type, e.clientX, e.clientY);
+			}
+		});
 
-    function zoomFit() {
-        const bbox = graph.getCellsBBox();
-        if (!bbox) { paper.translate(0, 0); paper.scale(1, 1); currentScale = 1; updateZoomDisplay(); return; }
-        paper.scaleContentToFit({ padding: 80, minScale: 0.2, maxScale: 1.5 });
-        currentScale = paper.scale().sx; updateZoomDisplay();
+   // --- 1. ZOOM & FIT (ΜΕ FAKE SCALING) ---
+    let userZoom = 1.0; // Το Zoom που βλέπει ο χρήστης (1 = 100%)
+    
+    // Αρχικοποιούμε τον καμβά στο 1/4! 
+    paper.scale(1 / PPU_MULT, 1 / PPU_MULT);
+	updateDynamicGrid();
+
+    function updateZoomDisplay() { 
+        document.getElementById('zoom-level').innerText = Math.round(userZoom * 100) + '%'; 
     }
 
-    $(container).on('mousewheel DOMMouseScroll', function(e) {
+function zoomFit() {
+        const bbox = graph.getCellsBBox();
+        
+        if (!bbox || bbox.width === 0 || bbox.height === 0) {
+            // Αν ο καμβάς είναι άδειος, μηδενίζουμε τα πάντα
+            paper.translate(0, 0);
+            userZoom = 1.0;
+            paper.scale(userZoom / PPU_MULT, userZoom / PPU_MULT);
+            updateZoomDisplay();
+            updateDynamicGrid(); // Ενημέρωση πλέγματος
+            return;
+        }
+
+        // 1. Χρησιμοποιούμε τη native μέθοδο για να υπολογίσει η JointJS τη νέα κλίμακα και θέση
+        paper.scaleContentToFit({
+            padding: 50,
+            minScale: 0.1 / PPU_MULT,
+            maxScale: 1.5 / PPU_MULT,
+            useModelGeometry: true
+        });
+
+        // 2. Ενημερώνουμε το "ψεύτικο" zoom που βλέπει ο χρήστης βάσει της νέας κλίμακας
+        userZoom = paper.scale().sx * PPU_MULT;
+        
+        // 3. ΔΙΟΡΘΩΣΗ: Αν το zoomFit μας έφερε σε πολύ περίεργα δεκαδικά, 
+        // στρογγυλοποιούμε ελαφρώς για να μην "τρεμοπαίζει" το grid
+        userZoom = Math.round(userZoom * 100) / 100;
+        
+        updateZoomDisplay();
+
+        // 4. ΤΟ ΚΛΕΙΔΙ: Καλούμε τη συνάρτηση που συγχρονίζει το CSS Grid με τη νέα θέση
+        // Χωρίς αυτό, τα εξαρτήματα θα φαίνονται "εκτός πλέγματος"
+        updateDynamicGrid();
+    }
+
+	$(container).on('mousewheel DOMMouseScroll', function(e) {
         if (e.ctrlKey) {
             e.preventDefault();
             const delta = Math.max(-1, Math.min(1, (e.originalEvent.wheelDelta || -e.originalEvent.detail)));
-            const p = paper.clientToLocalPoint({ x: e.clientX, y: e.clientY });
-            if (delta > 0) currentScale = Math.min(currentScale + 0.1, 3);
-            else currentScale = Math.max(currentScale - 0.1, 0.2);
-            paper.scale(currentScale, currentScale, p.x, p.y);
+            
+            if (delta > 0) userZoom = Math.min(userZoom + 0.1, 3);
+            else userZoom = Math.max(userZoom - 0.1, 0.2);
+            
+            // Το πιο ασφαλές Zoom (χωρίς origin) για να μην χάνονται τα εξαρτήματα
+            let safeScale = userZoom / PPU_MULT;
+            paper.scale(safeScale, safeScale);
             updateZoomDisplay();
         }
     });
@@ -260,7 +486,13 @@
     });
 
     $(document).on('mousemove', function(evt) {
-        if (dragPanStart) paper.translate(dragPanStart.tx + (evt.clientX - dragPanStart.x), dragPanStart.ty + (evt.clientY - dragPanStart.y));
+			if (dragPanStart) {
+            paper.translate(
+                dragPanStart.tx + (evt.clientX - dragPanStart.x), 
+                dragPanStart.ty + (evt.clientY - dragPanStart.y)
+            );
+            updateDynamicGrid(); 
+        }
         if (selectionStart && selectionRect) {
             const left = Math.min(selectionStart.x, evt.clientX), top = Math.min(selectionStart.y, evt.clientY);
             const width = Math.abs(selectionStart.x - evt.clientX), height = Math.abs(selectionStart.y - evt.clientY);
@@ -382,9 +614,10 @@
             }
         });
 
-        const models = newCellsData.map(data => {
+		const models = newCellsData.map(data => {
             if (data.type === 'standard.Link') return new joint.shapes.standard.Link(data);
             if (data.type === 'jl.ConnectorDot') return new joint.shapes.jl.ConnectorDot(data);
+            if (data.type === 'jl.Component') return new joint.shapes.jl.Component(data); // <--- ΠΡΟΣΘΗΚΗ
             return new joint.shapes.standard.Rectangle(data);
         });
 
@@ -399,111 +632,78 @@
 
     function rotateSelected() { selectedElements.forEach(el => { if(el.get('latexMacro') !== 'connectordot') el.rotate(90); }); exportLatex(); }
 
-	// --- Διορθωμένα Flips για το νέο Συμμετρικό Bounding Box ---
 	function flipHorizontal() {
         selectedElements.forEach(el => {
             if(el.get('latexMacro') !== 'connectordot') {
-                const w = el.size().width, h = el.size().height;
-                const ports = el.getPorts();
-                ports.forEach(port => { el.portProp(port.id, 'args/x', w - port.args.x); });
-                
-                const flipH = !(el.get('flipH') || false); el.set('flipH', flipH);
-                const flipV = el.get('flipV') || false;
-                const sx = flipH ? -1 : 1, sy = flipV ? -1 : 1;
-                
-                el.attr('icon/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${el.get('shiftX')}, ${el.get('shiftY')})`);
+                el.set('flipH', !(el.get('flipH') || false));
+                applyRobustScale(el, el.get('customScale') || 1); // Το κάνει όλα η scale!
             }
         });
-        exportLatex();
+        forceExportLatex();
     }
 
-    // ΝΕΟ: Κατακόρυφη Αναστροφή
-	function flipVertical() {
+    function flipVertical() {
         selectedElements.forEach(el => {
             if(el.get('latexMacro') !== 'connectordot') {
-                const w = el.size().width, h = el.size().height;
-                const ports = el.getPorts();
-                ports.forEach(port => { el.portProp(port.id, 'args/y', h - port.args.y); });
-                
-                const flipV = !(el.get('flipV') || false); el.set('flipV', flipV);
-                const flipH = el.get('flipH') || false;
-                const sx = flipH ? -1 : 1, sy = flipV ? -1 : 1;
-                
-                el.attr('icon/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${el.get('shiftX')}, ${el.get('shiftY')})`);
+                el.set('flipV', !(el.get('flipV') || false));
+                applyRobustScale(el, el.get('customScale') || 1);
             }
         });
-        exportLatex();
+        forceExportLatex();
     }
 	
 	// --- ΣΥΝΑΡΤΗΣΗ ΑΛΛΑΓΗΣ ΚΛΙΜΑΚΑΣ ΜΕ PREDEFINED STEPS ---
-	const ALLOWED_SCALES = [1, 2, 3, 4];
+	const USER_SCALES = [0.25, 0.5, 1, 2, 4]; // Τα scales που ΒΛΕΠΕΙ ο χρήστης και το LaTeX (χάρη στο Fake Scaling, τώρα δεχόμαστε δεκαδικά!)
 
-	function changeScale(el, stepDir) {
-		if (el.isLink()) return; // Δεν κάνουμε scale στα καλώδια απευθείας
+	// --- ΡΩΜΑΛΕΟ SCALING (Τέλειο Bounding Box, Σταθερά Labels) ---
+    function applyRobustScale(el, newScale) {
+        if (el.get('baseWidth') === undefined) {
+            el.set('baseWidth', el.size().width);
+            el.set('baseHeight', el.size().height);
+            el.set('baseOffsetX', el.get('offsetX'));
+            el.set('baseOffsetY', el.get('offsetY'));
+            let initialBasePorts = {};
+            el.getPorts().forEach(p => { initialBasePorts[p.id] = { x: p.args.x, y: p.args.y }; });
+            el.set('basePorts', initialBasePorts);
+            el.set('baseShiftX', el.get('shiftX') || 0);
+            el.set('baseShiftY', el.get('shiftY') || 0);
+        }
 
-		let currentScale = el.get('customScale') || 1;
-		let currentIndex = ALLOWED_SCALES.indexOf(currentScale);
-		
-		// Αν για κάποιο λόγο δεν βρεθεί, ξεκινάμε από το 1
-		if (currentIndex === -1) currentIndex = ALLOWED_SCALES.indexOf(1);
+        let w = Math.round(el.get('baseWidth') * newScale);
+        let h = Math.round(el.get('baseHeight') * newScale);
 
-		let newIndex = currentIndex + stepDir;
-		
-		// Όρια: Δεν αφήνουμε να βγει εκτός του πίνακα
-		if (newIndex < 0 || newIndex >= ALLOWED_SCALES.length) return; 
+        el.set('offsetX', Math.round(el.get('baseOffsetX') * newScale));
+        el.set('offsetY', Math.round(el.get('baseOffsetY') * newScale));
 
-		let newScale = ALLOWED_SCALES[newIndex];
-		let factor = newScale / currentScale;
+        let shiftX = el.get('baseShiftX') * newScale;
+        let shiftY = el.get('baseShiftY') * newScale;
+        let totalScale = newScale * PPU_MULT; 
 
-		// 1. Αλλαγή μεγέθους του Bounding Box
-		let size = el.size();
-		el.resize(size.width * factor, size.height * factor);
+        let flipH = el.get('flipH') || false;
+        let flipV = el.get('flipV') || false;
+        let sx = flipH ? -1 : 1;
+        let sy = flipV ? -1 : 1;
 
-		// 2. Ενημέρωση των Offsets
-		el.set('offsetX', el.get('offsetX') * factor);
-		el.set('offsetY', el.get('offsetY') * factor);
-		
-		if (el.get('baseShiftX') === undefined) {
-			el.set('baseShiftX', el.get('shiftX') || 0);
-			el.set('baseShiftY', el.get('shiftY') || 0);
-		}
+        el.attr('icon/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
 
-		// 3. Επαναϋπολογισμός του Transform
-		let shiftX = el.get('baseShiftX') * newScale;
-		let shiftY = el.get('baseShiftY') * newScale;
-		let transformStr = `translate(${shiftX}, ${shiftY}) scale(${newScale})`;
+        // ΛΥΣΗ SCALE DOWN: Μετακινούμε ΠΡΩΤΑ τα Ports...
+        let basePorts = el.get('basePorts');
+        el.getPorts().forEach(port => {
+            let px = basePorts[port.id].x * newScale;
+            let py = basePorts[port.id].y * newScale;
+            if (flipH) px = w - px;
+            if (flipV) py = h - py;
+            el.portProp(port.id, 'args/x', Math.round(px));
+            el.portProp(port.id, 'args/y', Math.round(py));
+        });
 
-		let flipH = el.get('flipH') || false;
-		let flipV = el.get('flipV') || false;
-		if (flipH || flipV) {
-			let sx = flipH ? -1 : 1;
-			let sy = flipV ? -1 : 1;
-			let cx = (size.width * factor) / 2;
-			let cy = (size.height * factor) / 2;
-			transformStr = `translate(${cx}, ${cy}) scale(${sx}, ${sy}) translate(${-cx}, ${-cy}) ` + transformStr;
-		}
-		el.attr('icon/transform', transformStr);
+        // ...ΚΑΙ ΜΕΤΑ κάνουμε resize το κουτί! Έτσι δεν "σκαλώνει" στα παλιά, ανοιχτά pins.
+        el.resize(w, h);
 
-		// 4. Μετακίνηση των Pins
-		let ports = el.getPorts();
-		ports.forEach(port => {
-			let currentArgs = port.args;
-			el.portProp(port.id, 'args/x', currentArgs.x * factor);
-			el.portProp(port.id, 'args/y', currentArgs.y * factor);
-		});
+        updateElementLabel(el); 
 
-		el.set('customScale', newScale);
-		forceExportLatex();
-	}
-
-	// Events για τα κουμπιά scale
-	$('#btn-scale-up').click(function() {
-		selectedElements.forEach(el => changeScale(el, 1));
-	});
-
-	$('#btn-scale-down').click(function() {
-		selectedElements.forEach(el => changeScale(el, -1));
-	});
+        el.set('customScale', newScale);
+    }
 
     function deleteSelected() { [...selectedElements, ...selectedLinks].forEach(c => c.remove()); clearSelection(); exportLatex(); }
 
@@ -531,32 +731,43 @@
                            </svg>`;
             }
 			else if (data.icon) {
-                // 1. Βρίσκουμε τα όρια των Pins
+				// 1. Βρίσκουμε τα όρια των Pins (Αυτά είναι ΗΔΗ 4x)
                 const xs = data.pins.map(p => p.x), ys = data.pins.map(p => p.y);
                 let minX = xs.length ? Math.min(...xs) : 0;
                 let maxX = xs.length ? Math.max(...xs) : 0;
                 let minY = ys.length ? Math.min(...ys) : 0;
                 let maxY = ys.length ? Math.max(...ys) : 0;
 
-                // 2. Δημιουργούμε ένα προσωρινό Path για να μετρήσουμε τα όρια του Γραφικού
-                const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                tempPath.setAttribute('d', data.icon);
-                const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svgContainer.appendChild(tempPath);
-                document.body.appendChild(svgContainer);
-                const bbox = tempPath.getBBox();
-                document.body.removeChild(svgContainer);
+                // 2. Μετράμε το BBox του SVG (Το SVG είναι 1x, πρέπει να το κάνουμε 4x!)
+                let bbox = { x: 0, y: 0, width: 0, height: 0 };
+                if (data.icon) {
+                    const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    tempPath.setAttribute('d', data.icon);
+                    const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svgContainer.appendChild(tempPath);
+                    document.body.appendChild(svgContainer);
+                    try { bbox = tempPath.getBBox(); } catch(e){}
+                    document.body.removeChild(svgContainer);
+                }
 
-                // 3. Ενοποιούμε τα όρια (Pins + Γραφικό)
-                minX = Math.min(minX, bbox.x);
-                maxX = Math.max(maxX, bbox.x + bbox.width);
-                minY = Math.min(minY, bbox.y);
-                maxY = Math.max(maxY, bbox.y + bbox.height);
+                // Φέρνουμε το Path στα μέτρα των Pins
+                const pathMinX = bbox.x * PPU_MULT;
+                const pathMaxX = (bbox.x + bbox.width) * PPU_MULT;
+                const pathMinY = bbox.y * PPU_MULT;
+                const pathMaxY = (bbox.y + bbox.height) * PPU_MULT;
 
-                const w = maxX - minX;
-                const h = maxY - minY;
+                minX = Math.min(minX, pathMinX);
+                maxX = Math.max(maxX, pathMaxX);
+                minY = Math.min(minY, pathMinY);
+                maxY = Math.max(maxY, pathMaxY);
 
-                // 4. Padding 20% για να "αναπνέει"
+                // Fallback για εξαρτήματα με 0 ή 1 Pin (να μην βγάζουν Width=0)
+                let w = maxX - minX;
+                let h = maxY - minY;
+                if (w === 0) { w = 40; minX -= 20; maxX += 20; }
+                if (h === 0) { h = 40; minY -= 20; maxY += 20; }
+
+                // 4. Padding 20%
                 const padW = Math.max(w * 0.2, 10);
                 const padH = Math.max(h * 0.2, 10);
 
@@ -567,16 +778,16 @@
 
                 iconSvg = `
                     <svg width="100%" height="100%" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet">
-                        <path d="${data.icon}" 
+                        <path d="${data.icon}" transform="scale(${PPU_MULT})"
                               style="vector-effect: non-scaling-stroke;" 
                               stroke="#2c3e50" stroke-width="2.5" fill="none" 
                               stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>`;
             }
             
-            d.innerHTML = `
+			d.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                    <div style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #ffffff; border: 1px solid #d1d8e0; border-radius: 6px; padding: 4px; box-sizing: border-box; overflow: hidden;">
+                    <div class="icon-wrapper" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #ffffff; border: 1px solid #d1d8e0; border-radius: 6px; padding: 4px; box-sizing: border-box; overflow: hidden;">
                         ${iconSvg}
                     </div>
                     <span style="font-weight: 500; font-size: 13px; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
@@ -585,28 +796,53 @@
                 </div>
             `;
             
+            // --- ΝΕΟ: Drag and Drop Setup με Custom Drag Image ---
+            d.draggable = true;
+            d.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('application/jl-component', k);
+                e.dataTransfer.effectAllowed = 'copy';
+                
+                // Βρίσκουμε ΜΟΝΟ το εικονίδιο
+                const iconNode = d.querySelector('.icon-wrapper');
+                if (iconNode) {
+                    // Θέτουμε το εικονίδιο ως "φάντασμα" 
+                    // Το 21, 21 κεντράρει το ποντίκι ακριβώς στη μέση του κουτιού 42x42!
+                    e.dataTransfer.setDragImage(iconNode, 21, 21);
+                }
+            });
+            // --------------------------------
+            
             d.onclick = () => addComponent(k);
             list.appendChild(d);
         });
     }
 	
 	
-	function addComponent(type) {
+	function addComponent(type, dropX = null, dropY = null) {
         const data = JL_DATABASE[type];
         let element;
         const rect = container.getBoundingClientRect();
-        const centerPos = paper.clientToLocalPoint({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
-        const snappedX = Math.round(centerPos.x / 10) * 10, snappedY = Math.round(centerPos.y / 10) * 10;
+        
+        // --- ΕΞΥΠΝΟΣ ΥΠΟΛΟΓΙΣΜΟΣ ΘΕΣΗΣ (Κλικ vs Drag) ---
+        let targetPos;
+        if (dropX !== null && dropY !== null) {
+            // Ήρθε από Drag & Drop: Μετατροπή των συντεταγμένων της οθόνης σε συντεταγμένες καμβά
+            targetPos = paper.clientToLocalPoint({ x: dropX, y: dropY });
+        } else {
+            // Ήρθε από κλικ: Το βάζουμε στο κέντρο της οθόνης
+            targetPos = paper.clientToLocalPoint({ x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 });
+        }
+        
+        const snappedX = Math.round(targetPos.x / 10) * 10;
+        const snappedY = Math.round(targetPos.y / 10) * 10;
         
         if (type === 'connectordot') {
             element = new joint.shapes.jl.ConnectorDot();
             element.addPort({ id: 'p1', group: 'absolute', args: {x: 10, y: 10}, markup: '<g/>' });
             element.set({'latexMacro': 'connectordot', 'offsetX': -10, 'offsetY': -10});
             element.position(snappedX - 10, snappedY - 10);
-        } else {
-            element = new joint.shapes.standard.Rectangle({
-                markup: [{ tagName: 'rect', selector: 'body' }, { tagName: 'path', selector: 'icon' }, { tagName: 'text', selector: 'label' }]
-            });
+		} else {
+			element = new joint.shapes.jl.Component();
 
             let iconPath = data.icon || ''; 
 
@@ -630,6 +866,7 @@
                 tempSvg.setAttribute('width', '500'); tempSvg.setAttribute('height', '500');
                 const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 tempPath.setAttribute('d', iconPath);
+				tempPath.setAttribute('transform', `scale(${PPU_MULT})`); // --- ΝΕΟ: Ζητάμε από τον Browser να μετρήσει το SVG 4 φορές μεγαλύτερο! ---
                 tempSvg.appendChild(tempPath);
                 Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
                 document.body.appendChild(tempSvg);
@@ -651,96 +888,125 @@
             const absMaxX = bbox.width > 0 ? Math.max(maxPinX, bbox.x + bbox.width) : maxPinX;
             const absMinY = bbox.height > 0 ? Math.min(minPinY, bbox.y) : minPinY;
             const absMaxY = bbox.height > 0 ? Math.max(maxPinY, bbox.y + bbox.height) : maxPinY;
-
-            // Snapping στο Grid με περιθώριο 10px
-            const pad = 10;
+				
+			// Snapping Bounding Box στο Grid (10px για τέλεια εφαρμογή με το νέο gridSize)
+            const pad = 10; 
             const boxOriginX = Math.floor((absMinX - pad) / 10) * 10;
             const boxOriginY = Math.floor((absMinY - pad) / 10) * 10;
             const boxMaxX = Math.ceil((absMaxX + pad) / 10) * 10;
             const boxMaxY = Math.ceil((absMaxY + pad) / 10) * 10;
 
-            const boxWidth = Math.max(boxMaxX - boxOriginX, 20);
-            const boxHeight = Math.max(boxMaxY - boxOriginY, 20);
+            const boxWidth = Math.max(boxMaxX - boxOriginX, 40);
+            const boxHeight = Math.max(boxMaxY - boxOriginY, 40);
 
-            // Η ΜΑΓΕΙΑ: Καμία "έξυπνη" μετατόπιση. Απλά φέρνουμε το (0,0) του TikZ στην πάνω αριστερή γωνία του κουτιού!
             const shiftX = -boxOriginX;
             const shiftY = -boxOriginY;
 
-            element.resize(boxWidth, boxHeight);
-            element.attr({ 
-				body: { 
-                    fill: 'transparent', // Διάφανο γέμισμα
-                    stroke: 'transparent', // Διάφανο περίγραμμα
-                    rx: 0, ry: 0 
+			element.resize(boxWidth, boxHeight);
+			element.attr({ 
+                body: { 
+                    fill: '#ffffff',        
+                    fillOpacity: 0.01,  // Λύνει το θέμα με το Hitbox
+                    stroke: 'none', 
+                    'pointer-events': 'all',
+                    cursor: 'pointer'   // Διώχνει το "χεράκι"
                 },
-                icon: { 
+                icon: {
                     d: iconPath, stroke: '#2c3e50', strokeWidth: 1.8, fill: 'none', 
-                    transform: `translate(${shiftX}, ${shiftY})`,
-					'vector-effect': 'non-scaling-stroke'
-                }, 
-                label: { text: data.name, fontSize: 10, fill: '#34495e', refX: '50%', textAnchor: 'middle', refY: '100%', refY2: -6 } 
+                    transform: `translate(${shiftX}, ${shiftY}) scale(${PPU_MULT})`, 
+                    'vector-effect': 'non-scaling-stroke' 
+                },
+				label: { 
+                    text: data.name, 
+                    fontSize: 12 * PPU_MULT, 
+                    fill: '#34495e', 
+                    refX: '50%', textAnchor: 'middle', 
+                    refY: '50%', // Αγκίστρωση στο ΚΕΝΤΡΟ του εξαρτήματος (δεν επηρεάζεται από το Rotate!)
+                    refY2: 25 * PPU_MULT, // Σταθερή μετατόπιση προς τα κάτω
+                    'pointer-events': 'none'
+                }
             });
+			
+			// Αν είναι το εργαλείο Κειμένου, κρύβουμε το εικονίδιο και κεντράρουμε το κείμενο!
+            if (type === 'freetext') {
+                element.attr('icon/stroke', 'transparent'); // Κάνουμε το "T" αόρατο
+                element.attr('label/refY', '50%');          // Το φέρνουμε ακριβώς στο κέντρο
+                element.attr('label/refY2', 0);
+                element.attr('label/fontSize', 14 * PPU_MULT); // Λίγο πιο μεγάλο
+            }
 
-			const ports = uniquePins.map(p => ({ 
+            const ports = uniquePins.map(p => ({ 
                 id: p.id, group: 'absolute', 
                 args: { x: p.x + shiftX, y: p.y + shiftY }, 
                 markup: [
                     { tagName: 'rect', selector: 'portBody' },
-                    { tagName: 'title', selector: 'portTitle' }, // Native Tooltip
-                    { tagName: 'text', selector: 'portLabel' }   // Ορατό κειμενάκι
+                    { tagName: 'title', selector: 'portTitle' }, 
+                    { tagName: 'text', selector: 'portLabel' }   
                 ],
                 attrs: { 
-                    portBody: { width: 8, height: 8, x: -4, y: -4, fill: '#ff9800' },
+                    portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: '#ff9800' },
                     portTitle: { text: p.label || p.id },
                     portLabel: { 
-                        text: p.label || '', 
-						display: showPinNames ? 'block' : 'none',
-                        fontSize: 9, 
-                        fill: '#c0392b', // Σκούρο κόκκινο χρώμα γραμματοσειράς
-                        fontWeight: 'bold',
-                        fontFamily: 'monospace',
-                        x: 6,    // Offset για να μην πέφτει πάνω στο καλώδιο
-                        y: -6, 
-                        textAnchor: 'start' 
+                        text: p.label || '', display: showPinNames ? 'block' : 'none',
+                        fontSize: 9 * PPU_MULT, // Κανονικό μέγεθος για τα Pin Names!
+                        fill: '#c0392b', fontWeight: 'bold', fontFamily: 'monospace',
+                        x: 6 * PPU_MULT, y: -6 * PPU_MULT, textAnchor: 'start' 
                     }
                 } 
             }));
             
+            // Αποθήκευση των "Αρχικών" θέσεων των pins για τέλειο Scaling
+            let basePorts = {};
+            ports.forEach(p => { basePorts[p.id] = { x: p.args.x, y: p.args.y }; });
+
             element.prop('ports', { groups: { 'absolute': { position: { name: 'absolute' } } } });
             element.addPorts(ports);
             element.set({
                 'latexMacro': data.name, 
-                'offsetX': boxOriginX, 
-                'offsetY': boxOriginY,
-                'shiftX': shiftX,
-                'shiftY': shiftY,
-                'flipH': false,
-                'flipV': false
+                'offsetX': boxOriginX, 'offsetY': boxOriginY,
+                'shiftX': shiftX, 'shiftY': shiftY,
+                'flipH': false, 'flipV': false,
+                'customArgs': [], 'customScale': 1,
+                'baseWidth': boxWidth, 'baseHeight': boxHeight,
+                'baseOffsetX': boxOriginX, 'baseOffsetY': boxOriginY,
+                'baseShiftX': shiftX, 'baseShiftY': shiftY,
+                'basePorts': basePorts
             });
             
-            element.position(snappedX - boxWidth / 2, snappedY - boxHeight / 2);
+			// ΑΠΟΛΥΤΟ SNAPPING: Κουμπώνουμε το μαθηματικό (0,0) του εξαρτήματος πάνω στο Grid των 10px (0.25 TikZ)
+            let snappedOriginX = Math.round(targetPos.x / 10) * 10;
+            let snappedOriginY = Math.round(targetPos.y / 10) * 10;
+            
+            // Η τελική θέση (πάνω αριστερή γωνία του box) 
+            let finalX = snappedOriginX - shiftX;
+            let finalY = snappedOriginY - shiftY;
+            
+            if (type === 'freetext') element.attr('icon/stroke', 'transparent'); 
+            updateElementLabel(element, data.name); 
+            
+            element.position(finalX, finalY);
         }
         graph.addCell(element); clearSelection(); selectedElements.push(element);
         setTimeout(() => { const v = paper.findViewByModel(element); if(v) v.highlight(); }, 10);
         exportLatex();
     }
 
-    // --- 6. ΚΑΛΩΔΙΑ ---
+	// --- 6. ΚΑΛΩΔΙΑ ---
     $('#tool-draw').click(function() { $('#draw-glasspane').show(); $('.tool-btn').removeClass('active'); $(this).addClass('active'); });
     $('#tool-pan').click(function() { $('#draw-glasspane').hide(); $('.tool-btn').removeClass('active'); $(this).addClass('active'); });
 
-    let drawing = false, wire = null;
+	let drawing = false, wire = null;
     $('#draw-glasspane').on('mousedown', function(e) {
         drawing = true;
         let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let s = { x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 };
-        wire = new joint.shapes.standard.Link({ source: s, target: s, attrs: { line: { stroke: '#333', strokeWidth: 2, targetMarker: null } } });
+        let s = { x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 }; // Μαγνήτης στα 10
+        wire = new joint.shapes.standard.Link({ source: s, target: s, attrs: { line: { stroke: '#333', strokeWidth: 2 * PPU_MULT, targetMarker: null } } });
         wire.addTo(graph);
     });
     $(document).on('mousemove', function(e) {
         if (!drawing) return;
         let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let tx = Math.round(p.x/10)*10, ty = Math.round(p.y/10)*10;
+        let tx = Math.round(p.x/10)*10, ty = Math.round(p.y/10)*10;     // Μαγνήτης στα 10
         let s = wire.source();
         if (Math.abs(tx - s.x) > Math.abs(ty - s.y)) wire.target({ x: tx, y: s.y });
         else wire.target({ x: s.x, y: ty });
@@ -813,7 +1079,7 @@
             const p = el.position(), macro = el.get('latexMacro');
             let line = "";
             if (macro === 'connectordot') {
-                line = "  \\connectordot{(" + ((p.x + 10) / 10).toFixed(1) + "," + (-(p.y + 10) / 10).toFixed(1) + ")}\n";
+                line = "  \\connectordot{(" + ((p.x + 10) / EXPORT_DIV).toFixed(2) + "," + (-(p.y + 10) / EXPORT_DIV).toFixed(2) + ")}\n";
 			} else {
 				// --- ΕΞΥΠΝΟΣ ΥΠΟΛΟΓΙΣΜΟΣ OFFSET ΓΙΑ FLIP & ROTATION ---
                 const rot = el.get('angle') || 0;
@@ -848,8 +1114,8 @@
                 const rotatedOy = Math.round(cy + (dx * sin) + (dy * cos));
 
                 // Υπολογισμός τελικών συντεταγμένων
-                const tx = (rotatedOx / 10).toFixed(1);
-                const ty = (-(rotatedOy) / 10).toFixed(1);
+				const tx = (rotatedOx / EXPORT_DIV).toFixed(2);
+				const ty = (-(rotatedOy) / EXPORT_DIV).toFixed(2);
                 // ---------------------------------------------------------
 
                 // Υπολογισμός του Flip String
@@ -865,44 +1131,43 @@
                 const argNames = (data && data.argNames) ? data.argNames : [];
                 
 				let args = [];
-                for (let i = 0; i < argsCount; i++) {
-                    // Διαβάζουμε το αντικείμενο του argument (αν υπάρχει)
+				for (let i = 0; i < argsCount; i++) {
                     let argDef = argNames[i] || { name: '', optional: false };
                     let desc = argDef.name.toLowerCase();
                     let isOpt = argDef.optional;
                     
+                    // Διαβάζουμε τις αποθηκευμένες ρυθμίσεις του χρήστη
+                    let customArgs = el.get('customArgs') || [];
                     let innerVal = "...";
 
                     if (desc.includes('position')) {
                         innerVal = `(${tx},${ty})`;
-                    } else if (desc === 'name') {
-                        innerVal = `$NAME$`;
-                    } else if (desc.includes('grid')) {
-                        innerVal = `type "gridon" to show grid`;
-                    } else if (desc.includes('show')) {
-                        innerVal = `type "show" to display (0,0)`;
-					} else if (desc.includes('rotation')) {
-						// Ελέγχουμε αν η περιγραφή ζητάει ΚΑΙ flip
-						if (desc.includes('flip')) {
-							innerVal = `${rot},${flipStr}`; // Θα βγάλει π.χ. {0,none} ή {90,v}
-						} else {
-							innerVal = `${rot}`; // Θα βγάλει σκέτο {0} αν το macro δεν υποστηρίζει flip
-						}
+                    } else if (desc.includes('rotation')) {
+                        if (desc.includes('flip')) innerVal = `${rot},${flipStr}`;
+                        else innerVal = `${rot}`;
 					} else {
-						innerVal = argDef.name ? argDef.name : "...";
-					}
-                    
-                    // Αν είναι προαιρετικό βάζουμε [ ], αλλιώς { }
-                    if (isOpt) {
-                        args.push(`[${innerVal}]`);
-                    } else {
-                        args.push(`{${innerVal}}`);
+                        // ΑΝ Ο ΧΡΗΣΤΗΣ ΕΧΕΙ ΔΩΣΕΙ ΤΙΜΗ (Ακόμα και αν την έσβησε / έκανε κενή), ΧΡΗΣΙΜΟΠΟΙΗΣΕ ΤΗΝ
+                        if (customArgs[i] !== undefined) {
+                            innerVal = customArgs[i];
+                        } else {
+                            // Αλλιώς βάλε τις Default (όταν πρωτο-μπαίνει το εξάρτημα)
+                            if (desc === 'name') innerVal = `$NAME$`;
+                            else if (desc === 'text') innerVal = ``; // Προσθήκη: Το freetext ξεκινάει εξ ορισμού κενό (ή με το όνομά του)
+                            else if (desc.includes('grid')) innerVal = `type "gridon" to show grid`;
+                            else if (desc.includes('show')) innerVal = `type "show" to display (0,0)`;
+                            else if (argDef.name.includes('/')) innerVal = argDef.name.split('/')[0].trim(); // Παίρνει το 1ο (π.χ. 'n' από 'n/p')
+                            else innerVal = argDef.name ? argDef.name : "...";
+                        }
                     }
-				}
+                    
+                    if (isOpt) args.push(`[${innerVal}]`);
+                    else args.push(`{${innerVal}}`);
+                }
 
-                // --- ΕΞΑΓΩΓΗ MACRO ΚΑΙ SCALE ---
+				// --- ΕΞΑΓΩΓΗ MACRO, SCALE ΚΑΙ HIDDEN ID ---
                 let currentScale = el.get('customScale') || 1;
-                let finalMacroLine = "  \\" + macro + args.join("") + "\n";
+                // Προσθέτουμε το % id: για τον αμφίδρομο συγχρονισμό!
+                let finalMacroLine = "  \\" + macro + args.join("") + " % id:" + el.id + "\n";
 
                 if (currentScale !== 1) {
                     let scaleOn = `  \\setscale{${currentScale}}\n`;
@@ -925,10 +1190,10 @@
             for (let i = 0; i < pts.length - 1; i++) {
                 // Απόλυτη στρογγυλοποίηση στον κοντινότερο ακέραιο της δεκάδας 
                 // για να "κουμπώνουν" τέλεια τα καλώδια στα pins
-                let x1 = (Math.round(pts[i].x / 10)).toFixed(1);
-                let y1 = (Math.round(-pts[i].y / 10)).toFixed(1);
-                let x2 = (Math.round(pts[i+1].x / 10)).toFixed(1);
-                let y2 = (Math.round(-pts[i+1].y / 10)).toFixed(1);
+					let x1 = ((Math.round(pts[i].x / 10) * 10) / EXPORT_DIV).toFixed(2);
+					let y1 = ((Math.round(-pts[i].y / 10) * 10) / EXPORT_DIV).toFixed(2);
+					let x2 = ((Math.round(pts[i+1].x / 10) * 10) / EXPORT_DIV).toFixed(2);
+					let y2 = ((Math.round(-pts[i+1].y / 10) * 10) / EXPORT_DIV).toFixed(2);
                 
                 segments.push({ 
                     linkId: link.id, 
@@ -1204,6 +1469,198 @@ ${indentedTikz}
         }
         
         return errors;
+    }
+	
+	// --- 10. PROPERTY EDITOR (ΔΙΠΛΟ ΚΛΙΚ) ---
+    paper.on('cell:pointerdblclick', function(cellView) {
+        let el = cellView.model;
+        if (el.isLink() || el.get('latexMacro') === 'connectordot') return;
+
+        let macro = el.get('latexMacro');
+        let data = JL_DATABASE[macro];
+        if (!data) return;
+
+        let currentArgs = el.get('customArgs') || [];
+        let htmlForm = '<div style="text-align: left; font-size: 14px;">';
+
+        // Το variant_arg έρχεται ως 1-based, εμείς το θέλουμε 0-based για τα arrays
+        let variantIndex = data.variantArg ? data.variantArg - 1 : -1;
+		
+		let currentScale = el.get('customScale') || 1;
+        // Προσθήκη του Scale Selector
+        htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
+                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Κλίμακα / Scale (TikZ)</label>
+                        <select id="swal-input-scale" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;">
+                            <option value="0.25" ${currentScale === 0.25 ? 'selected' : ''}>0.25x</option>
+                            <option value="0.5" ${currentScale === 0.75 ? 'selected' : ''}>0.5x</option>
+                            <option value="1"    ${currentScale === 1 ? 'selected' : ''}>1x</option>
+                            <option value="2"    ${currentScale === 2 ? 'selected' : ''}>2x</option>
+                            <option value="4"    ${currentScale === 4 ? 'selected' : ''}>4x</option>
+                        </select>
+                    </div>`;
+
+        for (let i = 0; i < data.argsCount; i++) {
+            let argDef = data.argNames[i] || { name: `Arg ${i+1}` };
+            let desc = argDef.name.toLowerCase();
+            let val = currentArgs[i] !== undefined ? currentArgs[i] : "";
+
+            // Κλειδώνουμε τη Θέση και την Περιστροφή (υπολογίζονται αυτόματα)
+            let isReadOnly = desc.includes('position') || desc.includes('rotation');
+            
+            htmlForm += `<div style="margin-bottom: 12px;">
+                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">${argDef.name}</label>`;
+
+            if (isReadOnly) {
+                htmlForm += `<input disabled class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; background: #ecf0f1; cursor: not-allowed; color: #7f8c8d;" value="Αυτόματα από τον καμβά">`;
+            } else if (i === variantIndex || argDef.name.includes('/')) {
+                // Έξυπνο Dropdown! Αν βρει '/' φτιάχνει επιλογές (π.χ. n/p -> 'n' και 'p')
+                let options = argDef.name.split('/'); 
+                htmlForm += `<select id="swal-input-${i}" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;">`;
+                options.forEach(opt => {
+                    let cleanOpt = opt.trim();
+                    let selected = (val === cleanOpt || (!val && cleanOpt === options[0].trim())) ? 'selected' : '';
+                    htmlForm += `<option value="${cleanOpt}" ${selected}>${cleanOpt}</option>`;
+                });
+                htmlForm += `</select>`;
+            } else {
+                // Απλό πεδίο κειμένου
+                htmlForm += `<input id="swal-input-${i}" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${val}">`;
+            }
+            htmlForm += `</div>`;
+        }
+        htmlForm += '</div>';
+
+        Swal.fire({
+            title: `<span style="font-size: 18px;">Ιδιότητες: ${data.name}</span>`,
+            html: htmlForm,
+            showCancelButton: true,
+            confirmButtonText: 'Αποθήκευση',
+            cancelButtonText: 'Ακύρωση',
+            confirmButtonColor: '#27ae60',
+			preConfirm: () => {
+                let results = { args: [], scale: parseFloat(document.getElementById('swal-input-scale').value) };
+                for (let i = 0; i < data.argsCount; i++) {
+                    let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
+                    if (desc.includes('position') || desc.includes('rotation')) results.args.push(""); 
+                    else results.args.push(document.getElementById(`swal-input-${i}`).value);
+                }
+                return results;
+            }
+		}).then((result) => {
+            if (result.isConfirmed) {
+                let newArgs = result.value.args;
+                let newScale = result.value.scale;
+                
+                el.set('customArgs', newArgs);
+
+                // ΑΛΛΑΓΗ ΤΟΥ ΣΥΜΒΟΛΟΥ ΖΩΝΤΑΝΑ (Variants)
+                if (variantIndex !== -1 && data.icons) {
+                    let selectedVariant = newArgs[variantIndex];
+                    if (data.icons[selectedVariant]) el.attr('icon/d', data.icons[selectedVariant]);
+                }
+
+                // ΕΦΑΡΜΟΓΗ ΝΕΟΥ SCALE ΜΕ ΑΠΟΛΥΤΗ ΑΚΡΙΒΕΙΑ
+                if (newScale !== currentScale) {
+                    applyRobustScale(el, newScale);
+                }
+
+				// ΑΛΛΑΓΗ ΤΟΥ ΟΝΟΜΑΤΟΣ Ή ΤΟΥ ΚΕΙΜΕΝΟΥ ΣΤΟΝ ΚΑΜΒΑ
+                for (let i = 0; i < data.argsCount; i++) {
+                    let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
+                    if (desc === 'name' || desc === 'text') {
+						let newName = newArgs[i] === '$NAME$' ? data.name : newArgs[i];
+                        updateElementLabel(el, newName);
+                    }
+                }
+
+                forceExportLatex();
+            }
+        });
+    });
+
+	// --- 11. BI-DIRECTIONAL SYNC (LATEX TO CANVAS) ---
+
+    // Έξυπνος Parser που διαβάζει τα ορίσματα {} και [] χωρίς να μπερδεύεται με φωλιασμένα άγκιστρα!
+    function parseLatexArgs(argsStr) {
+        let args = [], currentArg = '', depth = 0, inArg = false;
+        for (let i = 0; i < argsStr.length; i++) {
+            let char = argsStr[i];
+            if (char === '{' || char === '[') {
+                if (depth === 0) { inArg = true; currentArg = ''; } 
+                else { currentArg += char; }
+                depth++;
+            } else if (char === '}' || char === ']') {
+                depth--;
+                if (depth === 0) { args.push(currentArg); inArg = false; } 
+                else { currentArg += char; }
+            } else {
+                if (inArg) currentArg += char;
+            }
+        }
+        return args;
+    }
+
+    function syncFromLatex() {
+        const text = document.getElementById('latex-output').innerText;
+        const lines = text.split('\n');
+
+        lines.forEach(line => {
+            // Ψάχνουμε γραμμές της μορφής: \macro{...} % id:xxxx
+            let match = line.match(/\\([a-zA-Z0-9]+)(.*)% id:([a-zA-Z0-9-]+)/);
+            if (match) {
+                let macro = match[1].trim();
+                let argsStr = match[2].trim();
+                let cellId = match[3].trim();
+
+                let cell = graph.getCell(cellId);
+                let data = JL_DATABASE[macro];
+                if (!cell || !data) return;
+
+                let extractedArgs = parseLatexArgs(argsStr);
+                if (extractedArgs.length !== data.argsCount) return;
+
+                let customArgs = cell.get('customArgs') || [];
+                let variantIndex = data.variantArg ? data.variantArg - 1 : -1;
+
+                // Ενημερώνουμε τις ιδιότητες (Αγνοούμε τη θέση/περιστροφή για να μην "σπάσει" η δομή στον καμβά)
+                for(let i=0; i<data.argsCount; i++) {
+                    let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
+                    if (!desc.includes('position') && !desc.includes('rotation')) {
+                        customArgs[i] = extractedArgs[i];
+                        
+                        // 1. Ενημέρωση του Variant (π.χ. n -> p)
+                        if (i === variantIndex && data.icons[extractedArgs[i]]) {
+                            cell.attr('icon/d', data.icons[extractedArgs[i]]);
+                        }
+                        
+                        // 2. Ενημέρωση του Ονόματος ή του Κειμένου στον Καμβά
+                        if (desc === 'name' || desc === 'text') {
+							let newName = extractedArgs[i] === '$NAME$' ? data.name : extractedArgs[i];
+							updateElementLabel(cell, newName);
+                        }
+                    }
+                }
+                cell.set('customArgs', customArgs);
+            }
+        });
+
+        // Αφού συγχρονίσαμε τον καμβά, ξαναχτίζουμε τον κώδικα για να τον "καθαρίσουμε" 
+        // (και να εφαρμόσουμε τυχόν αλλαγές που έγιναν)
+        latexEdited = false; 
+        forceExportLatex(); 
+        
+		Swal.fire({
+            toast: true,
+            position: 'bottom-end',
+            icon: 'success',
+            title: 'Συγχρονίστηκε!',
+            text: 'Ο καμβάς ενημερώθηκε.',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true,
+            background: '#f8f9fa',
+            color: '#2c3e50'
+        });
     }
 	
 	let showPinNames = true;

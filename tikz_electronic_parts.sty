@@ -1211,7 +1211,9 @@
 %% MOS Transistor
 \newcommand{\mostransistor}[7]{%{position}{name}{n/p}{terminals-case-dot-arrow}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
-% icon: M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0  M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 M 10 15 L 6 12 M 10 15 L 6 18
+% variant_arg: 3
+% icon_n: M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0  M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 M 10 15 L 6 12 M 10 15 L 6 18
+% icon_p: M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 M -2 15 L 2 12 M -2 15 L 2 18
 		\StrBefore{#5}{,}[\rotationvalue]
 		\StrBehind{#5}{,}[\flipvalue]
 		\IfSubStr{\flipvalue}{h}
@@ -4337,6 +4339,16 @@
 \newcommand{\connectordotscaled}[1]{%{position}
 	\getzoomfactor
 	\filldraw  #1 circle(0.14*\linewidthscalefactor * \zoomfactor * 1.5 cm);
+}
+
+%% Free Text
+\newcommand{\freetext}[6]{%{position}{text}{rotation}{grid}{show (0,0)}
+% enabled
+% icon: M -10 -10 L 10 -10 M 0 -10 L 0 10
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+				\getzoomfactor
+				\node[draw=none, align=center] at (0,0) {#2};
+		\end{scope}
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

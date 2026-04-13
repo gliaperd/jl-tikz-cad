@@ -18,22 +18,52 @@ def generate_db(sty_file):
         
         if 'disabled' in body.lower(): continue
         
-        # 1. Εξαγωγή του Icon
-        icon_match = re.search(r'%\s*icon\s*[:=]\s*(.*?)$', body, re.MULTILINE | re.IGNORECASE)
-        icon_path = icon_match.group(1).strip() if icon_match else ""
-        
-        # 2. Εξαγωγή των ονομάτων των Arguments από το πρώτο σχόλιο (Πιάνει και {} και [])!
-        arg_names = []
+        comp_data = {
+            "name": name,
+            "argsCount": arg_count,
+            "enabled": "true"
+        }
+
         body_lines = body.strip().split('\n')
+        
+        # 1. ΝΕΑ ΛΟΓΙΚΗ: Εξαγωγή Icons και Variants
+        for line in body_lines:
+            line = line.strip()
+            
+            # Αν βρούμε μεταβλητή (π.χ. % variant_arg: 3)
+            if line.startswith('% variant_arg:'):
+                comp_data['variantArg'] = int(line.replace('% variant_arg:', '').strip())
+                if 'icons' not in comp_data:
+                    comp_data['icons'] = {}
+            
+            # Αν βρούμε εναλλακτικό εικονίδιο (π.χ. % icon_n: ...)
+            elif line.startswith('% icon_'):
+                m = re.match(r'% icon_([^:]+):(.*)', line)
+                if m:
+                    variant_name = m.group(1).strip()
+                    variant_path = m.group(2).strip()
+                    if 'icons' not in comp_data:
+                        comp_data['icons'] = {}
+                    comp_data['icons'][variant_name] = variant_path
+                    # Αν δεν έχουμε ορίσει default icon, βάζουμε το πρώτο που θα βρει
+                    if 'icon' not in comp_data:
+                        comp_data['icon'] = variant_path
+            
+            # Αν βρούμε το κλασικό μονό εικονίδιο
+            elif line.startswith('% icon:'):
+                comp_data['icon'] = line.replace('% icon:', '').strip()
+
+        # 2. Εξαγωγή των ονομάτων των Arguments από το πρώτο σχόλιο
+        arg_names = []
         if body_lines and body_lines[0].strip().startswith('%'):
             comment_line = body_lines[0].strip()
-            # Ψάχνουμε για κείμενο είτε μέσα σε [] είτε μέσα σε {}
             matches = re.findall(r'([\[\{])([^\]\}]+)[\]\}]', comment_line)
             for bracket, desc in matches:
                 arg_names.append({
                     "name": desc.strip(),
                     "optional": True if bracket == '[' else False
                 })
+        comp_data['argNames'] = arg_names
 
         # 3. Εξαγωγή των pins και των Labels
         pins = []
@@ -47,16 +77,11 @@ def generate_db(sty_file):
                     "y": -float(coord_match.group(3)) * 10,
                     "label": label_match.group(1).strip() if label_match else ""
                 })
+        comp_data['pins'] = pins
 
-        if pins or name == 'connectordot':
-            database[name] = { 
-                "name": name, 
-                "icon": icon_path, 
-                "pins": pins, 
-                "enabled": "true", 
-                "argsCount": arg_count,
-                "argNames": arg_names # Σώζουμε τα ονόματα στο JSON!
-            }
+        # Αποθήκευση στη βάση (αν έχει pins ή είναι το connectordot ή freetext)
+        if pins or name in ['connectordot', 'freetext']:
+            database[name] = comp_data
 
     with open("components_db.js", "w", encoding="utf-8") as f:
         f.write(f"const JL_DATABASE = {json.dumps(database, indent=4)};")
