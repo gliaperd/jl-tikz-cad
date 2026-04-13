@@ -874,7 +874,7 @@ const JL_DATABASE = {
                 "optional": false
             },
             {
-                "name": "symbol(normal or diamond)",
+                "name": "symbol(plain, normal or diamond)",
                 "optional": false
             },
             {
@@ -1783,6 +1783,52 @@ const JL_DATABASE = {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -20.0,
+                "label": "output"
+            }
+        ],
+        "enabled": "true",
+        "argsCount": 6,
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "nocolor",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ]
+    },
+    "invertersmall": {
+        "name": "invertersmall",
+        "icon": "M 0 -10 L 10 -10 M 10 -20 L 10 0 L 30 -10 Z M 34 -10 m -4 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 34 -10 L 40 -10",
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 0.0,
+                "y": -10.0,
+                "label": "input"
+            },
+            {
+                "id": "pin2",
+                "x": 40.0,
+                "y": -10.0,
                 "label": "output"
             }
         ],

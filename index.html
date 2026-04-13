@@ -28,19 +28,31 @@
             display: flex; 
             flex-direction: column; 
             padding: 10px;
-            /* Προσθήκη για resize */
             resize: vertical; 
-            overflow: auto; 
+            overflow: hidden; /* Αλλάζουμε το auto σε hidden εδώ... */
             min-height: 100px; 
             max-height: 80vh;
+            position: relative; /* <--- ΠΡΟΣΘΗΚΗ */
         }
         
+        /* ΝΕΑ ΚΛΑΣΗ ΓΙΑ ΤΑ ΚΟΥΜΠΙΑ */
+        .floating-buttons {
+            position: absolute;
+            top: 10px;
+            right: 35px;
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
         #latex-output { 
             color: #d4d4d4; 
             font-family: 'Consolas', monospace; 
             font-size: 13px; 
             white-space: pre; 
-            flex: 1; /* Για να γεμίζει το resizable panel */
+            flex: 1; 
+            overflow-y: auto; /* ...και το βάζουμε εδώ για να κάνει scroll ΜΟΝΟ το κείμενο */
+            padding-top: 30px; /* Χώρος για να μην κρύβεται το κείμενο κάτω από τα κουμπιά */
         }
 
         /* Προαιρετικά: Μια όμορφη λαβή για το resize */
@@ -90,6 +102,11 @@
 				.tex-cmd { color: #c678dd; font-weight: bold; }      /* Μοβ για τις εντολές π.χ. \draw */
 				.tex-brace { color: #56b6c2; }                       /* Γαλάζιο για τις αγκύλες { } */
 				.tex-place { color: #e06c75; font-style: italic; }   /* Απαλό κόκκινο για τα placeholders και το $NAME$ */
+				
+		/* Εξασφαλίζει ότι τα popup μηνύματα εμφανίζονται πάνω από το Wire Layer */
+        .swal2-container {
+            z-index: 10000 !important;
+        }
     </style>
 </head>
 <body>
@@ -105,6 +122,8 @@
     <button onclick="rotateSelected()" class="tool-btn">↻ Rotate</button>
     <button onclick="flipHorizontal()" class="tool-btn">↔ Flip H</button>
     <button onclick="flipVertical()" class="tool-btn">↕ Flip V</button>
+	<button id="btn-scale-up" class="btn btn-sm btn-secondary">🔍 Scale +</button>
+	<button id="btn-scale-down" class="btn btn-sm btn-secondary">🔍 Scale -</button>
 	<label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
 		<input type="checkbox" id="toggle-pin-names" checked> Show Pin Names
 	</label>
@@ -118,7 +137,10 @@
     <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Load JSON</button>
     <input type="file" id="importFile" style="display:none" onchange="importProject(event)" accept=".json">
     
-    <button onclick="downloadLatex()" style="margin-left:auto; background: #27ae60; color:white;" class="tool-btn">📄 Export LaTeX (.tex)</button>
+    <div style="margin-left:auto; display:flex; gap:8px;">
+        <button onclick="downloadLatex(false)" style="background: #27ae60; color:white;" class="tool-btn">📄 Export TikZ (.tex)</button>
+        <button onclick="downloadLatex(true)" style="background: #16a085; color:white;" class="tool-btn">📦 Export Standalone LaTeX</button>
+    </div>
 </div>
 
 <div id="main">
@@ -133,9 +155,9 @@
 </div>
 
 <div id="output-panel">
-    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 5px;">
+    <div class="floating-buttons">
         <button onclick="runLinterUI()" class="tool-btn" style="background: #e67e22; font-size: 11px;">🔍 Check Syntax</button>
-        <button onclick="copyLatexToClipboard()" class="tool-btn" style="background: #34495e; font-size: 11px;">📋 Copy Code</button>
+        <button onclick="copyLatexToClipboard()" class="tool-btn" style="background: #34495e; font-size: 11px;">📋 Copy TikZ Code</button>
     </div>
     <div id="latex-output" contenteditable="true" spellcheck="false"></div>
 </div>
@@ -412,6 +434,76 @@
         });
         exportLatex();
     }
+	
+	// --- ΣΥΝΑΡΤΗΣΗ ΑΛΛΑΓΗΣ ΚΛΙΜΑΚΑΣ ΜΕ PREDEFINED STEPS ---
+	const ALLOWED_SCALES = [1, 2, 3, 4];
+
+	function changeScale(el, stepDir) {
+		if (el.isLink()) return; // Δεν κάνουμε scale στα καλώδια απευθείας
+
+		let currentScale = el.get('customScale') || 1;
+		let currentIndex = ALLOWED_SCALES.indexOf(currentScale);
+		
+		// Αν για κάποιο λόγο δεν βρεθεί, ξεκινάμε από το 1
+		if (currentIndex === -1) currentIndex = ALLOWED_SCALES.indexOf(1);
+
+		let newIndex = currentIndex + stepDir;
+		
+		// Όρια: Δεν αφήνουμε να βγει εκτός του πίνακα
+		if (newIndex < 0 || newIndex >= ALLOWED_SCALES.length) return; 
+
+		let newScale = ALLOWED_SCALES[newIndex];
+		let factor = newScale / currentScale;
+
+		// 1. Αλλαγή μεγέθους του Bounding Box
+		let size = el.size();
+		el.resize(size.width * factor, size.height * factor);
+
+		// 2. Ενημέρωση των Offsets
+		el.set('offsetX', el.get('offsetX') * factor);
+		el.set('offsetY', el.get('offsetY') * factor);
+		
+		if (el.get('baseShiftX') === undefined) {
+			el.set('baseShiftX', el.get('shiftX') || 0);
+			el.set('baseShiftY', el.get('shiftY') || 0);
+		}
+
+		// 3. Επαναϋπολογισμός του Transform
+		let shiftX = el.get('baseShiftX') * newScale;
+		let shiftY = el.get('baseShiftY') * newScale;
+		let transformStr = `translate(${shiftX}, ${shiftY}) scale(${newScale})`;
+
+		let flipH = el.get('flipH') || false;
+		let flipV = el.get('flipV') || false;
+		if (flipH || flipV) {
+			let sx = flipH ? -1 : 1;
+			let sy = flipV ? -1 : 1;
+			let cx = (size.width * factor) / 2;
+			let cy = (size.height * factor) / 2;
+			transformStr = `translate(${cx}, ${cy}) scale(${sx}, ${sy}) translate(${-cx}, ${-cy}) ` + transformStr;
+		}
+		el.attr('icon/transform', transformStr);
+
+		// 4. Μετακίνηση των Pins
+		let ports = el.getPorts();
+		ports.forEach(port => {
+			let currentArgs = port.args;
+			el.portProp(port.id, 'args/x', currentArgs.x * factor);
+			el.portProp(port.id, 'args/y', currentArgs.y * factor);
+		});
+
+		el.set('customScale', newScale);
+		forceExportLatex();
+	}
+
+	// Events για τα κουμπιά scale
+	$('#btn-scale-up').click(function() {
+		selectedElements.forEach(el => changeScale(el, 1));
+	});
+
+	$('#btn-scale-down').click(function() {
+		selectedElements.forEach(el => changeScale(el, -1));
+	});
 
     function deleteSelected() { [...selectedElements, ...selectedLinks].forEach(c => c.remove()); clearSelection(); exportLatex(); }
 
@@ -583,7 +675,8 @@
                 },
                 icon: { 
                     d: iconPath, stroke: '#2c3e50', strokeWidth: 1.8, fill: 'none', 
-                    transform: `translate(${shiftX}, ${shiftY})` 
+                    transform: `translate(${shiftX}, ${shiftY})`,
+					'vector-effect': 'non-scaling-stroke'
                 }, 
                 label: { text: data.name, fontSize: 10, fill: '#34495e', refX: '50%', textAnchor: 'middle', refY: '100%', refY2: -6 } 
             });
@@ -805,12 +898,23 @@
                     } else {
                         args.push(`{${innerVal}}`);
                     }
-                }
+				}
 
-                line = "  \\" + macro + args.join("") + "\n";
-            }
+                // --- ΕΞΑΓΩΓΗ MACRO ΚΑΙ SCALE ---
+                let currentScale = el.get('customScale') || 1;
+                let finalMacroLine = "  \\" + macro + args.join("") + "\n";
+
+                if (currentScale !== 1) {
+                    let scaleOn = `  \\setscale{${currentScale}}\n`;
+                    let scaleOff = `  \\setscale{1}\n`;
+                    line = scaleOn + finalMacroLine + scaleOff;
+                } else {
+                    line = finalMacroLine;
+                }
+            } // Τέλος της μεγάλης else (όχι connectordot)
+
             outText += line;
-			let safeLine = highlightLatex(escapeHTML(line));
+            let safeLine = highlightLatex(escapeHTML(line));
             if (isSelected(el.id)) outHTML += `<span class="highlight">${safeLine}</span>`;
             else outHTML += safeLine;
         });
@@ -862,23 +966,103 @@
         outText += "\\end{tikzpictureJL}";
         outHTML += "\\end{tikzpictureJL}";
         
-        window.rawLatexCode = outText; 
+		window.rawLatexCode = outText; 
         document.getElementById('latex-output').innerHTML = outHTML;
+        
+        // --- ΝΕΟ: Αυτόματο Scroll στο Highlight ---
+        setTimeout(() => {
+            const highlightedEl = document.querySelector('#latex-output .highlight');
+            if (highlightedEl) {
+                // Το block: 'center' το φέρνει όμορφα στη μέση του παραθύρου!
+                highlightedEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 50); // Δίνουμε 50ms περιθώριο στον browser να "χωνέψει" το νέο HTML
     }
 
-	// --- 8. SAVE / LOAD / DOWNLOAD ---
+	// --- 8. SAVE / LOAD / DOWNLOAD (ΜΕ NATIVE SAVE DIALOG) ---
+
+    // Νέα έξυπνη συνάρτηση που καλεί το "Save As" του λειτουργικού
+    async function saveFileAs(content, defaultFilename, mimeType, description) {
+        // Ελέγχουμε αν ο browser υποστηρίζει το σύγχρονο File System API (Chrome, Edge, Opera)
+        if (window.showSaveFilePicker) {
+            try {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: defaultFilename,
+                    types: [{
+                        description: description,
+                        accept: { [mimeType]: [defaultFilename.substring(defaultFilename.lastIndexOf('.'))] },
+                    }],
+                });
+                const writable = await handle.createWritable();
+                await writable.write(content);
+                await writable.close();
+            } catch (err) {
+                // Ο χρήστης πάτησε "Ακύρωση" στο παράθυρο, δεν κάνουμε τίποτα.
+                if (err.name !== 'AbortError') console.error('Αποτυχία αποθήκευσης:', err);
+            }
+        } else {
+            // Fallback για Firefox / Safari (κλασικό κατέβασμα)
+            const blob = new Blob([content], { type: mimeType });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = defaultFilename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(a.href);
+        }
+    }
+
     function saveProject() { 
-        // 1. Παίρνουμε τον τρέχοντα (ίσως χειροκίνητα επεξεργασμένο) κώδικα από το div
         const currentLatex = document.getElementById('latex-output').innerText;
-        
-        // 2. Τον αποθηκεύουμε ως ιδιότητα μέσα στο ίδιο το JointJS γράφημα!
         graph.set('customLatex', currentLatex);
         
-        // 3. Εξάγουμε το JSON κανονικά (τώρα θα περιέχει ΚΑΙ τον κώδικά μας)
-        const a = document.createElement('a'); 
-        a.href = URL.createObjectURL(new Blob([JSON.stringify(graph.toJSON())], {type:'application/json'})); 
-        a.download='circuit.json'; 
-        a.click(); 
+        const jsonString = JSON.stringify(graph.toJSON());
+        saveFileAs(jsonString, 'circuit.json', 'application/json', 'JointJS Diagram');
+    }
+
+	function downloadLatex(isStandalone = false) {
+        runLinterUI((textToDownload) => {
+            let finalOutput = textToDownload;
+            let filename = 'circuit.tex';
+
+            if (isStandalone) {
+                filename = 'circuit_standalone.tex';
+                
+                // 1. Προσθήκη του scale στο tikzpicture
+                let scaledTikz = textToDownload.replace('\\begin{tikzpictureJL}', '\\begin{tikzpictureJL}[scale=0.245]');
+                
+                // 2. Εφαρμογή indentation (ένα tab) σε όλες τις γραμμές του παραγόμενου κώδικα
+                let indentedTikz = scaledTikz.split('\n').map(line => '\t' + line).join('\n');
+
+                // 3. Δημιουργία του τελικού Standalone με τα σωστά tabs
+                finalOutput = `\\documentclass{standalone}
+
+\t% Required packages for the style file
+\t\\usepackage{amsmath}
+\t\\usepackage{tikz}
+\t\\usepackage{xstring}
+\t\\usepackage{xparse}
+\t\\usepackage{etoolbox}
+\t\\usepackage{calculator}
+\t\\usepackage{accents}
+\t\\usepackage{xcolor}
+
+\t% Load your specific electronic parts style file
+\t\\usepackage{tikz_electronic_parts}
+
+\t\\begin{document}
+\t\\settikzlinewidth{1.2}
+\t\\tikzset{every picture/.style={line width=\\tikzlinewidth}}
+
+${indentedTikz}
+
+\t\\end{document}`;
+            }
+
+            // Κλήση του έξυπνου Save Dialog
+            saveFileAs(finalOutput, filename, 'text/plain', 'LaTeX Document');
+        });
     }
 
     function importProject(e) { 
@@ -887,25 +1071,22 @@
         
         const r = new FileReader(); 
         r.onload = ev => {
-            // 1. Φορτώνουμε το γράφημα (τα σχήματα)
             graph.fromJSON(JSON.parse(ev.target.result)); 
             zoomFit(); 
-            clearSelection(); // Καθαρίζουμε τυχόν παλιές επιλογές
+            clearSelection(); 
             
-            // 2. Ελέγχουμε αν αυτό το JSON έχει αποθηκευμένο χειροκίνητο LaTeX
 			const savedLatex = graph.get('customLatex');
             if (savedLatex) {
                 window.rawLatexCode = savedLatex;
-                // Χρωματίζουμε τον αποθηκευμένο κώδικα γραμμή-γραμμή!
                 const highlighted = savedLatex.split('\n').map(line => highlightLatex(escapeHTML(line))).join('\n');
                 document.getElementById('latex-output').innerHTML = highlighted;
                 latexEdited = true;
             } else {
-                // Αν είναι παλιό αρχείο (πριν από αυτό το update), κάνουμε auto-generate
                 forceExportLatex();
             }
         }; 
         r.readAsText(f); 
+        e.target.value = ''; // Μηδενισμός του input για να μπορούμε να ξαναφορτώσουμε το ίδιο αρχείο αν χρειαστεί
     }
 
 	function runLinterUI(onSuccessCallback = null) {
@@ -957,19 +1138,6 @@
         });
     }
 
-    function downloadLatex() {
-        // Αντίστοιχα προστατεύεται και το Export!
-        runLinterUI((textToDownload) => {
-            const blob = new Blob([textToDownload], { type: 'text/plain;charset=utf-8' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'circuit.tex';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(a.href);
-        });
-    }
 	
 	// --- 9. LATEX LINTER (ΣΥΝΤΑΚΤΙΚΟΣ ΕΛΕΓΧΟΣ) ---
     function validateLatexSyntax(text) {
@@ -983,7 +1151,7 @@
         }
         
         // Λίστα με τις στάνταρ εντολές του TikZ που επιτρέπουμε
-        const knownSystemMacros = ['begin', 'end', 'draw', 'tikzpictureJL', 'connectordot'];
+        const knownSystemMacros = ['begin', 'end', 'draw', 'tikzpictureJL', 'connectordot', 'setscale'];
         const macroRegex = /\\([a-zA-Z]+)/g;
         let match;
         

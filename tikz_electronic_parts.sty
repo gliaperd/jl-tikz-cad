@@ -64,6 +64,11 @@
  \end{tikzpicture}\ignorespacesafterend%
 }
 %
+%
+% Global Scale Variable for JL CAD (circuit_to_tikz)
+\newcommand{\jlcscale}{1}
+\newcommand{\setscale}[1]{\renewcommand{\jlcscale}{#1}}
+%
 %%%%%%%%%%%%%%%%%%%%
 %% ANALOG PARTS 
 %%%%%%%%%%%%%%%%%%%%
@@ -72,7 +77,7 @@
 \newcommand{\mechanicalswitch}[7]{%{position}{name}{closed/open}{state}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -12
-		\begin{scope}[shift={#1}, rotate=#5]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -113,7 +118,7 @@
 \newcommand{\mechanicalswitchthreeport}[6]{%{position}{name}{state1/state2}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 L 40 0 M 10 -20 L 28 -12
-		\begin{scope}[shift={#1}, rotate=#4]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				% draw terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -155,7 +160,7 @@
 \newcommand{\controlledswitch}[7]{%{position}{name}{closed/open}{control_terminal}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -12 M 15 -20 L 25 -20 M 20 -20 L 20 -5
-		\begin{scope}[shift={#1}, rotate=#5]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -209,7 +214,7 @@
 \newcommand{\controlledswitchbox}[7]{%{position}{name}{control value (0/1/other) [place '*' at  end for inverted value]}{type (n/p)}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 10 5 L 30 5 L 30 -15 L 10 -15 Z M 0 0 L 10 0 M 30 0 L 40 0 M 15 -20 L 25 -20 M 20 -20 L 20 -15 M 30 0 L 12 -12
-		\begin{scope}[shift={#1}, rotate=#5]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% handle inverted control value
 					\edef\effectiveswitchtype{#4}	
@@ -342,7 +347,7 @@
 		\ifx\groundrotationangle\@empty%
 			\edef\groundrotationangle{0}%
 		\fi%
-		\begin{scope}[shift={#1}, rotate=\groundrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\groundrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
 				\getzoomfactor
 				% draw terminal
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1)  -- (0,0);
@@ -373,7 +378,7 @@
 \newcommand{\voltagesource}[7]{%{position}{name}{horizontal/vertical}{none/controlled}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0
-		\begin{scope}[shift={#1}, rotate=#5]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% Draw body
 				\ifstrequal{#4}{controlled}
@@ -430,7 +435,7 @@
 \newcommand{\currentsource}[7]{%{position}{name}{horizontal/vertical}{none/controlled}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5
-		\begin{scope}[shift={#1}, rotate=#5]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% Draw body
 				\ifstrequal{#4}{controlled}
@@ -483,7 +488,7 @@
 \newcommand{\lamp}[6]{%{position}{name}{rotation}{on/off}{grid}{show (0,0)}
 % enabled
 % icon: M 0 0 m -15 0 a 15 15 0 1 0 30 0 a 15 15 0 1 0 -30 0 M -10 -10 L 10 10 M -10 10 L 10 -10 M -20 20 L -20 0 L -15 0 M 20 20 L 20 0 L 15 0
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				% draw light and rays
 					\IfSubStr{#4}{on}
@@ -525,7 +530,7 @@
 \newcommand{\functiongenerator}[7]{%{position}{name}{horizontal/vertical}{sine/square/triangle}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0
-		\begin{scope}[shift={#1}, rotate=#5]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw circle
 					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,0) circle (2);
@@ -563,7 +568,7 @@
 				\coordinate (pin2) at (3, 0); % right terminal
 		\end{scope}
 		% draw waveform
-			\begin{scope}[shift={#1}] % no rotation for waveform
+			\begin{scope}[shift={#1}, scale=\jlcscale] % no rotation for waveform
 					\ifstrequal{#4}{sine}
 						{
 							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (-1.5,0) sin (-0.75,1);
@@ -593,7 +598,7 @@
 % enabled
 % icon: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -16 -3 A 17 17 0 0 1 16 -3 M 0 10 L 0 -10
 		% draw interior
-			\begin{scope}[shift={#1}] % no rotation for interior
+			\begin{scope}[shift={#1}, scale=\jlcscale] % no rotation for interior
 				%draw shade
 					\shade[left color=gray!40!white, draw=none] (0.5,-0.5)   (0,0) circle (2);
 				% draw circle
@@ -607,7 +612,7 @@
 				% draw pointer					
 					\draw[->,line width=\linewidthscalefactor * \zoomfactor * 1pt] (0,-1) -- (165-1.5*#4:1.5) ;
 			\end{scope}
-		\begin{scope}[shift={#1}, rotate=#5]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
 					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-3,0) -- (-2,0);
@@ -675,7 +680,7 @@
 						\StrBefore{#5}{,}[\resistorrotationangle]
 					}
 			}
-		\begin{scope}[shift={#1}, rotate=\resistorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\resistorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
 				\getzoomfactor
 				% draw zig-zag
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0) -- (1.5,1) -- (2.5,-1) -- (3.5,1) -- (4.5,-1) -- (5.5,1) -- (6.5,-1) -- (7,0) -- (8,0);
@@ -751,7 +756,7 @@
 						\StrBefore{#5}{,}[\inductorrotationangle]
 					}
 			}
-		\begin{scope}[shift={#1}, rotate=\inductorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\inductorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
 				\getzoomfactor
 				% draw spring
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0) 
@@ -828,7 +833,7 @@
 						\StrBefore{#5}{,}[\capacitorrotationangle]
 					}
 			}
-		\begin{scope}[shift={#1}, rotate=\capacitorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\capacitorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
 				\getzoomfactor
 				% draw plates
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) -- (1.2,0);
@@ -954,7 +959,7 @@
 						\edef\dcsourcerotationangle{#5}
 					}
 			}
-		\begin{scope}[shift={#1}, rotate=\dcsourcerotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\dcsourcerotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
 				\getzoomfactor
 				% draw plates
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) -- (1.2,0);
@@ -1059,7 +1064,7 @@
 						\edef\dcbatteryrotationangle{#5}
 					}
 			}
-		\begin{scope}[shift={#1}, rotate=\dcbatteryrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\dcbatteryrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
 				\getzoomfactor
 				% draw plates
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-3,0) -- (-1.1,0);
@@ -1149,7 +1154,7 @@
 			{
 				\edef\yscalevalue{1}
 			}
-		\begin{scope}[shift={#1}, rotate=\rotationvalue , xscale=\xscalevalue , yscale=\yscalevalue]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\rotationvalue , xscale=\xscalevalue , yscale=\yscalevalue]
 				\getzoomfactor
 				% draw case
 					\IfSubStr{#4}{case}
@@ -1223,7 +1228,7 @@
 			{
 				\edef\yscalevalue{1}
 			}
-		\begin{scope}[shift={#1}, rotate=\rotationvalue, xscale=\xscalevalue , yscale=\yscalevalue]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\rotationvalue, xscale=\xscalevalue , yscale=\yscalevalue]
 				\getzoomfactor
 				% draw case
 					\IfSubStr{#4}{case}
@@ -1298,45 +1303,53 @@
 }
 
 %% Transmission Gate
-\newcommand{\passgate}[6]{%{position}{name}{symbol(normal or diamond)}{rotation}{grid}{show (0,0)}
+\newcommand{\passgate}[6]{%{position}{name}{symbol(plain, normal or diamond)}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -40 0 L -20 0 M 20 0 L 40 0 M -20 -30 L 20 -30 M -20 30 L 20 30 M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -38 L 0 -50 M 0 30 L 0 50
-		\begin{scope}[shift={#1}, rotate=#4]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				% draw body
-					\ifstrequal{#3}{normal}
+					\ifstrequal{#3}{plain}
 						{
 							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,-2) rectangle (2,2);
 							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,3) -- (2,3);
 							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,-3) -- (2,-3);
-							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,3.5) -- (0,5);
+							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,3) -- (0,5);
 							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-3) -- (0,-5);
-							\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
-								(0,{3.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
-							\draw[line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
-								 (0,{3.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
 							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (-4,0);
 							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (4,0);
 						}
 						{
+							\ifstrequal{#3}{diamond}
+								{
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,2) -- (2,0) -- (2,2) %
+									-- (-2,0) -- cycle;
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,-2) -- (2,0) -- (2,-2) %
+									-- (-2,0) -- cycle;
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,1.5) -- (0,3);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1) -- (0,-3);
+									\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
+										(0,{1.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
+									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
+										 (0,{1.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (-4,0);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (4,0);
+								}
+								{
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,-2) rectangle (2,2);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,3) -- (2,3);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,-3) -- (2,-3);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,3.5) -- (0,5);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-3) -- (0,-5);
+									\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
+										(0,{3.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
+									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
+										 (0,{3.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (-4,0);
+									\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (4,0);								
+								}						
 						}
-					\ifstrequal{#3}{diamond}
-						{
-							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,2) -- (2,0) -- (2,2) %
-							-- (-2,0) -- cycle;
-							\draw [line width=\linewidthscalefactor * \zoomfactor * 2.5pt] (-2,-2) -- (2,0) -- (2,-2) %
-							-- (-2,0) -- cycle;
-							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,1.5) -- (0,3);
-							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1) -- (0,-3);
-							\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
-								(0,{1.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
-							\draw[line width=\linewidthscalefactor * \zoomfactor * 1.2pt] %
-								 (0,{1.4cm+\linewidthscalefactor * \zoomfactor * 2.5pt}) circle (0.4);
-							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (-4,0);
-							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (4,0);
-						}
-						{
-						}
+
 				% draw name
 					\ifstrequal{#4}{0}
 						{
@@ -1391,7 +1404,7 @@
 \newcommand{\opamplifier}[7]{%{position}{name}{flip}{supplyvoltage}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 30 -25 L 30 -15 M 25 20 L 35 20
-		\begin{scope}[shift={#1}, rotate=#5]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,2)  -- (2,2);
@@ -1482,7 +1495,7 @@
 						\edef\dioderotationangle{#4}
 					}
 			}			
-		\begin{scope}[shift={#1}, rotate=\dioderotationangle]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\dioderotationangle]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -1579,7 +1592,7 @@
 						\edef\zenerdioderotationangle{#4}
 					}
 			}			
-		\begin{scope}[shift={#1}, rotate=\zenerdioderotationangle]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\zenerdioderotationangle]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -1676,7 +1689,7 @@
 						\edef\leddioderotationangle{#4}
 					}
 			}			
-		\begin{scope}[shift={#1}, rotate=\leddioderotationangle]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\leddioderotationangle]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -1781,7 +1794,7 @@
 						\edef\photodioderotationangle{#4}
 					}
 			}			
-		\begin{scope}[shift={#1}, rotate=\photodioderotationangle]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\photodioderotationangle]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -1851,7 +1864,7 @@
 \newcommand{\supplyterminal}[5]{%{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 0 10 L 0 0 M -15 0 L 15 0
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				% draw terminal
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1)  -- (0,0);
@@ -1915,7 +1928,7 @@
 \newcommand{\ioport}[6]{%{position}{name}{input/output/top/bottom}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 0 0 L 5 0 M 11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0
-		\begin{scope}[shift={#1}, rotate=#4]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				\ifstrequal{#3}{output}
 					{
@@ -2045,7 +2058,7 @@
 %% AND - n inputs
 \newcommand{\andninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
 % disabled
-		\begin{scope}[shift={#1}, rotate=#4, xshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
 				\getzoomfactor
 				\shade[left color=green!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
@@ -2081,7 +2094,7 @@
 %% NAND - n inputs
 \newcommand{\nandninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
 % disabled
-		\begin{scope}[shift={#1}, rotate=#4, xshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
 				\getzoomfactor
 				\shade[left color=blue!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
@@ -2434,7 +2447,7 @@
 %% OR - n inputs
 \newcommand{\orninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
 % disabled
-		\begin{scope}[shift={#1}, rotate=#4, xshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
 				\getzoomfactor
 				\shade[left color=red!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1.8,2);
@@ -2518,7 +2531,7 @@
 %% NOR-2 Flipped (only to be used by the \dipic macro)
 \newcommand{\nortwoflipped}[1]{%{position}
 % disabled
-		\begin{scope}[shift={#1}]
+		\begin{scope}[shift={#1}, scale=\jlcscale]
 				\getzoomfactor
 				\shade[left color=yellow!20!white, draw=none]  (-1,0)  .. controls (-4,0) and (-5,1) .. (-6,2) .. controls  (-5,3) and (-4,4) ..  (-1,4) arc (139:220.5:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (-1.6,3);
@@ -2533,7 +2546,7 @@
 %% NOR - n inputs
 \newcommand{\norninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
 % disabled
-		\begin{scope}[shift={#1}, rotate=#4, xshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
 				\getzoomfactor
 				\shade[left color=yellow!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1.8,2);
@@ -2668,7 +2681,7 @@
 \newcommand{\inverter}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
 % enabled
 % icon: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 35 -20 Z M 39 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 43 -20 L 50 -20
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\ifstrequal{#4}{nocolor}
 				{
@@ -2699,11 +2712,46 @@
 		\end{scope}
 }
 
+%% NOT small
+\newcommand{\invertersmall}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
+% enabled
+% icon: M 0 -10 L 10 -10 M 10 -20 L 10 0 L 30 -10 Z M 34 -10 m -4 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 34 -10 L 40 -10
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+				\getzoomfactor
+				\ifstrequal{#4}{nocolor}
+				{
+				}
+				{
+					\shade[left color=magenta!20!white, draw=none]  (1,0)  -- (1,2) -- (3,1)  -- (1,0);
+				}				
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3,1)  -- (4,1);
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0)  -- (1,2) -- (3,1)  -- (1,0) -- cycle;
+				\node[draw=none, align=center] at (1,3) {#2};
+				\filldraw[white]  (3.2,1) circle(0.2);
+				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.2,1) circle(0.2);
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (0,0) grid (5,4);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+				\coordinate (pin1) at (0, 1); % left terminal (input)
+				\coordinate (pin2) at (4, 1); % right terminal (output)	
+		\end{scope}
+}
+
 %% BUFFER
 \newcommand{\buffer}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
 % enabled
 % icon: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\ifstrequal{#4}{nocolor}
 				{
@@ -2736,7 +2784,7 @@
 \newcommand{\jkflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=purple!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -2802,7 +2850,7 @@
 \newcommand{\srlatch}[6]{%{position}{name}{rotation}{enable}{grid}{show (0,0)}
 % enabled
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 60 -80 L 70 -80 M 60 -20 L 70 -20
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=magenta!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -2846,7 +2894,7 @@
 \newcommand{\srflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=cyan!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -2911,7 +2959,7 @@
 \newcommand{\dflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=gray!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -2973,7 +3021,7 @@
 \newcommand{\dlatch}[6]{%{position}{name}{rotation}{enable}{grid}{show (0,0)}
 % enabled
 % icon: M 10 0 L 60 0 L 60 -70 L 10 -70 Z M 0 -50 L 10 -50 M 0 -20 L 10 -20 M 60 -50 L 70 -50 M 60 -20 L 70 -20
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=orange!20!white, draw=none] (1,0) rectangle (6,7);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,5)  -- (1,5);
@@ -3015,7 +3063,7 @@
 \newcommand{\tflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=brown!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -3076,7 +3124,7 @@
 %% Multiplexer with n inputs
 \newcommand{\muxninputs}[7]{%{position}{name}{number of inputs}{rotation}{select at top/bottom}{grid}{show (0,0)}
 % disabled
-		\begin{scope}[shift={#1}, rotate=#4, yshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
 				\getzoomfactor
 				\LOG[2]{#3}{\numberofselectterminalstmp}				
 				\FLOOR{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
@@ -3177,7 +3225,7 @@
 %% Demultiplexer with n outputs
 \newcommand{\demuxnoutputs}[7]{%{position}{name}{number of outputs}{rotation}{select at top/bottom}{grid}{show (0,0)}
 % disabled
-		\begin{scope}[shift={#1}, rotate=#4, yshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
 				\getzoomfactor
 				\LOG[2]{#3}{\numberofselectterminalstmp}				
 				\FLOOR{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
@@ -3299,7 +3347,7 @@
 						\edef\foreachsubtractvalue{1}
 					}
 			}
-		\begin{scope}[shift={#1}, rotate=#5, yshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5, yshift=1]
 				\getzoomfactor
 				\MAX{\numberofinputterminals}{#4}{\maxterminals}
 				\foreach \currentinput in {\foreachstartindex,...,\numberofinputterminals} % draw input lines
@@ -3390,7 +3438,7 @@
 \newcommand{\sevensegmentdisplay}[6]{%{position}{name}{displayed number}{rotation}{grid}{show (0,0)}
 % enabled
 % icon: M 0 0 L 80 0 L 80 -100 L 0 -100 Z M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z M 10 0 L 10 10 M 20 0 L 20 10 M 30 0 L 30 10 M 40 0 L 40 10 M 50 0 L 50 10 M 60 0 L 60 10 M 70 0 L 70 10
-		\begin{scope}[shift={#1}, rotate=#4, yshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
 				\getzoomfactor
 				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,0) rectangle (8,10); % draw box
 				\node[draw=none, align=center] at (4,10.5) {#2}; % draw name
@@ -3581,7 +3629,7 @@
 					{
 						\edef\arrowdirection{->}
 					}
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=magenta!20!white, draw=none] (0,0) rectangle (8,8);
 				\draw [\arrowdirection, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (10,4) -- (8,4);
@@ -3637,7 +3685,7 @@
 					{
 						\edef\arrowdirection{->}
 					}
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=darkgreen!20!white, draw=none] (0,0) rectangle (8,8);
 				\draw [\arrowdirection, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (10,4) -- (8,4);
@@ -3718,7 +3766,7 @@
 					}
 			}		
 	% draw		
-		\begin{scope}[shift={#1}, rotate=#3]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 			% draw pins
 				\foreach \currenticside in {1, 2} 
 					{
@@ -3857,7 +3905,7 @@
 \newcommand{\statediagram}[6]{%{position}{circle radius ["auto" for automatic calculation]}{state data}{rotation}{grid}{show (0,0)}
 		\edef \gridwidthcyclic {0}
 		\edef \gridwidthlinear {0}
-		\begin{scope}[shift={#1}, rotate=#4]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 			\getzoomfactor
 			\StrBefore{#3}{(}[\linearnodes]
 			\IfBeginWith{#3}{(}
@@ -4192,7 +4240,7 @@
 					\xdef\pointcoordinatestring{\pointcoordinatestring{} -- (\previousbitXcoordinate ,\previousbitvalue) -- (\previousbitXcoordinate ,\currentbitvalue) -- ( \currentbitXcoordinate ,\currentbitvalue)}					
 			}
 	% draw waveform and its name
-		\begin{scope}[shift={#1}]
+		\begin{scope}[shift={#1}, scale=\jlcscale]
 			\getzoomfactor
 			\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt, color=#3]  \pointcoordinatestring ;
 			\node[anchor=east, color=#3] at (0,0) {\waveformname};
@@ -4208,7 +4256,7 @@
 % find number of bitstreams
 	\edef\numberofbitstreams{0}
 % draw waveforms
-	\begin{scope}[shift={#1}]
+	\begin{scope}[shift={#1}, scale=\jlcscale]
 		\ifstrequal{#2}{}
 			{
 			}
