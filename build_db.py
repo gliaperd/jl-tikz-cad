@@ -26,7 +26,7 @@ def generate_db(sty_file):
 
         body_lines = body.strip().split('\n')
         
-        # 1. ΝΕΑ ΛΟΓΙΚΗ: Εξαγωγή Icons και Variants
+        # 1. ΝΕΑ ΛΟΓΙΚΗ: Εξαγωγή Icons, Variants και Scales
         for line in body_lines:
             line = line.strip()
             
@@ -52,6 +52,15 @@ def generate_db(sty_file):
             # Αν βρούμε το κλασικό μονό εικονίδιο
             elif line.startswith('% icon:'):
                 comp_data['icon'] = line.replace('% icon:', '').strip()
+
+            # Αν βρούμε τα επιτρεπτά scales (π.χ. % scales: 1, 2, 4)
+            elif line.startswith('% scales:'):
+                scales_str = line.replace('% scales:', '').strip()
+                try:
+                    # Μετατρέπει το string "0.5, 1, 2" σε λίστα αριθμών [0.5, 1, 2]
+                    comp_data['scales'] = [float(s.strip()) if '.' in s.strip() else int(s.strip()) for s in scales_str.split(',')]
+                except ValueError:
+                    pass # Αν υπάρχει τυπογραφικό, απλά το αγνοούμε
 
         # 2. Εξαγωγή των ονομάτων των Arguments από το πρώτο σχόλιο
         arg_names = []

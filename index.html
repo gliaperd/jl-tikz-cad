@@ -121,6 +121,13 @@
                 radial-gradient(circle at 0px 0px, #2c3e50 2.5px, transparent 2.5px);
             background-repeat: repeat;
         }
+		/* Κρύβουμε τα latex IDs για προστασία και αισθητική */
+        .sync-id {
+            color: transparent;
+            font-size: 1px;
+            user-select: none;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -183,39 +190,39 @@
 <script src="components_db.js"></script>
 
 <script>
-    // --- ΟΡΙΣΜΟΣ CUSTOM CONNECTORDOT ---
+	// --- ΟΡΙΣΜΟΣ CUSTOM CONNECTORDOT ---
     window.joint.shapes.jl = {}; 
     joint.shapes.jl.ConnectorDot = joint.dia.Element.define('jl.ConnectorDot', {
-        size: { width: 20, height: 20 },
+        size: { width: 40, height: 40 },
         attrs: {
-            hitbox: { width: 20, height: 20, fill: '#ffffff', 'fill-opacity': 0, stroke: 'none', 'pointer-events': 'all' },
-            dot: { cx: 10, cy: 10, r: 3.5, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
+            hitbox: { width: 40, height: 40, fill: '#ffffff', 'fill-opacity': 0.01, stroke: 'none', 'pointer-events': 'all', cursor: 'pointer' },
+            dot: { cx: 20, cy: 20, r: 6, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
         }
     }, {
         markup: [{ tagName: 'rect', selector: 'hitbox' }, { tagName: 'circle', selector: 'dot' }]
     });
 	
-	// --- ΕΞΥΠΝΟ ΕΞΑΡΤΗΜΑ (Διορθωμένο Z-Index & Hitbox) ---
-		joint.shapes.jl.Component = joint.dia.Element.define('jl.Component', {
-			size: { width: 40, height: 40 },
-			attrs: {
-				// Το body παραμένει στη βάση για να πιάνει το κλικ
-				body: { 
-					refWidth: '100%', refHeight: '100%', 
-					fill: '#ffffff', fillOpacity: 0.01, stroke: 'none', 
-					'pointer-events': 'all', cursor: 'pointer' 
-				},
-				// Το foreignObject (fo) ξεκινάει ως 1x1 "κουκκίδα" για να μην καλύπτει τίποτα
-				fo: { display: 'none', width: 1, height: 1, 'pointer-events': 'none' }
-			}
-		}, {
-			markup: [
-				{ tagName: 'text', selector: 'label' },           // 1ο: Το απλό κείμενο (πίσω)
-				{ tagName: 'foreignObject', selector: 'fo' },    // 2ο: Τα μαθηματικά (πίσω)
-				{ tagName: 'rect', selector: 'body' },            // 3ο: Το σώμα επιλογής
-				{ tagName: 'path', selector: 'icon' }             // 4ο: Το σύμβολο (πάνω)
-			]
-		});
+	// --- ΕΞΥΠΝΟ ΕΞΑΡΤΗΜΑ (Με ενεργό Hitbox για διπλό κλικ) ---
+    joint.shapes.jl.Component = joint.dia.Element.define('jl.Component', {
+        size: { width: 40, height: 40 },
+        attrs: {
+            body: { 
+                refWidth: '100%', refHeight: '100%', 
+                fill: '#ffffff', 
+                fillOpacity: 0.01, // ΑΥΤΟ ΕΙΝΑΙ ΤΟ ΜΥΣΤΙΚΟ ΓΙΑ ΤΟ ΔΙΠΛΟ ΚΛΙΚ!
+                stroke: 'none', 
+                'pointer-events': 'all', cursor: 'pointer' 
+            },
+            fo: { display: 'none', width: 1, height: 1, 'pointer-events': 'none' }
+        }
+    }, {
+        markup: [
+            { tagName: 'text', selector: 'label' },
+            { tagName: 'foreignObject', selector: 'fo' },
+            { tagName: 'rect', selector: 'body' },
+            { tagName: 'path', selector: 'icon' }
+        ]
+    });
 
 	// Το View που φτιάχνει ένα ΠΡΑΓΜΑΤΙΚΟ HTML div (ώστε ο browser να το κάνει render)
 		joint.shapes.jl.ComponentView = joint.dia.ElementView.extend({
@@ -258,27 +265,32 @@
     const container = document.getElementById('paper-container');
     window.rawLatexCode = "";
 
-    // --- 2. ΚΛΙΜΑΚΕΣ ΚΑΙ ΜΑΓΝΗΤΗΣ (ΑΠΟΛΥΤΗ ΤΑΥΤΙΣΗ) ---
-    const PPU_MULT = 4; 
-    const EXPORT_DIV = PPU_MULT * 10; 
+	// --- ΚΛΙΜΑΚΕΣ ΚΑΙ ΜΑΓΝΗΤΗΣ (ΑΠΟΛΥΤΗ ΤΑΥΤΙΣΗ) ---
+    const PPU_MULT = 4;        // Το κρατάμε μόνο για να μην χαλάσουν τα πάχη στα καλώδια/fonts
+    const EXPORT_DIV = 40;
       
-    function updateElementLabel(el, newText) {
+	function updateElementLabel(el, newText) {
         if (newText !== undefined) el.set('displayedText', newText);
         let text = el.get('displayedText') || "";
         
         let isFreeText = el.get('latexMacro') === 'freetext';
-        let scale = el.get('customScale') || 1;
+        let scale = el.get('customScale') || 1; // Τώρα βρίσκει το σωστό Scale
+        
         let isEmpty = text.trim() === "";
         let displayText = text;
         if (isEmpty && isFreeText) displayText = "[ Κενό ]"; 
 
+        // 1. ΠΡΩΤΑ κάνουμε το resize (αν είναι freetext) για να πάρει τις τελικές του διαστάσεις!
         if (isFreeText) { el.resize(80 * scale, 40 * scale); }
 
         let isMath = displayText.includes('$');
-        let fontSize = isFreeText ? Math.round(14 * PPU_MULT * scale) : 11 * PPU_MULT; 
+        let fontSize = isFreeText ? Math.round(14 * PPU_MULT * scale) : 12 * PPU_MULT; 
         
+        // 2. ΜΕΤΑ υπολογίζουμε το offset και τα κέντρα, χρησιμοποιώντας τις ΣΩΣΤΕΣ διαστάσεις
+        // Πολλαπλασιάζουμε την απόσταση με το scale για να απομακρύνεται αναλογικά
+        let offset = 25 * PPU_MULT * Math.max(1, scale); 
         let centerX = el.size().width / 2;
-        let centerY = isFreeText ? el.size().height / 2 : el.size().height + (12 * PPU_MULT);
+        let centerY = isFreeText ? el.size().height / 2 : (el.size().height / 2) + offset;
 
         if (isMath) {
             el.attr('label/display', 'none'); 
@@ -300,8 +312,8 @@
             el.attr('label/display', 'block'); 
             el.attr('label/text', displayText);
             el.attr('label/refX', '50%');
-            el.attr('label/refY', isFreeText ? '50%' : '100%');
-            el.attr('label/refY2', isFreeText ? 0 : 10 * PPU_MULT);
+            el.attr('label/refY', '50%'); 
+            el.attr('label/refY2', isFreeText ? 0 : offset); // Βάζουμε το νέο offset εδώ!
             el.attr('label/fontSize', fontSize);
             el.attr('label/opacity', isEmpty ? 0.3 : 1);
             el.set('mathHtml', ''); 
@@ -312,10 +324,8 @@
         el: document.getElementById('my-paper'),
         model: graph,
         width: '100%', height: '100%', 
-        gridSize: 10, 
-        background: { color: 'transparent' }, // Αφήνουμε το λευκό του CSS να φανεί
-        // ΤΕΛΟΣ ΤΟ drawGrid! Το κάνει το CSS.
-        
+        gridSize: 40, // <--- ΑΛΛΑΓΗ ΣΕ 40 (1 TikZ Unit)
+        background: { color: 'transparent' },
         snapLinks: { radius: 15 },
         linkPinning: false,
         defaultLink: new joint.shapes.standard.Link({
@@ -324,34 +334,83 @@
         useModelGeometry: true,
         cellViewNamespace: joint.shapes,
         highlighting: {
-            'default': {
-                name: 'stroke',
-                options: { padding: 3, rx: 5, ry: 5, attrs: { 'stroke-width': 3, stroke: '#f39c12' } }
-            }
+            'default': { name: 'stroke', options: { padding: 3, rx: 5, ry: 5, attrs: { 'stroke-width': 3, stroke: '#f39c12' } } }
+        }
+    });
+	
+// === ΑΠΟΛΥΤΟΣ ΜΑΓΝΗΤΗΣ 40px ΓΙΑ ΤΑ ΠΑΝΤΑ ===
+
+	// Εξαρτήματα: Καρφώνουμε το Μαθηματικό (0,0) στο Grid, ΌΧΙ το BBox!
+    graph.on('change:position', function(cell, newPos, opt) {
+        if (cell.isLink() || opt.snapping || opt.groupMove) return; 
+
+        let snX, snY;
+        if (cell.get('latexMacro') === 'connectordot') {
+            snX = Math.round((newPos.x + 20) / 40) * 40 - 20;
+            snY = Math.round((newPos.y + 20) / 40) * 40 - 20;
+        } else {
+            let scale = cell.get('customScale') || 1;
+            let shiftX = (cell.get('baseShiftX') || 0) * scale;
+            let shiftY = (cell.get('baseShiftY') || 0) * scale;
+
+            // Βρίσκουμε πού είναι το μαθηματικό (0,0) αυτή τη στιγμή
+            let originX = newPos.x + shiftX;
+            let originY = newPos.y + shiftY;
+
+            // Καρφώνουμε το μαθηματικό (0,0) πάνω στο Grid των 40px
+            let snappedOriginX = Math.round(originX / 40) * 40;
+            let snappedOriginY = Math.round(originY / 40) * 40;
+
+            // Μετατοπίζουμε το κουτί στη νέα του, σωστή θέση
+            snX = snappedOriginX - shiftX;
+            snY = snappedOriginY - shiftY;
+        }
+        
+        if (snX !== newPos.x || snY !== newPos.y) {
+            cell.position(snX, snY, { snapping: true });
+            exportLatex();
         }
     });
 
-// --- ΤΟ ΑΠΟΛΥΤΟ TRICK: CSS Grid που ακολουθεί την κάμερα ΚΑΙ το Zoom! ---
+    graph.on('change:vertices', function(link, newVertices, opt) {
+        if (opt.snapping || !newVertices || newVertices.length === 0) return;
+        let snapped = newVertices.map(v => ({ x: Math.round(v.x / 40) * 40, y: Math.round(v.y / 40) * 40 }));
+        if (JSON.stringify(newVertices) !== JSON.stringify(snapped)) {
+            link.vertices(snapped, { snapping: true });
+            exportLatex();
+        }
+    });
+
+    graph.on('change:source change:target', function(link, newVal, opt) {
+         if (opt.snapping) return;
+         let changed = false, s = link.source(), t = link.target();
+         if (s && s.x !== undefined && !s.id) {
+             let nx = Math.round(s.x / 40) * 40, ny = Math.round(s.y / 40) * 40;
+             if (nx !== s.x || ny !== s.y) { s = { x: nx, y: ny }; changed = true; }
+         }
+         if (t && t.x !== undefined && !t.id) {
+             let nx = Math.round(t.x / 40) * 40, ny = Math.round(t.y / 40) * 40;
+             if (nx !== t.x || ny !== t.y) { t = { x: nx, y: ny }; changed = true; }
+         }
+         if (changed) {
+             if (s.x !== undefined && !s.id) link.source(s, { snapping: true });
+             if (t.x !== undefined && !t.id) link.target(t, { snapping: true });
+             exportLatex();
+         }
+    });
+
+	// --- ΤΟ ΑΠΟΛΥΤΟ CSS GRID (Μόνο 1 πλέγμα στα 40px) ---
     function updateDynamicGrid() {
         let t = paper.translate();
         let s = paper.scale().sx;
         
-        // 1. Υπολογισμός Αποστάσεων (Κενά ανάμεσα στις τελείες)
-        let minorSize = 20 * PPU_MULT * s; 
-        let majorSize = 80 * PPU_MULT * s; 
+        let dotSize = 40 * s; 
+        let dotRadius = Math.max(1.5, 2.5 * s); 
         
-        // 2. Πάχος Τελείας: Αυξήσαμε τους συντελεστές (3 και 5) για να "ακούνε" σωστά στο μεγάλο zoom
-        let minorDot = Math.max(1.5, 3 * s); 
-        let majorDot = Math.max(2.5, 5 * s);
-        
-        // 3. Εφαρμογή με Anti-Aliasing (+0.5px στο transparent) για πιο "γεμάτες" κουκκίδες
         $('#my-paper').css({
-            'background-image': `
-                radial-gradient(circle at 0px 0px, #bdc3c7 ${minorDot}px, transparent ${minorDot + 0.5}px),
-                radial-gradient(circle at 0px 0px, #7f8c8d ${majorDot}px, transparent ${majorDot + 0.5}px)
-            `,
-            'background-size': `${minorSize}px ${minorSize}px, ${majorSize}px ${majorSize}px`,
-            'background-position': `${t.tx}px ${t.ty}px, ${t.tx}px ${t.ty}px`
+            'background-image': `radial-gradient(circle at 0px 0px, #7f8c8d ${dotRadius}px, transparent ${dotRadius + 0.5}px)`,
+            'background-size': `${dotSize}px ${dotSize}px`,
+            'background-position': `${t.tx}px ${t.ty}px`
         });
     }
 
@@ -360,16 +419,16 @@
 
 	
 	
-	// --- NATIVE CAD FAKE SCALING (PPU = 40) ---
-		// Μεγεθύνουμε αυτόματα όλα τα Pins της βάσης κατά τη φόρτωση
-		if (typeof JL_DATABASE !== 'undefined') {
-			Object.keys(JL_DATABASE).forEach(k => {
-				if (JL_DATABASE[k].pins && !JL_DATABASE[k].scaled) {
-					JL_DATABASE[k].pins.forEach(p => { p.x *= PPU_MULT; p.y *= PPU_MULT; });
-					JL_DATABASE[k].scaled = true; // Flag για να μην το ξανατρέξουμε 
-				}
-			});
-		}
+// --- NATIVE CAD FAKE SCALING ---
+    if (typeof JL_DATABASE !== 'undefined') {
+        Object.keys(JL_DATABASE).forEach(k => {
+            if (JL_DATABASE[k].pins && !JL_DATABASE[k].scaled) {
+                // ΑΥΣΤΗΡΑ με το 4. Αυτό λύνει την παλέτα και τα τεράστια κουτιά!
+                JL_DATABASE[k].pins.forEach(p => { p.x *= PPU_MULT; p.y *= PPU_MULT; });
+                JL_DATABASE[k].scaled = true; 
+            }
+        });
+    }
 	
 	let latexEdited = false;
     let suppressWarning = false;
@@ -412,7 +471,7 @@
         document.getElementById('zoom-level').innerText = Math.round(userZoom * 100) + '%'; 
     }
 
-function zoomFit() {
+	function zoomFit() {
         const bbox = graph.getCellsBBox();
         
         if (!bbox || bbox.width === 0 || bbox.height === 0) {
@@ -653,7 +712,6 @@ function zoomFit() {
     }
 	
 	// --- ΣΥΝΑΡΤΗΣΗ ΑΛΛΑΓΗΣ ΚΛΙΜΑΚΑΣ ΜΕ PREDEFINED STEPS ---
-	const USER_SCALES = [0.25, 0.5, 1, 2, 4]; // Τα scales που ΒΛΕΠΕΙ ο χρήστης και το LaTeX (χάρη στο Fake Scaling, τώρα δεχόμαστε δεκαδικά!)
 
 	// --- ΡΩΜΑΛΕΟ SCALING (Τέλειο Bounding Box, Σταθερά Labels) ---
     function applyRobustScale(el, newScale) {
@@ -686,7 +744,7 @@ function zoomFit() {
 
         el.attr('icon/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
 
-        // ΛΥΣΗ SCALE DOWN: Μετακινούμε ΠΡΩΤΑ τα Ports...
+		// ΛΥΣΗ SCALE DOWN: Μετακινούμε ΠΡΩΤΑ τα Ports...
         let basePorts = el.get('basePorts');
         el.getPorts().forEach(port => {
             let px = basePorts[port.id].x * newScale;
@@ -697,12 +755,11 @@ function zoomFit() {
             el.portProp(port.id, 'args/y', Math.round(py));
         });
 
-        // ...ΚΑΙ ΜΕΤΑ κάνουμε resize το κουτί! Έτσι δεν "σκαλώνει" στα παλιά, ανοιχτά pins.
+        // ...ΚΑΙ ΜΕΤΑ κάνουμε resize το κουτί! 
         el.resize(w, h);
 
-        updateElementLabel(el); 
-
-        el.set('customScale', newScale);
+        el.set('customScale', newScale); // <--- ΑΥΤΟ ΠΑΕΙ ΠΑΝΩ
+        updateElementLabel(el);          // <--- ΚΑΙ ΑΥΤΟ ΚΑΤΩ 
     }
 
     function deleteSelected() { [...selectedElements, ...selectedLinks].forEach(c => c.remove()); clearSelection(); exportLatex(); }
@@ -751,7 +808,7 @@ function zoomFit() {
                 }
 
                 // Φέρνουμε το Path στα μέτρα των Pins
-                const pathMinX = bbox.x * PPU_MULT;
+				const pathMinX = bbox.x * PPU_MULT;
                 const pathMaxX = (bbox.x + bbox.width) * PPU_MULT;
                 const pathMinY = bbox.y * PPU_MULT;
                 const pathMaxY = (bbox.y + bbox.height) * PPU_MULT;
@@ -836,11 +893,13 @@ function zoomFit() {
         const snappedX = Math.round(targetPos.x / 10) * 10;
         const snappedY = Math.round(targetPos.y / 10) * 10;
         
-        if (type === 'connectordot') {
+		if (type === 'connectordot') {
             element = new joint.shapes.jl.ConnectorDot();
-            element.addPort({ id: 'p1', group: 'absolute', args: {x: 10, y: 10}, markup: '<g/>' });
-            element.set({'latexMacro': 'connectordot', 'offsetX': -10, 'offsetY': -10});
-            element.position(snappedX - 10, snappedY - 10);
+            element.addPort({ id: 'p1', group: 'absolute', args: {x: 20, y: 20}, markup: '<g/>' });
+            element.set({'latexMacro': 'connectordot', 'offsetX': -20, 'offsetY': -20});
+            let snappedX = Math.round(targetPos.x / 40) * 40;
+            let snappedY = Math.round(targetPos.y / 40) * 40;
+            element.position(snappedX - 20, snappedY - 20);
 		} else {
 			element = new joint.shapes.jl.Component();
 
@@ -866,7 +925,7 @@ function zoomFit() {
                 tempSvg.setAttribute('width', '500'); tempSvg.setAttribute('height', '500');
                 const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 tempPath.setAttribute('d', iconPath);
-				tempPath.setAttribute('transform', `scale(${PPU_MULT})`); // --- ΝΕΟ: Ζητάμε από τον Browser να μετρήσει το SVG 4 φορές μεγαλύτερο! ---
+				tempPath.setAttribute('transform', `scale(${PPU_MULT})`);
                 tempSvg.appendChild(tempPath);
                 Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
                 document.body.appendChild(tempSvg);
@@ -889,12 +948,12 @@ function zoomFit() {
             const absMinY = bbox.height > 0 ? Math.min(minPinY, bbox.y) : minPinY;
             const absMaxY = bbox.height > 0 ? Math.max(maxPinY, bbox.y + bbox.height) : maxPinY;
 				
-			// Snapping Bounding Box στο Grid (10px για τέλεια εφαρμογή με το νέο gridSize)
+			// Snapping Bounding Box στο Grid των 40px (1 TikZ Unit)
             const pad = 10; 
-            const boxOriginX = Math.floor((absMinX - pad) / 10) * 10;
-            const boxOriginY = Math.floor((absMinY - pad) / 10) * 10;
-            const boxMaxX = Math.ceil((absMaxX + pad) / 10) * 10;
-            const boxMaxY = Math.ceil((absMaxY + pad) / 10) * 10;
+            const boxOriginX = Math.floor((absMinX - pad) / 40) * 40;
+            const boxOriginY = Math.floor((absMinY - pad) / 40) * 40;
+            const boxMaxX = Math.ceil((absMaxX + pad) / 40) * 40;
+            const boxMaxY = Math.ceil((absMaxY + pad) / 40) * 40;
 
             const boxWidth = Math.max(boxMaxX - boxOriginX, 40);
             const boxHeight = Math.max(boxMaxY - boxOriginY, 40);
@@ -913,7 +972,7 @@ function zoomFit() {
                 },
                 icon: {
                     d: iconPath, stroke: '#2c3e50', strokeWidth: 1.8, fill: 'none', 
-                    transform: `translate(${shiftX}, ${shiftY}) scale(${PPU_MULT})`, 
+                    transform: `translate(${shiftX}, ${shiftY}) scale(${PPU_MULT})`,
                     'vector-effect': 'non-scaling-stroke' 
                 },
 				label: { 
@@ -973,9 +1032,9 @@ function zoomFit() {
                 'basePorts': basePorts
             });
             
-			// ΑΠΟΛΥΤΟ SNAPPING: Κουμπώνουμε το μαθηματικό (0,0) του εξαρτήματος πάνω στο Grid των 10px (0.25 TikZ)
-            let snappedOriginX = Math.round(targetPos.x / 10) * 10;
-            let snappedOriginY = Math.round(targetPos.y / 10) * 10;
+			// ΑΠΟΛΥΤΟ SNAPPING: Κουμπώνουμε το μαθηματικό (0,0) στα 40px
+            let snappedOriginX = Math.round(targetPos.x / 40) * 40;
+            let snappedOriginY = Math.round(targetPos.y / 40) * 40;
             
             // Η τελική θέση (πάνω αριστερή γωνία του box) 
             let finalX = snappedOriginX - shiftX;
@@ -999,14 +1058,14 @@ function zoomFit() {
     $('#draw-glasspane').on('mousedown', function(e) {
         drawing = true;
         let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let s = { x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 }; // Μαγνήτης στα 10
+        let s = { x: Math.round(p.x/40)*40, y: Math.round(p.y/40)*40 }; // 40!
         wire = new joint.shapes.standard.Link({ source: s, target: s, attrs: { line: { stroke: '#333', strokeWidth: 2 * PPU_MULT, targetMarker: null } } });
         wire.addTo(graph);
     });
     $(document).on('mousemove', function(e) {
         if (!drawing) return;
         let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let tx = Math.round(p.x/10)*10, ty = Math.round(p.y/10)*10;     // Μαγνήτης στα 10
+        let tx = Math.round(p.x/40)*40, ty = Math.round(p.y/40)*40;     // 40!
         let s = wire.source();
         if (Math.abs(tx - s.x) > Math.abs(ty - s.y)) wire.target({ x: tx, y: s.y });
         else wire.target({ x: s.x, y: ty });
@@ -1039,20 +1098,20 @@ function zoomFit() {
 
         isSwalOpen = true;
         Swal.fire({
-            title: 'Προσοχή: Χειροκίνητος Κώδικας!',
+            title: 'Warning: Manually-entered code!',
             html: `
-                <p style="font-size: 14px; color: #34495e;">Έχετε κάνει χειροκίνητες επεξεργασίες στον κώδικα LaTeX.<br>Αν ενημερωθεί ο κώδικας από τον καμβά, οι αλλαγές σας <b>θα διαγραφούν</b>.</p>
+                <p style="font-size: 14px; color: #34495e;">You have made manual edits to the LaTeX code.<br>If the code is updated from the canvas, your changes will be <b>deleted</b>.</p>
                 <label style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 15px; font-size: 13px; cursor: pointer;">
                     <input type="checkbox" id="swal-dont-ask" style="width: 16px; height: 16px;">
-                    Μην με ξαναρωτήσεις (για αυτή τη συνεδρία)
+                    Don't ask me again (for this session)
                 </label>
             `,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#e74c3c',
             cancelButtonColor: '#95a5a6',
-            confirmButtonText: 'Ναι, Overwrite',
-            cancelButtonText: 'Διατήρηση Αλλαγών μου',
+            confirmButtonText: 'Yes, Overwrite',
+            cancelButtonText: 'Keep my changes',
 			preConfirm: () => {
                 // Επιστρέφουμε ένα object ώστε το Swal να μην το δει ποτέ ως 'false'
                 return { isChecked: document.getElementById('swal-dont-ask').checked };
@@ -1075,32 +1134,34 @@ function zoomFit() {
         let outHTML = "\\begin{tikzpictureJL}\n";
         const isSelected = (id) => selectedElements.some(e=>e.id===id) || selectedLinks.some(l=>l.id===id);
 
-        graph.getElements().forEach(el => {
+		graph.getElements().forEach(el => {
             const p = el.position(), macro = el.get('latexMacro');
             let line = "";
+            let htmlBlock = ""; // Εδώ θα χτίσουμε το ασφαλές HTML
+
             if (macro === 'connectordot') {
-                line = "  \\connectordot{(" + ((p.x + 10) / EXPORT_DIV).toFixed(2) + "," + (-(p.y + 10) / EXPORT_DIV).toFixed(2) + ")}\n";
-			} else {
-				// --- ΕΞΥΠΝΟΣ ΥΠΟΛΟΓΙΣΜΟΣ OFFSET ΓΙΑ FLIP & ROTATION ---
+                let cleanDotLine = "  \\connectordot{(" + ((p.x + 20) / EXPORT_DIV).toFixed(2) + "," + (-(p.y + 20) / EXPORT_DIV).toFixed(2) + ")}";
+                let idStr = ` % id:${el.id}`;
+                let htmlIdSpan = `<span class="sync-id" contenteditable="false">${idStr}</span>`;
+                
+                line = cleanDotLine + idStr + "\n";
+                htmlBlock = highlightLatex(escapeHTML(cleanDotLine)) + htmlIdSpan + "\n";
+            } else {
+                // --- ΕΞΥΠΝΟΣ ΥΠΟΛΟΓΙΣΜΟΣ OFFSET ΓΙΑ FLIP & ROTATION ---
                 const rot = el.get('angle') || 0;
                 const w = el.size().width;
                 const h = el.size().height;
                 let effOffsetX = el.get('offsetX');
                 let effOffsetY = el.get('offsetY');
                 
-                // 1. Εφαρμογή του Flip (αντανακλά το (0,0) γύρω από το κέντρο)
                 if (el.get('flipH')) effOffsetX = -w - effOffsetX;
                 if (el.get('flipV')) effOffsetY = -h - effOffsetY;
 
-                // 2. Το σημείο (0,0) του TikZ (ΠΡΙΝ την περιστροφή)
                 const ox = p.x - effOffsetX;
                 const oy = p.y - effOffsetY;
-
-                // 3. Το κέντρο του Bounding Box (γύρω από το οποίο περιστρέφει το JointJS)
                 const cx = p.x + w / 2;
                 const cy = p.y + h / 2;
 
-                // 4. Εφαρμογή της Περιστροφής (Rotation 2D Matrix γύρω από το κέντρο)
                 const rad = rot * Math.PI / 180;
                 const cos = Math.cos(rad);
                 const sin = Math.sin(rad);
@@ -1108,20 +1169,15 @@ function zoomFit() {
                 const dx = ox - cx;
                 const dy = oy - cy;
 
-                // Υπολογίζουμε τις νέες συντεταγμένες και τις στρογγυλοποιούμε 
-                // για να αποφύγουμε σφάλματα δεκαδικών π.χ. (cos(90) = 0.0000000001)
                 const rotatedOx = Math.round(cx + (dx * cos) - (dy * sin));
                 const rotatedOy = Math.round(cy + (dx * sin) + (dy * cos));
 
-                // Υπολογισμός τελικών συντεταγμένων
-				const tx = (rotatedOx / EXPORT_DIV).toFixed(2);
-				const ty = (-(rotatedOy) / EXPORT_DIV).toFixed(2);
-                // ---------------------------------------------------------
-
-                // Υπολογισμός του Flip String
+                const tx = (rotatedOx / EXPORT_DIV).toFixed(2);
+                const ty = (-(rotatedOy) / EXPORT_DIV).toFixed(2);
+                
                 const flipH = el.get('flipH') || false;
                 const flipV = el.get('flipV') || false;
-                let flipStr = 'none'; // Προεπιλογή "none"
+                let flipStr = 'none'; 
                 if (flipH && flipV) flipStr = 'hv';
                 else if (flipH) flipStr = 'h';
                 else if (flipV) flipStr = 'v';
@@ -1130,13 +1186,12 @@ function zoomFit() {
                 const argsCount = (data && data.argsCount) ? data.argsCount : 7;
                 const argNames = (data && data.argNames) ? data.argNames : [];
                 
-				let args = [];
-				for (let i = 0; i < argsCount; i++) {
+                let args = [];
+                for (let i = 0; i < argsCount; i++) {
                     let argDef = argNames[i] || { name: '', optional: false };
                     let desc = argDef.name.toLowerCase();
                     let isOpt = argDef.optional;
                     
-                    // Διαβάζουμε τις αποθηκευμένες ρυθμίσεις του χρήστη
                     let customArgs = el.get('customArgs') || [];
                     let innerVal = "...";
 
@@ -1145,43 +1200,46 @@ function zoomFit() {
                     } else if (desc.includes('rotation')) {
                         if (desc.includes('flip')) innerVal = `${rot},${flipStr}`;
                         else innerVal = `${rot}`;
-					} else {
-                        // ΑΝ Ο ΧΡΗΣΤΗΣ ΕΧΕΙ ΔΩΣΕΙ ΤΙΜΗ (Ακόμα και αν την έσβησε / έκανε κενή), ΧΡΗΣΙΜΟΠΟΙΗΣΕ ΤΗΝ
+                    } else {
                         if (customArgs[i] !== undefined) {
                             innerVal = customArgs[i];
                         } else {
-                            // Αλλιώς βάλε τις Default (όταν πρωτο-μπαίνει το εξάρτημα)
                             if (desc === 'name') innerVal = `$NAME$`;
-                            else if (desc === 'text') innerVal = ``; // Προσθήκη: Το freetext ξεκινάει εξ ορισμού κενό (ή με το όνομά του)
+                            else if (desc === 'text') innerVal = ``; 
                             else if (desc.includes('grid')) innerVal = `type "gridon" to show grid`;
                             else if (desc.includes('show')) innerVal = `type "show" to display (0,0)`;
-                            else if (argDef.name.includes('/')) innerVal = argDef.name.split('/')[0].trim(); // Παίρνει το 1ο (π.χ. 'n' από 'n/p')
+                            else if (argDef.name.includes('/')) innerVal = argDef.name.split('/')[0].trim(); 
                             else innerVal = argDef.name ? argDef.name : "...";
                         }
                     }
-                    
                     if (isOpt) args.push(`[${innerVal}]`);
                     else args.push(`{${innerVal}}`);
                 }
 
-				// --- ΕΞΑΓΩΓΗ MACRO, SCALE ΚΑΙ HIDDEN ID ---
+                // --- ΕΞΑΓΩΓΗ MACRO ΚΑΙ ΑΟΡΑΤΟΥ ID ---
                 let currentScale = el.get('customScale') || 1;
-                // Προσθέτουμε το % id: για τον αμφίδρομο συγχρονισμό!
-                let finalMacroLine = "  \\" + macro + args.join("") + " % id:" + el.id + "\n";
+                let cleanMacroLine = "  \\" + macro + args.join("");
+                let idStr = ` % id:${el.id}`;
+                let htmlIdSpan = `<span class="sync-id" contenteditable="false">${idStr}</span>`;
+
+                let finalRawLine = cleanMacroLine + idStr + "\n";
+                let finalHtmlLine = highlightLatex(escapeHTML(cleanMacroLine)) + htmlIdSpan + "\n";
 
                 if (currentScale !== 1) {
                     let scaleOn = `  \\setscale{${currentScale}}\n`;
                     let scaleOff = `  \\setscale{1}\n`;
-                    line = scaleOn + finalMacroLine + scaleOff;
+                    line = scaleOn + finalRawLine + scaleOff;
+                    
+                    htmlBlock = highlightLatex(escapeHTML(scaleOn)) + finalHtmlLine + highlightLatex(escapeHTML(scaleOff));
                 } else {
-                    line = finalMacroLine;
+                    line = finalRawLine;
+                    htmlBlock = finalHtmlLine;
                 }
-            } // Τέλος της μεγάλης else (όχι connectordot)
+            } // Τέλος της μεγάλης else
 
             outText += line;
-            let safeLine = highlightLatex(escapeHTML(line));
-            if (isSelected(el.id)) outHTML += `<span class="highlight">${safeLine}</span>`;
-            else outHTML += safeLine;
+            if (isSelected(el.id)) outHTML += `<span class="highlight">${htmlBlock}</span>`;
+            else outHTML += htmlBlock;
         });
 
 		let segments = [];
@@ -1355,40 +1413,43 @@ ${indentedTikz}
     }
 
 	function runLinterUI(onSuccessCallback = null) {
-        const rawText = document.getElementById('latex-output').innerText;
-        const errors = validateLatexSyntax(rawText);
+        let rawText = document.getElementById('latex-output').innerText;
+        
+        // ΚΑΘΑΡΙΣΜΟΣ ΤΩΝ IDs ΠΡΙΝ ΤΟΝ ΕΛΕΓΧΟ / COPY / DOWNLOAD!
+        // Βρίσκει οτιδήποτε ξεκινάει με "% id:" και το εξαφανίζει.
+        let cleanText = rawText.replace(/ % id:[a-zA-Z0-9-]+/g, '');
+        
+        const errors = validateLatexSyntax(cleanText);
         
         if (errors.length === 0) {
             if (onSuccessCallback) {
-                onSuccessCallback(rawText); // Αν κλήθηκε από Copy/Download, προχώρα κατευθείαν
+                onSuccessCallback(cleanText); // Στέλνει τον ΚΑΘΑΡΟ κώδικα!
             } else {
-                // Αν ο χρήστης πάτησε απλά "Check Syntax", δείξε του ότι όλα είναι τέλεια!
                 Swal.fire({
                     icon: 'success',
-                    title: 'Κώδικας Άψογος!',
-                    text: 'Δεν βρέθηκαν συντακτικά σφάλματα.',
+                    title: 'LaTeX code OK!',
+                    text: 'No errors found.',
                     timer: 1500,
                     showConfirmButton: false
                 });
             }
         } else {
-            // Αν βρέθηκαν λάθη, δείξε τη λίστα!
+            // Αν βρέθηκαν λάθη, δείξε τη λίστα! (Το υπόλοιπο της συνάρτησης μένει ίδιο)
             const errorHtml = `<ul style="text-align: left; font-size: 14px; color: #c0392b; background: #fad390; padding: 15px; border-radius: 5px;">` + 
                               errors.map(e => `<li style="margin-bottom: 8px;">${e}</li>`).join('') + 
                               `</ul>`;
             
             Swal.fire({
                 icon: 'error',
-                title: 'Βρέθηκαν Συντακτικά Λάθη',
+                title: 'Errors found',
                 html: errorHtml,
                 showCancelButton: onSuccessCallback ? true : false,
-                confirmButtonText: onSuccessCallback ? 'Αγνόηση & Συνέχεια' : 'ΟΚ, θα τα φτιάξω',
-                cancelButtonText: 'Ακύρωση',
+                confirmButtonText: onSuccessCallback ? "Ignore & Continue" : "OK, I'll fix them",
+                cancelButtonText: 'Cancel',
                 confirmButtonColor: '#e74c3c'
             }).then((result) => {
-                // Αν ο χρήστης αποφασίσει να τα αγνοήσει και να προχωρήσει (π.χ. στο Export)
                 if (result.isConfirmed && onSuccessCallback) {
-                    onSuccessCallback(rawText);
+                    onSuccessCallback(cleanText); // Και εδώ στέλνει τον καθαρό!
                 }
             });
         }
@@ -1398,7 +1459,7 @@ ${indentedTikz}
         // Τώρα, πριν κάνει copy, τρέχει τον Linter!
         runLinterUI((textToCopy) => {
             navigator.clipboard.writeText(textToCopy).then(() => {
-                Swal.fire({ icon: 'success', title: 'Αντιγράφηκε!', timer: 1000, showConfirmButton: false });
+                Swal.fire({ icon: 'success', title: 'Copied!', timer: 1000, showConfirmButton: false });
             });
         });
     }
@@ -1487,22 +1548,33 @@ ${indentedTikz}
         let variantIndex = data.variantArg ? data.variantArg - 1 : -1;
 		
 		let currentScale = el.get('customScale') || 1;
-        // Προσθήκη του Scale Selector
+
+        // --- ΔΥΝΑΜΙΚΑ SCALE FACTORS ΑΝΑ ΕΞΑΡΤΗΜΑ ---
+        // Αν το εξάρτημα έχει ορισμένα scales στη βάση (data.scales), χρησιμοποιούμε αυτά.
+        // Αλλιώς, επιτρέπουμε την πλήρη σειρά (0.5, 1, 2, 4).
+        let allowedScales = data.scales || [0.5, 1, 2, 4];
+        
+        let scaleOptionsHtml = allowedScales.map(val => {
+            let isSelected = (currentScale === val) ? 'selected' : '';
+            return `<option value="${val}" ${isSelected}>${val}x</option>`;
+        }).join('\n');
+
         htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
                         <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Κλίμακα / Scale (TikZ)</label>
                         <select id="swal-input-scale" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;">
-                            <option value="0.25" ${currentScale === 0.25 ? 'selected' : ''}>0.25x</option>
-                            <option value="0.5" ${currentScale === 0.75 ? 'selected' : ''}>0.5x</option>
-                            <option value="1"    ${currentScale === 1 ? 'selected' : ''}>1x</option>
-                            <option value="2"    ${currentScale === 2 ? 'selected' : ''}>2x</option>
-                            <option value="4"    ${currentScale === 4 ? 'selected' : ''}>4x</option>
+                            ${scaleOptionsHtml}
                         </select>
                     </div>`;
 
-        for (let i = 0; i < data.argsCount; i++) {
+		for (let i = 0; i < data.argsCount; i++) {
             let argDef = data.argNames[i] || { name: `Arg ${i+1}` };
             let desc = argDef.name.toLowerCase();
             let val = currentArgs[i] !== undefined ? currentArgs[i] : "";
+
+            // --- ΝΕΟ: Αν είναι το Name/Text και είναι κενό, τράβα το όνομα που βλέπουμε! ---
+            if (val === "" && (desc === 'name' || desc === 'text')) {
+                val = el.get('displayedText') || data.name;
+            }
 
             // Κλειδώνουμε τη Θέση και την Περιστροφή (υπολογίζονται αυτόματα)
             let isReadOnly = desc.includes('position') || desc.includes('rotation');
@@ -1511,7 +1583,7 @@ ${indentedTikz}
                             <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">${argDef.name}</label>`;
 
             if (isReadOnly) {
-                htmlForm += `<input disabled class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; background: #ecf0f1; cursor: not-allowed; color: #7f8c8d;" value="Αυτόματα από τον καμβά">`;
+                htmlForm += `<input disabled class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; background: #ecf0f1; cursor: not-allowed; color: #7f8c8d;" value="Auto from canvas">`;
             } else if (i === variantIndex || argDef.name.includes('/')) {
                 // Έξυπνο Dropdown! Αν βρει '/' φτιάχνει επιλογές (π.χ. n/p -> 'n' και 'p')
                 let options = argDef.name.split('/'); 
@@ -1653,8 +1725,8 @@ ${indentedTikz}
             toast: true,
             position: 'bottom-end',
             icon: 'success',
-            title: 'Συγχρονίστηκε!',
-            text: 'Ο καμβάς ενημερώθηκε.',
+            title: 'Synced!',
+            text: 'Canvas updated.',
             showConfirmButton: false,
             timer: 2000,
             timerProgressBar: true,

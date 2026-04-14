@@ -1234,6 +1234,11 @@ const JL_DATABASE = {
         "name": "andthree",
         "argsCount": 6,
         "enabled": "true",
+        "scales": [
+            1,
+            2,
+            4
+        ],
         "icon": "M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20",
         "argNames": [
             {
