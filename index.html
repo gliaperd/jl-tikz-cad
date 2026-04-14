@@ -273,23 +273,27 @@
         let text = el.get('displayedText') || "";
         
         let isFreeText = el.get('latexMacro') === 'freetext';
-        let scale = el.get('customScale') || 1; // Τώρα βρίσκει το σωστό Scale
+        let scale = el.get('customScale') || 1; 
+        
+        // --- NEW: Read user-defined label offsets ---
+        let lblOffsetX = el.get('labelOffsetX') || 0;
+        let lblOffsetY = el.get('labelOffsetY') || 0;
         
         let isEmpty = text.trim() === "";
         let displayText = text;
-        if (isEmpty && isFreeText) displayText = "[ Κενό ]"; 
+        if (isEmpty && isFreeText) displayText = "[ Empty ]"; 
 
-        // 1. ΠΡΩΤΑ κάνουμε το resize (αν είναι freetext) για να πάρει τις τελικές του διαστάσεις!
         if (isFreeText) { el.resize(80 * scale, 40 * scale); }
 
         let isMath = displayText.includes('$');
         let fontSize = isFreeText ? Math.round(14 * PPU_MULT * scale) : 12 * PPU_MULT; 
         
-        // 2. ΜΕΤΑ υπολογίζουμε το offset και τα κέντρα, χρησιμοποιώντας τις ΣΩΣΤΕΣ διαστάσεις
-        // Πολλαπλασιάζουμε την απόσταση με το scale για να απομακρύνεται αναλογικά
+        // Base calculated distance based on scale
         let offset = 25 * PPU_MULT * Math.max(1, scale); 
-        let centerX = el.size().width / 2;
-        let centerY = isFreeText ? el.size().height / 2 : (el.size().height / 2) + offset;
+        
+        // --- NEW: Apply the manual offsets to the final coordinates ---
+        let centerX = (el.size().width / 2) + lblOffsetX;
+        let centerY = (isFreeText ? el.size().height / 2 : (el.size().height / 2) + offset) + lblOffsetY;
 
         if (isMath) {
             el.attr('label/display', 'none'); 
@@ -311,8 +315,10 @@
             el.attr('label/display', 'block'); 
             el.attr('label/text', displayText);
             el.attr('label/refX', '50%');
+            // We use refX2 and refY2 to push the text away from the 50% center
+            el.attr('label/refX2', lblOffsetX); 
             el.attr('label/refY', '50%'); 
-            el.attr('label/refY2', isFreeText ? 0 : offset); // Βάζουμε το νέο offset εδώ!
+            el.attr('label/refY2', (isFreeText ? 0 : offset) + lblOffsetY); 
             el.attr('label/fontSize', fontSize);
             el.attr('label/opacity', isEmpty ? 0.3 : 1);
             el.set('mathHtml', ''); 
@@ -1743,7 +1749,7 @@ ${indentedTikz}
         return errors;
     }
 	
-	// --- 10. PROPERTY EDITOR (ΔΙΠΛΟ ΚΛΙΚ) ---
+	// --- 10. PROPERTY EDITOR (DOUBLE CLICK) WITH DRAG, PREVIEW & REVERT ---
     paper.on('cell:pointerdblclick', function(cellView) {
         let el = cellView.model;
         if (el.isLink() || el.get('latexMacro') === 'connectordot') return;
@@ -1752,42 +1758,57 @@ ${indentedTikz}
         let data = JL_DATABASE[macro];
         if (!data) return;
 
+        // --- NEW: Take a snapshot of the original state before doing anything! ---
+        const originalState = {
+            args: [...(el.get('customArgs') || [])], // Spread operator makes a safe copy of the array
+            scale: el.get('customScale') || 1,
+            lblX: el.get('labelOffsetX') || 0,
+            lblY: el.get('labelOffsetY') || 0,
+            iconPath: el.attr('icon/d')
+        };
+
         let currentArgs = el.get('customArgs') || [];
         let htmlForm = '<div style="text-align: left; font-size: 14px;">';
 
-        // Το variant_arg έρχεται ως 1-based, εμείς το θέλουμε 0-based για τα arrays
         let variantIndex = data.variantArg ? data.variantArg - 1 : -1;
-		
-		let currentScale = el.get('customScale') || 1;
-
-        // --- ΔΥΝΑΜΙΚΑ SCALE FACTORS ΑΝΑ ΕΞΑΡΤΗΜΑ ---
-        // Αν το εξάρτημα έχει ορισμένα scales στη βάση (data.scales), χρησιμοποιούμε αυτά.
-        // Αλλιώς, επιτρέπουμε την πλήρη σειρά (0.5, 1, 2, 4).
-        let allowedScales = data.scales || [0.5, 1, 2, 4];
         
+        let currentScale = el.get('customScale') || 1;
+        let currentLblX = el.get('labelOffsetX') || 0;
+        let currentLblY = el.get('labelOffsetY') || 0;
+
+        let allowedScales = data.scales || [0.5, 1, 2, 4];
         let scaleOptionsHtml = allowedScales.map(val => {
             let isSelected = (currentScale === val) ? 'selected' : '';
             return `<option value="${val}" ${isSelected}>${val}x</option>`;
         }).join('\n');
 
         htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Κλίμακα / Scale (TikZ)</label>
+                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Scale (TikZ)</label>
                         <select id="swal-input-scale" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;">
                             ${scaleOptionsHtml}
                         </select>
                     </div>`;
 
-		for (let i = 0; i < data.argsCount; i++) {
+        htmlForm += `<div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px; display: flex; gap: 10px;">
+                        <div style="flex: 1;">
+                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Label Offset X</label>
+                            <input type="number" id="swal-input-lblx" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${currentLblX}">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Label Offset Y</label>
+                            <input type="number" id="swal-input-lbly" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${currentLblY}">
+                        </div>
+                    </div>`;
+
+        for (let i = 0; i < data.argsCount; i++) {
             let argDef = data.argNames[i] || { name: `Arg ${i+1}` };
             let desc = argDef.name.toLowerCase();
             let val = currentArgs[i] !== undefined ? currentArgs[i] : "";
 
-            // --- ΝΕΟ: Αν είναι το Name/Text και είναι κενό, τράβα το όνομα που βλέπουμε! ---
             if (val === "" && (desc === 'name' || desc === 'text')) {
                 val = el.get('displayedText') || data.name;
             }
 
-            // Κλειδώνουμε τη Θέση και την Περιστροφή (υπολογίζονται αυτόματα)
             let isReadOnly = desc.includes('position') || desc.includes('rotation');
             
             htmlForm += `<div style="margin-bottom: 12px;">
@@ -1796,7 +1817,6 @@ ${indentedTikz}
             if (isReadOnly) {
                 htmlForm += `<input disabled class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; background: #ecf0f1; cursor: not-allowed; color: #7f8c8d;" value="Auto from canvas">`;
             } else if (i === variantIndex || argDef.name.includes('/')) {
-                // Έξυπνο Dropdown! Αν βρει '/' φτιάχνει επιλογές (π.χ. n/p -> 'n' και 'p')
                 let options = argDef.name.split('/'); 
                 htmlForm += `<select id="swal-input-${i}" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;">`;
                 options.forEach(opt => {
@@ -1806,22 +1826,124 @@ ${indentedTikz}
                 });
                 htmlForm += `</select>`;
             } else {
-                // Απλό πεδίο κειμένου
                 htmlForm += `<input id="swal-input-${i}" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${val}">`;
             }
             htmlForm += `</div>`;
         }
+        
+        htmlForm += `<button type="button" id="btn-swal-preview" class="tool-btn" style="width: 100%; margin-top: 10px; background: #3498db; font-weight: bold; transition: background 0.3s;">👁️ Preview Changes</button>`;
         htmlForm += '</div>';
 
         Swal.fire({
-            title: `<span style="font-size: 18px;">Ιδιότητες: ${data.name}</span>`,
+            title: `
+                <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
+                    <span>⠿</span> Drag to move <span>⠿</span>
+                </div>
+                <span style="font-size: 18px; user-select: none;">Properties: ${data.name}</span>
+            `,
             html: htmlForm,
             showCancelButton: true,
-            confirmButtonText: 'Αποθήκευση',
-            cancelButtonText: 'Ακύρωση',
+            confirmButtonText: 'Save',
+            cancelButtonText: 'Cancel',
             confirmButtonColor: '#27ae60',
-			preConfirm: () => {
-                let results = { args: [], scale: parseFloat(document.getElementById('swal-input-scale').value) };
+            backdrop: false, 
+            didOpen: () => {
+                const popup = Swal.getPopup();
+                const handle = document.getElementById('swal-drag-handle');
+                
+                let isDragging = false, startX, startY, initialLeft, initialTop;
+
+                const onMouseMove = (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    popup.style.left = (initialLeft + dx) + 'px';
+                    popup.style.top = (initialTop + dy) + 'px';
+                };
+
+                const onMouseUp = () => {
+                    isDragging = false;
+                    handle.style.cursor = 'grab';
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+                };
+
+                handle.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    handle.style.cursor = 'grabbing';
+                    
+                    const rect = popup.getBoundingClientRect();
+                    popup.style.margin = '0';
+                    popup.style.position = 'fixed'; 
+                    popup.style.left = rect.left + 'px';
+                    popup.style.top = rect.top + 'px';
+                    popup.style.transform = 'none'; 
+                    
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    initialLeft = rect.left;
+                    initialTop = rect.top;
+
+                    document.addEventListener('mousemove', onMouseMove);
+                    document.addEventListener('mouseup', onMouseUp);
+                });
+
+                const previewBtn = document.getElementById('btn-swal-preview');
+                previewBtn.addEventListener('click', (e) => {
+                    e.preventDefault(); 
+
+                    let previewScale = parseFloat(document.getElementById('swal-input-scale').value);
+                    let previewLblX = parseInt(document.getElementById('swal-input-lblx').value) || 0;
+                    let previewLblY = parseInt(document.getElementById('swal-input-lbly').value) || 0;
+                    
+                    let previewArgs = [];
+                    for (let i = 0; i < data.argsCount; i++) {
+                        let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
+                        if (desc.includes('position') || desc.includes('rotation')) previewArgs.push(""); 
+                        else previewArgs.push(document.getElementById(`swal-input-${i}`).value);
+                    }
+
+                    el.set('labelOffsetX', previewLblX);
+                    el.set('labelOffsetY', previewLblY);
+                    el.set('customArgs', previewArgs);
+                    
+                    if (variantIndex !== -1 && data.icons) {
+                        let selectedVariant = previewArgs[variantIndex];
+                        if (data.icons[selectedVariant]) el.attr('icon/d', data.icons[selectedVariant]);
+                    }
+
+                    if (previewScale !== currentScale) {
+                        applyRobustScale(el, previewScale);
+                        currentScale = previewScale; 
+                    }
+
+                    for (let i = 0; i < data.argsCount; i++) {
+                        let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
+                        if (desc === 'name' || desc === 'text') {
+                            let newName = previewArgs[i] === '$NAME$' ? data.name : previewArgs[i];
+                            updateElementLabel(el, newName);
+                        }
+                    }
+
+                    const view = paper.findViewByModel(el);
+                    if (view) view.update();
+
+                    let originalText = previewBtn.innerHTML;
+                    previewBtn.innerHTML = '✅ Applied!';
+                    previewBtn.style.background = '#27ae60';
+                    setTimeout(() => {
+                        previewBtn.innerHTML = originalText;
+                        previewBtn.style.background = '#3498db';
+                    }, 800);
+                });
+            },
+            preConfirm: () => {
+                let results = { 
+                    args: [], 
+                    scale: parseFloat(document.getElementById('swal-input-scale').value),
+                    lblX: parseInt(document.getElementById('swal-input-lblx').value) || 0,
+                    lblY: parseInt(document.getElementById('swal-input-lbly').value) || 0
+                };
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
                     if (desc.includes('position') || desc.includes('rotation')) results.args.push(""); 
@@ -1829,37 +1951,67 @@ ${indentedTikz}
                 }
                 return results;
             }
-		}).then((result) => {
+        }).then((result) => {
             if (result.isConfirmed) {
+                // User clicked SAVE - Commit the previewed changes
                 let newArgs = result.value.args;
                 let newScale = result.value.scale;
                 
+                el.set('labelOffsetX', result.value.lblX);
+                el.set('labelOffsetY', result.value.lblY);
                 el.set('customArgs', newArgs);
 
-                // ΑΛΛΑΓΗ ΤΟΥ ΣΥΜΒΟΛΟΥ ΖΩΝΤΑΝΑ (Variants)
                 if (variantIndex !== -1 && data.icons) {
                     let selectedVariant = newArgs[variantIndex];
                     if (data.icons[selectedVariant]) el.attr('icon/d', data.icons[selectedVariant]);
                 }
 
-                // ΕΦΑΡΜΟΓΗ ΝΕΟΥ SCALE ΜΕ ΑΠΟΛΥΤΗ ΑΚΡΙΒΕΙΑ
                 if (newScale !== currentScale) {
                     applyRobustScale(el, newScale);
                 }
 
-				// ΑΛΛΑΓΗ ΤΟΥ ΟΝΟΜΑΤΟΣ Ή ΤΟΥ ΚΕΙΜΕΝΟΥ ΣΤΟΝ ΚΑΜΒΑ
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
                     if (desc === 'name' || desc === 'text') {
-						let newName = newArgs[i] === '$NAME$' ? data.name : newArgs[i];
+                        let newName = newArgs[i] === '$NAME$' ? data.name : newArgs[i];
                         updateElementLabel(el, newName);
                     }
                 }
 
                 forceExportLatex();
+                
+            } else if (result.isDismissed) {
+                // --- NEW: User clicked CANCEL - Revert everything to the snapshot! ---
+                el.set('labelOffsetX', originalState.lblX);
+                el.set('labelOffsetY', originalState.lblY);
+                el.set('customArgs', originalState.args);
+
+                if (originalState.iconPath) {
+                    el.attr('icon/d', originalState.iconPath);
+                }
+
+                if (originalState.scale !== currentScale) {
+                    applyRobustScale(el, originalState.scale);
+                    currentScale = originalState.scale; // Reset internal tracker just in case
+                }
+
+                for (let i = 0; i < data.argsCount; i++) {
+                    let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
+                    if (desc === 'name' || desc === 'text') {
+                        // Fallback safely if they never had a custom name typed
+                        let fallbackName = originalState.args[i] || data.name;
+                        let oldName = fallbackName === '$NAME$' ? data.name : fallbackName;
+                        updateElementLabel(el, oldName);
+                    }
+                }
+
+                // Force a repaint so the canvas visually snaps back immediately
+                const view = paper.findViewByModel(el);
+                if (view) view.update();
             }
         });
     });
+    
 
 	// --- 11. BI-DIRECTIONAL SYNC (LATEX TO CANVAS) ---
 
