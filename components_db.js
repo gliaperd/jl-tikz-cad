@@ -3,7 +3,23 @@ const JL_DATABASE = {
         "name": "mechanicalswitch",
         "argsCount": 7,
         "enabled": "true",
-        "icon": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -12",
+        "category": "Switches",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "variantArg": 3,
+        "icons": {
+            "closed": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z",
+            "open": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z"
+        },
+        "icon": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z",
+        "filled": true,
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "argNames": [
             {
                 "name": "position",
@@ -53,7 +69,18 @@ const JL_DATABASE = {
         "name": "mechanicalswitchthreeport",
         "argsCount": 6,
         "enabled": "true",
-        "icon": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 L 40 0 M 10 -20 L 28 -12",
+        "category": "Switches",
+        "variantArg": 3,
+        "icons": {
+            "state1": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 9 -2 L 30 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z",
+            "state2": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 9 -18 L 30 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 11 -18 A 1 1 0 1 0 9 -18 A 1 1 0 1 0 11 -18 Z"
+        },
+        "icon": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 9 -2 L 30 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z",
+        "filled": true,
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "argNames": [
             {
                 "name": "position",
@@ -96,7 +123,7 @@ const JL_DATABASE = {
             {
                 "id": "pin3",
                 "x": 40.0,
-                "y": -0.0,
+                "y": -10.0,
                 "label": ""
             }
         ]
@@ -105,7 +132,23 @@ const JL_DATABASE = {
         "name": "controlledswitch",
         "argsCount": 7,
         "enabled": "true",
-        "icon": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -12 M 15 -20 L 25 -20 M 20 -20 L 20 -5",
+        "category": "Switches",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "variantArg": 3,
+        "icons": {
+            "closed": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12 M 20 -13 L 20 -15 M 19 -15 L 21 -15",
+            "open": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -6 L 20 -7 M 20 -8 L 20 -9 M 20 -10 L 20 -11 M 20 -12 L 20 -13 M 20 -14 L 20 -15 M 19 -15 L 21 -15"
+        },
+        "icon": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12 M 20 -13 L 20 -15 M 19 -15 L 21 -15",
+        "filled": true,
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "argNames": [
             {
                 "name": "position",
@@ -155,7 +198,23 @@ const JL_DATABASE = {
         "name": "controlledswitchbox",
         "argsCount": 7,
         "enabled": "true",
-        "icon": "M 10 5 L 30 5 L 30 -15 L 10 -15 Z M 0 0 L 10 0 M 30 0 L 40 0 M 15 -20 L 25 -20 M 20 -20 L 20 -15 M 30 0 L 12 -12",
+        "category": "Switches",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "variantArg": 4,
+        "icons": {
+            "n": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -18 M 19 -18 L 21 -18 M 9 0 L 9 -13 L 31 -13 M 31 -13 L 31 2 L 9 2 L 9 0",
+            "p": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -15 L 20 -18 M 19 -18 L 21 -18 M 9 0 L 9 -13 L 31 -13 L 31 2 L 9 2 L 9 0 M 19 -14 A 1 1 0 1 0 21 -14 M 21 -14 A 1 1 0 1 0 19 -14"
+        },
+        "icon": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -18 M 19 -18 L 21 -18 M 9 0 L 9 -13 L 31 -13 M 31 -13 L 31 2 L 9 2 L 9 0",
+        "filled": false,
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "argNames": [
             {
                 "name": "position",
@@ -166,11 +225,11 @@ const JL_DATABASE = {
                 "optional": false
             },
             {
-                "name": "control value (0/1/other) [place '*' at  end for inverted value",
+                "name": "control value (0, 1, other) '*' at end for inverted value",
                 "optional": false
             },
             {
-                "name": "type (n/p)",
+                "name": "n/p",
                 "optional": false
             },
             {
@@ -205,7 +264,12 @@ const JL_DATABASE = {
         "name": "groundterminal",
         "argsCount": 5,
         "enabled": "true",
+        "category": "Terminals",
         "icon": "M 0 0 L 0 15 M -15 15 L 15 15 M -10 22 L 10 22 M -5 29 L 5 29",
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "argNames": [
             {
                 "name": "position",
@@ -241,7 +305,23 @@ const JL_DATABASE = {
         "name": "voltagesource",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Sources",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "variantArg": 4,
+        "icons": {
+            "standard": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0",
+            "controlled": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 L 0 -20 L 20 0 L 0 20 L -20 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0"
+        },
         "icon": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0",
+        "filled": false,
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "argNames": [
             {
                 "name": "position",
@@ -256,7 +336,7 @@ const JL_DATABASE = {
                 "optional": false
             },
             {
-                "name": "none/controlled",
+                "name": "standard/controlled",
                 "optional": false
             },
             {
@@ -291,7 +371,23 @@ const JL_DATABASE = {
         "name": "currentsource",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Sources",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "variantArg": 4,
+        "icons": {
+            "standard": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5",
+            "controlled": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 L 0 -20 L 20 0 L 0 20 L -20 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5"
+        },
         "icon": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5",
+        "filled": false,
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "argNames": [
             {
                 "name": "position",
@@ -302,11 +398,11 @@ const JL_DATABASE = {
                 "optional": false
             },
             {
-                "name": "horizontal/vertical",
+                "name": "horizontal, vertical",
                 "optional": false
             },
             {
-                "name": "none/controlled",
+                "name": "standard/controlled",
                 "optional": false
             },
             {
@@ -387,6 +483,7 @@ const JL_DATABASE = {
         "name": "functiongenerator",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Sources",
         "icon": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0",
         "argNames": [
             {
@@ -487,6 +584,7 @@ const JL_DATABASE = {
         "name": "resistor",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Passives",
         "icon": "M 0 0 L 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 L 80 0",
         "argNames": [
             {
@@ -537,6 +635,7 @@ const JL_DATABASE = {
         "name": "inductor",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Passives",
         "icon": "M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0",
         "argNames": [
             {
@@ -587,6 +686,7 @@ const JL_DATABASE = {
         "name": "capacitor",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Passives",
         "icon": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -15 L 24 15 M 24 0 L 40 0",
         "argNames": [
             {
@@ -637,6 +737,7 @@ const JL_DATABASE = {
         "name": "dcvoltagesource",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Sources",
         "icon": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -7 L 24 7 M 24 0 L 40 0",
         "argNames": [
             {
@@ -687,6 +788,7 @@ const JL_DATABASE = {
         "name": "dcbattery",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Sources",
         "icon": "M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0",
         "argNames": [
             {
@@ -737,6 +839,7 @@ const JL_DATABASE = {
         "name": "bipolartransistor",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Active Components",
         "icon": "M -40 0 L -10 0 M -10 -15 L -10 15 M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M 10 25 L 4 25 L 8 18 Z M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0",
         "argNames": [
             {
@@ -793,6 +896,7 @@ const JL_DATABASE = {
         "name": "mostransistor",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Active Components",
         "variantArg": 3,
         "icons": {
             "n": "M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0  M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 M 10 15 L 6 12 M 10 15 L 6 18",
@@ -854,6 +958,7 @@ const JL_DATABASE = {
         "name": "passgate",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -40 0 L -20 0 M 20 0 L 40 0 M -20 -30 L 20 -30 M -20 30 L 20 30 M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -38 L 0 -50 M 0 30 L 0 50",
         "argNames": [
             {
@@ -900,6 +1005,7 @@ const JL_DATABASE = {
         "name": "opamplifier",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Active Components",
         "icon": "M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 30 -25 L 30 -15 M 25 20 L 35 20",
         "argNames": [
             {
@@ -956,6 +1062,7 @@ const JL_DATABASE = {
         "name": "diode",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Diodes",
         "icon": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0",
         "argNames": [
             {
@@ -1002,6 +1109,7 @@ const JL_DATABASE = {
         "name": "zenerdiode",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Diodes",
         "icon": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 30 -15 L 35 -15 L 35 15 L 40 15 M 35 0 L 50 0",
         "argNames": [
             {
@@ -1048,6 +1156,7 @@ const JL_DATABASE = {
         "name": "leddiode",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Diodes",
         "icon": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 10 -20 L 20 -30 M 15 -30 L 20 -30 L 20 -25 M 15 -20 L 25 -30 M 20 -30 L 25 -30 L 25 -25",
         "argNames": [
             {
@@ -1094,6 +1203,7 @@ const JL_DATABASE = {
         "name": "photodiode",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Diodes",
         "icon": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 20 -30 L 10 -20 M 10 -25 L 10 -20 L 15 -20 M 25 -30 L 15 -20 M 15 -25 L 15 -20 L 20 -20",
         "argNames": [
             {
@@ -1140,6 +1250,7 @@ const JL_DATABASE = {
         "name": "supplyterminal",
         "argsCount": 5,
         "enabled": "true",
+        "category": "Terminals",
         "icon": "M 0 10 L 0 0 M -15 0 L 15 0",
         "argNames": [
             {
@@ -1176,6 +1287,7 @@ const JL_DATABASE = {
         "name": "ioport",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Terminals",
         "icon": "M 0 0 L 5 0 M 11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
         "argNames": [
             {
@@ -1234,6 +1346,7 @@ const JL_DATABASE = {
         "name": "andthree",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "scales": [
             1,
             2,
@@ -1297,6 +1410,7 @@ const JL_DATABASE = {
         "name": "nandthree",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20",
         "argNames": [
             {
@@ -1355,6 +1469,7 @@ const JL_DATABASE = {
         "name": "andtwo",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -1407,6 +1522,7 @@ const JL_DATABASE = {
         "name": "nandtwo",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20",
         "argNames": [
             {
@@ -1459,6 +1575,7 @@ const JL_DATABASE = {
         "name": "orthree",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -1517,6 +1634,7 @@ const JL_DATABASE = {
         "name": "northree",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -1575,6 +1693,7 @@ const JL_DATABASE = {
         "name": "ortwo",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -1627,6 +1746,7 @@ const JL_DATABASE = {
         "name": "nortwo",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -1679,6 +1799,7 @@ const JL_DATABASE = {
         "name": "xortwo",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -1731,6 +1852,7 @@ const JL_DATABASE = {
         "name": "xnortwo",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 45 -10 50 -20 C 45 -30 40 -40 15 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -1783,6 +1905,7 @@ const JL_DATABASE = {
         "name": "inverter",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -20 L 15 -20 M 15 0 L 15 -40 L 35 -20 Z M 39 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 43 -20 L 50 -20",
         "argNames": [
             {
@@ -1829,6 +1952,7 @@ const JL_DATABASE = {
         "name": "invertersmall",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -10 L 10 -10 M 10 -20 L 10 0 L 30 -10 Z M 34 -10 m -4 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 34 -10 L 40 -10",
         "argNames": [
             {
@@ -1875,6 +1999,7 @@ const JL_DATABASE = {
         "name": "buffer",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20",
         "argNames": [
             {
@@ -1921,6 +2046,7 @@ const JL_DATABASE = {
         "name": "jkflipflop",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10",
         "argNames": [
             {
@@ -2001,6 +2127,7 @@ const JL_DATABASE = {
         "name": "srlatch",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 60 -80 L 70 -80 M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -2065,6 +2192,7 @@ const JL_DATABASE = {
         "name": "srflipflop",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10",
         "argNames": [
             {
@@ -2145,6 +2273,7 @@ const JL_DATABASE = {
         "name": "dflipflop",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10",
         "argNames": [
             {
@@ -2219,6 +2348,7 @@ const JL_DATABASE = {
         "name": "dlatch",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 10 0 L 60 0 L 60 -70 L 10 -70 Z M 0 -50 L 10 -50 M 0 -20 L 10 -20 M 60 -50 L 70 -50 M 60 -20 L 70 -20",
         "argNames": [
             {
@@ -2277,6 +2407,7 @@ const JL_DATABASE = {
         "name": "tflipflop",
         "argsCount": 7,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10",
         "argNames": [
             {
@@ -2351,6 +2482,7 @@ const JL_DATABASE = {
         "name": "sevensegmentdisplay",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 0 L 80 0 L 80 -100 L 0 -100 Z M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z M 10 0 L 10 10 M 20 0 L 20 10 M 30 0 L 30 10 M 40 0 L 40 10 M 50 0 L 50 10 M 60 0 L 60 10 M 70 0 L 70 10",
         "argNames": [
             {
@@ -2427,6 +2559,7 @@ const JL_DATABASE = {
         "name": "fulladder",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20",
         "argNames": [
             {
@@ -2503,6 +2636,7 @@ const JL_DATABASE = {
         "name": "fullsubtractor",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Digital/Logic",
         "icon": "M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20",
         "argNames": [
             {

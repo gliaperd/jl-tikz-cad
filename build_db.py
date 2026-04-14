@@ -26,17 +26,23 @@ def generate_db(sty_file):
 
         body_lines = body.strip().split('\n')
         
-        # 1. ΝΕΑ ΛΟΓΙΚΗ: Εξαγωγή Icons, Variants και Scales
+        # 1. Extract Metadata: Icons, Variants, Scales and Categories
         for line in body_lines:
             line = line.strip()
             
-            # Αν βρούμε μεταβλητή (π.χ. % variant_arg: 3)
-            if line.startswith('% variant_arg:'):
-                comp_data['variantArg'] = int(line.replace('% variant_arg:', '').strip())
-                if 'icons' not in comp_data:
-                    comp_data['icons'] = {}
+            # --- Extract the category (e.g., % category: Passives) ---
+            if line.startswith('% category:'):
+                comp_data['category'] = line.replace('% category:', '').strip()
             
-            # Αν βρούμε εναλλακτικό εικονίδιο (π.χ. % icon_n: ...)
+            # --- Foolproof Variant Arg Parser ---
+            elif '% variant_arg:' in line.lower() or '%variant_arg:' in line.lower():
+                try:
+                    val = line.split(':')[1].strip()
+                    comp_data['variantArg'] = int(val)
+                except ValueError:
+                    pass
+            
+            # If we find an alternative variant icon (e.g., % icon_n: ...)
             elif line.startswith('% icon_'):
                 m = re.match(r'% icon_([^:]+):(.*)', line)
                 if m:
@@ -45,24 +51,45 @@ def generate_db(sty_file):
                     if 'icons' not in comp_data:
                         comp_data['icons'] = {}
                     comp_data['icons'][variant_name] = variant_path
-                    # Αν δεν έχουμε ορίσει default icon, βάζουμε το πρώτο που θα βρει
+                    # If a default icon is not set, use the first one found
                     if 'icon' not in comp_data:
                         comp_data['icon'] = variant_path
             
-            # Αν βρούμε το κλασικό μονό εικονίδιο
+            # If we find the classic single icon
             elif line.startswith('% icon:'):
                 comp_data['icon'] = line.replace('% icon:', '').strip()
 
-            # Αν βρούμε τα επιτρεπτά scales (π.χ. % scales: 1, 2, 4)
+            # If we find allowed scales (e.g., % scales: 1, 2, 4)
             elif line.startswith('% scales:'):
                 scales_str = line.replace('% scales:', '').strip()
                 try:
-                    # Μετατρέπει το string "0.5, 1, 2" σε λίστα αριθμών [0.5, 1, 2]
+                    # Converts the string "0.5, 1, 2" into a list of numbers [0.5, 1, 2]
                     comp_data['scales'] = [float(s.strip()) if '.' in s.strip() else int(s.strip()) for s in scales_str.split(',')]
                 except ValueError:
-                    pass # Αν υπάρχει τυπογραφικό, απλά το αγνοούμε
+                    pass # If there is a typo, just ignore it
+            
+            # --- Flag for Solid Components (FOOLPROOF BOOLEAN) ---
+            elif '% filled:' in line.lower() or '%filled:' in line.lower():
+                val = line.split(':')[1].strip().lower()
+                comp_data['filled'] = (val == 'true')
+            # --- NEW: Exact OR Auto Coordinate Anchor ---
+            elif '% label_anchor:' in line.lower() or '%label_anchor:' in line.lower():
+                try:
+                    parts = line.split(':')[1].strip().split()
+                    if len(parts) == 1:
+                        # Auto Mode: Just the direction (T, B, L, R)
+                        comp_data['labelAnchor'] = { "auto": True, "dir": parts[0].upper() }
+                    elif len(parts) >= 3:
+                        # Manual Mode: Exact SVG Units + direction
+                        comp_data['labelAnchor'] = {
+                            "x": float(parts[0]),
+                            "y": float(parts[1]),
+                            "dir": parts[2].upper()
+                        }
+                except (IndexError, ValueError):
+                    pass
 
-        # 2. Εξαγωγή των ονομάτων των Arguments από το πρώτο σχόλιο
+        # 2. Extract Argument names from the first comment
         arg_names = []
         if body_lines and body_lines[0].strip().startswith('%'):
             comment_line = body_lines[0].strip()
@@ -74,7 +101,7 @@ def generate_db(sty_file):
                 })
         comp_data['argNames'] = arg_names
 
-        # 3. Εξαγωγή των pins και των Labels
+        # 3. Extract pins and Labels
         pins = []
         for line in body_lines:
             coord_match = re.search(r'\\coordinate\s*\(([a-zA-Z0-9]+)\)\s*at\s*\(([-+]?[\d\.]+)[^,]*,\s*([-+]?[\d\.]+)[^)]*\)', line)
@@ -88,7 +115,7 @@ def generate_db(sty_file):
                 })
         comp_data['pins'] = pins
 
-        # Αποθήκευση στη βάση (αν έχει pins ή είναι το connectordot ή freetext)
+        # Save to database (if it has pins or is connectordot or freetext)
         if pins or name in ['connectordot', 'freetext']:
             database[name] = comp_data
 

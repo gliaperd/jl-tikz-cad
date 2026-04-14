@@ -76,7 +76,13 @@
 %% Mechanical Switch
 \newcommand{\mechanicalswitch}[7]{%{position}{name}{closed/open}{state}{rotation}{grid}{show (0,0)}
 % enabled
-% icon: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -12
+% category: Switches
+% scales: 1, 2, 4
+% variant_arg: 3
+% icon_closed: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z
+% icon_open: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z
+% filled: true
+% label_anchor: B
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
@@ -117,7 +123,12 @@
 %% Three-Port Mechanical Switch
 \newcommand{\mechanicalswitchthreeport}[6]{%{position}{name}{state1/state2}{rotation}{grid}{show (0,0)}
 % enabled
-% icon: M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 L 40 0 M 10 -20 L 28 -12
+% category: Switches
+% variant_arg: 3
+% icon_state1: M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 9 -2 L 30 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z
+% icon_state2: M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 9 -18 L 30 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 11 -18 A 1 1 0 1 0 9 -18 A 1 1 0 1 0 11 -18 Z
+% filled: true
+% label_anchor: B
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				% draw terminals
@@ -152,14 +163,20 @@
 					}
 				\coordinate (pin1) at (0, 0); % bottom left terminal
 				\coordinate (pin2) at (0, 2); % top left terminal
-				\coordinate (pin3) at (4, 0); % right terminal				
+				\coordinate (pin3) at (4, 1); % right terminal				
 		\end{scope}
 }
 
 %% Controlled Switch
 \newcommand{\controlledswitch}[7]{%{position}{name}{closed/open}{control_terminal}{rotation}{grid}{show (0,0)}
 % enabled
-% icon: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -12 M 15 -20 L 25 -20 M 20 -20 L 20 -5
+% category: Switches
+% scales: 1, 2, 4
+% variant_arg: 3
+% icon_closed: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12 M 20 -13 L 20 -15 M 19 -15 L 21 -15
+% icon_open: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -6 L 20 -7 M 20 -8 L 20 -9 M 20 -10 L 20 -11 M 20 -12 L 20 -13 M 20 -14 L 20 -15 M 19 -15 L 21 -15
+% filled: true
+% label_anchor: B
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
@@ -211,9 +228,14 @@
 }
 
 %% Controlled Switch - Box
-\newcommand{\controlledswitchbox}[7]{%{position}{name}{control value (0/1/other) [place '*' at  end for inverted value]}{type (n/p)}{rotation}{grid}{show (0,0)}
-% enabled
-% icon: M 10 5 L 30 5 L 30 -15 L 10 -15 Z M 0 0 L 10 0 M 30 0 L 40 0 M 15 -20 L 25 -20 M 20 -20 L 20 -15 M 30 0 L 12 -12
+\newcommand{\controlledswitchbox}[7]{%{position}{name}{control value (0, 1, other) '*' at end for inverted value}{n/p}{rotation}{grid}{show (0,0)}
+% category: Switches
+% scales: 1, 2, 4
+% variant_arg: 4
+% icon_n: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -18 M 19 -18 L 21 -18 M 9 0 L 9 -13 L 31 -13 M 31 -13 L 31 2 L 9 2 L 9 0
+% icon_p: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -15 L 20 -18 M 19 -18 L 21 -18 M 9 0 L 9 -13 L 31 -13 L 31 2 L 9 2 L 9 0 M 19 -14 A 1 1 0 1 0 21 -14 M 21 -14 A 1 1 0 1 0 19 -14
+% filled: false
+% label_anchor: B
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% handle inverted control value
@@ -326,7 +348,9 @@
 %% Ground Terminal
 \newcommand{\groundterminal}[5]{%{position}{name}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
+% category: Terminals
 % icon: M 0 0 L 0 15 M -15 15 L 15 15 M -10 22 L 10 22 M -5 29 L 5 29
+% label_anchor: B
 		\IfSubStr{#3}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -375,9 +399,15 @@
 }
 
 %% Voltage Source (Independent/Controlled)
-\newcommand{\voltagesource}[7]{%{position}{name}{horizontal/vertical}{none/controlled}{rotation}{grid}{show (0,0)}
+\newcommand{\voltagesource}[7]{%{position}{name}{horizontal/vertical}{standard/controlled}{rotation}{grid}{show (0,0)}
 % enabled
-% icon: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0
+% category: Sources
+% scales: 1, 2, 4
+% variant_arg: 4
+% icon_standard: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0
+% icon_controlled: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 L 0 -20 L 20 0 L 0 20 L -20 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0
+% filled: false
+% label_anchor: B
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% Draw body
@@ -432,9 +462,15 @@
 }
 
 %% Current Source (Independent/Controlled)
-\newcommand{\currentsource}[7]{%{position}{name}{horizontal/vertical}{none/controlled}{rotation}{grid}{show (0,0)}
+\newcommand{\currentsource}[7]{%{position}{name}{horizontal, vertical}{standard/controlled}{rotation}{grid}{show (0,0)}
 % enabled
-% icon: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5
+% category: Sources
+% scales: 1, 2, 4
+% variant_arg: 4
+% icon_standard: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5
+% icon_controlled: M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 L 0 -20 L 20 0 L 0 20 L -20 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5
+% filled: false
+% label_anchor: B
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% Draw body
@@ -529,6 +565,7 @@
 %% Function Generator
 \newcommand{\functiongenerator}[7]{%{position}{name}{horizontal/vertical}{sine/square/triangle}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Sources
 % icon: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
@@ -652,6 +689,7 @@
 %% Resistor
 \newcommand{\resistor}[7]{%{position}{name}{horizontal/vertical/empty}{fixed/variable}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
+% category: Passives
 % icon: M 0 0 L 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 L 80 0
 		\IfSubStr{#5}{h}
 			{
@@ -728,6 +766,7 @@
 \usetikzlibrary{decorations.pathmorphing,patterns}
 \newcommand{\inductor}[7]{%{position}{name}{horizontal/vertical/empty}{fixed/variable}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
+% category: Passives
 % icon: M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0
 		\IfSubStr{#5}{h}
 			{
@@ -805,6 +844,7 @@
 %% Capacitor
 \newcommand{\capacitor}[7]{%{position}{name}{horizontal/vertical/empty-fixed/variable}{plus/minus/none}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
+% category: Passives
 % icon: M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -15 L 24 15 M 24 0 L 40 0
 		\IfSubStr{#5}{h}
 			{
@@ -925,6 +965,7 @@
 %% DC Voltage Source
 \newcommand{\dcvoltagesource}[7]{%{position}{name}{horizontal/vertical/empty-fixed/variable}{plus/none}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
+% category: Sources
 % icon: M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -7 L 24 7 M 24 0 L 40 0
 		\IfSubStr{#5}{h}
 			{
@@ -1030,6 +1071,7 @@
 %% DC battery
 \newcommand{\dcbattery}[7]{%{position}{name}{horizontal/vertical/empty-fixed/variable}{plus/none}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
+% category: Sources
 % icon: M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0
 		\IfSubStr{#5}{h}
 			{
@@ -1137,6 +1179,7 @@
 %% Bipolar Transistor
 \newcommand{\bipolartransistor}[7]{%{position}{name}{n/p}{terminals-case}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
+% category: Active Components
 % icon: M -40 0 L -10 0 M -10 -15 L -10 15 M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M 10 25 L 4 25 L 8 18 Z M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0
 		\StrBefore{#5}{,}[\rotationvalue]
 		\StrBehind{#5}{,}[\flipvalue]
@@ -1211,6 +1254,7 @@
 %% MOS Transistor
 \newcommand{\mostransistor}[7]{%{position}{name}{n/p}{terminals-case-dot-arrow}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
+% category: Active Components
 % variant_arg: 3
 % icon_n: M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0  M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 M 10 15 L 6 12 M 10 15 L 6 18
 % icon_p: M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 M -2 15 L 2 12 M -2 15 L 2 18
@@ -1307,6 +1351,7 @@
 %% Transmission Gate
 \newcommand{\passgate}[6]{%{position}{name}{symbol(plain, normal or diamond)}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -40 0 L -20 0 M 20 0 L 40 0 M -20 -30 L 20 -30 M -20 30 L 20 30 M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -38 L 0 -50 M 0 30 L 0 50
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
@@ -1405,6 +1450,7 @@
 %% OPAMP
 \newcommand{\opamplifier}[7]{%{position}{name}{flip}{supplyvoltage}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Active Components
 % icon: M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 30 -25 L 30 -15 M 25 20 L 35 20
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
@@ -1461,6 +1507,7 @@
 %% Diode
 \newcommand{\diode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Diodes
 % icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0
 		\ifstrequal{#3}{vertical}
 			{
@@ -1558,6 +1605,7 @@
 %% Zener Diode
 \newcommand{\zenerdiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Diodes
 % icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 30 -15 L 35 -15 L 35 15 L 40 15 M 35 0 L 50 0
 		\ifstrequal{#3}{vertical}
 			{
@@ -1655,6 +1703,7 @@
 %% LED 
 \newcommand{\leddiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Diodes
 % icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 10 -20 L 20 -30 M 15 -30 L 20 -30 L 20 -25 M 15 -20 L 25 -30 M 20 -30 L 25 -30 L 25 -25
 		\ifstrequal{#3}{vertical}
 			{
@@ -1760,6 +1809,7 @@
 %% Photodiode 
 \newcommand{\photodiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Diodes
 % icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 20 -30 L 10 -20 M 10 -25 L 10 -20 L 15 -20 M 25 -30 L 15 -20 M 15 -25 L 15 -20 L 20 -20
 		\ifstrequal{#3}{vertical}
 			{
@@ -1865,6 +1915,7 @@
 %% Supply Terminal
 \newcommand{\supplyterminal}[5]{%{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Terminals
 % icon: M 0 10 L 0 0 M -15 0 L 15 0
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -1929,6 +1980,7 @@
 %% Input/Output Port
 \newcommand{\ioport}[6]{%{position}{name}{input/output/top/bottom}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Terminals
 % icon: M 0 0 L 5 0 M 11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
@@ -2003,6 +2055,7 @@
 %% AND-3
 \newcommand{\andthree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % scales: 1, 2, 4
 % icon: M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
@@ -2061,6 +2114,7 @@
 %% AND - n inputs
 \newcommand{\andninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
 % disabled
+% category: Digital/Logic
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
 				\getzoomfactor
 				\shade[left color=green!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
@@ -2097,6 +2151,7 @@
 %% NAND - n inputs
 \newcommand{\nandninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
 % disabled
+% category: Digital/Logic
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
 				\getzoomfactor
 				\shade[left color=blue!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
@@ -2135,6 +2190,7 @@
 %% NAND-3
 \newcommand{\nandthree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2194,6 +2250,7 @@
 %% AND-2
 \newcommand{\andtwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2241,6 +2298,7 @@
 %% NAND-2
 \newcommand{\nandtwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2290,6 +2348,7 @@
 %% OR-3
 \newcommand{\orthree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2346,6 +2405,7 @@
 %% NOR-3
 \newcommand{\northree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2404,6 +2464,7 @@
 %% OR-2
 \newcommand{\ortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2450,6 +2511,7 @@
 %% OR - n inputs
 \newcommand{\orninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
 % disabled
+% category: Digital/Logic
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
 				\getzoomfactor
 				\shade[left color=red!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
@@ -2486,6 +2548,7 @@
 %% NOR-2
 \newcommand{\nortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2534,6 +2597,7 @@
 %% NOR-2 Flipped (only to be used by the \dipic macro)
 \newcommand{\nortwoflipped}[1]{%{position}
 % disabled
+% category: Digital/Logic
 		\begin{scope}[shift={#1}, scale=\jlcscale]
 				\getzoomfactor
 				\shade[left color=yellow!20!white, draw=none]  (-1,0)  .. controls (-4,0) and (-5,1) .. (-6,2) .. controls  (-5,3) and (-4,4) ..  (-1,4) arc (139:220.5:3);
@@ -2549,6 +2613,7 @@
 %% NOR - n inputs
 \newcommand{\norninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
 % disabled
+% category: Digital/Logic
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
 				\getzoomfactor
 				\shade[left color=yellow!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
@@ -2587,6 +2652,7 @@
 %% XOR-2
 \newcommand{\xortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2634,6 +2700,7 @@
 %% XNOR-2
 \newcommand{\xnortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 45 -10 50 -20 C 45 -30 40 -40 15 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
 		\begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
@@ -2683,6 +2750,7 @@
 %% NOT
 \newcommand{\inverter}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 35 -20 Z M 39 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 43 -20 L 50 -20
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -2718,6 +2786,7 @@
 %% NOT small
 \newcommand{\invertersmall}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -10 L 10 -10 M 10 -20 L 10 0 L 30 -10 Z M 34 -10 m -4 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 34 -10 L 40 -10
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -2753,6 +2822,7 @@
 %% BUFFER
 \newcommand{\buffer}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -2786,6 +2856,7 @@
 %% J-K Flip Flop
 \newcommand{\jkflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -2852,6 +2923,7 @@
 %% S-R Latch
 \newcommand{\srlatch}[6]{%{position}{name}{rotation}{enable}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 60 -80 L 70 -80 M 60 -20 L 70 -20
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -2896,6 +2968,7 @@
 %% S-R Flip Flop
 \newcommand{\srflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -2961,6 +3034,7 @@
 %% D Flip Flop
 \newcommand{\dflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -3023,6 +3097,7 @@
 %% D Latch
 \newcommand{\dlatch}[6]{%{position}{name}{rotation}{enable}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 10 0 L 60 0 L 60 -70 L 10 -70 Z M 0 -50 L 10 -50 M 0 -20 L 10 -20 M 60 -50 L 70 -50 M 60 -20 L 70 -20
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -3065,6 +3140,7 @@
 %% T Flip Flop
 \newcommand{\tflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -3127,6 +3203,7 @@
 %% Multiplexer with n inputs
 \newcommand{\muxninputs}[7]{%{position}{name}{number of inputs}{rotation}{select at top/bottom}{grid}{show (0,0)}
 % disabled
+% category: Digital/Logic
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
 				\getzoomfactor
 				\LOG[2]{#3}{\numberofselectterminalstmp}				
@@ -3228,6 +3305,7 @@
 %% Demultiplexer with n outputs
 \newcommand{\demuxnoutputs}[7]{%{position}{name}{number of outputs}{rotation}{select at top/bottom}{grid}{show (0,0)}
 % disabled
+% category: Digital/Logic
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
 				\getzoomfactor
 				\LOG[2]{#3}{\numberofselectterminalstmp}				
@@ -3329,6 +3407,7 @@
 %% Generic digital circuit (n-inputs, m-outputs)
 \newcommand{\genericdigitalcircuit}[7]{%{position}{name}{number of inputs-enable}{number of outputs}{rotation}{grid}{show (0,0)}
 % disabled
+% category: Digital/Logic
 		\StrBehind{#3}{-}[\genericcircuitwithenable]
 		\StrBefore{#3}{-}[\numberofinputswithoutenable]
 		\IfStrEq{\genericcircuitwithenable}{}
@@ -3440,6 +3519,7 @@
 %% Seven-segment display
 \newcommand{\sevensegmentdisplay}[6]{%{position}{name}{displayed number}{rotation}{grid}{show (0,0)}
 % enabled
+% category: Digital/Logic
 % icon: M 0 0 L 80 0 L 80 -100 L 0 -100 Z M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z M 10 0 L 10 10 M 20 0 L 20 10 M 30 0 L 30 10 M 40 0 L 40 10 M 50 0 L 50 10 M 60 0 L 60 10 M 70 0 L 70 10
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
 				\getzoomfactor
@@ -3624,6 +3704,7 @@
 %% FULL ADDER (one digit numbers)
 \newcommand{\fulladder}[6]{%{position}{name}{rotation}{grid}{show (0,0)}{right/left}
 % enabled
+% category: Digital/Logic
 % icon: M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20
 		\ifstrequal{#6}{right}
 					{
@@ -3680,6 +3761,7 @@
 %% FULL SUBTRACTOR (one digit numbers)
 \newcommand{\fullsubtractor}[6]{%{position}{name}{rotation}{grid}{show (0,0)}{right/left}
 % enabled
+% category: Digital/Logic
 % icon: M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20
 		\ifstrequal{#6}{right}
 					{
@@ -3737,6 +3819,7 @@
 % define helper macros:
 \newcommand{\drawembeddedgateconnections}
 % disabled
+% category: Digital/Logic
 {
 	\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (-2,3) -- (-2,-3.5);
 	\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (-1,1) -- (-1,-2) -- (2.5,-2) -- (2.5,-3.5) ;

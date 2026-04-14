@@ -17,7 +17,21 @@
         .tool-btn.active { background: #3498db; border-color: #2980b9; }
         .v-separator { width: 1px; height: 20px; background: #5d6d7e; margin: 0 4px; }
         #main { display: flex; flex: 1; overflow: hidden; position: relative; }
-        #sidebar { width: 220px; border-right: 1px solid #bdc3c7; overflow-y: auto; padding: 15px; background: #fff; z-index: 10; flex-shrink: 0; }
+        #sidebar { 
+            width: 220px; 
+            border-right: 1px solid #bdc3c7; 
+            background: #fff; 
+            z-index: 10; 
+            flex-shrink: 0; 
+            display: flex; 
+            flex-direction: column; /* Stacks children vertically */
+        }
+        
+        #items-container { 
+            flex: 1; /* Takes up all remaining space */
+            overflow-y: auto; /* Only this area scrolls! */
+            padding: 15px; 
+        }
         
         #paper-container { flex: 1; background: #cbd5e0; overflow: hidden; position: relative; outline: none; cursor: grab; }
         #paper-container:active { cursor: grabbing; }
@@ -115,11 +129,6 @@
         }
 		#my-paper { 
             width: 100%; height: 100%; 
-            background-color: #ffffff !important; 
-            background-image: 
-                radial-gradient(circle at 0px 0px, #bdc3c7 1.5px, transparent 1.5px),
-                radial-gradient(circle at 0px 0px, #2c3e50 2.5px, transparent 2.5px);
-            background-repeat: repeat;
         }
 		/* Κρύβουμε τα latex IDs για προστασία και αισθητική */
         .sync-id {
@@ -128,6 +137,69 @@
             user-select: none;
             pointer-events: none;
         }
+        :root {
+            --selection-color: #3498db; /* Default is jointjs standard */
+        }
+        .joint-selection-rect { border: 2px dashed var(--selection-color); background: rgba(255, 0, 255, 0.1); position: absolute; pointer-events: none; z-index: 3000; }
+		
+		/* --- CADENCE THEME OVERRIDES --- */
+        #my-paper.theme-cadence .joint-highlighted path[joint-selector="icon"] { stroke: #FFFFFF !important; }
+        #my-paper.theme-cadence .joint-highlighted text[joint-selector="label"] { fill: #FFFFFF !important; }
+        #my-paper.theme-cadence .joint-highlighted path[joint-selector="line"] { stroke: #FFFFFF !important; }
+        #my-paper.theme-cadence .joint-highlighted rect[joint-selector="portBody"] { fill: #FFFFFF !important; }
+        #my-paper.theme-cadence .joint-highlighted text[joint-selector="portLabel"] { fill: #FFFFFF !important; }
+        #my-paper.theme-cadence .joint-highlighted circle[joint-selector="dot"] { fill: #FFFFFF !important; }
+		
+		/* --- COMPONENT CATEGORY HEADERS --- */
+        .category-header {
+            font-size: 11px;
+            font-weight: bold;
+            color: #7f8c8d;
+            margin: 18px 0 8px 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #e0e6ed;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        /* No extra space above the very first category */
+        .category-header:first-child { margin-top: 0; }
+		
+		/* --- PANEL COLLAPSE ANIMATIONS --- */
+        #sidebar { transition: width 0.3s ease, padding 0.3s ease; overflow: hidden; }
+        #sidebar.collapsed { width: 0 !important; border: none; padding: 0; }
+        #sidebar.collapsed > * { opacity: 0; pointer-events: none; }
+
+        #output-panel { transition: height 0.3s ease, min-height 0.3s ease, padding 0.3s ease; }
+        #output-panel.collapsed { height: 0 !important; min-height: 0 !important; border-top: none; padding-top: 0; padding-bottom: 0; }
+        #output-panel.collapsed > * { opacity: 0; pointer-events: none; }
+
+        /* --- FLOATING CORNER THUMBNAILS --- */
+        #minimized-corner {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 4000;
+        }
+
+        .min-tab {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            display: none; /* Hidden by default */
+            align-items: center;
+            gap: 8px;
+            border: 2px solid #3498db;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .min-tab:hover { background: #34495e; transform: scale(1.05); }
     </style>
 </head>
 <body>
@@ -150,11 +222,26 @@
     <div class="v-separator"></div>
     <button onclick="zoomFit()" class="tool-btn" style="background:#2980b9; font-weight:bold;">🎯 Fit</button>
     <span id="zoom-level" style="font-size: 11px; min-width: 40px; text-align:center;">100%</span>
-    
+
+	<div class="v-separator"></div>
+	<button onclick="undo()" class="tool-btn">↺ Undo</button>
+    <button onclick="redo()" class="tool-btn">↻ Redo</button>
+    <button onclick="clearCanvas()" class="tool-btn" style="color:#e74c3c;">🗑️ Clear Canvas</button> 
     <div class="v-separator"></div>
+	
     <button onclick="saveProject()" class="tool-btn" style="background:#8e44ad">💾 Save</button>
     <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Open</button>
     <input type="file" id="importFile" style="display:none" onchange="importProject(event)" accept=".json">
+
+	<div class="v-separator"></div>
+    
+    <label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none; margin-left: 8px;">
+        Display Mode:
+        <select id="theme-selector" style="background:#34495e; color:white; border:none; border-radius:4px; font-size:12px; padding: 2px 6px;">
+            <option value="standard" selected>Standard</option>
+            <option value="cadence">Cadence Virtuoso</option>
+        </select>
+    </label>
     
 	<div style="margin-left:auto; display:flex; gap:8px;">
         <button onclick="openExportDialog()" style="background: #e84393; font-weight: bold; color:white; padding: 6px 16px;" class="tool-btn">📤 Export Diagram</button>
@@ -167,18 +254,28 @@
         <div id="my-paper"></div>
     </div>
     <div id="sidebar">
-        <strong style="display:block; margin-bottom:15px; color:#2c3e50;">COMPONENTS</strong>
+        <div style="padding: 15px 10px; border-bottom: 1px solid #bdc3c7; background: #ecf0f1; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 2; display: flex; justify-content: space-between; align-items: center;">
+            <strong style="color:#2c3e50; font-size: 13px; letter-spacing: 1px;">COMPONENTS</strong>
+            <button onclick="toggleSidebar()" style="background:none; border:none; cursor:pointer; font-size: 14px; color:#7f8c8d; padding:0; margin:0;" title="Minimize Palette">🗕</button>
+        </div>
+        
         <div id="items-container"></div>
     </div>
 </div>
 
 <div id="output-panel">
-    <div class="floating-buttons">
-		<button onclick="syncFromLatex()" class="tool-btn" style="background: #8e44ad; font-size: 11px;">🔄 Sync to Canvas</button>
+	<div class="floating-buttons">
+        <button onclick="syncFromLatex()" class="tool-btn" style="background: #8e44ad; font-size: 11px;">🔄 Sync to Canvas</button>
         <button onclick="runLinterUI()" class="tool-btn" style="background: #e67e22; font-size: 11px;">🔍 Check Syntax</button>
         <button onclick="copyLatexToClipboard()" class="tool-btn" style="background: #34495e; font-size: 11px;">📋 Copy TikZ Code</button>
+        <button onclick="toggleOutput()" class="tool-btn" style="background: #c0392b; font-size: 11px;" title="Minimize Code">🗕</button>
     </div>
     <div id="latex-output" contenteditable="true" spellcheck="false"></div>
+</div>
+
+<div id="minimized-corner">
+    <div id="tab-sidebar" class="min-tab" onclick="toggleSidebar()" title="Restore Palette">🎨</div>
+    <div id="tab-output" class="min-tab" onclick="toggleOutput()" title="Restore LaTeX Code Window">📝</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
@@ -195,7 +292,7 @@
         size: { width: 40, height: 40 },
         attrs: {
             hitbox: { width: 40, height: 40, fill: '#ffffff', 'fill-opacity': 0.01, stroke: 'none', 'pointer-events': 'all', cursor: 'pointer' },
-            dot: { cx: 20, cy: 20, r: 6, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
+            dot: { cx: 20, cy: 20, r: 15, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
         }
     }, {
         markup: [{ tagName: 'rect', selector: 'hitbox' }, { tagName: 'circle', selector: 'dot' }]
@@ -219,7 +316,8 @@
             { tagName: 'text', selector: 'label' },
             { tagName: 'foreignObject', selector: 'fo' },
             { tagName: 'rect', selector: 'body' },
-            { tagName: 'path', selector: 'icon' }
+            { tagName: 'path', selector: 'iconFill' },   // <--- NEW: The Fill Layer
+            { tagName: 'path', selector: 'iconStroke' }  // <--- NEW: The Stroke Layer
         ]
     });
 
@@ -259,6 +357,44 @@
 
 
 	const graph = new joint.dia.Graph();
+	
+	// Define color sets for both themes
+	const THEME_COLORS = {
+        standard: {
+            background: '#ffffff',
+            grid: '#bdc3c7',
+            wire: '#333333',
+            componentBody: 'none',
+            componentIcon: '#2c3e50',
+            componentLabel: '#34495e',
+            freeText: '#2c3e50',   // <--- NEW: Standard freetext color
+            portBody: '#ff9800',
+            portLabel: '#c0392b',
+            dot: '#000000',
+            selection: '#3498db',
+            highlight: '#f39c12',
+            gridBase: 1.5, 
+            gridZoom: 2.5  
+        },
+        cadence: {
+            background: '#000000', 
+            grid: '#ffffff', 
+            wire: '#00BFFF', 
+            componentBody: 'none',
+            componentIcon: '#007c3c', 
+            componentLabel: '#FF0000', 
+            freeText: '#FFFFFF',   // <--- NEW: Cadence freetext is now pure white!
+            portBody: '#FF0000', 
+            portLabel: '#FF00FF', 
+            dot: '#00BFFF', 
+            selection: '#FFFFFF', 
+            highlight: '#FFFFFF',
+            gridBase: 0.5, 
+            gridZoom: 0.8  
+        }
+    };
+
+    let currentThemeName = 'standard'; // Set default
 
     let currentScale = 1;
     const container = document.getElementById('paper-container');
@@ -275,7 +411,7 @@
         let isFreeText = el.get('latexMacro') === 'freetext';
         let scale = el.get('customScale') || 1; 
         
-        // --- NEW: Read user-defined label offsets ---
+        // Manual nudges from the property editor
         let lblOffsetX = el.get('labelOffsetX') || 0;
         let lblOffsetY = el.get('labelOffsetY') || 0;
         
@@ -283,17 +419,132 @@
         let displayText = text;
         if (isEmpty && isFreeText) displayText = "[ Empty ]"; 
 
-        if (isFreeText) { el.resize(80 * scale, 40 * scale); }
-
         let isMath = displayText.includes('$');
         let fontSize = isFreeText ? Math.round(14 * PPU_MULT * scale) : 12 * PPU_MULT; 
         
-        // Base calculated distance based on scale
-        let offset = 25 * PPU_MULT * Math.max(1, scale); 
+        // --- NEW: PRE-RENDER THE MATH ONCE ---
+        let renderedContent = displayText;
+        if (isMath) {
+            renderedContent = displayText.replace(/\$(.*?)\$/g, (match, mathExpr) => {
+                try { return katex.renderToString(mathExpr, { throwOnError: false, displayMode: false }); } 
+                catch(e) { return match; }
+            });
+        }
+
+        // --- NEW: THE "GHOST MEASUREMENT" TRICK ---
+        if (isFreeText) { 
+            let tempDiv = document.createElement('div');
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.visibility = 'hidden'; // Invisible to the user
+            tempDiv.style.whiteSpace = 'nowrap';
+            tempDiv.style.fontSize = fontSize + 'px';
+            
+            if (isMath) tempDiv.innerHTML = renderedContent;
+            else tempDiv.innerText = displayText;
+
+            document.body.appendChild(tempDiv);
+            let dynamicW = tempDiv.offsetWidth + (30 * scale); // 30px width padding
+            let dynamicH = tempDiv.offsetHeight + (20 * scale); // 20px height padding
+            document.body.removeChild(tempDiv);
+
+            // Never go smaller than a standard 80x40 grid block
+            let finalW = Math.max(80 * scale, dynamicW);
+            let finalH = Math.max(40 * scale, dynamicH);
+            
+            el.resize(finalW, finalH);
+            
+            // Save the new base dimensions so scaling doesn't distort it later!
+            el.set('baseWidth', finalW / scale);
+            el.set('baseHeight', finalH / scale);
+        }
         
-        // --- NEW: Apply the manual offsets to the final coordinates ---
-        let centerX = (el.size().width / 2) + lblOffsetX;
-        let centerY = (isFreeText ? el.size().height / 2 : (el.size().height / 2) + offset) + lblOffsetY;
+        // --- NEW: Database Override vs Auto-Pin Logic ---
+        let macro = el.get('latexMacro');
+        let data = JL_DATABASE[macro];
+        let centerX, centerY;
+
+        if (data && data.labelAnchor) {
+            // OPTION A: Exact Coordinate Anchor from .sty
+            let flipH = el.get('flipH') || false;
+            let flipV = el.get('flipV') || false;
+
+            // --- SAFELY get the shift values (Fallback for older components) ---
+            let shiftX = el.get('baseShiftX');
+            if (shiftX === undefined) shiftX = el.get('shiftX') || 0;
+            
+            let shiftY = el.get('baseShiftY');
+            if (shiftY === undefined) shiftY = el.get('shiftY') || 0;
+
+            // 1. Calculate exact pixel location (Auto vs Manual)
+            let basePixelX, basePixelY;
+            let currentDir = data.labelAnchor.dir;
+            
+            if (data.labelAnchor.auto) {
+                // Auto Mode: Grab the visual extremes of the component
+                let vTop = el.get('baseVisualTop') || 0;
+                let vBot = el.get('baseVisualBottom') || (el.get('baseHeight') || 40);
+                let vLeft = el.get('baseVisualLeft') || 0;
+                let vRight = el.get('baseVisualRight') || (el.get('baseWidth') || 40);
+                
+                // Find the exact visual center-points
+                if (currentDir === 'T') { basePixelX = (vLeft + vRight) / 2; basePixelY = vTop; }
+                else if (currentDir === 'B') { basePixelX = (vLeft + vRight) / 2; basePixelY = vBot; }
+                else if (currentDir === 'L') { basePixelX = vLeft; basePixelY = (vTop + vBot) / 2; }
+                else if (currentDir === 'R') { basePixelX = vRight; basePixelY = (vTop + vBot) / 2; }
+            } else {
+                // Manual Mode: Use the raw coordinates from the .sty file
+                basePixelX = (data.labelAnchor.x * PPU_MULT) + shiftX;
+                basePixelY = (data.labelAnchor.y * PPU_MULT) + shiftY;
+            }
+
+            // 2. Apply the user's custom scale to the point
+            let ax = basePixelX * scale;
+            let ay = basePixelY * scale;
+
+            // 3. Handle Flipping (Mirror the coordinate and reverse the direction!)
+            currentDir = data.labelAnchor.dir;
+            if (flipH) {
+                let bw = el.get('baseWidth') || (el.size().width / scale);
+                ax = (bw * scale) - ax;
+                if (currentDir === 'L') currentDir = 'R';
+                else if (currentDir === 'R') currentDir = 'L';
+            }
+            if (flipV) {
+                let bh = el.get('baseHeight') || (el.size().height / scale);
+                ay = (bh * scale) - ay;
+                if (currentDir === 'T') currentDir = 'B';
+                else if (currentDir === 'B') currentDir = 'T';
+            }
+
+            // 4. Apply the constant grid gap (Exactly 1 grid step = 40px)
+            let gap = 40;
+            if (currentDir === 'T') ay -= gap;
+            if (currentDir === 'B') ay += gap;
+            if (currentDir === 'L') ax -= gap;
+            if (currentDir === 'R') ax += gap;
+
+            // 5. Add any manual nudges from the property editor
+            centerX = ax + lblOffsetX;
+            centerY = ay + lblOffsetY;
+            
+        } else {
+            // OPTION B: Fallback to the "Lowest Pin" auto-math if no tag exists
+            let bottomY = el.size().height / 2; 
+            if (!isFreeText) {
+                let ports = el.getPorts();
+                if (ports && ports.length > 0) {
+                    bottomY = Math.max(...ports.map(p => el.portProp(p.id, 'args/y')));
+                } else {
+                    bottomY = el.size().height; 
+                }
+            }
+            centerX = (el.size().width / 2) + lblOffsetX;
+            centerY = (isFreeText ? el.size().height / 2 : bottomY + 40) + lblOffsetY;
+        }
+
+        // --- Get the Active Theme Color ---
+        let themeObj = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
+        let txtColor = isFreeText ? themeObj.freeText : themeObj.componentLabel;
 
         if (isMath) {
             el.attr('label/display', 'none'); 
@@ -304,21 +555,45 @@
             });
             
             el.attr('fo/display', 'block');
-            el.attr('fo/x', centerX);
-            el.attr('fo/y', centerY);
+            
+            // 1. Lock the foreignObject firmly to the absolute top-left origin (0,0)
+            el.attr('fo/x', 0);
+            el.attr('fo/y', 0);
+            el.attr('fo/width', 1);
+            el.attr('fo/height', 1);
+            
+            // Clear out any old JointJS geometry references that might interfere
+            el.attr('fo/refX', null);
+            el.attr('fo/refX2', null);
+            el.attr('fo/refY', null);
+            el.attr('fo/refY2', null);
+            
             el.attr('fo/style', 'overflow: visible; pointer-events: none;');
             
-            let htmlStr = `<div style="position: absolute; transform: translate(-50%, -50%); white-space: nowrap; font-size: ${fontSize}px; color: #2c3e50; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">${mathRendered}</div>`;
+            // 2. THE CSS FIX: Wrap the Math in a "position: relative" anchor at (0,0)
+            // and use pure CSS to push the text exactly to centerX and centerY!
+            let htmlStr = `
+                <div style="position: relative; width: 0px; height: 0px;">
+                    <div style="position: absolute; left: ${centerX}px; top: ${centerY}px; transform: translate(-50%, -50%); white-space: nowrap; font-size: ${fontSize}px; color: ${txtColor}; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">
+                        ${mathRendered}
+                    </div>
+                </div>`;
             el.set('mathHtml', htmlStr);
+            
         } else {
             el.attr('fo/display', 'none'); 
             el.attr('label/display', 'block'); 
             el.attr('label/text', displayText);
-            el.attr('label/refX', '50%');
-            // We use refX2 and refY2 to push the text away from the 50% center
-            el.attr('label/refX2', lblOffsetX); 
-            el.attr('label/refY', '50%'); 
-            el.attr('label/refY2', (isFreeText ? 0 : offset) + lblOffsetY); 
+            
+            // --- THE COLOR FIX: Force standard text to obey the theme ---
+            el.attr('label/fill', txtColor);
+            
+            // Anchor to the absolute top-left of the box (0,0), then push exactly to our target
+            el.attr('label/refX', '0%');
+            el.attr('label/refX2', centerX); 
+            el.attr('label/refY', '0%'); 
+            el.attr('label/refY2', centerY); 
+            
             el.attr('label/fontSize', fontSize);
             el.attr('label/opacity', isEmpty ? 0.3 : 1);
             el.set('mathHtml', ''); 
@@ -329,19 +604,72 @@
         el: document.getElementById('my-paper'),
         model: graph,
         width: '100%', height: '100%', 
-        gridSize: 40, // <--- ΑΛΛΑΓΗ ΣΕ 40 (1 TikZ Unit)
-        background: { color: 'transparent' },
+        gridSize: 40,
+        background: { color: THEME_COLORS.standard.background }, // Initialize with standard background
         snapLinks: { radius: 15 },
         linkPinning: false,
         defaultLink: new joint.shapes.standard.Link({
-            attrs: { line: { stroke: '#333', strokeWidth: 1.5 * PPU_MULT, targetMarker: null } }
+            attrs: { line: { stroke: THEME_COLORS.standard.wire, strokeWidth: 1.5 * PPU_MULT, targetMarker: null } }
         }),
         useModelGeometry: true,
         cellViewNamespace: joint.shapes,
         highlighting: {
-            'default': { name: 'stroke', options: { padding: 3, rx: 5, ry: 5, attrs: { 'stroke-width': 3, stroke: '#f39c12' } } }
+            'default': { name: 'stroke', options: { padding: 3, rx: 5, ry: 5, attrs: { 'stroke-width': 3, stroke: THEME_COLORS.standard.highlight } } }
         }
     });
+	
+// --- UNDO / REDO ENGINE ---
+    let historyStack = [];
+    let historyIndex = -1;
+    let isHistoryOperating = false;
+
+	function saveState() {
+        if (isHistoryOperating) return;
+        
+        if (historyIndex < historyStack.length - 1) {
+            historyStack = historyStack.slice(0, historyIndex + 1);
+        }
+        
+        const currentState = JSON.stringify(graph.toJSON());
+        historyStack.push(currentState);
+        
+        // --- NEW: Auto-save the state to localStorage! ---
+        localStorage.setItem('jlcad_autosave', currentState);
+        
+        if (historyStack.length > 40) {
+            historyStack.shift();
+        } else {
+            historyIndex++;
+        }
+    }
+
+    function undo() {
+        if (historyIndex <= 0) return; // Nothing to undo
+        isHistoryOperating = true;
+        historyIndex--;
+        graph.fromJSON(JSON.parse(historyStack[historyIndex]));
+        
+        // Ensure theme colors are applied if we undo a load or a theme change
+        applyTheme(currentThemeName); 
+        clearSelection();
+        forceExportLatex();
+        isHistoryOperating = false;
+    }
+
+    function redo() {
+        if (historyIndex >= historyStack.length - 1) return; // Nothing to redo
+        isHistoryOperating = true;
+        historyIndex++;
+        graph.fromJSON(JSON.parse(historyStack[historyIndex]));
+        
+        applyTheme(currentThemeName);
+        clearSelection();
+        forceExportLatex();
+        isHistoryOperating = false;
+    }
+
+    // Call saveState() once initially to capture the empty canvas!
+    setTimeout(saveState, 500);
 	
 // === ΑΠΟΛΥΤΟΣ ΜΑΓΝΗΤΗΣ 40px ΓΙΑ ΤΑ ΠΑΝΤΑ ===
 
@@ -404,16 +732,20 @@
          }
     });
 
-	// --- ΤΟ ΑΠΟΛΥΤΟ CSS GRID (Μόνο 1 πλέγμα στα 40px) ---
+	// --- CENTRALIZED CSS GRID CONTROL ---
     function updateDynamicGrid() {
         let t = paper.translate();
         let s = paper.scale().sx;
         
-        let dotSize = 40 * s; 
-        let dotRadius = Math.max(1.5, 2.5 * s); 
+        const theme = THEME_COLORS[currentThemeName]; 
         
+        let dotSize = 40 * s; 
+        // --- FIXED: Radius is now controlled by the current theme! ---
+        let dotRadius = Math.max(theme.gridBase, theme.gridZoom * s); 
+
         $('#my-paper').css({
-            'background-image': `radial-gradient(circle at 0px 0px, #7f8c8d ${dotRadius}px, transparent ${dotRadius + 0.5}px)`,
+            'background-color': theme.background, 
+            'background-image': `radial-gradient(circle at 0px 0px, ${theme.grid} ${dotRadius}px, transparent ${dotRadius + 0.5}px)`,
             'background-size': `${dotSize}px ${dotSize}px`,
             'background-position': `${t.tx}px ${t.ty}px`
         });
@@ -445,8 +777,46 @@
     });
 
     window.onload = () => {
+        // Center the canvas
         container.scrollLeft = 2500 - (container.clientWidth / 2);
         container.scrollTop = 2500 - (container.clientHeight / 2);
+        
+        // --- NEW: Check for saved theme preference ---
+        const savedTheme = localStorage.getItem('jlcad_theme_preference');
+        if (savedTheme && THEME_COLORS[savedTheme]) {
+            // Update the dropdown menu to match
+            document.getElementById('theme-selector').value = savedTheme;
+            // Apply the theme immediately
+            applyTheme(savedTheme);
+        }
+
+        // --- NEW: Check for crashed/unsaved sessions ---
+        setTimeout(() => {
+            const autosave = localStorage.getItem('jlcad_autosave');
+            // Check if it exists AND isn't just an empty graph {"cells":[]}
+            if (autosave && autosave.length > 20) { 
+                Swal.fire({
+                    title: 'Unsaved Work Detected',
+                    text: 'It looks like you closed the app before saving. Restore your session?',
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, restore it',
+                    cancelButtonText: 'No, start fresh',
+                    confirmButtonColor: '#3498db',
+                    cancelButtonColor: '#95a5a6',
+                    allowOutsideClick: false // Force them to choose
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        graph.fromJSON(JSON.parse(autosave));
+                        applyTheme(currentThemeName); // Fix colors immediately
+                        clearSelection();
+                        forceExportLatex();
+                    } else {
+                        localStorage.removeItem('jlcad_autosave'); // Wipe it
+                    }
+                });
+            }
+        }, 100); // Tiny delay to ensure JointJS canvas is ready
     };
     container.focus();
 	
@@ -649,7 +1019,10 @@
         exportLatex();
     });
 
-    paper.on('cell:pointerup', () => { groupDragData = null; });
+    paper.on('cell:pointerup', () => { 
+        if (groupDragData) saveState(); // <--- Only save if we actually dragged something
+        groupDragData = null; 
+    });
 
     // --- 4. COPY / PASTE / ROTATE / FLIP ---
     let clipboard = [];
@@ -688,13 +1061,19 @@
         graph.addCells(models);
         clearSelection();
         models.forEach(m => {
-            if (m.isLink()) selectedLinks.push(m); else selectedElements.push(m);
+            if (m.isLink()) {
+                selectedLinks.push(m);
+                m.toBack(); // <--- Send pasted wires to the back
+            } else {
+                selectedElements.push(m);
+            }
             setTimeout(() => { const v = paper.findViewByModel(m); if (v) v.highlight(); }, 10);
         });
         exportLatex();
+		saveState();
     }
 
-    function rotateSelected() { selectedElements.forEach(el => { if(el.get('latexMacro') !== 'connectordot') el.rotate(90); }); exportLatex(); }
+    function rotateSelected() { selectedElements.forEach(el => { if(el.get('latexMacro') !== 'connectordot') el.rotate(90); }); exportLatex(); saveState();}
 
 	function flipHorizontal() {
         selectedElements.forEach(el => {
@@ -704,6 +1083,7 @@
             }
         });
         forceExportLatex();
+		saveState();
     }
 
     function flipVertical() {
@@ -714,6 +1094,7 @@
             }
         });
         forceExportLatex();
+		saveState();
     }
 	
 	// --- ΣΥΝΑΡΤΗΣΗ ΑΛΛΑΓΗΣ ΚΛΙΜΑΚΑΣ ΜΕ PREDEFINED STEPS ---
@@ -747,7 +1128,8 @@
         let sx = flipH ? -1 : 1;
         let sy = flipV ? -1 : 1;
 
-        el.attr('icon/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
+        el.attr('iconFill/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
+        el.attr('iconStroke/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
 
 		// ΛΥΣΗ SCALE DOWN: Μετακινούμε ΠΡΩΤΑ τα Ports...
         let basePorts = el.get('basePorts');
@@ -767,42 +1149,76 @@
         updateElementLabel(el);          // <--- ΚΑΙ ΑΥΤΟ ΚΑΤΩ 
     }
 
-    function deleteSelected() { [...selectedElements, ...selectedLinks].forEach(c => c.remove()); clearSelection(); exportLatex(); }
+    function deleteSelected() { [...selectedElements, ...selectedLinks].forEach(c => c.remove()); clearSelection(); exportLatex(); saveState();}
 
     $(document).on('keydown', function(e) {
         if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return; 
-        if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) copySelected();
+        
+        if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); }
+        else if (e.ctrlKey && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); }
+        else if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) copySelected();
         else if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) pasteCopied();
         else if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
     });
 
 
-	// --- 5. ΣΥΣΤΗΜΑ ΕΞΑΡΤΗΜΑΤΩΝ (Τελική Διόρθωση Thumbnails) ---
+    // --- 5. ΣΥΣΤΗΜΑ ΕΞΑΡΤΗΜΑΤΩΝ (ΚΑΤΗΓΟΡΙΟΠΟΙΗΜΕΝΟ) ---
     if (typeof JL_DATABASE !== 'undefined') {
         const list = document.getElementById('items-container');
-        Object.keys(JL_DATABASE).sort().forEach(k => {
-            const data = JL_DATABASE[k];
-            const d = document.createElement('div');
-            d.className = 'comp-item';
-            
-            let iconSvg = '';
-			if (k === 'connectordot') {
-                // radius 3 αντί για 6 για να είναι διακριτικό
-                iconSvg = `<svg width="100%" height="100%" viewBox="-15 -15 30 30">
-                               <circle cx="0" cy="0" r="3" fill="#2c3e50"/>
-                           </svg>`;
-            }
-			else if (data.icon) {
-				// 1. Βρίσκουμε τα όρια των Pins (Αυτά είναι ΗΔΗ 4x)
-                const xs = data.pins.map(p => p.x), ys = data.pins.map(p => p.y);
-                let minX = xs.length ? Math.min(...xs) : 0;
-                let maxX = xs.length ? Math.max(...xs) : 0;
-                let minY = ys.length ? Math.min(...ys) : 0;
-                let maxY = ys.length ? Math.max(...ys) : 0;
+        list.innerHTML = ''; // Καθαρίζουμε το container για σιγουριά
 
-                // 2. Μετράμε το BBox του SVG (Το SVG είναι 1x, πρέπει να το κάνουμε 4x!)
-                let bbox = { x: 0, y: 0, width: 0, height: 0 };
-                if (data.icon) {
+        // ΒΗΜΑ 1: Ομαδοποίηση των εξαρτημάτων ανά κατηγορία
+        const groupedComponents = {};
+        
+        // Βάζουμε χειροκίνητα το connectordot στη λίστα αν δεν υπάρχει στη βάση
+        if (!JL_DATABASE['connectordot']) {
+            JL_DATABASE['connectordot'] = { name: 'Solder Dot', category: 'Wiring' };
+        }
+
+        Object.keys(JL_DATABASE).forEach(k => {
+            const data = JL_DATABASE[k];
+            // Αν δεν έχει κατηγορία, το βάζουμε στα "Uncategorized"
+            const cat = data.category || 'Uncategorized'; 
+            if (!groupedComponents[cat]) groupedComponents[cat] = [];
+            groupedComponents[cat].push(k);
+        });
+
+        // ΒΗΜΑ 2: Αλφαβητική ταξινόμηση των Κατηγοριών
+        const sortedCategories = Object.keys(groupedComponents).sort();
+
+        // ΒΗΜΑ 3: Σχεδιασμός του DOM
+        sortedCategories.forEach(cat => {
+            // Σχεδιάζουμε τον τίτλο της κατηγορίας
+            const header = document.createElement('div');
+            header.className = 'category-header';
+            header.innerText = cat;
+            list.appendChild(header);
+
+            // Ταξινομούμε τα εξαρτήματα ΜΕΣΑ στην κατηγορία αλφαβητικά με βάση το name
+            const itemsInCategory = groupedComponents[cat].sort((a, b) => {
+                return JL_DATABASE[a].name.localeCompare(JL_DATABASE[b].name);
+            });
+
+            // Σχεδιάζουμε τα εξαρτήματα της κατηγορίας
+            itemsInCategory.forEach(k => {
+                const data = JL_DATABASE[k];
+                const d = document.createElement('div');
+                d.className = 'comp-item';
+                
+                let iconSvg = '';
+                if (k === 'connectordot') {
+                    iconSvg = `<svg width="100%" height="100%" viewBox="-15 -15 30 30">
+                                   <circle cx="0" cy="0" r="5" fill="#2c3e50"/>
+                               </svg>`;
+                }
+                else if (data.icon && data.pins) {
+                    const xs = data.pins.map(p => p.x), ys = data.pins.map(p => p.y);
+                    let minX = xs.length ? Math.min(...xs) : 0;
+                    let maxX = xs.length ? Math.max(...xs) : 0;
+                    let minY = ys.length ? Math.min(...ys) : 0;
+                    let maxY = ys.length ? Math.max(...ys) : 0;
+
+                    let bbox = { x: 0, y: 0, width: 0, height: 0 };
                     const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                     tempPath.setAttribute('d', data.icon);
                     const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -810,72 +1226,63 @@
                     document.body.appendChild(svgContainer);
                     try { bbox = tempPath.getBBox(); } catch(e){}
                     document.body.removeChild(svgContainer);
+
+                    const pathMinX = bbox.x * PPU_MULT;
+                    const pathMaxX = (bbox.x + bbox.width) * PPU_MULT;
+                    const pathMinY = bbox.y * PPU_MULT;
+                    const pathMaxY = (bbox.y + bbox.height) * PPU_MULT;
+
+                    minX = Math.min(minX, pathMinX);
+                    maxX = Math.max(maxX, pathMaxX);
+                    minY = Math.min(minY, pathMinY);
+                    maxY = Math.max(maxY, pathMaxY);
+
+                    let w = maxX - minX;
+                    let h = maxY - minY;
+                    if (w === 0) { w = 40; minX -= 20; maxX += 20; }
+                    if (h === 0) { h = 40; minY -= 20; maxY += 20; }
+
+                    const padW = Math.max(w * 0.2, 10);
+                    const padH = Math.max(h * 0.2, 10);
+
+                    const vbX = minX - padW;
+                    const vbY = minY - padH;
+                    const vbW = w + (padW * 2);
+                    const vbH = h + (padH * 2);
+
+                    iconSvg = `
+                        <svg width="100%" height="100%" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet">
+                            <path d="${data.icon}" transform="scale(${PPU_MULT})"
+                                  style="vector-effect: non-scaling-stroke;" 
+                                  stroke="#2c3e50" stroke-width="2.5" fill="none" 
+                                  stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>`;
                 }
-
-                // Φέρνουμε το Path στα μέτρα των Pins
-				const pathMinX = bbox.x * PPU_MULT;
-                const pathMaxX = (bbox.x + bbox.width) * PPU_MULT;
-                const pathMinY = bbox.y * PPU_MULT;
-                const pathMaxY = (bbox.y + bbox.height) * PPU_MULT;
-
-                minX = Math.min(minX, pathMinX);
-                maxX = Math.max(maxX, pathMaxX);
-                minY = Math.min(minY, pathMinY);
-                maxY = Math.max(maxY, pathMaxY);
-
-                // Fallback για εξαρτήματα με 0 ή 1 Pin (να μην βγάζουν Width=0)
-                let w = maxX - minX;
-                let h = maxY - minY;
-                if (w === 0) { w = 40; minX -= 20; maxX += 20; }
-                if (h === 0) { h = 40; minY -= 20; maxY += 20; }
-
-                // 4. Padding 20%
-                const padW = Math.max(w * 0.2, 10);
-                const padH = Math.max(h * 0.2, 10);
-
-                const vbX = minX - padW;
-                const vbY = minY - padH;
-                const vbW = w + (padW * 2);
-                const vbH = h + (padH * 2);
-
-                iconSvg = `
-                    <svg width="100%" height="100%" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet">
-                        <path d="${data.icon}" transform="scale(${PPU_MULT})"
-                              style="vector-effect: non-scaling-stroke;" 
-                              stroke="#2c3e50" stroke-width="2.5" fill="none" 
-                              stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>`;
-            }
-            
-			d.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-                    <div class="icon-wrapper" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #ffffff; border: 1px solid #d1d8e0; border-radius: 6px; padding: 4px; box-sizing: border-box; overflow: hidden;">
-                        ${iconSvg}
-                    </div>
-                    <span style="font-weight: 500; font-size: 13px; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                        ${data.name}
-                    </span>
-                </div>
-            `;
-            
-            // --- ΝΕΟ: Drag and Drop Setup με Custom Drag Image ---
-            d.draggable = true;
-            d.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('application/jl-component', k);
-                e.dataTransfer.effectAllowed = 'copy';
                 
-                // Βρίσκουμε ΜΟΝΟ το εικονίδιο
-                const iconNode = d.querySelector('.icon-wrapper');
-                if (iconNode) {
-                    // Θέτουμε το εικονίδιο ως "φάντασμα" 
-                    // Το 21, 21 κεντράρει το ποντίκι ακριβώς στη μέση του κουτιού 42x42!
-                    e.dataTransfer.setDragImage(iconNode, 21, 21);
-                }
+                d.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                        <div class="icon-wrapper" style="width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: #ffffff; border: 1px solid #d1d8e0; border-radius: 6px; padding: 4px; box-sizing: border-box; overflow: hidden;">
+                            ${iconSvg}
+                        </div>
+                        <span style="font-weight: 500; font-size: 13px; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            ${data.name}
+                        </span>
+                    </div>
+                `;
+                
+                d.draggable = true;
+                d.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('application/jl-component', k);
+                    e.dataTransfer.effectAllowed = 'copy';
+                    const iconNode = d.querySelector('.icon-wrapper');
+                    if (iconNode) {
+                        e.dataTransfer.setDragImage(iconNode, 21, 21);
+                    }
+                });
+                
+                d.onclick = () => addComponent(k);
+                list.appendChild(d);
             });
-            // --------------------------------
-            
-            d.onclick = () => addComponent(k);
-            list.appendChild(d);
         });
     }
 	
@@ -897,6 +1304,9 @@
         
         const snappedX = Math.round(targetPos.x / 10) * 10;
         const snappedY = Math.round(targetPos.y / 10) * 10;
+		
+		// *** NEW: The key to dynamic component styling ***
+        const theme = THEME_COLORS[currentThemeName];
         
 		if (type === 'connectordot') {
             element = new joint.shapes.jl.ConnectorDot();
@@ -905,6 +1315,7 @@
             let snappedX = Math.round(targetPos.x / 40) * 40;
             let snappedY = Math.round(targetPos.y / 40) * 40;
             element.position(snappedX - 20, snappedY - 20);
+			element.attr('dot/fill', theme.dot);
 		} else {
 			element = new joint.shapes.jl.Component();
 
@@ -941,17 +1352,17 @@
                 document.body.removeChild(tempSvg);
             }
 
-            // Απόλυτα Όρια: Tα Pins και το SVG βρίσκονται ΉΔΗ στο ίδιο σύστημα συντεταγμένων!
+            // Απόλυτα Όρια.
             const xs = uniquePins.map(p => p.x), ys = uniquePins.map(p => p.y);
             const minPinX = xs.length ? Math.min(...xs) : 0;
             const maxPinX = xs.length ? Math.max(...xs) : 0;
             const minPinY = ys.length ? Math.min(...ys) : 0;
             const maxPinY = ys.length ? Math.max(...ys) : 0;
 
-            const absMinX = bbox.width > 0 ? Math.min(minPinX, bbox.x) : minPinX;
-            const absMaxX = bbox.width > 0 ? Math.max(maxPinX, bbox.x + bbox.width) : maxPinX;
-            const absMinY = bbox.height > 0 ? Math.min(minPinY, bbox.y) : minPinY;
-            const absMaxY = bbox.height > 0 ? Math.max(maxPinY, bbox.y + bbox.height) : maxPinY;
+            const absMinX = bbox.width > 0 ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
+            const absMaxX = bbox.width > 0 ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
+            const absMinY = bbox.height > 0 ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
+            const absMaxY = bbox.height > 0 ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
 				
 			// Snapping Bounding Box στο Grid των 40px (1 TikZ Unit)
             const pad = 10; 
@@ -975,15 +1386,26 @@
                     'pointer-events': 'all',
                     cursor: 'pointer'   // Διώχνει το "χεράκι"
                 },
-                icon: {
-                    d: iconPath, stroke: '#2c3e50', strokeWidth: 1.8, fill: 'none', 
+                iconFill: {
+                    d: iconPath, 
+                    stroke: 'none',
+                    // NEW: Only apply the fill if the database says this component is solid!
+                    fill: data.filled ? theme.componentIcon : 'none', 
+                    'fill-rule': 'evenodd',
+                    transform: `translate(${shiftX}, ${shiftY}) scale(${PPU_MULT})`
+                },
+                iconStroke: {
+                    d: iconPath, 
+                    stroke: theme.componentIcon,
+                    strokeWidth: 1.8, 
+                    fill: 'none', // <--- Keeps the lines empty!
                     transform: `translate(${shiftX}, ${shiftY}) scale(${PPU_MULT})`,
                     'vector-effect': 'non-scaling-stroke' 
                 },
 				label: { 
                     text: data.name, 
                     fontSize: 12 * PPU_MULT, 
-                    fill: '#34495e', 
+					fill: theme.componentLabel,
                     refX: '50%', textAnchor: 'middle', 
                     refY: '50%', // Αγκίστρωση στο ΚΕΝΤΡΟ του εξαρτήματος (δεν επηρεάζεται από το Rotate!)
                     refY2: 25 * PPU_MULT, // Σταθερή μετατόπιση προς τα κάτω
@@ -993,7 +1415,7 @@
 			
 			// Αν είναι το εργαλείο Κειμένου, κρύβουμε το εικονίδιο και κεντράρουμε το κείμενο!
             if (type === 'freetext') {
-                element.attr('icon/stroke', 'transparent'); // Κάνουμε το "T" αόρατο
+                element.attr('iconStroke/stroke', 'transparent'); // Κάνουμε το "T" αόρατο
                 element.attr('label/refY', '50%');          // Το φέρνουμε ακριβώς στο κέντρο
                 element.attr('label/refY2', 0);
                 element.attr('label/fontSize', 14 * PPU_MULT); // Λίγο πιο μεγάλο
@@ -1008,12 +1430,18 @@
                     { tagName: 'text', selector: 'portLabel' }   
                 ],
                 attrs: { 
-                    portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: '#ff9800' },
+                    portBody: { width: 8 * PPU_MULT, 
+						height: 8 * PPU_MULT, 
+						x: -4 * PPU_MULT, 
+						y: -4 * PPU_MULT, 
+						fill: theme.portBody 
+					},
                     portTitle: { text: p.label || p.id },
                     portLabel: { 
                         text: p.label || '', display: showPinNames ? 'block' : 'none',
                         fontSize: 9 * PPU_MULT, // Κανονικό μέγεθος για τα Pin Names!
-                        fill: '#c0392b', fontWeight: 'bold', fontFamily: 'monospace',
+                        fill: theme.portLabel, 
+						fontWeight: 'bold', fontFamily: 'monospace',
                         x: 6 * PPU_MULT, y: -6 * PPU_MULT, textAnchor: 'start' 
                     }
                 } 
@@ -1034,7 +1462,12 @@
                 'baseWidth': boxWidth, 'baseHeight': boxHeight,
                 'baseOffsetX': boxOriginX, 'baseOffsetY': boxOriginY,
                 'baseShiftX': shiftX, 'baseShiftY': shiftY,
-                'basePorts': basePorts
+                'basePorts': basePorts,
+                // --- NEW: Store the TRUE visual boundaries for Auto-Anchors ---
+                'baseVisualTop': absMinY - boxOriginY,
+                'baseVisualBottom': absMaxY - boxOriginY,
+                'baseVisualLeft': absMinX - boxOriginX,
+                'baseVisualRight': absMaxX - boxOriginX
             });
             
 			// ΑΠΟΛΥΤΟ SNAPPING: Κουμπώνουμε το μαθηματικό (0,0) στα 40px
@@ -1053,6 +1486,7 @@
         graph.addCell(element); clearSelection(); selectedElements.push(element);
         setTimeout(() => { const v = paper.findViewByModel(element); if(v) v.highlight(); }, 10);
         exportLatex();
+		saveState();
     }
 
 	// --- 6. ΚΑΛΩΔΙΑ ---
@@ -1063,8 +1497,15 @@
     $('#draw-glasspane').on('mousedown', function(e) {
         drawing = true;
         let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let s = { x: Math.round(p.x/40)*40, y: Math.round(p.y/40)*40 }; // 40!
-        wire = new joint.shapes.standard.Link({ source: s, target: s, attrs: { line: { stroke: '#333', strokeWidth: 2 * PPU_MULT, targetMarker: null } } });
+        let s = { x: Math.round(p.x/40)*40, y: Math.round(p.y/40)*40 }; 
+		const theme = THEME_COLORS[currentThemeName];
+        
+        // --- FIXED: Use theme.wire instead of hardcoded '#333' ---
+        wire = new joint.shapes.standard.Link({ 
+            source: s, 
+            target: s, 
+            attrs: { line: { stroke: theme.wire, strokeWidth: 2 * PPU_MULT, targetMarker: null } } 
+        });
         wire.addTo(graph);
     });
     $(document).on('mousemove', function(e) {
@@ -1074,7 +1515,14 @@
         let s = wire.source();
         if (Math.abs(tx - s.x) > Math.abs(ty - s.y)) wire.target({ x: tx, y: s.y });
         else wire.target({ x: s.x, y: ty });
-    }).on('mouseup', function() { if (drawing) { drawing = false; exportLatex(); } });
+    }).on('mouseup', function() { 
+        if (drawing) { 
+            drawing = false; 
+            if (wire) wire.toBack(); // <--- Sends the wire underneath all components!
+            exportLatex();
+			saveState();			
+        } 
+    });
 
     // --- 7. EXPORT HTML/TEXT & CODE HIGHLIGHTING ---
     function escapeHTML(str) { return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag])); }
@@ -1347,6 +1795,9 @@
         
         const jsonString = JSON.stringify(graph.toJSON());
         saveFileAs(jsonString, 'circuit.json', 'application/json', 'JointJS Diagram');
+        
+        // --- NEW: Wipe the auto-save memory after a successful manual save ---
+        localStorage.removeItem('jlcad_autosave');
     }
 
 	function downloadLatex(isStandalone = false) {
@@ -1612,8 +2063,14 @@ ${indentedTikz}
         const r = new FileReader(); 
         r.onload = ev => {
             graph.fromJSON(JSON.parse(ev.target.result)); 
+            
+            // --- NEW: Push all wires to the background layer ---
+            graph.getLinks().forEach(link => link.toBack());
+            
             zoomFit(); 
-            clearSelection(); 
+            clearSelection();
+			
+			applyTheme(document.getElementById('theme-selector').value);
             
 			const savedLatex = graph.get('customLatex');
             if (savedLatex) {
@@ -1682,44 +2139,49 @@ ${indentedTikz}
     }
 
 	
-	// --- 9. LATEX LINTER (ΣΥΝΤΑΚΤΙΚΟΣ ΕΛΕΓΧΟΣ) ---
-    function validateLatexSyntax(text) {
+	// --- 9. LATEX LINTER (SYNTAX CHECKER) ---
+    function validateLatexSyntax(rawText) {
         let errors = [];
         
-        // 1. Έλεγχος Συνολικής Ισορροπίας Αγκυλών { }
+        // --- THE FIX: Mask Math Blocks ---
+        // We hide everything between $ $ so the linter doesn't get confused 
+        // by KaTeX commands (like \frac) or extra brackets inside the math.
+        let text = rawText.replace(/\$(.*?)\$/g, 'MATH_BLOCK');
+        
+        // 1. Check Overall Brace Balance { }
         let openBraces = (text.match(/\{/g) || []).length;
         let closeBraces = (text.match(/\}/g) || []).length;
         if (openBraces !== closeBraces) {
-            errors.push(`<b>Ανισορροπία Αγκυλών:</b> Βρέθηκαν ${openBraces} ανοιχτές <code>{</code> και ${closeBraces} κλειστές <code>}</code>.`);
+            errors.push(`<b>Brace Imbalance:</b> Found ${openBraces} open <code>{</code> and ${closeBraces} closed <code>}</code>.`);
         }
         
-        // Λίστα με τις στάνταρ εντολές του TikZ που επιτρέπουμε
+        // List of standard TikZ commands we allow
         const knownSystemMacros = ['begin', 'end', 'draw', 'tikzpictureJL', 'connectordot', 'setscale'];
         const macroRegex = /\\([a-zA-Z]+)/g;
         let match;
         
-        // Σαρώνουμε όλο το κείμενο για εντολές που ξεκινάνε με \
+        // Scan the whole text for commands starting with \
         while ((match = macroRegex.exec(text)) !== null) {
             const macroName = match[1];
             const macroIndex = match.index;
             
-            // 2. Έλεγχος αν η εντολή υπάρχει
+            // 2. Check if command exists
             if (!knownSystemMacros.includes(macroName) && (!JL_DATABASE || !JL_DATABASE[macroName])) {
-                errors.push(`<b>Άγνωστη εντολή:</b> <code>\\${macroName}</code>. Μήπως υπάρχει τυπογραφικό λάθος;`);
+                errors.push(`<b>Unknown command:</b> <code>\\${macroName}</code>. Is there a typo?`);
                 continue;
             }
             
-            // 3. Έλεγχος Ορισμάτων (μόνο για τα εξαρτήματα της βάσης μας)
+            // 3. Argument Check (only for database components)
             if (JL_DATABASE && JL_DATABASE[macroName]) {
                 const expectedArgs = JL_DATABASE[macroName].argsCount || 7;
                 let argCount = 0;
                 let i = macroIndex + match[0].length;
                 
-                // Σαρώνουμε γραμμικά για να πιάσουμε σωστά τα φωλιασμένα {} και []
+                // Scan linearly to correctly catch nested {} and []
                 while (i < text.length) {
                     let char = text[i];
                     
-                    // Αγνοούμε τα κενά ανάμεσα στα ορίσματα
+                    // Ignore spaces between arguments
                     if (char === ' ' || char === '\n' || char === '\r' || char === '\t') { i++; continue; }
                     
                     if (char === '{' || char === '[') {
@@ -1728,20 +2190,20 @@ ${indentedTikz}
                         let closeChar = char === '{' ? '}' : ']';
                         let depth = 1;
                         i++;
-                        // Προχωράμε μέχρι να κλείσει το τρέχον όρισμα (ακόμα κι αν έχει μέσα άλλα {})
+                        // Move forward until the current argument closes (even if it has nested {})
                         while (i < text.length && depth > 0) {
                             if (text[i] === openChar) depth++;
                             else if (text[i] === closeChar) depth--;
                             i++;
                         }
                     } else {
-                        // Βρήκαμε κάτι άλλο (π.χ. κανονικό κείμενο ή νέα εντολή), άρα σταματάμε το μέτρημα για αυτή την εντολή
+                        // Found something else (e.g., normal text or new command), stop counting for this command
                         break;
                     }
                 }
                 
                 if (argCount !== expectedArgs) {
-                    errors.push(`<b>Λάθος αριθμός ορισμάτων στην εντολή <code>\\${macroName}</code>:</b><br>Βρέθηκαν ${argCount}, ενώ η βιβλιοθήκη απαιτεί ${expectedArgs}.`);
+                    errors.push(`<b>Argument Mismatch for <code>\\${macroName}</code>:</b><br>Found ${argCount} arguments, but the library requires exactly ${expectedArgs}.`);
                 }
             }
         }
@@ -1768,6 +2230,7 @@ ${indentedTikz}
         };
 
         let currentArgs = el.get('customArgs') || [];
+        // Added margin-top: -20px to forcibly pull the form up!
         let htmlForm = '<div style="text-align: left; font-size: 14px;">';
 
         let variantIndex = data.variantArg ? data.variantArg - 1 : -1;
@@ -1783,7 +2246,7 @@ ${indentedTikz}
         }).join('\n');
 
         htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Scale (TikZ)</label>
+                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Scale factor</label>
                         <select id="swal-input-scale" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;">
                             ${scaleOptionsHtml}
                         </select>
@@ -1791,11 +2254,11 @@ ${indentedTikz}
 
         htmlForm += `<div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px; display: flex; gap: 10px;">
                         <div style="flex: 1;">
-                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Label Offset X</label>
+                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Component Name Offset X</label>
                             <input type="number" id="swal-input-lblx" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${currentLblX}">
                         </div>
                         <div style="flex: 1;">
-                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Label Offset Y</label>
+                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Component Name Offset Y</label>
                             <input type="number" id="swal-input-lbly" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${currentLblY}">
                         </div>
                     </div>`;
@@ -1835,18 +2298,19 @@ ${indentedTikz}
         htmlForm += '</div>';
 
         Swal.fire({
-            title: `
-                <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
+            // --- NO TITLE PROPERTY! WE PUT EVERYTHING IN HTML ---
+            html: `
+                <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-top: 0; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
                     <span>⠿</span> Drag to move <span>⠿</span>
                 </div>
-                <span style="font-size: 18px; user-select: none;">Properties: ${data.name}</span>
+                <div style="font-size: 18px; font-weight: 600; user-select: none; margin-bottom: 15px; color: #2c3e50;">Properties: ${data.name}</div>
+                ${htmlForm}
             `,
-            html: htmlForm,
             showCancelButton: true,
             confirmButtonText: 'Save',
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#27ae60',
-            backdrop: false, 
+            backdrop: false,
             didOpen: () => {
                 const popup = Swal.getPopup();
                 const handle = document.getElementById('swal-drag-handle');
@@ -1909,7 +2373,10 @@ ${indentedTikz}
                     
                     if (variantIndex !== -1 && data.icons) {
                         let selectedVariant = previewArgs[variantIndex];
-                        if (data.icons[selectedVariant]) el.attr('icon/d', data.icons[selectedVariant]);
+                        if (data.icons[selectedVariant]) {
+							el.attr('iconFill/d', data.icons[selectedVariant]);
+							el.attr('iconStroke/d', data.icons[selectedVariant]);
+						}
                     }
 
                     if (previewScale !== currentScale) {
@@ -1963,7 +2430,10 @@ ${indentedTikz}
 
                 if (variantIndex !== -1 && data.icons) {
                     let selectedVariant = newArgs[variantIndex];
-                    if (data.icons[selectedVariant]) el.attr('icon/d', data.icons[selectedVariant]);
+                    if (data.icons[selectedVariant]) {
+						el.attr('iconFill/d', data.icons[selectedVariant]);
+						el.attr('iconStroke/d', data.icons[selectedVariant]);
+					}
                 }
 
                 if (newScale !== currentScale) {
@@ -1979,6 +2449,7 @@ ${indentedTikz}
                 }
 
                 forceExportLatex();
+				saveState();
                 
             } else if (result.isDismissed) {
                 // --- NEW: User clicked CANCEL - Revert everything to the snapshot! ---
@@ -2111,6 +2582,141 @@ ${indentedTikz}
 			});
 		});
 	});
+	
+	// --- CADENCE DISPLAY MODE (THEME SWITCHER) ---
+
+    // Function to apply the selected theme to the entire canvas instantly
+    function applyTheme(themeName) {
+        const theme = THEME_COLORS[themeName];
+        if (!theme) return;
+
+        // --- 1. NEW: Safely turn off highlights BEFORE changing the rules ---
+        selectedElements.forEach(el => { const v = paper.findViewByModel(el); if(v) v.unhighlight(); });
+        selectedLinks.forEach(l => { const v = paper.findViewByModel(l); if(v) v.unhighlight(); });
+
+        currentThemeName = themeName; // Update global state
+        
+        // Safely update the theme class without destroying JointJS system classes
+        const paperEl = document.getElementById('my-paper');
+        paperEl.classList.remove('theme-standard', 'theme-cadence');
+        paperEl.classList.add('theme-' + themeName);
+
+        // 1. Paper and Grid
+        paper.drawBackground({ color: theme.background });
+        updateDynamicGrid(); 
+
+        // 2. Selection Rectangle (via CSS var)
+        document.documentElement.style.setProperty('--selection-color', theme.selection);
+
+        // 3. Highlight Style
+        paper.options.highlighting['default'].options.attrs.stroke = theme.highlight;
+
+        // 4. Default Link
+        paper.options.defaultLink.attr('line/stroke', theme.wire);
+
+        // 5. Update existing links
+        graph.getLinks().forEach(link => {
+            link.attr('line/stroke', theme.wire);
+        });
+
+        // 6. Update existing elements
+        graph.getElements().forEach(el => {
+            const macro = el.get('latexMacro');
+            if (macro === 'connectordot') {
+                el.attr('dot/fill', theme.dot);
+            } else {
+                const dbData = JL_DATABASE[macro];
+                const isFreeText = (macro === 'freetext');
+
+                // Respect the hollow/solid rule
+                el.attr('iconFill/fill', (dbData && dbData.filled) ? theme.componentIcon : 'none');
+                
+                // --- FIX 1: Keep the 'T' invisible for freetext! ---
+                el.attr('iconStroke/stroke', isFreeText ? 'transparent' : theme.componentIcon); 
+                
+                // Apply the correct text color
+                el.attr('label/fill', isFreeText ? theme.freeText : theme.componentLabel);
+                
+                // --- FIX 2: Force Math formulas to recalculate their new HTML color! ---
+                if (el.get('displayedText') && el.get('displayedText').includes('$')) {
+                    updateElementLabel(el); 
+                }
+                
+                el.getPorts().forEach(port => {
+                    el.portProp(port.id, 'attrs/portBody/fill', theme.portBody);
+                    el.portProp(port.id, 'attrs/portLabel/fill', theme.portLabel);
+                });
+            }
+        });
+
+        // --- 2. NEW: Turn the highlights back on with the NEW rules ---
+        selectedElements.forEach(el => { const v = paper.findViewByModel(el); if(v) v.highlight(); });
+        selectedLinks.forEach(l => { const v = paper.findViewByModel(l); if(v) v.highlight(); });
+    }
+
+    // Attach event listener to the dropdown
+    document.getElementById('theme-selector').addEventListener('change', (e) => {
+        const selectedTheme = e.target.value;
+        applyTheme(selectedTheme);
+        
+        // --- NEW: Save the user's preference to their browser ---
+        localStorage.setItem('jlcad_theme_preference', selectedTheme);
+    });
+	
+	// --- CLEAR CANVAS ---
+    function clearCanvas() {
+        Swal.fire({
+            title: 'Clear entire circuit?',
+            text: "This will delete everything on the canvas. You can undo this action.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e74c3c',
+            cancelButtonColor: '#95a5a6',
+            confirmButtonText: 'Yes, clear it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                graph.clear();
+				localStorage.removeItem('jlcad_autosave');
+                window.rawLatexCode = "";
+                document.getElementById('latex-output').innerHTML = "";
+                userZoom = 1.0;
+                paper.scale(userZoom / PPU_MULT, userZoom / PPU_MULT);
+                paper.translate(0, 0); // Reset pan
+                updateZoomDisplay();
+                updateDynamicGrid();
+                saveState(); // Add the cleared state to the Undo history!
+            }
+        });
+    }
+	
+	// --- PANEL TOGGLE LOGIC ---
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar');
+        const tab = document.getElementById('tab-sidebar');
+        if (sidebar.classList.contains('collapsed')) {
+            sidebar.classList.remove('collapsed');
+            tab.style.display = 'none';
+        } else {
+            sidebar.classList.add('collapsed');
+            tab.style.display = 'flex';
+        }
+        // Force the grid to update smoothly as the canvas expands
+        setTimeout(() => { updateDynamicGrid(); }, 310);
+    }
+
+    function toggleOutput() {
+        const output = document.getElementById('output-panel');
+        const tab = document.getElementById('tab-output');
+        if (output.classList.contains('collapsed')) {
+            output.classList.remove('collapsed');
+            tab.style.display = 'none';
+        } else {
+            output.classList.add('collapsed');
+            tab.style.display = 'flex';
+        }
+        setTimeout(() => { updateDynamicGrid(); }, 310);
+    }
+	
 </script>
 </body>
 </html>
