@@ -152,13 +152,12 @@
     <span id="zoom-level" style="font-size: 11px; min-width: 40px; text-align:center;">100%</span>
     
     <div class="v-separator"></div>
-    <button onclick="saveProject()" class="tool-btn" style="background:#8e44ad">💾 Save JSON</button>
-    <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Load JSON</button>
+    <button onclick="saveProject()" class="tool-btn" style="background:#8e44ad">💾 Save</button>
+    <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Open</button>
     <input type="file" id="importFile" style="display:none" onchange="importProject(event)" accept=".json">
     
-    <div style="margin-left:auto; display:flex; gap:8px;">
-        <button onclick="downloadLatex(false)" style="background: #27ae60; color:white;" class="tool-btn">📄 Export TikZ (.tex)</button>
-        <button onclick="downloadLatex(true)" style="background: #16a085; color:white;" class="tool-btn">📦 Export Standalone LaTeX</button>
+	<div style="margin-left:auto; display:flex; gap:8px;">
+        <button onclick="openExportDialog()" style="background: #e84393; font-weight: bold; color:white; padding: 6px 16px;" class="tool-btn">📤 Export Diagram</button>
     </div>
 </div>
 
@@ -168,7 +167,7 @@
         <div id="my-paper"></div>
     </div>
     <div id="sidebar">
-        <strong style="display:block; margin-bottom:15px; color:#2c3e50;">ΕΞΑΡΤΗΜΑΤΑ</strong>
+        <strong style="display:block; margin-bottom:15px; color:#2c3e50;">COMPONENTS</strong>
         <div id="items-container"></div>
     </div>
 </div>
@@ -472,7 +471,7 @@
     }
 
 	function zoomFit() {
-        const bbox = graph.getCellsBBox();
+        const bbox = paper.getContentBBox();
         
         if (!bbox || bbox.width === 0 || bbox.height === 0) {
             // Αν ο καμβάς είναι άδειος, μηδενίζουμε τα πάντα
@@ -1387,7 +1386,219 @@ ${indentedTikz}
             saveFileAs(finalOutput, filename, 'text/plain', 'LaTeX Document');
         });
     }
+	
+// --- EXPORT DIALOG (CENTRALIZED) ---
+    function openExportDialog() {
+        Swal.fire({
+            title: '<span style="font-size: 20px;">Export Diagram</span>',
+            html: `
+                <div style="text-align: left; font-size: 14px; color: #2c3e50;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: 600;">File Format:</label>
+                        <select id="export-format" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin-top: 5px;">
+                            <option value="svg">🖼️ SVG (Vector Graphic)</option>
+                            <option value="tikz">📄 TikZ Code Snippet (.tex)</option>
+                            <option value="standalone">📦 Standalone LaTeX (.tex)</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 5px; font-weight: 600;">Visual Options (SVG Only):</div>
+                    <div style="background: #f8f9fa; border: 1px solid #dcdde1; padding: 10px; border-radius: 6px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+                            <input type="checkbox" id="exp-grid"> Show Canvas Grid
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+                            <input type="checkbox" id="exp-pins"> Show Component Pins 
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+                            <input type="checkbox" id="exp-pinnames" checked> Show Pin Names
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+                            <input type="checkbox" id="exp-compnames" checked> Show Component Names
+                        </label>
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 8px;">
+                            <input type="checkbox" id="exp-freetext" checked> Show Free Text Labels
+                        </label>
+                        
+                        <div style="display:flex; align-items:center; gap:8px; margin-bottom: 6px;">
+                            <span style="min-width: 100px;">Wire Thickness:</span>
+                            <input type="number" id="exp-wire-width" value="2.0" min="0.5" max="10" step="0.5" style="width: 60px; height: 24px; padding: 0 4px; border: 1px solid #ccc; border-radius: 3px;"> px
+                        </div>
 
+                        <hr style="border-top: 1px dashed #bdc3c7; margin: 8px 0;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color: #c0392b; font-weight: bold;">
+                            <input type="checkbox" id="exp-mono"> Monochrome (Black & White)
+                        </label>
+                    </div>
+                </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Export',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#e84393',
+            preConfirm: () => {
+                return {
+                    format: document.getElementById('export-format').value,
+                    grid: document.getElementById('exp-grid').checked,
+                    pins: document.getElementById('exp-pins').checked,
+                    pinnames: document.getElementById('exp-pinnames').checked,
+                    compnames: document.getElementById('exp-compnames').checked,
+                    freetext: document.getElementById('exp-freetext').checked,
+                    mono: document.getElementById('exp-mono').checked,
+                    wireWidth: parseFloat(document.getElementById('exp-wire-width').value) || 2.0
+                };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                if (result.value.format === 'svg') {
+                    downloadAdvancedSVG(result.value);
+                } else if (result.value.format === 'tikz') {
+                    downloadLatex(false);
+                } else if (result.value.format === 'standalone') {
+                    downloadLatex(true);
+                }
+            }
+        });
+    }
+
+    // --- ADVANCED SVG EXPORT (WITH FILTERS) ---
+    function downloadAdvancedSVG(options) {
+        const bbox = paper.getContentBBox();
+        if (!bbox || bbox.width === 0 || bbox.height === 0) {
+            Swal.fire({ icon: 'info', title: 'Empty Canvas', text: 'There is nothing to export.'});
+            return;
+        }
+
+        // --- BULLETPROOF HIGHLIGHT REMOVAL ---
+        // 1. Save current selection to memory
+        const savedSelectedElements = [...selectedElements];
+        const savedSelectedLinks = [...selectedLinks];
+        // 2. Clear selection on the actual canvas so highlights are destroyed natively by JointJS
+        clearSelection();
+
+        const padding = 25;
+        const x = bbox.x - padding;
+        const y = bbox.y - padding;
+        const width = bbox.width + padding * 2;
+        const height = bbox.height + padding * 2;
+
+        // Clone the clean, selection-free SVG
+        const svgNode = paper.svg.cloneNode(true);
+        const viewport = svgNode.querySelector('.viewport');
+        if (viewport) viewport.removeAttribute('transform');
+
+        svgNode.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
+        svgNode.setAttribute('width', width);
+        svgNode.setAttribute('height', height);
+
+        // 3. Restore the selection silently for the user
+        savedSelectedElements.forEach(el => { 
+            selectedElements.push(el); 
+            const v = paper.findViewByModel(el); 
+            if(v) v.highlight(); 
+        });
+        savedSelectedLinks.forEach(l => { 
+            selectedLinks.push(l); 
+            const v = paper.findViewByModel(l); 
+            if(v) v.highlight(); 
+        });
+        // -------------------------------------
+
+        // A. Apply Custom Wire Thickness
+        svgNode.querySelectorAll('path[joint-selector="line"]').forEach(n => {
+            n.setAttribute('stroke-width', options.wireWidth);
+			// --- NEW: Professional rounded corners and endpoints ---
+				n.setAttribute('stroke-linejoin', 'round');
+				n.setAttribute('stroke-linecap', 'round');
+        });
+
+        // -- APPLY VISUAL FILTERS --
+
+        // 1. Free Text
+        if (!options.freetext) {
+            graph.getElements().filter(e => e.get('latexMacro') === 'freetext').forEach(e => {
+                let node = svgNode.querySelector(`[model-id="${e.id}"]`);
+                if (node) node.remove();
+            });
+        }
+
+        // 2. Component Names (Label and KaTeX foreignObject)
+        if (!options.compnames) {
+            graph.getElements().filter(e => e.get('latexMacro') !== 'freetext' && e.get('latexMacro') !== 'connectordot').forEach(e => {
+                let node = svgNode.querySelector(`[model-id="${e.id}"]`);
+                if (node) {
+                    let label = node.querySelector('text[joint-selector="label"]');
+                    if (label) label.remove();
+                    let fo = node.querySelector('foreignObject');
+                    if (fo) fo.remove();
+                }
+            });
+        }
+
+        // 3. Pins (Orange Boxes)
+        if (!options.pins) {
+            svgNode.querySelectorAll('[joint-selector="portBody"]').forEach(n => n.remove());
+        }
+
+        // 4. Pin Names
+        if (!options.pinnames) {
+            svgNode.querySelectorAll('[joint-selector="portLabel"]').forEach(n => n.remove());
+        }
+
+        // 5. Monochrome (Black & White)
+        if (options.mono) {
+            svgNode.querySelectorAll('*').forEach(n => {
+                let stroke = n.getAttribute('stroke');
+                let fill = n.getAttribute('fill');
+                
+                if (stroke && stroke !== 'none' && stroke !== 'transparent') n.setAttribute('stroke', '#000000');
+                
+                if (fill && fill !== 'none' && fill !== 'transparent' && fill.toLowerCase() !== '#ffffff' && n.getAttribute('fill-opacity') !== '0.01') {
+                    n.setAttribute('fill', '#000000');
+                }
+                
+                if (n.tagName === 'div' || n.tagName === 'span') n.style.color = '#000000'; 
+            });
+        }
+
+        // 6. Grid
+        if (options.grid) {
+            let defs = svgNode.querySelector('defs') || document.createElementNS("http://www.w3.org/2000/svg", "defs");
+            if (!svgNode.querySelector('defs')) svgNode.prepend(defs);
+            
+            let pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
+            pattern.setAttribute("id", "exportGrid");
+            pattern.setAttribute("width", "40");
+            pattern.setAttribute("height", "40");
+            pattern.setAttribute("patternUnits", "userSpaceOnUse");
+            
+            let circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", "0");
+            circle.setAttribute("cy", "0");
+            circle.setAttribute("r", "1.5");
+            circle.setAttribute("fill", options.mono ? "#cccccc" : "#bdc3c7"); 
+            
+            pattern.appendChild(circle);
+            defs.appendChild(pattern);
+            
+            let gridRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            gridRect.setAttribute("x", x);
+            gridRect.setAttribute("y", y);
+            gridRect.setAttribute("width", width);
+            gridRect.setAttribute("height", height);
+            gridRect.setAttribute("fill", "url(#exportGrid)");
+            
+            svgNode.insertBefore(gridRect, viewport); 
+        }
+
+        // -- FINALIZE AND DOWNLOAD --
+        let svgString = new XMLSerializer().serializeToString(svgNode);
+        if (!svgString.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+            svgString = svgString.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        
+        saveFileAs(svgString, 'circuit.svg', 'image/svg+xml', 'SVG Vector Graphic');
+    }
+	
     function importProject(e) { 
         const f = e.target.files[0]; 
         if(!f) return; 
