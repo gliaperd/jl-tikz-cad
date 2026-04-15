@@ -16,25 +16,23 @@ def generate_db(sty_file):
         arg_count = int(match.group(2))
         body = match.group(3)
         
-        if 'disabled' in body.lower(): continue
+        body_lines = body.strip().split('\n')
+        
+        if any(line.strip().lower() == '% disabled' for line in body_lines):
+            continue
         
         comp_data = {
             "name": name,
             "argsCount": arg_count,
             "enabled": "true"
         }
-
-        body_lines = body.strip().split('\n')
         
-        # 1. Extract Metadata: Icons, Variants, Scales and Categories
         for line in body_lines:
             line = line.strip()
             
-            # --- Extract the category (e.g., % category: Passives) ---
             if line.startswith('% category:'):
                 comp_data['category'] = line.replace('% category:', '').strip()
             
-            # --- Foolproof Variant Arg Parser ---
             elif '% variant_arg:' in line.lower() or '%variant_arg:' in line.lower():
                 try:
                     val = line.split(':')[1].strip()
@@ -42,7 +40,29 @@ def generate_db(sty_file):
                 except ValueError:
                     pass
             
-            # If we find an alternative variant icon (e.g., % icon_n: ...)
+            # --- The Preview Override ---
+            elif line.startswith('% preview_args:'):
+                pairs = line.replace('% preview_args:', '').split(',')
+                preview_args = {}
+                for p in pairs:
+                    if '=' in p:
+                        k, v = p.split('=')
+                        preview_args[k.strip()] = v.strip()
+                comp_data['previewArgs'] = preview_args
+
+            elif line.startswith('% icon_base:'):
+                comp_data['iconBase'] = line.replace('% icon_base:', '').strip()
+
+            elif line.startswith('% add_icon:'):
+                parts = line.replace('% add_icon:', '').split(':', 1)
+                if len(parts) == 2:
+                    if 'iconLayers' not in comp_data:
+                        comp_data['iconLayers'] = []
+                    comp_data['iconLayers'].append({
+                        "condition": parts[0].strip(),
+                        "path": parts[1].strip()
+                    })
+            
             elif line.startswith('% icon_'):
                 m = re.match(r'% icon_([^:]+):(.*)', line)
                 if m:
@@ -51,36 +71,29 @@ def generate_db(sty_file):
                     if 'icons' not in comp_data:
                         comp_data['icons'] = {}
                     comp_data['icons'][variant_name] = variant_path
-                    # If a default icon is not set, use the first one found
                     if 'icon' not in comp_data:
                         comp_data['icon'] = variant_path
             
-            # If we find the classic single icon
             elif line.startswith('% icon:'):
                 comp_data['icon'] = line.replace('% icon:', '').strip()
 
-            # If we find allowed scales (e.g., % scales: 1, 2, 4)
             elif line.startswith('% scales:'):
                 scales_str = line.replace('% scales:', '').strip()
                 try:
-                    # Converts the string "0.5, 1, 2" into a list of numbers [0.5, 1, 2]
                     comp_data['scales'] = [float(s.strip()) if '.' in s.strip() else int(s.strip()) for s in scales_str.split(',')]
                 except ValueError:
-                    pass # If there is a typo, just ignore it
+                    pass
             
-            # --- Flag for Solid Components (FOOLPROOF BOOLEAN) ---
             elif '% filled:' in line.lower() or '%filled:' in line.lower():
                 val = line.split(':')[1].strip().lower()
                 comp_data['filled'] = (val == 'true')
-            # --- NEW: Exact OR Auto Coordinate Anchor ---
+                
             elif '% label_anchor:' in line.lower() or '%label_anchor:' in line.lower():
                 try:
                     parts = line.split(':')[1].strip().split()
                     if len(parts) == 1:
-                        # Auto Mode: Just the direction (T, B, L, R)
                         comp_data['labelAnchor'] = { "auto": True, "dir": parts[0].upper() }
                     elif len(parts) >= 3:
-                        # Manual Mode: Exact SVG Units + direction
                         comp_data['labelAnchor'] = {
                             "x": float(parts[0]),
                             "y": float(parts[1]),
@@ -88,8 +101,12 @@ def generate_db(sty_file):
                         }
                 except (IndexError, ValueError):
                     pass
+                    
+            elif '% rotation:' in line.lower():
+                comp_data['rotatable'] = 'disabled' not in line.lower()
+            elif '% flip:' in line.lower():
+                comp_data['flippable'] = 'disabled' not in line.lower()
 
-        # 2. Extract Argument names from the first comment
         arg_names = []
         if body_lines and body_lines[0].strip().startswith('%'):
             comment_line = body_lines[0].strip()
@@ -101,7 +118,6 @@ def generate_db(sty_file):
                 })
         comp_data['argNames'] = arg_names
 
-        # 3. Extract pins and Labels
         pins = []
         for line in body_lines:
             coord_match = re.search(r'\\coordinate\s*\(([a-zA-Z0-9]+)\)\s*at\s*\(([-+]?[\d\.]+)[^,]*,\s*([-+]?[\d\.]+)[^)]*\)', line)
@@ -115,7 +131,6 @@ def generate_db(sty_file):
                 })
         comp_data['pins'] = pins
 
-        # Save to database (if it has pins or is connectordot or freetext)
         if pins or name in ['connectordot', 'freetext']:
             database[name] = comp_data
 

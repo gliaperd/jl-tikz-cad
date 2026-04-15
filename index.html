@@ -200,6 +200,16 @@
             transition: transform 0.2s, background 0.2s;
         }
         .min-tab:hover { background: #34495e; transform: scale(1.05); }
+		
+		/* --- DISABLED TOOLBAR BUTTONS --- */
+        .tool-btn:disabled { 
+            opacity: 0.4; 
+            cursor: not-allowed; 
+            background: #7f8c8d !important; 
+            border-color: #555 !important; 
+            transform: none !important;
+        }
+		
     </style>
 </head>
 <body>
@@ -212,9 +222,9 @@
     <button onclick="copySelected()" class="tool-btn" style="color:#f39c12">📋 Copy</button>
     <button onclick="pasteCopied()" class="tool-btn" style="color:#f1c40f">📝 Paste</button>
 	<button onclick="deleteSelected()" class="tool-btn" style="color:#ff7675">✖ Delete</button>
-    <button onclick="rotateSelected()" class="tool-btn">↻ Rotate</button>
-    <button onclick="flipHorizontal()" class="tool-btn">↔ Flip H</button>
-    <button onclick="flipVertical()" class="tool-btn">↕ Flip V</button>
+    <button id="btn-rotate" onclick="rotateSelected()" class="tool-btn">↻ Rotate</button>
+    <button id="btn-flip-h" onclick="flipHorizontal()" class="tool-btn">↔ Flip H</button>
+    <button id="btn-flip-v" onclick="flipVertical()" class="tool-btn">↕ Flip V</button>
 	<label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
 		<input type="checkbox" id="toggle-pin-names" checked> Show Pin Names
 	</label>
@@ -618,6 +628,38 @@
         }
     });
 	
+	// --- NATIVE CAD GEOMETRY ENGINE ---
+    // Finds the true, physical canvas location of a component's (0,0) pin
+    function getVisualOrigin(el, customPos = null) {
+        let p = customPos || el.position();
+        const w = el.size().width;
+        const h = el.size().height;
+        const rot = el.get('angle') || 0;
+        
+        let effOffsetX = el.get('offsetX') || 0;
+        let effOffsetY = el.get('offsetY') || 0;
+        
+        if (el.get('flipH')) effOffsetX = -w - effOffsetX;
+        if (el.get('flipV')) effOffsetY = -h - effOffsetY;
+        
+        const ox = p.x - effOffsetX;
+        const oy = p.y - effOffsetY;
+        const cx = p.x + w / 2;
+        const cy = p.y + h / 2;
+        
+        const rad = rot * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        
+        const dx = ox - cx;
+        const dy = oy - cy;
+        
+        return {
+            x: cx + (dx * cos) - (dy * sin),
+            y: cy + (dx * sin) + (dy * cos)
+        };
+    }
+	
 // --- UNDO / REDO ENGINE ---
     let historyStack = [];
     let historyIndex = -1;
@@ -682,24 +724,19 @@
             snX = Math.round((newPos.x + 20) / 40) * 40 - 20;
             snY = Math.round((newPos.y + 20) / 40) * 40 - 20;
         } else {
-            let scale = cell.get('customScale') || 1;
-            let shiftX = (cell.get('baseShiftX') || 0) * scale;
-            let shiftY = (cell.get('baseShiftY') || 0) * scale;
-
-            // Βρίσκουμε πού είναι το μαθηματικό (0,0) αυτή τη στιγμή
-            let originX = newPos.x + shiftX;
-            let originY = newPos.y + shiftY;
-
-            // Καρφώνουμε το μαθηματικό (0,0) πάνω στο Grid των 40px
-            let snappedOriginX = Math.round(originX / 40) * 40;
-            let snappedOriginY = Math.round(originY / 40) * 40;
-
-            // Μετατοπίζουμε το κουτί στη νέα του, σωστή θέση
-            snX = snappedOriginX - shiftX;
-            snY = snappedOriginY - shiftY;
+            // NEW: Use the Geometry Engine to find the true, rotated (0,0) pin
+            let visOrigin = getVisualOrigin(cell, newPos);
+            
+            // Snap that specific pin to the grid
+            let snappedVisX = Math.round(visOrigin.x / 40) * 40;
+            let snappedVisY = Math.round(visOrigin.y / 40) * 40;
+            
+            // Apply the correction offset to the main bounding box
+            snX = newPos.x + (snappedVisX - visOrigin.x);
+            snY = newPos.y + (snappedVisY - visOrigin.y);
         }
         
-        if (snX !== newPos.x || snY !== newPos.y) {
+        if (Math.abs(snX - newPos.x) > 0.01 || Math.abs(snY - newPos.y) > 0.01) {
             cell.position(snX, snY, { snapping: true });
             exportLatex();
         }
@@ -905,6 +942,7 @@
         selectedLinks.forEach(l => { const v = paper.findViewByModel(l); if(v) v.unhighlight(); });
         selectedElements = []; selectedLinks = [];
         exportLatex();
+		updateToolbarState();
     }
 
     paper.on('blank:pointerdown', function(evt, x, y) {
@@ -945,7 +983,8 @@
             graph.getLinks().forEach(link => { if (selRect.intersect(link.getBBox().inflate(2))) { selectedLinks.push(link); const v = paper.findViewByModel(link); if(v) v.highlight(); } });
 
             selectionRect.remove(); selectionRect = null; selectionStart = null;
-            exportLatex(); 
+            exportLatex();
+			updateToolbarState();
         }
     });
 
@@ -957,7 +996,8 @@
             clearSelection();
             if (model.isLink()) selectedLinks.push(model); else selectedElements.push(model);
             cellView.highlight();
-            exportLatex(); 
+            exportLatex();
+			updateToolbarState();			
         }
         
         groupDragData = { originCell: model, startPos: model.isLink() ? null : model.position(), initials: new Map() };
@@ -1071,30 +1111,76 @@
         });
         exportLatex();
 		saveState();
+		updateToolbarState();
     }
+	
+	// --- SMART TOOLBAR STATE ---
+    function updateToolbarState() {
+        const btnRot = document.getElementById('btn-rotate');
+        const btnFH = document.getElementById('btn-flip-h');
+        const btnFV = document.getElementById('btn-flip-v');
+        
+        if (!btnRot || !btnFH || !btnFV) return;
 
-    function rotateSelected() { selectedElements.forEach(el => { if(el.get('latexMacro') !== 'connectordot') el.rotate(90); }); exportLatex(); saveState();}
+        let canRot = true;
+        let canFlip = true;
 
-	function flipHorizontal() {
         selectedElements.forEach(el => {
-            if(el.get('latexMacro') !== 'connectordot') {
-                el.set('flipH', !(el.get('flipH') || false));
-                applyRobustScale(el, el.get('customScale') || 1); // Το κάνει όλα η scale!
+            let macro = el.get('latexMacro');
+            let dbData = JL_DATABASE[macro];
+            if (dbData) {
+                if (dbData.rotatable === false) canRot = false;
+                if (dbData.flippable === false) canFlip = false;
             }
         });
-        forceExportLatex();
-		saveState();
+
+        btnRot.disabled = !canRot;
+        btnFH.disabled = !canFlip;
+        btnFV.disabled = !canFlip;
+    }
+
+    function rotateSelected() {
+        selectedElements.forEach(el => {
+            let dbData = JL_DATABASE[el.get('latexMacro')];
+            if(el.get('latexMacro') !== 'connectordot' && (!dbData || dbData.rotatable !== false)) {
+                let oldPin = getVisualOrigin(el); 
+                el.rotate(90); 
+                let newPin = getVisualOrigin(el); 
+                let p = el.position();
+                el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
+            }
+        });
+        exportLatex(); saveState();
+    }
+
+    function flipHorizontal() {
+        selectedElements.forEach(el => {
+            let dbData = JL_DATABASE[el.get('latexMacro')];
+            if(el.get('latexMacro') !== 'connectordot' && (!dbData || dbData.flippable !== false)) {
+                let oldPin = getVisualOrigin(el);
+                el.set('flipH', !(el.get('flipH') || false));
+                applyRobustScale(el, el.get('customScale') || 1); 
+                let newPin = getVisualOrigin(el);
+                let p = el.position();
+                el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
+            }
+        });
+        forceExportLatex(); saveState();
     }
 
     function flipVertical() {
         selectedElements.forEach(el => {
-            if(el.get('latexMacro') !== 'connectordot') {
+            let dbData = JL_DATABASE[el.get('latexMacro')];
+            if(el.get('latexMacro') !== 'connectordot' && (!dbData || dbData.flippable !== false)) {
+                let oldPin = getVisualOrigin(el);
                 el.set('flipV', !(el.get('flipV') || false));
                 applyRobustScale(el, el.get('customScale') || 1);
+                let newPin = getVisualOrigin(el);
+                let p = el.position();
+                el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
             }
         });
-        forceExportLatex();
-		saveState();
+        forceExportLatex(); saveState();
     }
 	
 	// --- ΣΥΝΑΡΤΗΣΗ ΑΛΛΑΓΗΣ ΚΛΙΜΑΚΑΣ ΜΕ PREDEFINED STEPS ---
@@ -1206,12 +1292,17 @@
                 d.className = 'comp-item';
                 
                 let iconSvg = '';
+                
+                // --- NEW: Generate the assembled preview path! ---
+                let previewIconPath = getDefaultIconPath(data);
+
                 if (k === 'connectordot') {
                     iconSvg = `<svg width="100%" height="100%" viewBox="-15 -15 30 30">
                                    <circle cx="0" cy="0" r="5" fill="#2c3e50"/>
                                </svg>`;
                 }
-                else if (data.icon && data.pins) {
+                // --- FIX: Use previewIconPath instead of data.icon ---
+                else if (previewIconPath && data.pins) {
                     const xs = data.pins.map(p => p.x), ys = data.pins.map(p => p.y);
                     let minX = xs.length ? Math.min(...xs) : 0;
                     let maxX = xs.length ? Math.max(...xs) : 0;
@@ -1220,7 +1311,10 @@
 
                     let bbox = { x: 0, y: 0, width: 0, height: 0 };
                     const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    tempPath.setAttribute('d', data.icon);
+                    
+                    // --- FIX: Inject the assembled path for bounding box math ---
+                    tempPath.setAttribute('d', previewIconPath); 
+                    
                     const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                     svgContainer.appendChild(tempPath);
                     document.body.appendChild(svgContainer);
@@ -1250,9 +1344,10 @@
                     const vbW = w + (padW * 2);
                     const vbH = h + (padH * 2);
 
+                    // --- FIX: Inject the assembled path into the final visual SVG ---
                     iconSvg = `
                         <svg width="100%" height="100%" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet">
-                            <path d="${data.icon}" transform="scale(${PPU_MULT})"
+                            <path d="${previewIconPath}" transform="scale(${PPU_MULT})"
                                   style="vector-effect: non-scaling-stroke;" 
                                   stroke="#2c3e50" stroke-width="2.5" fill="none" 
                                   stroke-linecap="round" stroke-linejoin="round"/>
@@ -1453,17 +1548,35 @@
 
             element.prop('ports', { groups: { 'absolute': { position: { name: 'absolute' } } } });
             element.addPorts(ports);
+            // --- NEW: Build Default Arguments for Drop ---
+            let initialArgs = [];
+            for (let i = 0; i < (data.argsCount || 7); i++) {
+                let argDef = data.argNames && data.argNames[i] ? data.argNames[i].name : '';
+                if (argDef.includes('/')) {
+                    initialArgs.push(argDef.split('/')[0].trim()); // Pick the first option by default
+                } else {
+                    initialArgs.push('');
+                }
+            }
+            
+            // Apply the smart preview overrides so it drops exactly like it looks in the palette!
+            if (data.previewArgs) {
+                Object.keys(data.previewArgs).forEach(idx => {
+                    initialArgs[parseInt(idx) - 1] = data.previewArgs[idx];
+                });
+            }
+
             element.set({
                 'latexMacro': data.name, 
                 'offsetX': boxOriginX, 'offsetY': boxOriginY,
                 'shiftX': shiftX, 'shiftY': shiftY,
                 'flipH': false, 'flipV': false,
-                'customArgs': [], 'customScale': 1,
+                'customArgs': initialArgs, // <--- FIX: Inject the smart defaults!
+                'customScale': 1,
                 'baseWidth': boxWidth, 'baseHeight': boxHeight,
                 'baseOffsetX': boxOriginX, 'baseOffsetY': boxOriginY,
                 'baseShiftX': shiftX, 'baseShiftY': shiftY,
                 'basePorts': basePorts,
-                // --- NEW: Store the TRUE visual boundaries for Auto-Anchors ---
                 'baseVisualTop': absMinY - boxOriginY,
                 'baseVisualBottom': absMaxY - boxOriginY,
                 'baseVisualLeft': absMinX - boxOriginX,
@@ -1482,11 +1595,14 @@
             updateElementLabel(element, data.name); 
             
             element.position(finalX, finalY);
+			// --- NEW: Assemble layers on drop! ---
+				assembleIcon(element, element.get('customArgs') || []);
         }
         graph.addCell(element); clearSelection(); selectedElements.push(element);
         setTimeout(() => { const v = paper.findViewByModel(element); if(v) v.highlight(); }, 10);
         exportLatex();
 		saveState();
+		updateToolbarState();
     }
 
 	// --- 6. ΚΑΛΩΔΙΑ ---
@@ -1601,36 +1717,17 @@
                 htmlBlock = highlightLatex(escapeHTML(cleanDotLine)) + htmlIdSpan + "\n";
             } else {
                 // --- ΕΞΥΠΝΟΣ ΥΠΟΛΟΓΙΣΜΟΣ OFFSET ΓΙΑ FLIP & ROTATION ---
-                const rot = el.get('angle') || 0;
-                const w = el.size().width;
-                const h = el.size().height;
-                let effOffsetX = el.get('offsetX');
-                let effOffsetY = el.get('offsetY');
+                const visOrg = getVisualOrigin(el);
+                const tx = (Math.round(visOrg.x) / EXPORT_DIV).toFixed(2);
+                const ty = (-(Math.round(visOrg.y)) / EXPORT_DIV).toFixed(2);
                 
-                if (el.get('flipH')) effOffsetX = -w - effOffsetX;
-                if (el.get('flipV')) effOffsetY = -h - effOffsetY;
-
-                const ox = p.x - effOffsetX;
-                const oy = p.y - effOffsetY;
-                const cx = p.x + w / 2;
-                const cy = p.y + h / 2;
-
-                const rad = rot * Math.PI / 180;
-                const cos = Math.cos(rad);
-                const sin = Math.sin(rad);
-
-                const dx = ox - cx;
-                const dy = oy - cy;
-
-                const rotatedOx = Math.round(cx + (dx * cos) - (dy * sin));
-                const rotatedOy = Math.round(cy + (dx * sin) + (dy * cos));
-
-                const tx = (rotatedOx / EXPORT_DIV).toFixed(2);
-                const ty = (-(rotatedOy) / EXPORT_DIV).toFixed(2);
+                // --- THE FIX: Convert Clockwise (Web) to Counter-Clockwise (TikZ) ---
+                let rawAngle = el.get('angle') || 0;
+                const rot = (360 - rawAngle) % 360;
                 
                 const flipH = el.get('flipH') || false;
                 const flipV = el.get('flipV') || false;
-                let flipStr = 'none'; 
+                let flipStr = 'none';
                 if (flipH && flipV) flipStr = 'hv';
                 else if (flipH) flipStr = 'h';
                 else if (flipV) flipStr = 'v';
@@ -2226,7 +2323,7 @@ ${indentedTikz}
             scale: el.get('customScale') || 1,
             lblX: el.get('labelOffsetX') || 0,
             lblY: el.get('labelOffsetY') || 0,
-            iconPath: el.attr('icon/d')
+            iconPath: el.attr('iconStroke/d')
         };
 
         let currentArgs = el.get('customArgs') || [];
@@ -2371,13 +2468,7 @@ ${indentedTikz}
                     el.set('labelOffsetY', previewLblY);
                     el.set('customArgs', previewArgs);
                     
-                    if (variantIndex !== -1 && data.icons) {
-                        let selectedVariant = previewArgs[variantIndex];
-                        if (data.icons[selectedVariant]) {
-							el.attr('iconFill/d', data.icons[selectedVariant]);
-							el.attr('iconStroke/d', data.icons[selectedVariant]);
-						}
-                    }
+                    assembleIcon(el, previewArgs);
 
                     if (previewScale !== currentScale) {
                         applyRobustScale(el, previewScale);
@@ -2428,13 +2519,7 @@ ${indentedTikz}
                 el.set('labelOffsetY', result.value.lblY);
                 el.set('customArgs', newArgs);
 
-                if (variantIndex !== -1 && data.icons) {
-                    let selectedVariant = newArgs[variantIndex];
-                    if (data.icons[selectedVariant]) {
-						el.attr('iconFill/d', data.icons[selectedVariant]);
-						el.attr('iconStroke/d', data.icons[selectedVariant]);
-					}
-                }
+                assembleIcon(el, newArgs);
 
                 if (newScale !== currentScale) {
                     applyRobustScale(el, newScale);
@@ -2458,7 +2543,8 @@ ${indentedTikz}
                 el.set('customArgs', originalState.args);
 
                 if (originalState.iconPath) {
-                    el.attr('icon/d', originalState.iconPath);
+                    el.attr('iconFill/d', originalState.iconPath);  
+                    el.attr('iconStroke/d', originalState.iconPath); 
                 }
 
                 if (originalState.scale !== currentScale) {
@@ -2534,12 +2620,7 @@ ${indentedTikz}
                     if (!desc.includes('position') && !desc.includes('rotation')) {
                         customArgs[i] = extractedArgs[i];
                         
-                        // 1. Ενημέρωση του Variant (π.χ. n -> p)
-                        if (i === variantIndex && data.icons[extractedArgs[i]]) {
-                            cell.attr('icon/d', data.icons[extractedArgs[i]]);
-                        }
-                        
-                        // 2. Ενημέρωση του Ονόματος ή του Κειμένου στον Καμβά
+                        // Ενημέρωση του Ονόματος ή του Κειμένου στον Καμβά
                         if (desc === 'name' || desc === 'text') {
 							let newName = extractedArgs[i] === '$NAME$' ? data.name : extractedArgs[i];
 							updateElementLabel(cell, newName);
@@ -2547,6 +2628,8 @@ ${indentedTikz}
                     }
                 }
                 cell.set('customArgs', customArgs);
+				// --- NEW: Assemble layers after syncing args! ---
+					assembleIcon(cell, customArgs);
             }
         });
 
@@ -2715,6 +2798,106 @@ ${indentedTikz}
             tab.style.display = 'flex';
         }
         setTimeout(() => { updateDynamicGrid(); }, 310);
+    }
+	
+	// --- DEFAULT ICON GENERATOR FOR PALETTE ---
+    function getDefaultIconPath(data) {
+        let path = data.iconBase || data.icon || '';
+        
+        // 1. Build a mock array of default arguments (e.g., "n/p" -> "n")
+        let defaultArgs = [];
+        for (let i = 0; i < (data.argsCount || 7); i++) {
+            let argDef = data.argNames && data.argNames[i] ? data.argNames[i].name : '';
+            if (argDef.includes('/')) {
+                defaultArgs.push(argDef.split('/')[0].trim()); // Pick the first option
+            } else {
+                defaultArgs.push('');
+            }
+        }
+
+        // --- THE MISSING FIX: Apply explicit preview overrides for the palette! ---
+        if (data.previewArgs) {
+            Object.keys(data.previewArgs).forEach(idx => {
+                defaultArgs[parseInt(idx) - 1] = data.previewArgs[idx];
+            });
+        }
+
+        // 2. Apply older variant logic (for legacy components)
+        if (data.variantArg && data.icons) {
+            let defaultVariant = defaultArgs[data.variantArg - 1];
+            if (data.icons[defaultVariant]) path = data.icons[defaultVariant];
+            else path = Object.values(data.icons)[0] || path;
+        }
+
+        // 3. Apply new Additive Layers logic
+        if (data.iconLayers) {
+            data.iconLayers.forEach(layer => {
+                let conditions = layer.condition.split('&');
+                let isMatch = true;
+                conditions.forEach(cond => {
+                    cond = cond.trim();
+                    if (cond.includes('==')) {
+                        let [argIdx, val] = cond.split('==');
+                        let actualVal = defaultArgs[parseInt(argIdx) - 1] || "";
+                        if (actualVal.trim() !== val.trim()) isMatch = false;
+                    } else if (cond.includes('~=')) {
+                        let [argIdx, val] = cond.split('~=');
+                        let actualVal = defaultArgs[parseInt(argIdx) - 1] || "";
+                        if (!actualVal.includes(val.trim())) isMatch = false;
+                    }
+                });
+                if (isMatch) path += " " + layer.path;
+            });
+        }
+        return path;
+    }
+	
+	// --- SMART ICON ASSEMBLER ---
+    function assembleIcon(el, argsArray) {
+        let macro = el.get('latexMacro');
+        let dbData = JL_DATABASE[macro];
+        if (!dbData) return;
+
+        let finalPath = dbData.iconBase || dbData.icon;
+        
+        // 1. Backwards compatibility for your older % icon_n / % icon_p components
+        if (dbData.variantArg && dbData.icons) {
+            let val = argsArray[dbData.variantArg - 1];
+            if (dbData.icons[val]) finalPath = dbData.icons[val];
+        }
+
+        // 2. The New Additive SVG Layer Logic
+        if (dbData.iconLayers) {
+            dbData.iconLayers.forEach(layer => {
+                let conditions = layer.condition.split('&');
+                let isMatch = true;
+                
+                conditions.forEach(cond => {
+                    cond = cond.trim();
+                    // Exact Match Rule (e.g., 3==p)
+                    if (cond.includes('==')) {
+                        let [argIdx, val] = cond.split('==');
+                        let actualVal = argsArray[parseInt(argIdx) - 1] || "";
+                        if (actualVal.trim() !== val.trim()) isMatch = false;
+                    } 
+                    // Substring Match Rule (e.g., 4~=arrow)
+                    else if (cond.includes('~=')) {
+                        let [argIdx, val] = cond.split('~=');
+                        let actualVal = argsArray[parseInt(argIdx) - 1] || "";
+                        if (!actualVal.includes(val.trim())) isMatch = false;
+                    }
+                });
+                
+                // If all conditions passed, snap the Lego brick onto the path!
+                if (isMatch) {
+                    finalPath += " " + layer.path;
+                }
+            });
+        }
+        
+        // Apply the combined path to the canvas
+        el.attr('iconFill/d', finalPath);
+        el.attr('iconStroke/d', finalPath);
     }
 	
 </script>
