@@ -16,9 +16,10 @@ def generate_db(sty_file):
         arg_count = int(match.group(2))
         body = match.group(3)
         
-        body_lines = body.strip().split('\n')
+        # --- THE FIX: Strip out // comments from every line before processing! ---
+        body_lines = [line.split('//')[0].strip() for line in body.strip().split('\n')]
         
-        if any(line.strip().lower() == '% disabled' for line in body_lines):
+        if any(line.lower() == '% disabled' for line in body_lines):
             continue
         
         comp_data = {
@@ -56,11 +57,23 @@ def generate_db(sty_file):
             elif line.startswith('% add_icon:'):
                 parts = line.replace('% add_icon:', '').split(':', 1)
                 if len(parts) == 2:
+                    condition = parts[0].strip()
+                    path_data = parts[1].strip()
+                    
+                    # Look for optional styling brackets [stroke=red, stroke-width=2]
+                    style_str = ""
+                    if path_data.startswith('['):
+                        end_idx = path_data.find(']')
+                        if end_idx != -1:
+                            style_str = path_data[1:end_idx].strip()
+                            path_data = path_data[end_idx+1:].strip()
+                    
                     if 'iconLayers' not in comp_data:
                         comp_data['iconLayers'] = []
                     comp_data['iconLayers'].append({
-                        "condition": parts[0].strip(),
-                        "path": parts[1].strip()
+                        "condition": condition,
+                        "style": style_str,
+                        "path": path_data
                     })
             
             elif line.startswith('% icon_'):

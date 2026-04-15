@@ -22,10 +22,12 @@ const JL_DATABASE = {
         "iconLayers": [
             {
                 "condition": "3==closed",
+                "style": "",
                 "path": "M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z"
             },
             {
                 "condition": "3==open",
+                "style": "",
                 "path": "M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z"
             }
         ],
@@ -79,18 +81,28 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Switches",
-        "variantArg": 3,
-        "icons": {
-            "state1": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 9 -2 L 30 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z",
-            "state2": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 9 -18 L 30 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 11 -18 A 1 1 0 1 0 9 -18 A 1 1 0 1 0 11 -18 Z"
-        },
-        "icon": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 9 -2 L 30 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z",
         "filled": true,
         "labelAnchor": {
             "auto": true,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "3": "state1"
+        },
+        "iconBase": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z",
+        "iconLayers": [
+            {
+                "condition": "3==state1",
+                "style": "",
+                "path": "M 9 -2 L 30 -10 M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z"
+            },
+            {
+                "condition": "3==state2",
+                "style": "",
+                "path": "M 9 -18 L 30 -10 M 11 -18 A 1 1 0 1 0 9 -18 A 1 1 0 1 0 11 -18 Z"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -148,18 +160,28 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "variantArg": 3,
-        "icons": {
-            "closed": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12 M 20 -13 L 20 -15 M 19 -15 L 21 -15",
-            "open": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -6 L 20 -7 M 20 -8 L 20 -9 M 20 -10 L 20 -11 M 20 -12 L 20 -13 M 20 -14 L 20 -15 M 19 -15 L 21 -15"
-        },
-        "icon": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12 M 20 -13 L 20 -15 M 19 -15 L 21 -15",
         "filled": true,
         "labelAnchor": {
             "auto": true,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "3": "open"
+        },
+        "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -15 M 19 -15 L 21 -15",
+        "iconLayers": [
+            {
+                "condition": "3==closed",
+                "style": "",
+                "path": "M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12"
+            },
+            {
+                "condition": "3==open",
+                "style": "",
+                "path": "M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 20 -6 L 20 -7 M 20 -8 L 20 -9 M 20 -10 L 20 -11 M 20 -12 L 20 -13 M 20 -14 L 20 -15"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -215,18 +237,48 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "variantArg": 4,
-        "icons": {
-            "n": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -18 M 19 -18 L 21 -18 M 9 0 L 9 -13 L 31 -13 M 31 -13 L 31 2 L 9 2 L 9 0",
-            "p": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -15 L 20 -18 M 19 -18 L 21 -18 M 9 0 L 9 -13 L 31 -13 L 31 2 L 9 2 L 9 0 M 19 -14 A 1 1 0 1 0 21 -14 M 21 -14 A 1 1 0 1 0 19 -14"
-        },
-        "icon": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -18 M 19 -18 L 21 -18 M 9 0 L 9 -13 L 31 -13 M 31 -13 L 31 2 L 9 2 L 9 0",
         "filled": false,
         "labelAnchor": {
             "auto": true,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "4": "n"
+        },
+        "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11",
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.8",
+                "path": "M 9 0 L 9 -13 L 31 -13 L 31 2 L 9 2 L 9 0"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.8",
+                "path": "M 16 -18 L 24 -18"
+            },
+            {
+                "condition": "1~=",
+                "style": "fill=solid",
+                "path": "M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z"
+            },
+            {
+                "condition": "4==n",
+                "style": "stroke-width=2.5, stroke-dasharray=2 2",
+                "path": "M 20 -13 L 20 -18"
+            },
+            {
+                "condition": "4==p",
+                "style": "stroke-width=2.5, stroke-dasharray=2 2",
+                "path": "M 20 -15 L 20 -18"
+            },
+            {
+                "condition": "4==p",
+                "style": "",
+                "path": "M 19 -14 A 1 1 0 1 0 21 -14 A 1 1 0 1 0 19 -14 Z"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -237,7 +289,7 @@ const JL_DATABASE = {
                 "optional": false
             },
             {
-                "name": "control value (0, 1, other) '*' at end for inverted value",
+                "name": "control value",
                 "optional": false
             },
             {
@@ -277,11 +329,36 @@ const JL_DATABASE = {
         "argsCount": 5,
         "enabled": "true",
         "category": "Terminals",
-        "icon": "M 0 0 L 0 15 M -15 15 L 15 15 M -10 22 L 10 22 M -5 29 L 5 29",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "filled": false,
         "labelAnchor": {
-            "auto": true,
+            "x": 0.0,
+            "y": 3.5,
             "dir": "B"
         },
+        "flippable": false,
+        "iconBase": "M 0 0 L 0 15",
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=4.5",
+                "path": "M -15 15 L 15 15"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=3.5",
+                "path": "M -10 22 L 10 22"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=3.0",
+                "path": "M -5 29 L 5 29"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -323,18 +400,29 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "variantArg": 4,
-        "icons": {
-            "standard": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0",
-            "controlled": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 L 0 -20 L 20 0 L 0 20 L -20 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0"
-        },
-        "icon": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0",
         "filled": false,
         "labelAnchor": {
-            "auto": true,
+            "x": 0.0,
+            "y": 15.0,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "4": "standard"
+        },
+        "iconBase": "M -30 0 L -20 0 M 20 0 L 30 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0",
+        "iconLayers": [
+            {
+                "condition": "4==standard",
+                "style": "stroke-width=2.5",
+                "path": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0"
+            },
+            {
+                "condition": "4==controlled",
+                "style": "stroke-width=2.5",
+                "path": "M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -390,18 +478,29 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "variantArg": 4,
-        "icons": {
-            "standard": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5",
-            "controlled": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 L 0 -20 L 20 0 L 0 20 L -20 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5"
-        },
-        "icon": "M -30 0 L -20 0 M 20 0 L 30 0 M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5",
         "filled": false,
         "labelAnchor": {
-            "auto": true,
+            "x": 0.0,
+            "y": 15.0,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "4": "standard"
+        },
+        "iconBase": "M -30 0 L -20 0 M 20 0 L 30 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5",
+        "iconLayers": [
+            {
+                "condition": "4==standard",
+                "style": "",
+                "path": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0"
+            },
+            {
+                "condition": "4==controlled",
+                "style": "",
+                "path": "M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -451,24 +550,30 @@ const JL_DATABASE = {
         "name": "lamp",
         "argsCount": 6,
         "enabled": "true",
+        "category": "Indicators",
         "scales": [
             0.5,
             1,
             2,
             4
         ],
-        "variantArg": 4,
-        "icons": {
-            "on": "M -15 0 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -10 10 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 9 L 12 9 M 17 0 L 22 0 M -17 0 L -22 0 M 13 -11 L 18 -17 M 0 -15 L 0 -19 M -13 -11 L -18 -17",
-            "off": "M -15 0 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -10 10 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 9 L 12 9"
-        },
-        "icon": "M -15 0 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -10 10 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 9 L 12 9 M 17 0 L 22 0 M -17 0 L -22 0 M 13 -11 L 18 -17 M 0 -15 L 0 -19 M -13 -11 L -18 -17",
         "filled": false,
         "labelAnchor": {
             "auto": true,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "4": "on"
+        },
+        "iconBase": "M -15 0 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 9 L 12 9",
+        "iconLayers": [
+            {
+                "condition": "4==on",
+                "style": "",
+                "path": "M 17 0 L 22 0 M -17 0 L -22 0 M 13 -11 L 18 -17 M 0 -15 L 0 -19 M -13 -11 L -18 -17"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -521,19 +626,34 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "variantArg": 4,
-        "icons": {
-            "sine": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0",
-            "square": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -12 0 L -12 0 L -12 -11 L -4 -11 L -4 11 L 4 11 L 4 -11 L 12 -11 L 12 0 L 15 0 M -15 0 L -12 0",
-            "triangle": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -14 7 L -8 -11 L 0 11 L 8 -11 L 15 7"
-        },
-        "icon": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0",
         "filled": false,
         "labelAnchor": {
-            "auto": true,
+            "x": 0.0,
+            "y": 15.0,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "4": "sine"
+        },
+        "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0",
+        "iconLayers": [
+            {
+                "condition": "4==sine",
+                "style": "",
+                "path": "M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0"
+            },
+            {
+                "condition": "4==square",
+                "style": "",
+                "path": "M -15 0 L -12 0 L -12 -11 L -4 -11 L -4 11 L 4 11 L 4 -11 L 12 -11 L 12 0 L 15 0"
+            },
+            {
+                "condition": "4==triangle",
+                "style": "",
+                "path": "M -14 7 L -8 -11 L 0 11 L 8 -11 L 15 7"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -585,6 +705,11 @@ const JL_DATABASE = {
         "enabled": "true",
         "icon": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -16 -3 A 17 17 0 0 1 16 -3 M 0 10 L 0 -10",
         "flippable": false,
+        "labelAnchor": {
+            "x": 0.0,
+            "y": 15.0,
+            "dir": "B"
+        },
         "argNames": [
             {
                 "name": "position",
@@ -635,7 +760,24 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
-        "icon": "M 0 0 L 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 L 80 0",
+        "filled": false,
+        "labelAnchor": {
+            "x": 4.0,
+            "y": 0.5,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "4": "fixed"
+        },
+        "iconBase": "M 0 0 L 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 L 80 0",
+        "iconLayers": [
+            {
+                "condition": "4==variable",
+                "style": "",
+                "path": "M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -686,7 +828,24 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
-        "icon": "M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0",
+        "filled": false,
+        "labelAnchor": {
+            "x": 4.0,
+            "y": 1.0,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "4": "fixed"
+        },
+        "iconBase": "M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0",
+        "iconLayers": [
+            {
+                "condition": "4==variable",
+                "style": "",
+                "path": "M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -737,7 +896,34 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
-        "icon": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -15 L 24 15 M 24 0 L 40 0",
+        "filled": false,
+        "labelAnchor": {
+            "x": 2.0,
+            "y": 0.5,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "fixed"
+        },
+        "iconBase": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -15 L 24 15 M 24 0 L 40 0",
+        "iconLayers": [
+            {
+                "condition": "3~=variable",
+                "style": "",
+                "path": "M 10 12 L 30 -12 M 30 -12 L 24 -11 M 30 -12 L 28 -6"
+            },
+            {
+                "condition": "4==plus",
+                "style": "",
+                "path": "M 12 -12 L 12 -8 M 10 -10 L 14 -10"
+            },
+            {
+                "condition": "4==minus",
+                "style": "",
+                "path": "M 10 -10 L 14 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -788,7 +974,34 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Sources",
-        "icon": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -7 L 24 7 M 24 0 L 40 0",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "filled": false,
+        "labelAnchor": {
+            "x": 0.0,
+            "y": 15.0,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "fixed"
+        },
+        "iconBase": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -7 L 24 7 M 24 0 L 40 0",
+        "iconLayers": [
+            {
+                "condition": "3~=variable",
+                "style": "",
+                "path": "M 10 12 L 30 -12 M 30 -12 L 24 -11 M 30 -12 L 28 -6"
+            },
+            {
+                "condition": "4==plus",
+                "style": "",
+                "path": "M 12 -12 L 12 -8 M 10 -10 L 14 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -839,7 +1052,34 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Sources",
-        "icon": "M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "filled": false,
+        "labelAnchor": {
+            "x": 0.5,
+            "y": 15.0,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "fixed"
+        },
+        "iconBase": "M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0",
+        "iconLayers": [
+            {
+                "condition": "3~=variable",
+                "style": "",
+                "path": "M -5 12 L 25 -12 M 25 -12 L 19 -11 M 25 -12 L 23 -6"
+            },
+            {
+                "condition": "4==plus",
+                "style": "",
+                "path": "M -14 -12 L -14 -8 M -16 -10 L -12 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -890,7 +1130,29 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Active Components",
-        "icon": "M -40 0 L -10 0 M -10 -15 L -10 15 M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M 10 25 L 4 25 L 8 18 Z M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0",
+        "filled": false,
+        "labelAnchor": {
+            "x": 0.0,
+            "y": 2.5,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "n"
+        },
+        "iconBase": "M -40 0 L -10 0 M -10 -15 L -10 15 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0",
+        "iconLayers": [
+            {
+                "condition": "3==n",
+                "style": "",
+                "path": "M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M 10 25 L 4 25 L 8 18 Z"
+            },
+            {
+                "condition": "3==p",
+                "style": "",
+                "path": "M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M -10 5 L -4 11 L -2 5 Z"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -951,18 +1213,22 @@ const JL_DATABASE = {
         "iconLayers": [
             {
                 "condition": "4~=case",
+                "style": "",
                 "path": "M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0"
             },
             {
                 "condition": "3==n & 4~=arrow",
+                "style": "",
                 "path": "M 10 15 L 6 12 M 10 15 L 6 18"
             },
             {
                 "condition": "3==p & 4~=arrow",
+                "style": "",
                 "path": "M -2 15 L 2 12 M -2 15 L 2 18"
             },
             {
                 "condition": "3==p & 4~=dot",
+                "style": "",
                 "path": "M -25 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
             }
         ],

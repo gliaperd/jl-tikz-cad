@@ -210,6 +210,8 @@
             transform: none !important;
         }
 		
+		#palette-search:focus { border-color: #3498db !important; }
+		
     </style>
 </head>
 <body>
@@ -269,6 +271,10 @@
             <button onclick="toggleSidebar()" style="background:none; border:none; cursor:pointer; font-size: 14px; color:#7f8c8d; padding:0; margin:0;" title="Minimize Palette">🗕</button>
         </div>
         
+        <div style="padding: 10px; border-bottom: 1px solid #bdc3c7; background: #fdfdfd; flex-shrink: 0;">
+            <input type="text" id="palette-search" placeholder="Search parts..." style="width: 100%; padding: 6px 10px; box-sizing: border-box; border: 1px solid #d1d8e0; border-radius: 4px; font-size: 12px; outline: none; transition: border-color 0.2s;">
+        </div>
+
         <div id="items-container"></div>
     </div>
 </div>
@@ -313,11 +319,7 @@
         size: { width: 40, height: 40 },
         attrs: {
             body: { 
-                refWidth: '100%', refHeight: '100%', 
-                fill: '#ffffff', 
-                fillOpacity: 0.01, // ΑΥΤΟ ΕΙΝΑΙ ΤΟ ΜΥΣΤΙΚΟ ΓΙΑ ΤΟ ΔΙΠΛΟ ΚΛΙΚ!
-                stroke: 'none', 
-                'pointer-events': 'all', cursor: 'pointer' 
+                refWidth: '100%', refHeight: '100%', fill: '#ffffff', fillOpacity: 0.01, stroke: 'none', 'pointer-events': 'all', cursor: 'pointer' 
             },
             fo: { display: 'none', width: 1, height: 1, 'pointer-events': 'none' }
         }
@@ -326,8 +328,11 @@
             { tagName: 'text', selector: 'label' },
             { tagName: 'foreignObject', selector: 'fo' },
             { tagName: 'rect', selector: 'body' },
-            { tagName: 'path', selector: 'iconFill' },   // <--- NEW: The Fill Layer
-            { tagName: 'path', selector: 'iconStroke' }  // <--- NEW: The Stroke Layer
+            // THE FIX: Wrap all visual paths in an SVG Group!
+            { tagName: 'g', selector: 'iconGroup', children: [
+                { tagName: 'path', selector: 'iconFill' },   
+                { tagName: 'path', selector: 'iconStroke' }  
+            ]}
         ]
     });
 
@@ -1214,8 +1219,8 @@
         let sx = flipH ? -1 : 1;
         let sy = flipV ? -1 : 1;
 
-        el.attr('iconFill/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
-        el.attr('iconStroke/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
+        // THE FIX: Scale the whole group instantly!
+        el.attr('iconGroup/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
 
 		// ΛΥΣΗ SCALE DOWN: Μετακινούμε ΠΡΩΤΑ τα Ports...
         let basePorts = el.get('basePorts');
@@ -1290,19 +1295,22 @@
                 const data = JL_DATABASE[k];
                 const d = document.createElement('div');
                 d.className = 'comp-item';
+				d.title = data.name;
+				d.setAttribute('data-search', data.name.toLowerCase());
                 
                 let iconSvg = '';
                 
-                // --- NEW: Generate the assembled preview path! ---
-                let previewIconPath = getDefaultIconPath(data);
+                // --- NEW: Generate the layered preview data! ---
+                let iconData = getPaletteIconData(data);
+                let combinedPathForMath = iconData.base + " " + iconData.layers.map(l => l.path).join(" ");
 
                 if (k === 'connectordot') {
                     iconSvg = `<svg width="100%" height="100%" viewBox="-15 -15 30 30">
                                    <circle cx="0" cy="0" r="5" fill="#2c3e50"/>
                                </svg>`;
                 }
-                // --- FIX: Use previewIconPath instead of data.icon ---
-                else if (previewIconPath && data.pins) {
+                // --- FIX: Use combinedPathForMath instead of data.icon ---
+                else if (combinedPathForMath && data.pins) {
                     const xs = data.pins.map(p => p.x), ys = data.pins.map(p => p.y);
                     let minX = xs.length ? Math.min(...xs) : 0;
                     let maxX = xs.length ? Math.max(...xs) : 0;
@@ -1313,7 +1321,7 @@
                     const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                     
                     // --- FIX: Inject the assembled path for bounding box math ---
-                    tempPath.setAttribute('d', previewIconPath); 
+                    tempPath.setAttribute('d', combinedPathForMath); 
                     
                     const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                     svgContainer.appendChild(tempPath);
@@ -1344,13 +1352,32 @@
                     const vbW = w + (padW * 2);
                     const vbH = h + (padH * 2);
 
-                    // --- FIX: Inject the assembled path into the final visual SVG ---
+                    // --- FIX: Thinner, sharper lines for the palette ---
+                    let layersHtml = iconData.layers.map(l => {
+                        // 1. Changed default strokeWidth from 2.5 to 1.5
+                        let stroke = "#2c3e50", strokeWidth = 1.5, fill = "none"; 
+                        if (l.style) {
+                            l.style.split(',').forEach(s => {
+                                let parts = s.split('=');
+                                if (parts.length === 2) {
+                                    if (parts[0].trim() === 'stroke') stroke = parts[1].trim();
+                                    // 2. Updated the ratio to (1.5 / 1.8) so custom thick lines scale down properly
+                                    if (parts[0].trim() === 'stroke-width') strokeWidth = parseFloat(parts[1].trim()) * (1.5/1.8); 
+                                    if (parts[0].trim() === 'fill') {
+                                        fill = parts[1].trim() === 'solid' ? '#2c3e50' : parts[1].trim();
+                                    }
+                                }
+                            });
+                        }
+                        return `<path d="${l.path}" transform="scale(${PPU_MULT})" style="vector-effect: non-scaling-stroke;" stroke="${stroke}" stroke-width="${strokeWidth}" fill="${fill}" />`;
+                    }).join('\n');
+
                     iconSvg = `
                         <svg width="100%" height="100%" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet">
-                            <path d="${previewIconPath}" transform="scale(${PPU_MULT})"
+                            <path d="${iconData.base}" transform="scale(${PPU_MULT})"
                                   style="vector-effect: non-scaling-stroke;" 
-                                  stroke="#2c3e50" stroke-width="2.5" fill="none" 
-                                  stroke-linecap="round" stroke-linejoin="round"/>
+                                  stroke="#2c3e50" stroke-width="1.5" fill="none" /> 
+                            ${layersHtml}
                         </svg>`;
                 }
                 
@@ -1474,37 +1501,27 @@
 
 			element.resize(boxWidth, boxHeight);
 			element.attr({ 
-                body: { 
-                    fill: '#ffffff',        
-                    fillOpacity: 0.01,  // Λύνει το θέμα με το Hitbox
-                    stroke: 'none', 
-                    'pointer-events': 'all',
-                    cursor: 'pointer'   // Διώχνει το "χεράκι"
+                body: { fill: '#ffffff', fillOpacity: 0.01, stroke: 'none', 'pointer-events': 'all', cursor: 'pointer' },
+                // Apply transform to the whole group!
+                iconGroup: {
+                    transform: `translate(${shiftX}, ${shiftY}) scale(${PPU_MULT})`
                 },
                 iconFill: {
                     d: iconPath, 
                     stroke: 'none',
-                    // NEW: Only apply the fill if the database says this component is solid!
                     fill: data.filled ? theme.componentIcon : 'none', 
-                    'fill-rule': 'evenodd',
-                    transform: `translate(${shiftX}, ${shiftY}) scale(${PPU_MULT})`
+                    'fill-rule': 'evenodd'
                 },
                 iconStroke: {
                     d: iconPath, 
                     stroke: theme.componentIcon,
                     strokeWidth: 1.8, 
-                    fill: 'none', // <--- Keeps the lines empty!
-                    transform: `translate(${shiftX}, ${shiftY}) scale(${PPU_MULT})`,
+                    fill: 'none', 
                     'vector-effect': 'non-scaling-stroke' 
                 },
 				label: { 
-                    text: data.name, 
-                    fontSize: 12 * PPU_MULT, 
-					fill: theme.componentLabel,
-                    refX: '50%', textAnchor: 'middle', 
-                    refY: '50%', // Αγκίστρωση στο ΚΕΝΤΡΟ του εξαρτήματος (δεν επηρεάζεται από το Rotate!)
-                    refY2: 25 * PPU_MULT, // Σταθερή μετατόπιση προς τα κάτω
-                    'pointer-events': 'none'
+                    text: data.name, fontSize: 12 * PPU_MULT, fill: theme.componentLabel,
+                    refX: '50%', textAnchor: 'middle', refY: '50%', refY2: 25 * PPU_MULT, 'pointer-events': 'none'
                 }
             });
 			
@@ -2702,7 +2719,7 @@ ${indentedTikz}
             link.attr('line/stroke', theme.wire);
         });
 
-        // 6. Update existing elements
+// 6. Update existing elements
         graph.getElements().forEach(el => {
             const macro = el.get('latexMacro');
             if (macro === 'connectordot') {
@@ -2729,6 +2746,9 @@ ${indentedTikz}
                     el.portProp(port.id, 'attrs/portBody/fill', theme.portBody);
                     el.portProp(port.id, 'attrs/portLabel/fill', theme.portLabel);
                 });
+
+                // --- THE THEME FIX: Re-assemble the dynamic layers so they grab the new colors! ---
+                assembleIcon(el, el.get('customArgs') || []);
             }
         });
 
@@ -2801,35 +2821,25 @@ ${indentedTikz}
     }
 	
 	// --- DEFAULT ICON GENERATOR FOR PALETTE ---
-    function getDefaultIconPath(data) {
-        let path = data.iconBase || data.icon || '';
+    function getPaletteIconData(data) {
+        let base = data.iconBase || data.icon || '';
+        let layers = [];
         
-        // 1. Build a mock array of default arguments (e.g., "n/p" -> "n")
         let defaultArgs = [];
         for (let i = 0; i < (data.argsCount || 7); i++) {
             let argDef = data.argNames && data.argNames[i] ? data.argNames[i].name : '';
-            if (argDef.includes('/')) {
-                defaultArgs.push(argDef.split('/')[0].trim()); // Pick the first option
-            } else {
-                defaultArgs.push('');
-            }
+            defaultArgs.push(argDef.includes('/') ? argDef.split('/')[0].trim() : '');
         }
 
-        // --- THE MISSING FIX: Apply explicit preview overrides for the palette! ---
         if (data.previewArgs) {
-            Object.keys(data.previewArgs).forEach(idx => {
-                defaultArgs[parseInt(idx) - 1] = data.previewArgs[idx];
-            });
+            Object.keys(data.previewArgs).forEach(idx => { defaultArgs[parseInt(idx) - 1] = data.previewArgs[idx]; });
         }
 
-        // 2. Apply older variant logic (for legacy components)
         if (data.variantArg && data.icons) {
             let defaultVariant = defaultArgs[data.variantArg - 1];
-            if (data.icons[defaultVariant]) path = data.icons[defaultVariant];
-            else path = Object.values(data.icons)[0] || path;
+            base = data.icons[defaultVariant] ? data.icons[defaultVariant] : Object.values(data.icons)[0] || base;
         }
 
-        // 3. Apply new Additive Layers logic
         if (data.iconLayers) {
             data.iconLayers.forEach(layer => {
                 let conditions = layer.condition.split('&');
@@ -2838,67 +2848,135 @@ ${indentedTikz}
                     cond = cond.trim();
                     if (cond.includes('==')) {
                         let [argIdx, val] = cond.split('==');
-                        let actualVal = defaultArgs[parseInt(argIdx) - 1] || "";
-                        if (actualVal.trim() !== val.trim()) isMatch = false;
+                        if ((defaultArgs[parseInt(argIdx) - 1] || "").trim() !== val.trim()) isMatch = false;
                     } else if (cond.includes('~=')) {
                         let [argIdx, val] = cond.split('~=');
-                        let actualVal = defaultArgs[parseInt(argIdx) - 1] || "";
-                        if (!actualVal.includes(val.trim())) isMatch = false;
+                        if (!(defaultArgs[parseInt(argIdx) - 1] || "").includes(val.trim())) isMatch = false;
                     }
                 });
-                if (isMatch) path += " " + layer.path;
+                if (isMatch) layers.push(layer);
             });
         }
-        return path;
+        return { base, layers };
     }
 	
-	// --- SMART ICON ASSEMBLER ---
+	// --- SMART ICON ASSEMBLER (WITH DYNAMIC STYLING) ---
     function assembleIcon(el, argsArray) {
         let macro = el.get('latexMacro');
         let dbData = JL_DATABASE[macro];
         if (!dbData) return;
 
-        let finalPath = dbData.iconBase || dbData.icon;
+        let basePath = dbData.iconBase || dbData.icon || "";
         
-        // 1. Backwards compatibility for your older % icon_n / % icon_p components
+        let dynamicMarkup = [
+            { tagName: 'text', selector: 'label' },
+            { tagName: 'foreignObject', selector: 'fo' },
+            { tagName: 'rect', selector: 'body' },
+            { tagName: 'g', selector: 'iconGroup', children: [
+                { tagName: 'path', selector: 'iconFill' },
+                { tagName: 'path', selector: 'iconStroke' }
+            ]}
+        ];
+
+        let matchedLayers = [];
         if (dbData.variantArg && dbData.icons) {
             let val = argsArray[dbData.variantArg - 1];
-            if (dbData.icons[val]) finalPath = dbData.icons[val];
+            if (dbData.icons[val]) basePath = dbData.icons[val];
         }
 
-        // 2. The New Additive SVG Layer Logic
         if (dbData.iconLayers) {
             dbData.iconLayers.forEach(layer => {
                 let conditions = layer.condition.split('&');
                 let isMatch = true;
-                
                 conditions.forEach(cond => {
                     cond = cond.trim();
-                    // Exact Match Rule (e.g., 3==p)
                     if (cond.includes('==')) {
                         let [argIdx, val] = cond.split('==');
-                        let actualVal = argsArray[parseInt(argIdx) - 1] || "";
-                        if (actualVal.trim() !== val.trim()) isMatch = false;
-                    } 
-                    // Substring Match Rule (e.g., 4~=arrow)
-                    else if (cond.includes('~=')) {
+                        if ((argsArray[parseInt(argIdx) - 1] || "").trim() !== val.trim()) isMatch = false;
+                    } else if (cond.includes('~=')) {
                         let [argIdx, val] = cond.split('~=');
-                        let actualVal = argsArray[parseInt(argIdx) - 1] || "";
-                        if (!actualVal.includes(val.trim())) isMatch = false;
+                        if (!(argsArray[parseInt(argIdx) - 1] || "").includes(val.trim())) isMatch = false;
                     }
                 });
-                
-                // If all conditions passed, snap the Lego brick onto the path!
-                if (isMatch) {
-                    finalPath += " " + layer.path;
-                }
+                if (isMatch) matchedLayers.push(layer);
             });
         }
-        
-        // Apply the combined path to the canvas
-        el.attr('iconFill/d', finalPath);
-        el.attr('iconStroke/d', finalPath);
+
+        // Push new paths inside the iconGroup so they scale automatically!
+        matchedLayers.forEach((layer, i) => {
+            dynamicMarkup[3].children.push({ tagName: 'path', selector: `overlay_${i}` });
+        });
+
+        el.set('markup', dynamicMarkup);
+        el.attr('iconFill/d', basePath);
+        el.attr('iconStroke/d', basePath);
+
+        const theme = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
+
+        matchedLayers.forEach((layer, i) => {
+            let sel = `overlay_${i}`;
+            el.attr(`${sel}/d`, layer.path);
+            el.attr(`${sel}/vector-effect`, 'non-scaling-stroke');
+            el.attr(`${sel}/fill`, 'none');
+            el.attr(`${sel}/stroke`, theme.componentIcon);
+            el.attr(`${sel}/stroke-width`, 1.8);
+            
+            if (layer.style) {
+                let styles = layer.style.split(',');
+                styles.forEach(s => {
+                    let parts = s.split('=');
+                    if (parts.length === 2) {
+                        let k = parts[0].trim();
+                        let v = parts[1].trim();
+                        if (k === 'stroke-width') el.attr(`${sel}/stroke-width`, parseFloat(v));
+                        else if (k === 'stroke') el.attr(`${sel}/stroke`, v);
+                        else if (k === 'fill') {
+                            // THE FIX: Make 'solid' theme-aware!
+                            el.attr(`${sel}/fill`, v === 'solid' ? theme.componentIcon : v);
+                        }
+                        else el.attr(`${sel}/${k}`, v);
+                    }
+                });
+            }
+        });
     }
+	
+	// --- REAL-TIME PALETTE SEARCH ---
+    document.getElementById('palette-search').addEventListener('input', function(e) {
+        const term = e.target.value.toLowerCase().trim();
+        const container = document.getElementById('items-container');
+
+        let currentHeader = null;
+        let visibleCountInCategory = 0;
+
+        // Loop through everything in the palette (both headers and items)
+        container.childNodes.forEach(node => {
+            if (node.classList && node.classList.contains('category-header')) {
+                // If we hit a new header, decide if the PREVIOUS header should be visible
+                if (currentHeader) {
+                    currentHeader.style.display = visibleCountInCategory > 0 ? 'block' : 'none';
+                }
+                currentHeader = node;
+                visibleCountInCategory = 0; // Reset counter for the new category
+            } 
+            else if (node.classList && node.classList.contains('comp-item')) {
+                const compName = node.getAttribute('data-search') || "";
+                
+                // Check if the component name includes the typed letters
+                if (compName.includes(term)) {
+                    node.style.display = 'flex';
+                    visibleCountInCategory++;
+                } else {
+                    node.style.display = 'none';
+                }
+            }
+        });
+
+        // Don't forget to check the very last category in the list!
+        if (currentHeader) {
+            currentHeader.style.display = visibleCountInCategory > 0 ? 'block' : 'none';
+        }
+    });
 	
 </script>
 </body>

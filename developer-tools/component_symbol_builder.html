@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ultimate .sty Component IDE v3</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #ecf0f1; margin: 0; padding: 15px; display: flex; gap: 15px; height: 100vh; box-sizing: border-box; }
+        .panel { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 10px; }
+        .side-panel { flex: 1; overflow-y: auto; max-width: 400px; min-width: 340px; }
+        .main-panel { flex: 2; display: flex; flex-direction: column; gap: 10px; }
+        
+        label { font-weight: bold; font-size: 10px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; }
+        input[type="text"], textarea, select { width: 100%; padding: 5px 8px; border: 1px solid #bdc3c7; border-radius: 4px; font-family: monospace; font-size: 12px; box-sizing: border-box; }
+        
+        /* FIX 1: Textarea resizable only vertically */
+        textarea { resize: vertical; }
+        
+        /* Toolbars */
+        .toolbar { display: flex; gap: 10px; background: #2c3e50; padding: 8px 12px; border-radius: 6px; color: white; align-items: center; flex-wrap: wrap; }
+        .tool-btn { background: #34495e; color: white; border: 1px solid #7f8c8d; padding: 5px 10px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 12px;}
+        .tool-btn.active { background: #3498db; border-color: #2980b9; font-weight: bold; box-shadow: inset 0 0 5px rgba(0,0,0,0.3); }
+        .tool-btn:hover { background: #3b5998; }
+        .style-group { display: flex; gap: 8px; align-items: center; border-left: 1px solid #7f8c8d; padding-left: 10px; margin-left: 5px;}
+        
+        /* Canvas */
+        .canvas-container { flex: 1; background: #fff; border: 2px solid #bdc3c7; border-radius: 8px; position: relative; cursor: crosshair; overflow: hidden; min-height: 400px; display: flex; flex-direction: column;}
+        .view-controls { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 5px; background: rgba(255,255,255,0.8); padding: 5px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 20; }
+        .view-btn { background: #ecf0f1; border: 1px solid #bdc3c7; padding: 4px 8px; cursor: pointer; border-radius: 3px; font-weight: bold; font-size: 14px;}
+        .view-btn:hover { background: #d5dbdb; }
+        svg { width: 100%; height: 100%; }
+		
+		/* Shape Interaction */
+        .shape-path { transition: stroke 0.1s, opacity 0.1s; pointer-events: visiblePainted; }
+        .shape-path.erasable:hover { stroke: #e74c3c !important; stroke-width: 3px !important; opacity: 0.7; cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>') 10 10, crosshair !important; }
+        
+        /* Meta & Help Box */
+        .meta-box { background: #fdfdfd; border: 1px solid #bdc3c7; border-radius: 6px; padding: 10px; margin-top: 5px;}
+        .help-box { font-size: 11px; background: #ebf5fb; border: 1px solid #3498db; border-radius: 6px; padding: 8px; color: #2c3e50; }
+        .help-box summary { font-weight: bold; cursor: pointer; color: #2980b9; outline: none; }
+        .help-box ul { margin: 5px 0 0 0; padding-left: 20px; }
+        .help-box li { margin-bottom: 4px; }
+        
+        /* Layers */
+        .layer-list { display: flex; flex-direction: column; gap: 8px; }
+        .layer-item { border: 1px solid #bdc3c7; border-radius: 6px; padding: 8px; background: #fdfdfd; display: flex; flex-direction: column; gap: 5px; transition: 0.2s; border-left: 4px solid #bdc3c7;}
+        .layer-item.active-layer { border-left-color: #3498db; background: #ebf5fb; }
+        .layer-header { display: flex; justify-content: space-between; align-items: center; }
+        .icon-btn { background: none; border: none; cursor: pointer; font-size: 13px; opacity: 0.6; transition: 0.2s; padding: 0 2px; }
+        .icon-btn:hover { opacity: 1; transform: scale(1.1); }
+        .icon-btn.on { opacity: 1; filter: drop-shadow(0 0 2px rgba(52, 152, 219, 0.5)); }
+        
+        .output-box { background: #2c3e50; color: #ecf0f1; height: 140px; font-size: 11px; white-space: pre; overflow: auto; }
+        .import-box { background: #f4f6f7; height: 60px; font-size: 11px; margin-bottom: 5px; }
+        h2 { margin: 0; color: #2c3e50; font-size: 14px; border-bottom: 1px solid #ecf0f1; padding-bottom: 5px;}
+        
+        /* Rule Builder */
+        .rule-builder { display: flex; gap: 4px; align-items: center; background: #fff; padding: 4px; border-radius: 4px; border: 1px solid #d5dbdb; margin-top: 2px; }
+        .rule-builder select, .rule-builder input { font-size: 10px; padding: 2px; height: 22px; font-family: 'Segoe UI', Tahoma, sans-serif; }
+		
+		/* Shape Interaction & Eraser Cursor */
+        .shape-path { transition: stroke 0.1s, opacity 0.1s; pointer-events: visiblePainted; }
+        .shape-path.erasable:hover { stroke: #e74c3c !important; stroke-width: 3px !important; opacity: 0.7; }
+        .canvas-container.erase-mode, .canvas-container.erase-mode * { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>') 10 10, crosshair !important; }
+		
+		/* Pins */
+        .pin-marker { fill: #f1c40f; stroke: #d35400; stroke-width: 1.5; cursor: pointer; transition: 0.2s; }
+        .pin-marker:hover { fill: #e74c3c; transform: scale(1.5); }
+        .pin-label { font-family: monospace; font-size: 6px; fill: #d35400; pointer-events: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="panel side-panel">
+        <h2>📥 Importer</h2>
+        <textarea id="importCode" class="import-box" placeholder="Paste %% Name \newcommand{\name}... here"></textarea>
+        <button class="tool-btn" onclick="importSty()" style="background: #27ae60; border-color: #2ecc71;">Load into Editor</button>
+
+        <h2 style="margin-top: 5px;">⚙️ Config</h2>
+        <div style="display: flex; gap: 5px;">
+            <div style="flex: 1;"><label>Macro Name</label><input type="text" id="cName" value="newcomponent" oninput="generateCode()"></div>
+            <div style="flex: 1;"><label>Display Name</label><input type="text" id="dName" value="New Component" oninput="generateCode()"></div>
+        </div>
+        
+        <label>Arguments (Updates Layer Menus!)</label>
+        <input type="text" id="cArgs" value="{position}{name}{n/p}{rotation}{grid}{show (0,0)}" onblur="renderLayerList(); generateCode();" title="Hit Enter or click away to update menus">
+
+        <details class="help-box">
+            <summary>📘 Syntax Cheat Sheet</summary>
+            <ul>
+                <li><strong>Arguments:</strong> Defined inside `{}` brackets. The engine automatically numbers them starting at 1. (e.g., Arg 3 is `n/p`).</li>
+                <li><strong>Label Anchor:</strong> Direction letter (e.g., <code>B</code> for Bottom, <code>L</code> for Left) OR custom shifted coordinates like <code>0 3.5 B</code> (Shift X=0, Shift Y=3.5, Anchor=B).</li>
+                <li><strong>Scales:</strong> Comma separated list of allowable scales (e.g., <code>1, 2, 4</code>).</li>
+            </ul>
+        </details>
+
+        <div class="meta-box">
+            <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #34495e;">📝 META PROPERTIES</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
+                <div><label>Category</label><input type="text" id="mCat" value="Basic Components" oninput="generateCode()"></div>
+                <div><label>Label Anchor</label><input type="text" id="mAnchor" value="B" oninput="generateCode()"></div>
+                <div><label>Scales</label><input type="text" id="mScales" value="1, 2, 4" oninput="generateCode()"></div>
+                <div><label>Flip</label><input type="text" id="mFlip" value="disabled" oninput="generateCode()"></div>
+            </div>
+            <div style="display: flex; gap: 15px; margin-top: 8px;">
+                <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mEnabled" checked onchange="generateCode()"> Enabled</label>
+                <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mFilled" onchange="generateCode()"> Filled</label>
+            </div>
+        </div>
+
+        <h2 style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+            📚 Layers 
+            <button class="tool-btn" style="padding: 2px 8px; font-size: 10px;" onclick="addLayer()">+ Overlay</button>
+        </h2>
+        <div class="layer-list" id="layerList"></div>
+    </div>
+
+    <div class="panel main-panel">
+        <div class="toolbar">
+            <span style="font-size: 11px; font-weight: bold; color: #bdc3c7;">DRAW:</span>
+            <button class="tool-btn active" onclick="setTool('line')" id="btn-line">Line</button>
+            <button class="tool-btn" onclick="setTool('rect')" id="btn-rect">Rectangle</button>
+            <button class="tool-btn" onclick="setTool('circle')" id="btn-circle">Circle</button>
+            <button class="tool-btn" onclick="setTool('erase')" id="btn-erase" style="border-color: #e74c3c;">🧽 Erase</button>
+            <button class="tool-btn" onclick="setTool('pin')" id="btn-pin" style="background: #e67e22; border-color: #d35400;">📌 Pin</button>
+            
+            <div class="style-group">
+                <span style="font-size: 11px; font-weight: bold; color: #bdc3c7;">STYLES:</span>
+                
+                <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.15); padding: 2px 6px; border-radius: 4px;">
+                    <span style="font-size: 11px;">Width:</span>
+                    <input type="range" id="rngWidth" min="0.5" max="4.0" step="0.1" value="1.8" oninput="document.getElementById('txtWidth').innerText = parseFloat(this.value).toFixed(1); updateActiveLayerStyle()" style="width: 60px; margin: 0; cursor: ew-resize;">
+                    <span id="txtWidth" style="font-size: 11px; font-weight: bold; width: 18px; text-align: right;">1.8</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 2px; background: rgba(0,0,0,0.15); padding: 2px; border-radius: 4px; margin-left: 5px;">
+                    <input type="color" id="inpColorPicker" oninput="document.getElementById('inpColorHex').value = this.value; updateActiveLayerStyle()" style="width: 22px; height: 22px; padding: 0; border: none; cursor: pointer; background: transparent;" title="Pick Color">
+                    <input type="text" id="inpColorHex" onchange="document.getElementById('inpColorPicker').value = this.value || '#000000'; updateActiveLayerStyle()" placeholder="Auto Theme" style="width: 70px; height: 22px; padding: 2px 4px; font-size: 10px;" title="Type named color (red) or hex (#ff0000)">
+                </div>
+
+                <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkDashed" onchange="updateActiveLayerStyle()"> Dash</label>
+                <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkSolid" onchange="updateActiveLayerStyle()"> Solid</label>
+            </div>
+            
+            <div class="style-group" style="margin-left: auto;">
+                <select id="selTheme" onchange="renderCanvas()" style="width: auto; padding: 3px; font-size: 11px; font-weight: bold; background: #fdfdfd; color: #2c3e50; border: none; border-radius: 4px;">
+                    <option value="standard">🔵 Standard Theme</option>
+                    <option value="cadence">🟢 Cadence Theme</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <svg id="drawingSvg">
+                <defs>
+                    <pattern id="grid5" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M 5 0 L 0 0 0 5" fill="none" stroke="#ecf0f1" stroke-width="0.15"/></pattern>
+                    <pattern id="grid10" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="url(#grid5)"/><path d="M 10 0 L 0 0 0 10" fill="none" stroke="#bdc3c7" stroke-width="0.3"/></pattern>
+                </defs>
+                <rect x="-2000" y="-2000" width="4000" height="4000" fill="url(#grid10)" />
+                <line x1="-2000" y1="0" x2="2000" y2="0" stroke="#95a5a6" stroke-width="0.4" />
+                <line x1="0" y1="-2000" x2="0" y2="2000" stroke="#95a5a6" stroke-width="0.4" />
+                
+                <g id="renderedPaths"></g>
+                <path id="livePreview" stroke="#3498db" fill="none" vector-effect="non-scaling-stroke" />
+            </svg>
+            
+            <div class="view-controls">
+                <button class="view-btn" onclick="pan(0, 20)">▲</button>
+                <button class="view-btn" onclick="pan(0, -20)">▼</button>
+                <button class="view-btn" onclick="pan(20, 0)">◄</button>
+                <button class="view-btn" onclick="pan(-20, 0)">►</button>
+                <div style="width: 10px;"></div>
+                <button class="view-btn" onclick="zoom(0.8)">➕</button>
+                <button class="view-btn" onclick="zoom(1.2)">➖</button>
+                <button class="view-btn" onclick="resetView()" style="font-size: 11px;">Reset</button>
+            </div>
+        </div>
+
+        <h2 style="display: flex; justify-content: space-between; align-items: center;">
+            <span>📋 Exported Code</span>
+            <select id="exportMode" onchange="generateCode()" style="width: auto; padding: 2px; font-size: 11px; background: #3498db; color: white; border: none; font-weight: bold;">
+                <option value="sty">.sty Metadata Only</option>
+                <option value="latex">Full LaTeX / TikZ Macro</option>
+            </select>
+        </h2>
+        <textarea id="outputSty" class="output-box" readonly></textarea>
+    </div>
+
+    <script>
+        // --- DATA STRUCTURES ---
+        let layers = [{ id: 'l_base', type: 'base', name: 'Base Icon', rule: { type: 'base' }, pathStr: 'M -20 0 L 20 0', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] }];
+        let activeLayerId = 'l_base';
+        let layerCounter = 1;
+        let currentTool = 'line', isDrawing = false, startPt = {x: 0, y: 0};
+        let vbx = -50, vby = -50, vbw = 100, vbh = 100;
+        let pins = []; // NEW: Stores coordinates!
+        let pinCounter = 1;
+        
+        const svg = document.getElementById('drawingSvg');
+        const previewEl = document.getElementById('livePreview');
+
+        // --- VIEWPORT ---
+        function updateView() { svg.setAttribute('viewBox', `${vbx} ${vby} ${vbw} ${vbh}`); }
+        function zoom(factor) { let cx = vbx + vbw/2, cy = vby + vbh/2; vbw *= factor; vbh *= factor; vbx = cx - vbw/2; vby = cy - vbh/2; updateView(); }
+        function pan(dx, dy) { vbx += dx; vby += dy; updateView(); }
+        function resetView() { vbx = -50; vby = -50; vbw = 100; vbh = 100; updateView(); }
+        updateView();
+
+        function setTool(tool) {
+            if (currentTool === tool && (tool === 'erase' || tool === 'pin')) tool = 'line'; 
+            currentTool = tool;
+            document.querySelectorAll('#btn-line, #btn-rect, #btn-circle, #btn-erase, #btn-pin').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(`btn-${tool}`).classList.add('active');
+            
+            let canvas = document.querySelector('.canvas-container');
+            if (tool === 'erase') canvas.classList.add('erase-mode');
+            else canvas.classList.remove('erase-mode');
+            renderCanvas();
+        }
+
+        // --- ARGUMENT PARSER ---
+        function getParsedArgs() {
+            let argStr = document.getElementById('cArgs').value;
+            let matches = [...argStr.matchAll(/\{([^}]+)\}/g)];
+            return matches.map((m, i) => ({ idx: i + 1, name: m[1] }));
+        }
+
+        // --- RULE TEXT CONVERTERS ---
+        function parseRuleText(condStr) {
+            condStr = condStr.trim();
+            if (condStr === 'icon_base') return { type: 'base' };
+            if (condStr === '1~=') return { type: 'always' };
+            if (condStr.includes('==')) { let parts = condStr.split('=='); return { type: 'condition', arg: parseInt(parts[0]), op: '==', val: parts[1].trim() }; }
+            if (condStr.includes('~=')) { let parts = condStr.split('~='); return { type: 'condition', arg: parseInt(parts[0]), op: '~=', val: parts[1].trim() }; }
+            return { type: 'always' }; 
+        }
+
+        function buildRuleText(rule) {
+            if (rule.type === 'base') return 'icon_base';
+            if (rule.type === 'always') return '1~=';
+            if (rule.type === 'condition') return `${rule.arg}${rule.op}${rule.val}`;
+            return '1~=';
+        }
+
+        // --- LAYER RENDERING ---
+        function renderLayerList() {
+            const list = document.getElementById('layerList');
+            let argsList = getParsedArgs();
+            list.innerHTML = '';
+            
+            layers.forEach(layer => {
+                let isBase = layer.type === 'base';
+                
+                // Graphical Rule Builder UI
+                let ruleUI = '';
+                if (!isBase) {
+                    let argOpts = argsList.map(a => `<option value="${a.idx}" ${layer.rule.arg == a.idx ? 'selected' : ''}>Arg ${a.idx}: ${a.name}</option>`).join('');
+                    if (!layer.rule.arg && argsList.length > 0) layer.rule.arg = argsList[0].idx; 
+                    
+                    // FIX 3: Added onclick="event.stopPropagation()" to all inputs and selects
+                    ruleUI = `
+                    <div class="rule-builder">
+                        <span style="font-size:9px; color:#7f8c8d; font-weight:bold;">RULE:</span>
+                        <select onclick="event.stopPropagation()" onchange="updateRuleType('${layer.id}', this.value)" style="width: 85px;">
+                            <option value="always" ${layer.rule.type === 'always' ? 'selected' : ''}>Always ON</option>
+                            <option value="condition" ${layer.rule.type === 'condition' ? 'selected' : ''}>If Arg...</option>
+                        </select>
+                        ${layer.rule.type === 'condition' ? `
+                            <select onclick="event.stopPropagation()" onchange="updateRuleArg('${layer.id}', this.value)" style="width: 90px;">${argOpts}</select>
+                            <select onclick="event.stopPropagation()" onchange="updateRuleOp('${layer.id}', this.value)" style="width: 45px;">
+                                <option value="==" ${layer.rule.op === '==' ? 'selected' : ''}>==</option>
+                                <option value="~=" ${layer.rule.op === '~=' ? 'selected' : ''}>~=</option>
+                            </select>
+                            <input onclick="event.stopPropagation()" type="text" value="${layer.rule.val || ''}" onchange="updateRuleVal('${layer.id}', this.value)" placeholder="value" style="flex: 1;">
+                        ` : ''}
+                    </div>`;
+                }
+
+                let html = `
+                    <div class="layer-item ${layer.id === activeLayerId ? 'active-layer' : ''}" onclick="setActiveLayer('${layer.id}')">
+                        <div class="layer-header">
+                            <strong style="font-size: 11px; color: ${isBase ? '#e67e22' : '#2c3e50'};">${isBase ? 'Base Layer' : 'Overlay'}</strong>
+                            <div style="display:flex; gap:2px;">
+                                <button class="icon-btn ${layer.id === activeLayerId ? 'on' : ''}" title="Target this layer">🎯</button>
+                                <button class="icon-btn ${layer.visible ? 'on' : ''}" onclick="event.stopPropagation(); toggleVis('${layer.id}')" title="Visibility">${layer.visible ? '👁️' : '🕶️'}</button>
+                                <button class="icon-btn" onclick="event.stopPropagation(); undoLayer('${layer.id}')" title="Undo" ${(layer.history && layer.history.length > 0) ? '' : 'style="opacity:0.2; cursor:default;"'}>↩️</button>
+                                <button class="icon-btn" onclick="event.stopPropagation(); redoLayer('${layer.id}')" title="Redo" ${(layer.redoHistory && layer.redoHistory.length > 0) ? '' : 'style="opacity:0.2; cursor:default;"'}>↪️</button>
+                                ${!isBase ? `<button class="icon-btn" onclick="event.stopPropagation(); deleteLayer('${layer.id}')" title="Delete">🗑️</button>` : ''}
+                            </div>
+                        </div>
+                        ${ruleUI}
+                        <input onclick="event.stopPropagation()" type="text" value="${layer.pathStr}" onchange="updateLayerPath('${layer.id}', this.value)" placeholder="SVG Path Data..." style="font-size: 10px; margin-top: 4px; border-color: transparent; background: rgba(0,0,0,0.03);">
+                    </div>`;
+                list.innerHTML += html;
+            });
+            syncToolbarToActiveLayer();
+            renderCanvas();
+        }
+
+        // --- RULE UPDATERS ---
+        function updateRuleType(id, val) { let l = layers.find(x => x.id === id); l.rule.type = val; if(val==='condition' && !l.rule.op) { l.rule.op = '=='; l.rule.val = ''; } renderLayerList(); generateCode(); }
+        function updateRuleArg(id, val) { let l = layers.find(x => x.id === id); l.rule.arg = parseInt(val); generateCode(); }
+        function updateRuleOp(id, val) { let l = layers.find(x => x.id === id); l.rule.op = val; generateCode(); }
+        function updateRuleVal(id, val) { let l = layers.find(x => x.id === id); l.rule.val = val; generateCode(); }
+
+        // --- LAYER CONTROLS ---
+        function setActiveLayer(id) { activeLayerId = id; renderLayerList(); }
+        function toggleVis(id) { let l = layers.find(x => x.id === id); l.visible = !l.visible; renderLayerList(); }
+        
+		function saveHistory(layer) { 
+            if(!layer.history) layer.history = []; 
+            if(!layer.redoHistory) layer.redoHistory = [];
+            layer.history.push(layer.pathStr); 
+            if(layer.history.length > 20) layer.history.shift(); 
+            layer.redoHistory = []; // Clear redo memory when drawing a brand new shape
+        }
+        
+        function undoLayer(id) {
+            let l = layers.find(x => x.id === id);
+            if(l.history && l.history.length > 0) {
+                if(!l.redoHistory) l.redoHistory = [];
+                l.redoHistory.push(l.pathStr); // Save current state to Redo
+                l.pathStr = l.history.pop();   // Revert to last state
+                renderLayerList();
+            }
+        }
+
+        function redoLayer(id) {
+            let l = layers.find(x => x.id === id);
+            if(l.redoHistory && l.redoHistory.length > 0) {
+                if(!l.history) l.history = [];
+                l.history.push(l.pathStr);     // Save current state back to Undo
+                l.pathStr = l.redoHistory.pop(); // Revert to future state
+                renderLayerList();
+            }
+        }
+        
+        function deleteLayer(id) { layers = layers.filter(x => x.id !== id); if(activeLayerId === id) activeLayerId = 'l_base'; renderLayerList(); }
+        
+        function addLayer() { 
+            let argList = getParsedArgs();
+            let defArg = argList.length > 0 ? argList[0].idx : 1;
+            layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: { type: 'always', arg: defArg, op: '==', val: '' }, pathStr: '', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] }); 
+            activeLayerId = layers[layers.length - 1].id; 
+            renderLayerList(); 
+        }
+
+        // --- STYLES ---
+        function syncToolbarToActiveLayer() {
+            let l = layers.find(x => x.id === activeLayerId);
+            if(l) {
+                let sw = parseFloat(l.styles.sw || "1.8");
+                document.getElementById('rngWidth').value = sw;
+                document.getElementById('txtWidth').innerText = sw.toFixed(1);
+                
+                document.getElementById('inpColorHex').value = l.styles.stroke || "";
+                // Attempt to map valid hex to the visual picker, otherwise default to black visually
+                document.getElementById('inpColorPicker').value = /^#[0-9A-F]{6}$/i.test(l.styles.stroke) ? l.styles.stroke : "#000000";
+                
+                document.getElementById('chkDashed').checked = l.styles.dashed;
+                document.getElementById('chkSolid').checked = l.styles.solid;
+            }
+        }
+
+        function updateActiveLayerStyle() {
+            let l = layers.find(x => x.id === activeLayerId);
+            if(l){
+                l.styles.sw = document.getElementById('rngWidth').value;
+                l.styles.stroke = document.getElementById('inpColorHex').value.trim();
+                l.styles.dashed = document.getElementById('chkDashed').checked;
+                l.styles.solid = document.getElementById('chkSolid').checked;
+                renderCanvas();
+            }
+        }
+
+        function formatStyleTag(styles) {
+            let parts = [];
+            if (styles.sw !== "1.8") parts.push(`stroke-width=${styles.sw}`);
+            if (styles.stroke !== "") parts.push(`stroke=${styles.stroke}`);
+            if (styles.dashed) parts.push(`stroke-dasharray=2 2`);
+            if (styles.solid) parts.push(`fill=solid`);
+            return parts.length > 0 ? `[${parts.join(', ')}] ` : "";
+        }
+
+        // --- IMPORTER ---
+        function importSty() {
+            const code = document.getElementById('importCode').value;
+            if(!code.includes('\\newcommand')) return alert("Invalid code. Missing \\newcommand");
+            
+            let titleMatch = code.match(/%%\s*(.+)/);
+            if(titleMatch) document.getElementById('dName').value = titleMatch[1].trim();
+            
+            let cmdMatch = code.match(/\\newcommand\{\\([a-zA-Z0-9]+)\}\[\d+\]\{%([^\n]+)\}/);
+            if(cmdMatch) { document.getElementById('cName').value = cmdMatch[1].trim(); document.getElementById('cArgs').value = '{' + cmdMatch[2].trim(); }
+
+            document.getElementById('mEnabled').checked = /% enabled/.test(code);
+            let mCat = code.match(/% category:\s*([^\n]+)/); if(mCat) document.getElementById('mCat').value = mCat[1].trim();
+            let mAnchor = code.match(/% label_anchor:\s*([^\n]+)/); if(mAnchor) document.getElementById('mAnchor').value = mAnchor[1].trim();
+            let mScales = code.match(/% scales:\s*([^\n]+)/); if(mScales) document.getElementById('mScales').value = mScales[1].trim();
+            let mFlip = code.match(/% flip:\s*([^\n]+)/); if(mFlip) document.getElementById('mFlip').value = mFlip[1].trim();
+            let mFilled = code.match(/% filled:\s*(true|false)/); if(mFilled) document.getElementById('mFilled').checked = mFilled[1] === 'true';
+
+            layers = []; layerCounter = 1;
+
+            // AUTO-UPGRADER FIX: Matches modern % icon_base OR legacy % icon syntax!
+            let baseMatch = code.match(/%\s*(?:icon_base|icon):\s*([^\n]+)/);
+			
+            if(baseMatch) layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: baseMatch[1].split('//')[0].trim(), visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] });
+
+            let addRegex = /% add_icon:\s*([^:]+):\s*(\[.*?\])?(.*)/g; let match;
+            while ((match = addRegex.exec(code)) !== null) {
+                let cond = match[1].trim(), styleStr = match[2] ? match[2].trim() : "", pathStr = match[3].split('//')[0].trim();
+                let ruleObj = parseRuleText(cond);
+                
+                let sw = "1.8", dashed = false, solid = false, stroke = "";
+                if(styleStr) {
+                    if(styleStr.includes('stroke-width=')) sw = styleStr.match(/stroke-width=([\d\.]+)/)[1];
+                    if(styleStr.includes('stroke=')) stroke = styleStr.match(/stroke=([^,\]]+)/)[1].trim();
+                    if(styleStr.includes('stroke-dasharray')) dashed = true;
+                    if(styleStr.includes('fill=solid')) solid = true;
+                }
+                layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: ruleObj, pathStr: pathStr, visible: true, styles: { sw: sw, stroke: stroke, dashed: dashed, solid: solid }, history: [], redoHistory: [] });
+            }
+            if(layers.length === 0) layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: '', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] });
+            
+            activeLayerId = 'l_base';
+            resetView(); renderLayerList();
+        }
+
+        // --- DRAWING ---
+        function getCoords(evt) {
+            let pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+            let cursorPt = pt.matrixTransform(svg.getScreenCTM().inverse());
+            return { x: Math.round(cursorPt.x / 5) * 5, y: Math.round(cursorPt.y / 5) * 5 };
+        }
+
+        svg.addEventListener('mousedown', (e) => { 
+            if(e.button !== 0 || currentTool === 'erase') return; 
+            
+            // NEW: Pin Tool Logic
+            if(currentTool === 'pin') {
+                let pt = getCoords(e);
+                let name = prompt("Enter Pin Name (e.g., pin1, gate, source):", `pin${pinCounter++}`);
+                if(name) {
+                    pins.push({ id: name, x: pt.x, y: pt.y });
+                    renderCanvas();
+                }
+                return;
+            }
+            
+            isDrawing = true; startPt = getCoords(e); previewEl.setAttribute('d', ''); 
+        });
+
+        // NEW: Function to delete a pin
+        function deletePin(id) {
+            if(currentTool !== 'erase') return;
+            pins = pins.filter(p => p.id !== id);
+            renderCanvas();
+        }
+		
+        svg.addEventListener('mousemove', (e) => {
+            if (!isDrawing) return;
+            let currPt = getCoords(e), d = "";
+            if (currentTool === 'line') d = `M ${startPt.x} ${startPt.y} L ${currPt.x} ${currPt.y}`;
+            else if (currentTool === 'rect') {
+                let rx = Math.min(startPt.x, currPt.x), ry = Math.min(startPt.y, currPt.y);
+                let rw = Math.abs(currPt.x - startPt.x), rh = Math.abs(currPt.y - startPt.y);
+                d = `M ${rx} ${ry} L ${rx+rw} ${ry} L ${rx+rw} ${ry+rh} L ${rx} ${ry+rh} Z`;
+            } else if (currentTool === 'circle') {
+                let r = Math.round(Math.sqrt(Math.pow(currPt.x - startPt.x, 2) + Math.pow(currPt.y - startPt.y, 2)) / 5) * 5;
+                if(r > 0) d = `M ${startPt.x} ${startPt.y} m -${r} 0 a ${r} ${r} 0 1 0 ${r*2} 0 a ${r} ${r} 0 1 0 -${r*2} 0`;
+            }
+            previewEl.setAttribute('d', d);
+        });
+
+        svg.addEventListener('mouseup', () => {
+            if (!isDrawing) return;
+            isDrawing = false;
+            let finalPath = previewEl.getAttribute('d'); previewEl.setAttribute('d', '');
+            if (finalPath) { let l = layers.find(x => x.id === activeLayerId); saveHistory(l); l.pathStr += (l.pathStr.length > 0 ? " " : "") + finalPath; renderLayerList(); }
+        });
+
+        // --- NEW ERASER FUNCTION ---
+        function eraseShape(layerId, shapeIdx) {
+            if (currentTool !== 'erase') return;
+            let l = layers.find(x => x.id === layerId);
+            if (!l) return;
+            
+            // FIX 1: Auto-target the layer you are erasing from so Ctrl+Z works perfectly!
+            activeLayerId = layerId; 
+
+            saveHistory(l); 
+            
+            // FIX 2: Improved Regex (only splits on uppercase M). Keeps circles intact!
+            let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+            subPaths.splice(shapeIdx, 1); 
+            l.pathStr = subPaths.join(' '); 
+            
+            renderLayerList(); // (This automatically calls renderCanvas)
+        }
+
+        // --- UPGRADED RENDERER ---
+        function renderCanvas() {
+            let theme = document.getElementById('selTheme').value;
+            let baseColor = (theme === 'cadence') ? "#27ae60" : "#2c3e50";
+
+            let html = "";
+            layers.forEach(l => {
+                if (!l.visible || !l.pathStr.trim()) return;
+                
+                // FIX 2: Strictly follow the theme color, UNLESS the user picked a custom color. 
+                // Removed the "turn blue if active" logic.
+                let stroke = l.styles.stroke ? l.styles.stroke : baseColor;
+                
+                let sw = parseFloat(l.styles.sw) * 1.2; 
+                let dash = l.styles.dashed ? 'stroke-dasharray="4 4"' : '';
+                let fill = l.styles.solid ? stroke : "none";
+                
+                // FIX 3: Apply the improved Regex here too so the hover-glow targets whole shapes!
+                let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                subPaths.forEach((sub, idx) => {
+                    let isErasable = (currentTool === 'erase' && l.id === activeLayerId) ? 'erasable' : '';
+                    html += `<path class="shape-path ${isErasable}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} vector-effect="non-scaling-stroke" stroke-linecap="butt" stroke-linejoin="miter" onclick="eraseShape('${l.id}', ${idx})" />`;
+                });
+            });
+			// NEW: Render Pins
+            pins.forEach(p => {
+                let isErasable = (currentTool === 'erase') ? 'erasable' : '';
+                html += `
+                    <g onclick="deletePin('${p.id}')" class="shape-path ${isErasable}">
+                        <circle cx="${p.x}" cy="${p.y}" r="2.5" class="pin-marker" />
+                        <text x="${p.x - 4}" y="${p.y - 4}" class="pin-label">${p.id}</text>
+                    </g>`;
+            });
+            document.getElementById('renderedPaths').innerHTML = html;
+            
+            let aLayer = layers.find(x => x.id === activeLayerId);
+            if(aLayer) {
+                let previewColor = aLayer.styles.stroke || baseColor;
+                previewEl.setAttribute('stroke', previewColor);
+                previewEl.setAttribute('stroke-width', parseFloat(aLayer.styles.sw) * 1.2);
+                previewEl.setAttribute('fill', aLayer.styles.solid ? previewColor : 'none');
+            }
+
+            generateCode();
+        }
+
+        // --- Advanced SVG to TikZ Converter ---
+        function svgToTikz(pathStr) {
+            let x=0, y=0;
+            let tikz = "";
+            // Safely tokenize letters and complex decimals
+            let tokens = pathStr.match(/[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+            if(!tokens) return "";
+            
+            let i = 0, cmd = '';
+            
+            // Helper for Arc mathematics
+            function angle(u, v) {
+                let dot = u[0]*v[0] + u[1]*v[1];
+                let len = Math.sqrt(u[0]*u[0]+u[1]*u[1]) * Math.sqrt(v[0]*v[0]+v[1]*v[1]);
+                let ang = Math.acos(Math.max(-1, Math.min(1, dot/len)));
+                return (u[0]*v[1] - u[1]*v[0] < 0) ? -ang : ang;
+            }
+
+            while(i < tokens.length) {
+                let token = tokens[i];
+                if(/[a-zA-Z]/.test(token)) { cmd = token; i++; }
+                
+                if(cmd === 'M' || cmd === 'L') { 
+                    x = parseFloat(tokens[i]); y = parseFloat(tokens[i+1]); 
+                    tikz += (cmd==='M'?'':`-- `) + `(${x/10}, ${-y/10}) `; i+=2; 
+                    if(cmd === 'M') cmd = 'L'; // SVG Spec: Subsequent coords are Lines
+                }
+                else if(cmd === 'm' || cmd === 'l') { 
+                    x += parseFloat(tokens[i]); y += parseFloat(tokens[i+1]); 
+                    tikz += (cmd==='m'?'':`-- `) + `(${x/10}, ${-y/10}) `; i+=2; 
+                    if(cmd === 'm') cmd = 'l';
+                }
+                else if(cmd === 'A' || cmd === 'a') {
+                    let rx = parseFloat(tokens[i])/10, ry = parseFloat(tokens[i+1])/10;
+                    let xrot = parseFloat(tokens[i+2]), fA = parseFloat(tokens[i+3]), fS = parseFloat(tokens[i+4]);
+                    let ex = (cmd === 'a' ? x : 0) + parseFloat(tokens[i+5]);
+                    let ey = (cmd === 'a' ? y : 0) + parseFloat(tokens[i+6]);
+                    
+                    // W3C Center Parameterization (Translating SVG Y-down to TikZ Y-up)
+                    let x1 = x/10, y1 = -y/10, x2 = ex/10, y2 = -ey/10;
+                    let phi = -xrot * Math.PI / 180, fS_tikz = 1 - fS; 
+                    
+                    let dx = (x1 - x2)/2, dy = (y1 - y2)/2;
+                    let x1p = Math.cos(phi)*dx + Math.sin(phi)*dy;
+                    let y1p = -Math.sin(phi)*dx + Math.cos(phi)*dy;
+                    let rxSq = rx*rx, rySq = ry*ry, x1pSq = x1p*x1p, y1pSq = y1p*y1p;
+                    
+                    let radCheck = x1pSq/rxSq + y1pSq/rySq;
+                    if (radCheck > 1) { rx *= Math.sqrt(radCheck); ry *= Math.sqrt(radCheck); rxSq=rx*rx; rySq=ry*ry; }
+                    
+                    let sign = (fA === fS_tikz) ? -1 : 1;
+                    let sq = Math.max(0, ((rxSq*rySq) - (rxSq*y1pSq) - (rySq*x1pSq)) / ((rxSq*y1pSq) + (rySq*x1pSq)));
+                    let coef = sign * Math.sqrt(sq);
+                    let cxp = coef * ((rx * y1p) / ry);
+                    let cyp = coef * (-(ry * x1p) / rx);
+                    
+                    let vx1 = (x1p - cxp)/rx, vy1 = (y1p - cyp)/ry;
+                    let vx2 = (-x1p - cxp)/rx, vy2 = (-y1p - cyp)/ry;
+                    
+                    let startAng = angle([1,0], [vx1, vy1]) * 180/Math.PI;
+                    let deltaAng = angle([vx1, vy1], [vx2, vy2]) * 180/Math.PI;
+                    
+                    if (fS_tikz === 0 && deltaAng > 0) deltaAng -= 360;
+                    if (fS_tikz === 1 && deltaAng < 0) deltaAng += 360;
+                    let endAng = startAng + deltaAng;
+                    
+                    tikz += `arc (${startAng.toFixed(1)}:${endAng.toFixed(1)}:${rx.toFixed(3)} and ${ry.toFixed(3)}) `;
+                    x = ex; y = ey; i+=7;
+                }
+                else if(cmd === 'Z' || cmd === 'z') { tikz += `-- cycle `; cmd=''; }
+                else { i++; } // Skip unknown
+            }
+            return `\\draw [line width=\\linewidthscalefactor * \\zoomfactor * 1.5pt] ${tikz.trim()};`;
+        }
+
+        // --- CODE GENERATOR ---
+        function generateCode() {
+            let mode = document.getElementById('exportMode').value;
+            let cName = document.getElementById('cName').value.trim();
+            let dName = document.getElementById('dName').value.trim();
+            let cArgs = document.getElementById('cArgs').value.trim();
+            
+            // FIX 1: Count the number of { brackets } to determine exact argument count
+            let argCount = (cArgs.match(/\{/g) || []).length;
+            if (argCount === 0) argCount = 1; // Fallback
+            
+            let lines = [
+                `%% ${dName}`,
+                `\\newcommand{\\${cName}}[${argCount}]{%${cArgs}`
+            ];
+            
+            if(document.getElementById('mEnabled').checked) lines.push(`% enabled`);
+            lines.push(`% category: ${document.getElementById('mCat').value.trim()}`);
+            lines.push(`% scales: ${document.getElementById('mScales').value.trim()}`);
+            lines.push(`% filled: ${document.getElementById('mFilled').checked}`);
+            lines.push(`% label_anchor: ${document.getElementById('mAnchor').value.trim()}`);
+            lines.push(`% flip: ${document.getElementById('mFlip').value.trim()}`);
+            
+            // MODE 1: Standard .sty Metadata
+            if (mode === 'sty') {
+                lines.push(``);
+                layers.forEach(l => {
+                    if (!l.pathStr.trim()) return;
+                    let styleTag = formatStyleTag(l.styles);
+                    let conditionTag = buildRuleText(l.rule);
+                    if (l.type === 'base') lines.push(`% icon_base: ${l.pathStr}`);
+                    else lines.push(`% add_icon: ${conditionTag} : ${styleTag}${l.pathStr}`);
+                });
+            } 
+            // MODE 2: Full LaTeX / TikZ Macro Compiler
+            else {
+                // 1. Argument Parsing Boilerplate
+                lines.push(
+`   \\IfSubStr{#5}{h}{\\edef\\xscalevalue{-1}}{\\edef\\xscalevalue{1}}
+    \\IfSubStr{#5}{v}{\\edef\\yscalevalue{-1}}{\\edef\\yscalevalue{1}}
+    \\ifstrequal{#3}{horizontal}
+        {\\edef\\rotationangle{0}}
+        {
+            \\ifstrequal{#3}{vertical}
+                {\\edef\\rotationangle{90}}
+                {\\StrBefore{#5}{,}[\\rotationangle]}
+        }
+    \\begin{scope}[shift={#1}, scale=\\jlcscale, rotate=\\rotationangle, xscale=\\xscalevalue, yscale=\\yscalevalue]
+        \\getzoomfactor`);
+
+                // 2. Base Paths
+                let baseLayer = layers.find(l => l.type === 'base');
+                if(baseLayer && baseLayer.pathStr.trim()) {
+                    lines.push(`        % base drawing`);
+                    lines.push(`        ${svgToTikz(baseLayer.pathStr)}`);
+                }
+
+                // 3. Conditional Layers (Add-ons)
+                layers.filter(l => l.type === 'add' && l.pathStr.trim()).forEach(l => {
+                    lines.push(`        % overlay: ${l.rule.type === 'condition' ? 'If Arg ' + l.rule.arg + ' is ' + l.rule.val : 'Always'}`);
+                    if (l.rule.type === 'condition') {
+                        lines.push(`        \\ifstrequal{#${l.rule.arg}}{${l.rule.val}}`);
+                        lines.push(`            {`);
+                        lines.push(`                ${svgToTikz(l.pathStr)}`);
+                        lines.push(`            }{}`);
+                    } else {
+                        lines.push(`        ${svgToTikz(l.pathStr)}`);
+                    }
+                });
+
+                // 4. Name Node & Grid
+                lines.push(
+`       % draw name
+        \\ifstrequal{#3}{horizontal}
+            {\\node[draw=none, align=center] at (0,-1) {#2};}
+            {
+                \\ifstrequal{#3}{vertical}
+                    {\\node[draw=none, anchor=east] at (-1,0) {#2};}
+                    {\\node[draw=none, align=center, rotate=\\rotationangle] at (0,-1) {#2};}
+            }
+        % draw grid & origin
+        \\ifstrequal{#6}{gridon}{\\draw[step=1cm,color=gray] (-2,-2) grid (2,2);}{}
+        \\ifstrequal{#7}{show}{\\node[draw=none, align=center, color=red] at (0,0) {#1};}{}`);
+
+                // 5. Pins
+                if (pins.length > 0) {
+                    lines.push(`        % coordinate pins`);
+                    pins.forEach(p => {
+                        lines.push(`        \\coordinate (${p.id}) at (${p.x/10}, ${-p.y/10});`);
+                    });
+                }
+                
+                lines.push(`    \\end{scope}`);
+            }
+            
+            lines.push(`}`);
+            document.getElementById('outputSty').value = lines.join('\n');
+        }
+		
+		// --- GLOBAL KEYBOARD SHORTCUTS ---
+        document.addEventListener('keydown', (e) => {
+            // Ignore shortcuts if the user is typing in a text box
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+
+            // Ctrl + Z (Undo) - Upgraded with e.code for cross-browser safety
+            if (e.ctrlKey && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ') && !e.shiftKey) {
+                e.preventDefault();
+                undoLayer(activeLayerId);
+            }
+            // Ctrl + Y or Ctrl + Shift + Z (Redo)
+            if (e.ctrlKey && (e.key.toLowerCase() === 'y' || e.code === 'KeyY' || (e.shiftKey && (e.key.toLowerCase() === 'z' || e.code === 'KeyZ')))) {
+                e.preventDefault();
+                redoLayer(activeLayerId);
+            }
+            // Escape Key (Quick exit Eraser tool)
+            if (e.key === 'Escape' && currentTool === 'erase') {
+                e.preventDefault();
+                setTool('line');
+            }
+        });
+
+        renderLayerList();
+    </script>
+</body>
+</html>
