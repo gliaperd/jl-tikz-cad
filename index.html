@@ -1499,8 +1499,21 @@
             const shiftX = -boxOriginX;
             const shiftY = -boxOriginY;
 
-			element.resize(boxWidth, boxHeight);
-			element.attr({ 
+			// --- NEW: Διάβασμα του iconBaseStyle για το πάχος και το χρώμα ---
+            let baseStrokeWidth = 1.8; // Το default
+            let baseStrokeColor = theme.componentIcon; // Το default από το theme
+
+            if (data.iconBaseStyle) {
+                if (data.iconBaseStyle.includes('stroke-width=')) {
+                    baseStrokeWidth = parseFloat(data.iconBaseStyle.match(/stroke-width=([\d\.]+)/)[1]);
+                }
+                if (data.iconBaseStyle.includes('stroke=')) {
+                    baseStrokeColor = data.iconBaseStyle.match(/stroke=([^,\]]+)/)[1].trim();
+                }
+            }
+
+            element.resize(boxWidth, boxHeight);
+            element.attr({ 
                 body: { fill: '#ffffff', fillOpacity: 0.01, stroke: 'none', 'pointer-events': 'all', cursor: 'pointer' },
                 // Apply transform to the whole group!
                 iconGroup: {
@@ -1514,12 +1527,11 @@
                 },
                 iconStroke: {
                     d: iconPath, 
-                    stroke: theme.componentIcon,
-                    strokeWidth: 1.8, 
-                    fill: 'none', 
-                    'vector-effect': 'non-scaling-stroke' 
+                    stroke: baseStrokeColor,        // <--- ΕΝΗΜΕΡΩΜΕΝΟ!
+                    strokeWidth: baseStrokeWidth,   // <--- ΕΝΗΜΕΡΩΜΕΝΟ!
+                    fill: 'none'
                 },
-				label: { 
+                label: { 
                     text: data.name, fontSize: 12 * PPU_MULT, fill: theme.componentLabel,
                     refX: '50%', textAnchor: 'middle', refY: '50%', refY2: 25 * PPU_MULT, 'pointer-events': 'none'
                 }
@@ -1992,7 +2004,7 @@ ${indentedTikz}
                         
                         <div style="display:flex; align-items:center; gap:8px; margin-bottom: 6px;">
                             <span style="min-width: 100px;">Wire Thickness:</span>
-                            <input type="number" id="exp-wire-width" value="2.0" min="0.5" max="10" step="0.5" style="width: 60px; height: 24px; padding: 0 4px; border: 1px solid #ccc; border-radius: 3px;"> px
+                            <input type="number" id="exp-wire-width" value="1.8" min="0.5" max="10" step="0.5" style="width: 60px; height: 24px; padding: 0 4px; border: 1px solid #ccc; border-radius: 3px;"> px
                         </div>
 
                         <hr style="border-top: 1px dashed #bdc3c7; margin: 8px 0;">
@@ -2074,12 +2086,12 @@ ${indentedTikz}
         });
         // -------------------------------------
 
-        // A. Apply Custom Wire Thickness
+        // A. Apply Custom Wire Thickness (ΔΙΟΡΘΩΣΗ: Πολλαπλασιασμός με το PPU_MULT)
         svgNode.querySelectorAll('path[joint-selector="line"]').forEach(n => {
-            n.setAttribute('stroke-width', options.wireWidth);
-			// --- NEW: Professional rounded corners and endpoints ---
-				n.setAttribute('stroke-linejoin', 'round');
-				n.setAttribute('stroke-linecap', 'round');
+            n.setAttribute('stroke-width', options.wireWidth * PPU_MULT);
+            // --- NEW: Professional rounded corners and endpoints ---
+            n.setAttribute('stroke-linejoin', 'round');
+            n.setAttribute('stroke-linecap', 'round');
         });
 
         // -- APPLY VISUAL FILTERS --
@@ -2732,7 +2744,11 @@ ${indentedTikz}
                 el.attr('iconFill/fill', (dbData && dbData.filled) ? theme.componentIcon : 'none');
                 
                 // --- FIX 1: Keep the 'T' invisible for freetext! ---
-                el.attr('iconStroke/stroke', isFreeText ? 'transparent' : theme.componentIcon); 
+                let customBaseStroke = (dbData && dbData.iconBaseStyle && dbData.iconBaseStyle.includes('stroke=')) 
+                    ? dbData.iconBaseStyle.match(/stroke=([^,\]]+)/)[1].trim() 
+                    : theme.componentIcon;
+
+                el.attr('iconStroke/stroke', isFreeText ? 'transparent' : customBaseStroke); 
                 
                 // Apply the correct text color
                 el.attr('label/fill', isFreeText ? theme.freeText : theme.componentLabel);
@@ -2916,7 +2932,6 @@ ${indentedTikz}
         matchedLayers.forEach((layer, i) => {
             let sel = `overlay_${i}`;
             el.attr(`${sel}/d`, layer.path);
-            el.attr(`${sel}/vector-effect`, 'non-scaling-stroke');
             el.attr(`${sel}/fill`, 'none');
             el.attr(`${sel}/stroke`, theme.componentIcon);
             el.attr(`${sel}/stroke-width`, 1.8);

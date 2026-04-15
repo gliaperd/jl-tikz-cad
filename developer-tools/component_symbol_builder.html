@@ -50,7 +50,8 @@
         .icon-btn.on { opacity: 1; filter: drop-shadow(0 0 2px rgba(52, 152, 219, 0.5)); }
         
         .output-box { background: #2c3e50; color: #ecf0f1; height: 140px; font-size: 11px; white-space: pre; overflow: auto; }
-        .import-box { background: #f4f6f7; height: 60px; font-size: 11px; margin-bottom: 5px; }
+        .import-box { background: #f4f6f7; min-height: 60px; font-size: 11px; margin-bottom: 5px; flex-shrink: 0; }
+		.side-panel > * { flex-shrink: 0; }
         h2 { margin: 0; color: #2c3e50; font-size: 14px; border-bottom: 1px solid #ecf0f1; padding-bottom: 5px;}
         
         /* Rule Builder */
@@ -61,12 +62,24 @@
         .shape-path { transition: stroke 0.1s, opacity 0.1s; pointer-events: visiblePainted; }
         .shape-path.erasable:hover { stroke: #e74c3c !important; stroke-width: 3px !important; opacity: 0.7; }
         .canvas-container.erase-mode, .canvas-container.erase-mode * { cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>') 10 10, crosshair !important; }
+        
+        /* NEW: Extract Tool Styles */
+        .shape-path.extractable:hover { stroke: #9b59b6 !important; stroke-width: 3px !important; opacity: 0.8; cursor: pointer !important; }
+        .shape-path.selected-extract { stroke: #9b59b6 !important; stroke-width: 3.5px !important; opacity: 1.0; stroke-dasharray: 4 4; filter: drop-shadow(0 0 2px #9b59b6); }
+        .selection-box { fill: rgba(52, 152, 219, 0.2); stroke: #3498db; stroke-width: 0.4px; stroke-dasharray: 2 2; pointer-events: none; }
+		
+		/* NEW: Cursors for Select & Drag */
+        .canvas-container.extract-mode { cursor: default; } /* Κανονικό βελάκι στο κενό (αντί για σταυρό) */
+        .shape-path.extractable:hover { cursor: pointer !important; } /* Χεράκι-δείκτης για επιλογή */
+        .shape-path.selected-extract:hover { cursor: grab !important; } /* Ανοιχτή παλάμη σε ήδη επιλεγμένο */
+        .canvas-container.dragging-mode, .canvas-container.dragging-mode * { cursor: grabbing !important; } /* Κλειστή παλάμη όταν σέρνεις */
 		
 		/* Pins */
-        .pin-marker { fill: #f1c40f; stroke: #d35400; stroke-width: 1.5; cursor: pointer; transition: 0.2s; }
-        .pin-marker:hover { fill: #e74c3c; transform: scale(1.5); }
-        .pin-label { font-family: monospace; font-size: 6px; fill: #d35400; pointer-events: none; font-weight: bold; }
+        .pin-marker { fill: #f1c40f; stroke: #d35400; stroke-width: 1; cursor: pointer; transition: 0.1s; }
+        .pin-marker:hover { fill: #e74c3c; stroke-width: 2.5; } /* Removed the buggy transform: scale! */
+        .pin-label { font-family: monospace; font-size: 5px; fill: #d35400; pointer-events: none; font-weight: bold; user-select: none; stroke: none !important;}
     </style>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
@@ -109,7 +122,10 @@
 
         <h2 style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
             📚 Layers 
-            <button class="tool-btn" style="padding: 2px 8px; font-size: 10px;" onclick="addLayer()">+ Overlay</button>
+            <div style="display: flex; gap: 5px;">
+                <button class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #e67e22; border-color: #d35400;" onclick="soloActiveLayer()" title="Solo / Un-solo Active Layer">👁️ Solo</button>
+                <button class="tool-btn" style="padding: 2px 8px; font-size: 10px;" onclick="addLayer()">+ Overlay</button>
+            </div>
         </h2>
         <div class="layer-list" id="layerList"></div>
     </div>
@@ -121,14 +137,24 @@
             <button class="tool-btn" onclick="setTool('rect')" id="btn-rect">Rectangle</button>
             <button class="tool-btn" onclick="setTool('circle')" id="btn-circle">Circle</button>
             <button class="tool-btn" onclick="setTool('erase')" id="btn-erase" style="border-color: #e74c3c;">🧽 Erase</button>
+            <button class="tool-btn" onclick="setTool('extract')" id="btn-extract" style="border-color: #9b59b6; background: #8e44ad;">✂️ Select/Split</button>
             <button class="tool-btn" onclick="setTool('pin')" id="btn-pin" style="background: #e67e22; border-color: #d35400;">📌 Pin</button>
+            
+            <div id="extractTools" style="display:none; gap: 5px; align-items: center; border-left: 1px solid #7f8c8d; padding-left: 10px; margin-left: 5px;">
+                <span style="font-size: 9px; font-weight: bold; color: #f1c40f;">SELECTED:</span>
+                <button class="tool-btn" style="background:#27ae60; border-color:#2ecc71; padding: 3px 8px;" onclick="extractAction(false)">Move to New Layer</button>
+                <button class="tool-btn" style="background:#2980b9; border-color:#3498db; padding: 3px 8px;" onclick="extractAction(true)">Copy to New Layer</button>
+                <button class="tool-btn" style="background:#c0392b; border-color:#e74c3c; padding: 3px 8px;" onclick="explodeSelected()">💥 Shatter</button>
+                <button class="tool-btn" style="background:#f39c12; border-color:#e67e22; padding: 3px 8px;" onclick="recombineSelected()">🧲 Recombine</button>
+				<button class="tool-btn" style="background:#8e44ad; border-color:#9b59b6; padding: 3px 8px;" onclick="rotateSelectedAction()">↻ Rotate</button>
+            </div>
             
             <div class="style-group">
                 <span style="font-size: 11px; font-weight: bold; color: #bdc3c7;">STYLES:</span>
                 
                 <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.15); padding: 2px 6px; border-radius: 4px;">
                     <span style="font-size: 11px;">Width:</span>
-                    <input type="range" id="rngWidth" min="0.5" max="4.0" step="0.1" value="1.8" oninput="document.getElementById('txtWidth').innerText = parseFloat(this.value).toFixed(1); updateActiveLayerStyle()" style="width: 60px; margin: 0; cursor: ew-resize;">
+                    <input type="range" id="rngWidth" min="0.5" max="10.0" step="0.1" value="1.8" oninput="document.getElementById('txtWidth').innerText = parseFloat(this.value).toFixed(1); updateActiveLayerStyle()" style="width: 60px; margin: 0; cursor: ew-resize;">
                     <span id="txtWidth" style="font-size: 11px; font-weight: bold; width: 18px; text-align: right;">1.8</span>
                 </div>
 
@@ -160,7 +186,8 @@
                 <line x1="0" y1="-2000" x2="0" y2="2000" stroke="#95a5a6" stroke-width="0.4" />
                 
                 <g id="renderedPaths"></g>
-                <path id="livePreview" stroke="#3498db" fill="none" vector-effect="non-scaling-stroke" />
+                <path id="livePreview" stroke="#3498db" fill="none" />
+                <rect id="selectionBox" class="selection-box" display="none" />
             </svg>
             
             <div class="view-controls">
@@ -177,10 +204,14 @@
 
         <h2 style="display: flex; justify-content: space-between; align-items: center;">
             <span>📋 Exported Code</span>
-            <select id="exportMode" onchange="generateCode()" style="width: auto; padding: 2px; font-size: 11px; background: #3498db; color: white; border: none; font-weight: bold;">
-                <option value="sty">.sty Metadata Only</option>
-                <option value="latex">Full LaTeX / TikZ Macro</option>
-            </select>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <button id="btnCopyOutput" class="tool-btn" onclick="copyOutputToClipboard()" style="background: #27ae60; border-color: #2ecc71; font-size: 11px; padding: 2px 10px;">📋 Copy to Clipboard</button>
+                
+                <select id="exportMode" onchange="generateCode()" style="width: auto; padding: 2px; font-size: 11px; background: #3498db; color: white; border: none; font-weight: bold;">
+                    <option value="sty">.sty Metadata Only</option>
+                    <option value="latex">Full LaTeX / TikZ Macro</option>
+                </select>
+            </div>
         </h2>
         <textarea id="outputSty" class="output-box" readonly></textarea>
     </div>
@@ -194,6 +225,8 @@
         let vbx = -50, vby = -50, vbw = 100, vbh = 100;
         let pins = []; // NEW: Stores coordinates!
         let pinCounter = 1;
+		let selectedShapeIndices = new Set(); // NEW: Tracks multi-selected shapes!
+		let clipboardPaths = []; // NEW: Global clipboard for shapes
         
         const svg = document.getElementById('drawingSvg');
         const previewEl = document.getElementById('livePreview');
@@ -206,14 +239,25 @@
         updateView();
 
         function setTool(tool) {
-            if (currentTool === tool && (tool === 'erase' || tool === 'pin')) tool = 'line'; 
+            if (currentTool === tool && (tool === 'erase' || tool === 'pin' || tool === 'extract')) tool = 'line'; 
             currentTool = tool;
-            document.querySelectorAll('#btn-line, #btn-rect, #btn-circle, #btn-erase, #btn-pin').forEach(btn => btn.classList.remove('active'));
+            
+            document.querySelectorAll('#btn-line, #btn-rect, #btn-circle, #btn-erase, #btn-pin, #btn-extract').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${tool}`).classList.add('active');
             
+            // Manage UI States
             let canvas = document.querySelector('.canvas-container');
+            
+            // Καθαρίζουμε τα προηγούμενα modes
+            canvas.classList.remove('erase-mode', 'extract-mode');
+            
+            // Βάζουμε το σωστό mode
             if (tool === 'erase') canvas.classList.add('erase-mode');
-            else canvas.classList.remove('erase-mode');
+            else if (tool === 'extract') canvas.classList.add('extract-mode');
+            
+            document.getElementById('extractTools').style.display = (tool === 'extract') ? 'flex' : 'none';
+            selectedShapeIndices.clear(); // Clear memory when changing tools
+            
             renderCanvas();
         }
 
@@ -275,20 +319,26 @@
                     </div>`;
                 }
 
+                // FIX: Dropdown to swap Base/Overlay and the Merge Down button
                 let html = `
                     <div class="layer-item ${layer.id === activeLayerId ? 'active-layer' : ''}" onclick="setActiveLayer('${layer.id}')">
                         <div class="layer-header">
-                            <strong style="font-size: 11px; color: ${isBase ? '#e67e22' : '#2c3e50'};">${isBase ? 'Base Layer' : 'Overlay'}</strong>
+                            <select onclick="event.stopPropagation()" onchange="changeLayerType('${layer.id}', this.value)" style="font-size: 11px; font-weight: bold; color: ${isBase ? '#e67e22' : '#2c3e50'}; background: transparent; border: none; cursor: pointer; width: auto; appearance: none; padding-right: 5px; outline: none;">
+                                <option value="base" ${isBase ? 'selected' : ''}>🔸 Base Layer</option>
+                                <option value="add" ${!isBase ? 'selected' : ''}>🔹 Overlay</option>
+                            </select>
                             <div style="display:flex; gap:2px;">
                                 <button class="icon-btn ${layer.id === activeLayerId ? 'on' : ''}" title="Target this layer">🎯</button>
                                 <button class="icon-btn ${layer.visible ? 'on' : ''}" onclick="event.stopPropagation(); toggleVis('${layer.id}')" title="Visibility">${layer.visible ? '👁️' : '🕶️'}</button>
+                                <button class="icon-btn" onclick="event.stopPropagation(); mergeLayerDown('${layer.id}')" title="Merge into layer below">🔽</button>
                                 <button class="icon-btn" onclick="event.stopPropagation(); undoLayer('${layer.id}')" title="Undo" ${(layer.history && layer.history.length > 0) ? '' : 'style="opacity:0.2; cursor:default;"'}>↩️</button>
                                 <button class="icon-btn" onclick="event.stopPropagation(); redoLayer('${layer.id}')" title="Redo" ${(layer.redoHistory && layer.redoHistory.length > 0) ? '' : 'style="opacity:0.2; cursor:default;"'}>↪️</button>
-                                ${!isBase ? `<button class="icon-btn" onclick="event.stopPropagation(); deleteLayer('${layer.id}')" title="Delete">🗑️</button>` : ''}
+                                <button class="icon-btn" onclick="event.stopPropagation(); deleteLayer('${layer.id}')" title="Delete">🗑️</button>
                             </div>
                         </div>
                         ${ruleUI}
                         <input onclick="event.stopPropagation()" type="text" value="${layer.pathStr}" onchange="updateLayerPath('${layer.id}', this.value)" placeholder="SVG Path Data..." style="font-size: 10px; margin-top: 4px; border-color: transparent; background: rgba(0,0,0,0.03);">
+                        <input onclick="event.stopPropagation()" type="text" value="${layer.description || ''}" onchange="updateLayerDescription('${layer.id}', this.value)" placeholder="📝 Comment / Description..." style="font-size: 10px; margin-top: 2px; border: none; border-bottom: 1px dashed #bdc3c7; background: transparent; color: #7f8c8d;">
                     </div>`;
                 list.innerHTML += html;
             });
@@ -301,11 +351,32 @@
         function updateRuleArg(id, val) { let l = layers.find(x => x.id === id); l.rule.arg = parseInt(val); generateCode(); }
         function updateRuleOp(id, val) { let l = layers.find(x => x.id === id); l.rule.op = val; generateCode(); }
         function updateRuleVal(id, val) { let l = layers.find(x => x.id === id); l.rule.val = val; generateCode(); }
+		function updateLayerDescription(id, val) { 
+            let l = layers.find(x => x.id === id); 
+            l.description = val; 
+            generateCode(); 
+        }
 
         // --- LAYER CONTROLS ---
         function setActiveLayer(id) { activeLayerId = id; renderLayerList(); }
         function toggleVis(id) { let l = layers.find(x => x.id === id); l.visible = !l.visible; renderLayerList(); }
         
+		function soloActiveLayer() {
+            // Ελέγχουμε αν ΟΛΑ τα άλλα layers είναι ήδη κρυμμένα
+            let allOthersHidden = layers.filter(l => l.id !== activeLayerId).every(l => !l.visible);
+            
+            if (allOthersHidden) {
+                // Αν είναι ήδη "Solo", τα ανάβουμε ΟΛΑ ξανά (Un-solo)
+                layers.forEach(l => l.visible = true);
+            } else {
+                // Διαφορετικά, κρύβουμε τα πάντα ΕΚΤΟΣ από το ενεργό (Solo Mode)
+                layers.forEach(l => {
+                    l.visible = (l.id === activeLayerId);
+                });
+            }
+            renderLayerList();
+        }
+		
 		function saveHistory(layer) { 
             if(!layer.history) layer.history = []; 
             if(!layer.redoHistory) layer.redoHistory = [];
@@ -384,13 +455,21 @@
         // --- IMPORTER ---
         function importSty() {
             const code = document.getElementById('importCode').value;
-            if(!code.includes('\\newcommand')) return alert("Invalid code. Missing \\newcommand");
+            if(!code.includes('\\newcommand')) return Swal.fire({ icon: 'error', title: 'Import Failed', text: 'Invalid code. Missing \\newcommand' });;
             
             let titleMatch = code.match(/%%\s*(.+)/);
             if(titleMatch) document.getElementById('dName').value = titleMatch[1].trim();
             
-            let cmdMatch = code.match(/\\newcommand\{\\([a-zA-Z0-9]+)\}\[\d+\]\{%([^\n]+)\}/);
-            if(cmdMatch) { document.getElementById('cName').value = cmdMatch[1].trim(); document.getElementById('cArgs').value = '{' + cmdMatch[2].trim(); }
+            let cmdMatch = code.match(/\\newcommand\{\\([a-zA-Z0-9_]+)\}\s*\[\d+\]\s*\{%\s*([^\n]+)/);
+            if(cmdMatch) { 
+                document.getElementById('cName').value = cmdMatch[1].trim(); 
+                let argsContent = cmdMatch[2].trim();
+                if(argsContent.startsWith('{')) document.getElementById('cArgs').value = argsContent;
+                else document.getElementById('cArgs').value = '{' + argsContent; 
+            } else {
+                Swal.fire({ icon: 'error', title: 'Parse Error', text: 'Could not parse \\newcommand line. Check syntax.' });
+                return;
+            }
 
             document.getElementById('mEnabled').checked = /% enabled/.test(code);
             let mCat = code.match(/% category:\s*([^\n]+)/); if(mCat) document.getElementById('mCat').value = mCat[1].trim();
@@ -401,14 +480,32 @@
 
             layers = []; layerCounter = 1;
 
-            // AUTO-UPGRADER FIX: Matches modern % icon_base OR legacy % icon syntax!
-            let baseMatch = code.match(/%\s*(?:icon_base|icon):\s*([^\n]+)/);
-			
-            if(baseMatch) layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: baseMatch[1].split('//')[0].trim(), visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] });
+            // --- BASE LAYER IMPORT ---
+            let baseMatch = code.match(/%\s*(?:icon_base|icon):\s*(\[.*?\])?(.*)/);
+            if(baseMatch) {
+                let styleStr = baseMatch[1] ? baseMatch[1].trim() : "";
+                let fullPathPart = baseMatch[2];
+                let pathStr = fullPathPart.split('//')[0].trim();
+                let desc = fullPathPart.includes('//') ? fullPathPart.split('//')[1].trim() : "";
+                
+                let sw = "1.8", dashed = false, solid = false, stroke = "";
+                if(styleStr) {
+                    if(styleStr.includes('stroke-width=')) sw = styleStr.match(/stroke-width=([\d\.]+)/)[1];
+                    if(styleStr.includes('stroke=')) stroke = styleStr.match(/stroke=([^,\]]+)/)[1].trim();
+                    if(styleStr.includes('stroke-dasharray')) dashed = true;
+                    if(styleStr.includes('fill=solid')) solid = true;
+                }
+                // ΔΙΟΡΘΩΣΗ: Προσθήκη description: desc
+                layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: pathStr, description: desc, visible: true, styles: { sw: sw, stroke: stroke, dashed: dashed, solid: solid }, history: [], redoHistory: [] });
+            }
 
+            // --- OVERLAYS IMPORT ---
             let addRegex = /% add_icon:\s*([^:]+):\s*(\[.*?\])?(.*)/g; let match;
             while ((match = addRegex.exec(code)) !== null) {
-                let cond = match[1].trim(), styleStr = match[2] ? match[2].trim() : "", pathStr = match[3].split('//')[0].trim();
+                let cond = match[1].trim(), styleStr = match[2] ? match[2].trim() : "";
+                let fullPathPart = match[3];
+                let pathStr = fullPathPart.split('//')[0].trim();
+                let desc = fullPathPart.includes('//') ? fullPathPart.split('//')[1].trim() : "";
                 let ruleObj = parseRuleText(cond);
                 
                 let sw = "1.8", dashed = false, solid = false, stroke = "";
@@ -418,9 +515,11 @@
                     if(styleStr.includes('stroke-dasharray')) dashed = true;
                     if(styleStr.includes('fill=solid')) solid = true;
                 }
-                layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: ruleObj, pathStr: pathStr, visible: true, styles: { sw: sw, stroke: stroke, dashed: dashed, solid: solid }, history: [], redoHistory: [] });
+                // ΔΙΟΡΘΩΣΗ: Προσθήκη description: desc
+                layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: ruleObj, pathStr: pathStr, description: desc, visible: true, styles: { sw: sw, stroke: stroke, dashed: dashed, solid: solid }, history: [], redoHistory: [] });
             }
-            if(layers.length === 0) layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: '', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] });
+            
+            if(layers.length === 0) layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: '', description: '', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] });
             
             activeLayerId = 'l_base';
             resetView(); renderLayerList();
@@ -430,25 +529,17 @@
         function getCoords(evt) {
             let pt = svg.createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
             let cursorPt = pt.matrixTransform(svg.getScreenCTM().inverse());
-            return { x: Math.round(cursorPt.x / 5) * 5, y: Math.round(cursorPt.y / 5) * 5 };
+            
+            // ΠΡΟΣΘΗΚΗ: Αν κρατάς πατημένο το Alt, το snap πέφτει στο 0.5px (απόλυτη ακρίβεια!)
+            // Διαφορετικά, παραμένει στα 5px για τέλειο κούμπωμα στο Grid.
+            let snap = evt.altKey ? 0.5 : 5; 
+            
+            return { 
+                x: Math.round(cursorPt.x / snap) * snap, 
+                y: Math.round(cursorPt.y / snap) * snap 
+            };
         }
 
-        svg.addEventListener('mousedown', (e) => { 
-            if(e.button !== 0 || currentTool === 'erase') return; 
-            
-            // NEW: Pin Tool Logic
-            if(currentTool === 'pin') {
-                let pt = getCoords(e);
-                let name = prompt("Enter Pin Name (e.g., pin1, gate, source):", `pin${pinCounter++}`);
-                if(name) {
-                    pins.push({ id: name, x: pt.x, y: pt.y });
-                    renderCanvas();
-                }
-                return;
-            }
-            
-            isDrawing = true; startPt = getCoords(e); previewEl.setAttribute('d', ''); 
-        });
 
         // NEW: Function to delete a pin
         function deletePin(id) {
@@ -457,9 +548,134 @@
             renderCanvas();
         }
 		
+
+        // --- TRANSLATION ALGORITHM ---
+        function translatePathString(pathStr, dx, dy) {
+            return pathStr.replace(/([ML])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/g, (match, cmd, x, y) => {
+                return `${cmd} ${parseFloat(x) + dx} ${parseFloat(y) + dy}`;
+            });
+        }
+
+        // NEW: ROTATION ALGORITHM (Περιστρέφει τέλεια τις συντεταγμένες γύρω από ένα κέντρο cx, cy)
+        function rotatePathString(pathStr, angleDeg, cx, cy) {
+            let rad = angleDeg * Math.PI / 180;
+            let cos = Math.cos(rad);
+            let sin = Math.sin(rad);
+            return pathStr.replace(/([ML])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/g, (match, cmd, xStr, yStr) => {
+                let x = parseFloat(xStr) - cx;
+                let y = parseFloat(yStr) - cy;
+                let nx = x * cos - y * sin;
+                let ny = x * sin + y * cos;
+                // Χρησιμοποιούμε toFixed(2) για να μην γεμίσει ο κώδικας δεκαδικά (πχ 1.000000001)
+                return `${cmd} ${(nx + cx).toFixed(2)} ${(ny + cy).toFixed(2)}`;
+            });
+        }
+		
+		
+
+        // --- UNIFIED MOUSE CONTROLS (Draw, Marquee, Drag, Erase) ---
+        let isSelecting = false, isDragging = false;
+        let selectStartPt = {x: 0, y: 0}, dragStartPt = {x: 0, y: 0}, dragDelta = {dx: 0, dy: 0};
+
+        svg.addEventListener('mousedown', (e) => {
+            if(e.button !== 0) return;
+            let pt = getCoords(e);
+            let target = e.target;
+            
+            // NEW: Pin Tool Logic (Swal version)
+            if(currentTool === 'pin') {
+                Swal.fire({
+                    title: 'Enter Pin Name',
+                    input: 'text',
+                    inputValue: `pin${pinCounter}`,
+                    showCancelButton: true,
+                    confirmButtonColor: '#e67e22'
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) {
+                        pins.push({ id: result.value, x: pt.x, y: pt.y });
+                        pinCounter++;
+                        renderCanvas();
+                    }
+                });
+                return;
+            }
+
+            // Εντοπισμός Σχήματος
+            let isShape = target.classList.contains('shape-path');
+            let shapeIdx = isShape ? parseInt(target.getAttribute('data-idx')) : -1;
+            let layerId = isShape ? target.getAttribute('data-layer') : null;
+
+            if (currentTool === 'erase' && isShape) {
+                let l = layers.find(x => x.id === layerId);
+                activeLayerId = layerId;
+                saveHistory(l);
+                let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                subPaths.splice(shapeIdx, 1);
+                l.pathStr = subPaths.join(' ');
+                renderLayerList();
+                return;
+            }
+
+            if (currentTool === 'extract') {
+                if (isShape && layerId === activeLayerId) {
+                    // Start Dragging
+                    if (!selectedShapeIndices.has(shapeIdx)) {
+                        if (!e.shiftKey) selectedShapeIndices.clear();
+                        selectedShapeIndices.add(shapeIdx);
+                        renderCanvas();
+                    } else if (e.shiftKey) {
+                        selectedShapeIndices.delete(shapeIdx);
+                        renderCanvas();
+                        return;
+                    }
+                    isDragging = true;
+                    document.querySelector('.canvas-container').classList.add('dragging-mode'); // <-- ΠΡΟΣΘΗΚΗ
+                    dragStartPt = pt;
+                    dragDelta = {dx: 0, dy: 0};
+                } else {
+                    // Start Marquee Selection
+                    isSelecting = true;
+                    selectStartPt = pt;
+                    let selBox = document.getElementById('selectionBox');
+                    selBox.setAttribute('x', pt.x); selBox.setAttribute('y', pt.y);
+                    selBox.setAttribute('width', 0); selBox.setAttribute('height', 0);
+                    selBox.setAttribute('display', 'block');
+                    if (!e.shiftKey) selectedShapeIndices.clear();
+                    renderCanvas();
+                }
+                return;
+            }
+
+            // Normal Drawing
+            isDrawing = true; startPt = pt; previewEl.setAttribute('d', '');
+        });
+
         svg.addEventListener('mousemove', (e) => {
+            let currPt = getCoords(e);
+
+            if (isSelecting) {
+                let rx = Math.min(selectStartPt.x, currPt.x), ry = Math.min(selectStartPt.y, currPt.y);
+                let rw = Math.abs(currPt.x - selectStartPt.x), rh = Math.abs(currPt.y - selectStartPt.y);
+                let selBox = document.getElementById('selectionBox');
+                selBox.setAttribute('x', rx); selBox.setAttribute('y', ry);
+                selBox.setAttribute('width', rw); selBox.setAttribute('height', rh);
+                return;
+            }
+
+            if (isDragging) {
+                let dx = currPt.x - dragStartPt.x;
+                let dy = currPt.y - dragStartPt.y;
+                dragDelta = {dx, dy};
+                // Real-time visual transform for smooth dragging
+                document.querySelectorAll('.shape-path.selected-extract').forEach(el => {
+                    el.setAttribute('transform', `translate(${dx}, ${dy})`);
+                });
+                return;
+            }
+
+            // Normal Drawing Preview
             if (!isDrawing) return;
-            let currPt = getCoords(e), d = "";
+            let d = "";
             if (currentTool === 'line') d = `M ${startPt.x} ${startPt.y} L ${currPt.x} ${currPt.y}`;
             else if (currentTool === 'rect') {
                 let rx = Math.min(startPt.x, currPt.x), ry = Math.min(startPt.y, currPt.y);
@@ -472,30 +688,222 @@
             previewEl.setAttribute('d', d);
         });
 
-        svg.addEventListener('mouseup', () => {
+        svg.addEventListener('mouseup', (e) => {
+            if (isSelecting) {
+                isSelecting = false;
+                let selBox = document.getElementById('selectionBox');
+                selBox.setAttribute('display', 'none');
+                
+                let rx = parseFloat(selBox.getAttribute('x')), ry = parseFloat(selBox.getAttribute('y'));
+                let rw = parseFloat(selBox.getAttribute('width')), rh = parseFloat(selBox.getAttribute('height'));
+                
+                // Intersection Math (Βρίσκει ποια σχήματα ακουμπάνε το κουτί επιλογής)
+                document.querySelectorAll(`.shape-path[data-layer="${activeLayerId}"]`).forEach(el => {
+                    let bbox = el.getBBox();
+                    let intersects = !(bbox.x > rx + rw || bbox.x + bbox.width < rx || bbox.y > ry + rh || bbox.y + bbox.height < ry);
+                    if (intersects) selectedShapeIndices.add(parseInt(el.getAttribute('data-idx')));
+                });
+                renderCanvas();
+                return;
+            }
+
+            if (isDragging) {
+                isDragging = false;
+                document.querySelector('.canvas-container').classList.remove('dragging-mode'); // <-- ΠΡΟΣΘΗΚΗ
+                if (dragDelta.dx !== 0 || dragDelta.dy !== 0) {
+                    let l = layers.find(x => x.id === activeLayerId);
+                    saveHistory(l);
+                    let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                    
+                    // Εφαρμογή της μετατόπισης (dx, dy) στα επιλεγμένα paths
+                    selectedShapeIndices.forEach(idx => {
+                        subPaths[idx] = translatePathString(subPaths[idx], dragDelta.dx, dragDelta.dy);
+                    });
+                    
+                    l.pathStr = subPaths.join(' ');
+                    renderLayerList(); // Redraws perfectly snapped paths!
+                }
+                return;
+            }
+
+            // Normal Drawing Finalize
             if (!isDrawing) return;
             isDrawing = false;
             let finalPath = previewEl.getAttribute('d'); previewEl.setAttribute('d', '');
-            if (finalPath) { let l = layers.find(x => x.id === activeLayerId); saveHistory(l); l.pathStr += (l.pathStr.length > 0 ? " " : "") + finalPath; renderLayerList(); }
+            if (finalPath) { 
+                let l = layers.find(x => x.id === activeLayerId); 
+                saveHistory(l); 
+                l.pathStr += (l.pathStr.length > 0 ? " " : "") + finalPath; 
+                renderLayerList(); 
+            }
         });
 
-        // --- NEW ERASER FUNCTION ---
-        function eraseShape(layerId, shapeIdx) {
-            if (currentTool !== 'erase') return;
-            let l = layers.find(x => x.id === layerId);
-            if (!l) return;
+        function extractAction(isCopy) {
+            if(selectedShapeIndices.size === 0) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select shapes first by clicking them!'});
             
-            // FIX 1: Auto-target the layer you are erasing from so Ctrl+Z works perfectly!
-            activeLayerId = layerId; 
-
-            saveHistory(l); 
+            let l = layers.find(x => x.id === activeLayerId);
+            saveHistory(l);
             
-            // FIX 2: Improved Regex (only splits on uppercase M). Keeps circles intact!
             let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
-            subPaths.splice(shapeIdx, 1); 
-            l.pathStr = subPaths.join(' '); 
+            let extractedPaths = [], remainingPaths = [];
             
-            renderLayerList(); // (This automatically calls renderCanvas)
+            subPaths.forEach((p, i) => { 
+                if(selectedShapeIndices.has(i)) extractedPaths.push(p); 
+                else remainingPaths.push(p); 
+            });
+            
+            if (!isCopy) l.pathStr = remainingPaths.join(' ');
+            
+            let newRule = (l.type === 'base') ? { type: 'always', arg: 1, op: '==', val: '' } : JSON.parse(JSON.stringify(l.rule));
+            let newLayer = { id: `l_${layerCounter++}`, type: 'add', rule: newRule, pathStr: extractedPaths.join(' '), visible: true, styles: JSON.parse(JSON.stringify(l.styles)), history: [], redoHistory: [] };
+            
+            layers.push(newLayer);
+            activeLayerId = newLayer.id; // Auto-focus new layer
+            setTool('line'); // Snap out of extract mode
+            renderLayerList();
+        }
+		
+		function explodeSelected() {
+            if (selectedShapeIndices.size === 0) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select shapes to shatter!'});
+            let l = layers.find(x => x.id === activeLayerId);
+            saveHistory(l);
+            
+            let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+            let newPaths = [];
+            
+            subPaths.forEach((p, i) => {
+                // If selected and it's a line/rect (not a circle with Arcs 'a' or 'A')
+                if (selectedShapeIndices.has(i) && !/[aA]/.test(p)) {
+                    let coords = p.match(/([ML])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/g);
+                    if (coords && coords.length > 1) {
+                        let lx, ly, startX, startY;
+                        coords.forEach((c, idx) => {
+                            let match = c.match(/([ML])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/);
+                            let cmd = match[1], x = parseFloat(match[2]), y = parseFloat(match[3]);
+                            
+                            if (cmd === 'M') { 
+                                lx = x; ly = y; startX = x; startY = y; 
+                            } else if (cmd === 'L') {
+                                newPaths.push(`M ${lx} ${ly} L ${x} ${y}`);
+                                lx = x; ly = y;
+                            }
+                        });
+                        // If it's a closed polygon (like a rectangle with Z), rebuild the final wall
+                        if (/Z/i.test(p) && startX !== undefined) {
+                            newPaths.push(`M ${lx} ${ly} L ${startX} ${startY}`);
+                        }
+                    } else {
+                        newPaths.push(p); // Fallback if parsing fails
+                    }
+                } else {
+                    newPaths.push(p); // Keep unselected or un-shatterable shapes intact
+                }
+            });
+            
+            l.pathStr = newPaths.join(' ');
+            selectedShapeIndices.clear(); // Clear selection so user can pick individual pieces
+            renderLayerList();
+        }
+		
+		function recombineSelected() {
+            if (selectedShapeIndices.size < 2) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select at least 2 shapes to recombine!'});
+            let l = layers.find(x => x.id === activeLayerId);
+            saveHistory(l);
+            
+            let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+            let combinedPaths = [];
+            let remainingPaths = [];
+            
+            subPaths.forEach((p, i) => {
+                if (selectedShapeIndices.has(i)) combinedPaths.push(p.trim());
+                else remainingPaths.push(p.trim());
+            });
+            
+            // 1. Join them by turning subsequent 'M' commands into 'L' (LineTo)
+            let merged = combinedPaths[0];
+            for (let i = 1; i < combinedPaths.length; i++) {
+                merged += " " + combinedPaths[i].replace(/^M/, 'L');
+            }
+            
+            // 2. Clean up redundant coordinates (e.g., L 10 10 L 10 10 -> L 10 10)
+            let previousMerged;
+            do {
+                previousMerged = merged;
+                merged = merged.replace(/([ML])\s+([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)\s+L\s+\2\s+\3/g, '$1 $2 $3');
+            } while (merged !== previousMerged); // Run until all microscopic duplicates are gone
+            
+            remainingPaths.push(merged);
+            l.pathStr = remainingPaths.join(' ');
+            selectedShapeIndices.clear(); // Deselect to show the newly combined single shape
+            renderLayerList();
+        }
+		
+		function rotateSelectedAction() {
+            if (selectedShapeIndices.size === 0) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select shapes to rotate!'});
+            
+            Swal.fire({
+                title: 'Rotate Shapes',
+                text: 'Enter rotation angle in degrees (e.g., 45, 90, -30):',
+                input: 'number',
+                inputValue: 45,
+                showCancelButton: true,
+                confirmButtonText: 'Rotate',
+                confirmButtonColor: '#8e44ad'
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    let angle = parseFloat(result.value);
+                    if (isNaN(angle)) return;
+
+                    let l = layers.find(x => x.id === activeLayerId);
+                    saveHistory(l);
+                    
+                    let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+
+                    // Υπολογισμός Κέντρου Περιστροφής
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    subPaths.forEach((p, i) => {
+                        if (selectedShapeIndices.has(i)) {
+                            let coords = [...p.matchAll(/([ML])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/g)];
+                            coords.forEach(m => {
+                                let x = parseFloat(m[2]), y = parseFloat(m[3]);
+                                if (x < minX) minX = x; if (x > maxX) maxX = x;
+                                if (y < minY) minY = y; if (y > maxY) maxY = y;
+                            });
+                        }
+                    });
+                    let cx = (minX + maxX) / 2;
+                    let cy = (minY + maxY) / 2;
+
+                    // Εφαρμογή
+                    selectedShapeIndices.forEach(idx => {
+                        subPaths[idx] = rotatePathString(subPaths[idx], angle, cx, cy);
+                    });
+                    
+                    l.pathStr = subPaths.join(' ');
+                    renderLayerList();
+                }
+            });
+        }
+
+        // --- LAYER MANIPULATION TOOLS ---
+        function changeLayerType(id, newType) {
+            let l = layers.find(x => x.id === id);
+            l.type = newType;
+            if (newType === 'base') l.rule = { type: 'base' };
+            else if (!l.rule || l.rule.type === 'base') l.rule = { type: 'always', arg: 1, op: '==', val: '' };
+            renderLayerList();
+        }
+
+        function mergeLayerDown(id) {
+            let idx = layers.findIndex(x => x.id === id);
+            if (idx <= 0) return Swal.fire({icon: 'error', title: 'Action Denied', text: 'Cannot merge the bottom-most layer down.'});
+            
+            let lSource = layers[idx];
+            let lTarget = layers[idx - 1];
+            
+            saveHistory(lTarget);
+            lTarget.pathStr += (lTarget.pathStr && lSource.pathStr ? " " : "") + lSource.pathStr;
+            deleteLayer(id); 
         }
 
         // --- UPGRADED RENDERER ---
@@ -511,15 +919,21 @@
                 // Removed the "turn blue if active" logic.
                 let stroke = l.styles.stroke ? l.styles.stroke : baseColor;
                 
-                let sw = parseFloat(l.styles.sw) * 1.2; 
+                let sw = parseFloat(l.styles.sw); 
                 let dash = l.styles.dashed ? 'stroke-dasharray="4 4"' : '';
                 let fill = l.styles.solid ? stroke : "none";
                 
                 // FIX 3: Apply the improved Regex here too so the hover-glow targets whole shapes!
                 let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
                 subPaths.forEach((sub, idx) => {
-                    let isErasable = (currentTool === 'erase' && l.id === activeLayerId) ? 'erasable' : '';
-                    html += `<path class="shape-path ${isErasable}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} vector-effect="non-scaling-stroke" stroke-linecap="butt" stroke-linejoin="miter" onclick="eraseShape('${l.id}', ${idx})" />`;
+                    let interactionClass = '';
+                    if (l.id === activeLayerId) {
+                        if (currentTool === 'erase') interactionClass = 'erasable';
+                        if (currentTool === 'extract') {
+                            interactionClass = selectedShapeIndices.has(idx) ? 'selected-extract' : 'extractable';
+                        }
+                    }
+                    html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="butt" stroke-linejoin="miter" />`;
                 });
             });
 			// NEW: Render Pins
@@ -527,8 +941,8 @@
                 let isErasable = (currentTool === 'erase') ? 'erasable' : '';
                 html += `
                     <g onclick="deletePin('${p.id}')" class="shape-path ${isErasable}">
-                        <circle cx="${p.x}" cy="${p.y}" r="2.5" class="pin-marker" />
-                        <text x="${p.x - 4}" y="${p.y - 4}" class="pin-label">${p.id}</text>
+                        <circle cx="${p.x}" cy="${p.y}" r="1.5" class="pin-marker" />
+                        <text x="${p.x - 3}" y="${p.y - 3}" class="pin-label">${p.id}</text>
                     </g>`;
             });
             document.getElementById('renderedPaths').innerHTML = html;
@@ -537,7 +951,7 @@
             if(aLayer) {
                 let previewColor = aLayer.styles.stroke || baseColor;
                 previewEl.setAttribute('stroke', previewColor);
-                previewEl.setAttribute('stroke-width', parseFloat(aLayer.styles.sw) * 1.2);
+                previewEl.setAttribute('stroke-width', parseFloat(aLayer.styles.sw));
                 previewEl.setAttribute('fill', aLayer.styles.solid ? previewColor : 'none');
             }
 
@@ -649,10 +1063,14 @@
                     if (!l.pathStr.trim()) return;
                     let styleTag = formatStyleTag(l.styles);
                     let conditionTag = buildRuleText(l.rule);
-                    if (l.type === 'base') lines.push(`% icon_base: ${l.pathStr}`);
-                    else lines.push(`% add_icon: ${conditionTag} : ${styleTag}${l.pathStr}`);
+                    
+                    // ΠΡΟΣΘΗΚΗ: Αν υπάρχει σχόλιο, βάλτο στο τέλος με //
+                    let descTag = l.description ? ` // ${l.description}` : "";
+                    
+                    if (l.type === 'base') lines.push(`% icon_base: ${styleTag}${l.pathStr}${descTag}`);
+                    else lines.push(`% add_icon: ${conditionTag} : ${styleTag}${l.pathStr}${descTag}`);
                 });
-            } 
+            }
             // MODE 2: Full LaTeX / TikZ Macro Compiler
             else {
                 // 1. Argument Parsing Boilerplate
@@ -712,9 +1130,12 @@
                 }
                 
                 lines.push(`    \\end{scope}`);
+                
+                // FIX: ONLY close the macro if we are exporting the full LaTeX body!
+                lines.push(`}`); 
             }
             
-            lines.push(`}`);
+            // End of export logic
             document.getElementById('outputSty').value = lines.join('\n');
         }
 		
@@ -733,14 +1154,64 @@
                 e.preventDefault();
                 redoLayer(activeLayerId);
             }
-            // Escape Key (Quick exit Eraser tool)
-            if (e.key === 'Escape' && currentTool === 'erase') {
+			// Ctrl + C (Copy selected shapes to clipboard)
+            if (e.ctrlKey && (e.key.toLowerCase() === 'c' || e.code === 'KeyC') && currentTool === 'extract') {
+                if (selectedShapeIndices.size > 0) {
+                    e.preventDefault();
+                    let l = layers.find(x => x.id === activeLayerId);
+                    let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                    clipboardPaths = [];
+                    subPaths.forEach((p, i) => {
+                        if (selectedShapeIndices.has(i)) clipboardPaths.push(p);
+                    });
+                    // Flash the canvas slightly to indicate successful copy
+                    document.getElementById('drawingSvg').style.opacity = '0.5';
+                    setTimeout(() => document.getElementById('drawingSvg').style.opacity = '1', 100);
+                }
+            }
+
+            // Ctrl + V (Paste clipboard into the active layer)
+            if (e.ctrlKey && (e.key.toLowerCase() === 'v' || e.code === 'KeyV')) {
+                if (clipboardPaths.length > 0) {
+                    e.preventDefault();
+                    let l = layers.find(x => x.id === activeLayerId);
+                    saveHistory(l);
+                    l.pathStr += (l.pathStr.trim() ? " " : "") + clipboardPaths.join(' ');
+                    selectedShapeIndices.clear(); // Deselect to prevent accidentally copying twice
+                    renderLayerList();
+                }
+            }
+            // Escape Key (Quick exit special tools)
+            if (e.key === 'Escape' && (currentTool === 'erase' || currentTool === 'extract' || currentTool === 'pin')) {
                 e.preventDefault();
                 setTool('line');
             }
         });
 
         renderLayerList();
+		
+		function copyOutputToClipboard() {
+            const output = document.getElementById('outputSty');
+            if (!output.value.trim()) return;
+
+            navigator.clipboard.writeText(output.value).then(() => {
+                const btn = document.getElementById('btnCopyOutput');
+                const originalText = btn.innerHTML;
+                
+                // Οπτική επιβεβαίωση στον χρήστη
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#2ecc71';
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '#27ae60';
+                }, 1500);
+            }).catch(err => {
+                console.error('Σφάλμα κατά την αντιγραφή:', err);
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Copy Failed.' });
+            });
+        }
+		
     </script>
 </body>
 </html>

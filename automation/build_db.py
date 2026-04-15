@@ -52,7 +52,19 @@ def generate_db(sty_file):
                 comp_data['previewArgs'] = preview_args
 
             elif line.startswith('% icon_base:'):
-                comp_data['iconBase'] = line.replace('% icon_base:', '').strip()
+                path_data = line.replace('% icon_base:', '').strip()
+                style_str = ""
+                
+                # Ψάχνουμε για προαιρετικές αγκύλες στιλ π.χ. [stroke-width=2.5]
+                if path_data.startswith('['):
+                    end_idx = path_data.find(']')
+                    if end_idx != -1:
+                        style_str = path_data[1:end_idx].strip()
+                        path_data = path_data[end_idx+1:].strip()
+                
+                comp_data['iconBase'] = path_data
+                if style_str:
+                    comp_data['iconBaseStyle'] = style_str
 
             elif line.startswith('% add_icon:'):
                 parts = line.replace('% add_icon:', '').split(':', 1)

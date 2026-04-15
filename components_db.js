@@ -15,19 +15,17 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "3": "open"
-        },
-        "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z",
+        "iconBase": "M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0",
+        "iconBaseStyle": "fill=solid",
         "iconLayers": [
             {
                 "condition": "3==closed",
-                "style": "",
+                "style": "fill=solid",
                 "path": "M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z"
             },
             {
                 "condition": "3==open",
-                "style": "",
+                "style": "fill=solid",
                 "path": "M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z"
             }
         ],
@@ -485,19 +483,16 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "4": "standard"
-        },
         "iconBase": "M -30 0 L -20 0 M 20 0 L 30 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5",
         "iconLayers": [
             {
                 "condition": "4==standard",
-                "style": "",
+                "style": "stroke-width=2.5",
                 "path": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0"
             },
             {
                 "condition": "4==controlled",
-                "style": "",
+                "style": "stroke-width=2.5",
                 "path": "M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0"
             }
         ],
@@ -563,14 +558,11 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "4": "on"
-        },
         "iconBase": "M -15 0 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 9 L 12 9",
         "iconLayers": [
             {
                 "condition": "4==on",
-                "style": "",
+                "style": "stroke-width=2.5",
                 "path": "M 17 0 L 22 0 M -17 0 L -22 0 M 13 -11 L 18 -17 M 0 -15 L 0 -19 M -13 -11 L -18 -17"
             }
         ],
@@ -633,24 +625,21 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "4": "sine"
-        },
         "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0",
         "iconLayers": [
             {
                 "condition": "4==sine",
-                "style": "",
+                "style": "stroke-width=2.5",
                 "path": "M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0"
             },
             {
                 "condition": "4==square",
-                "style": "",
+                "style": "stroke-width=2.5",
                 "path": "M -15 0 L -12 0 L -12 -11 L -4 -11 L -4 11 L 4 11 L 4 -11 L 12 -11 L 12 0 L 15 0"
             },
             {
                 "condition": "4==triangle",
-                "style": "",
+                "style": "stroke-width=2.5",
                 "path": "M -14 7 L -8 -11 L 0 11 L 8 -11 L 15 7"
             }
         ],
@@ -703,13 +692,32 @@ const JL_DATABASE = {
         "name": "multimeter",
         "argsCount": 7,
         "enabled": "true",
-        "icon": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -16 -3 A 17 17 0 0 1 16 -3 M 0 10 L 0 -10",
-        "flippable": false,
+        "category": "Basic Components",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "filled": false,
         "labelAnchor": {
             "x": 0.0,
-            "y": 15.0,
+            "y": 25.0,
             "dir": "B"
         },
+        "flippable": false,
+        "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0   M -30 0 L -20 0   M 20 0 L 30 0",
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.5",
+                "path": "M -16 -3 A 17 17 0 0 1 16 -3"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.5",
+                "path": "M 0 10 L 0 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -760,6 +768,11 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
+        "scales": [
+            1,
+            2,
+            4
+        ],
         "filled": false,
         "labelAnchor": {
             "x": 4.0,
@@ -767,15 +780,18 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "4": "fixed"
-        },
-        "iconBase": "M 0 0 L 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 L 80 0",
+        "iconBase": "M 10 0 L 15 -10  M 15 -10 L 25 10  M 25 10 L 35 -10  M 35 -10 L 45 10  M 45 10 L 55 -10  M 55 -10 L 65 10  M 65 10 L 70 0",
+        "iconBaseStyle": "stroke-width=2.8",
         "iconLayers": [
             {
                 "condition": "4==variable",
-                "style": "",
+                "style": "stroke-width=2.3",
                 "path": "M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7"
+            },
+            {
+                "condition": "1~=",
+                "style": "",
+                "path": "M 0 0 L 10 0  M 70 0 L 80 0"
             }
         ],
         "argNames": [
@@ -828,6 +844,11 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
+        "scales": [
+            1,
+            2,
+            4
+        ],
         "filled": false,
         "labelAnchor": {
             "x": 4.0,
@@ -835,14 +856,12 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "4": "fixed"
-        },
         "iconBase": "M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0",
+        "iconBaseStyle": "stroke-width=2.7",
         "iconLayers": [
             {
                 "condition": "4==variable",
-                "style": "",
+                "style": "stroke-width=2.3",
                 "path": "M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7"
             }
         ],
@@ -896,6 +915,11 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
+        "scales": [
+            1,
+            2,
+            4
+        ],
         "filled": false,
         "labelAnchor": {
             "x": 2.0,
@@ -903,25 +927,27 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "3": "fixed"
-        },
-        "iconBase": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -15 L 24 15 M 24 0 L 40 0",
+        "iconBase": "M 0 0 L 16 0  M 24 0 L 40 0",
         "iconLayers": [
             {
                 "condition": "3~=variable",
-                "style": "",
-                "path": "M 10 12 L 30 -12 M 30 -12 L 24 -11 M 30 -12 L 28 -6"
+                "style": "stroke-width=1.3",
+                "path": "M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34      M 35 -15 L 8 8.5"
             },
             {
                 "condition": "4==plus",
-                "style": "",
+                "style": "stroke-width=0.9",
                 "path": "M 12 -12 L 12 -8 M 10 -10 L 14 -10"
             },
             {
                 "condition": "4==minus",
-                "style": "",
+                "style": "stroke-width=0.9",
                 "path": "M 10 -10 L 14 -10"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.9",
+                "path": "M 16 -15 L 16 15  M 24 -15 L 24 15"
             }
         ],
         "argNames": [

@@ -81,10 +81,10 @@
 % filled: true
 % label_anchor: B
 % flip: disabled
-% preview_args: 3=open
-% icon_base: M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z
-% add_icon: 3==closed : M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z
-% add_icon: 3==open   : M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z
+
+% icon_base: [fill=solid] M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0
+% add_icon: 3==closed : [fill=solid] M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z
+% add_icon: 3==open : [fill=solid] M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
@@ -492,10 +492,10 @@
 % filled: false
 % label_anchor: 0 15 B
 % flip: disabled
-% preview_args: 4=standard
+
 % icon_base: M -30 0 L -20 0 M 20 0 L 30 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5
-% add_icon: 4==standard   : M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0
-% add_icon: 4==controlled : M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0
+% add_icon: 4==standard : [stroke-width=2.5] M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0
+% add_icon: 4==controlled : [stroke-width=2.5] M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% Draw body
@@ -553,9 +553,9 @@
 % filled: false
 % label_anchor: B
 % flip: disabled
-% preview_args: 4=on
+
 % icon_base: M -15 0 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 9 L 12 9
-% add_icon: 4==on : M 17 0 L 22 0 M -17 0 L -22 0 M 13 -11 L 18 -17 M 0 -15 L 0 -19 M -13 -11 L -18 -17
+% add_icon: 4==on : [stroke-width=2.5] M 17 0 L 22 0 M -17 0 L -22 0 M 13 -11 L 18 -17 M 0 -15 L 0 -19 M -13 -11 L -18 -17
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				% draw light and rays
@@ -602,11 +602,11 @@
 % filled: false
 % label_anchor: 0 15 B
 % flip: disabled
-% preview_args: 4=sine
+
 % icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0
-% add_icon: 4==sine     : M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0
-% add_icon: 4==square   : M -15 0 L -12 0 L -12 -11 L -4 -11 L -4 11 L 4 11 L 4 -11 L 12 -11 L 12 0 L 15 0
-% add_icon: 4==triangle : M -14 7 L -8 -11 L 0 11 L 8 -11 L 15 7
+% add_icon: 4==sine : [stroke-width=2.5] M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0
+% add_icon: 4==square : [stroke-width=2.5] M -15 0 L -12 0 L -12 -11 L -4 -11 L -4 11 L 4 11 L 4 -11 L 12 -11 L 12 0 L 15 0
+% add_icon: 4==triangle : [stroke-width=2.5] M -14 7 L -8 -11 L 0 11 L 8 -11 L 15 7
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw circle
@@ -673,9 +673,15 @@
 %% Multimeter
 \newcommand{\multimeter}[7]{%{position}{name}{horizontal/vertical}{value (0 to 100)}{rotation}{grid}{show (0,0)}
 % enabled
-% icon: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 M -16 -3 A 17 17 0 0 1 16 -3 M 0 10 L 0 -10
+% category: Basic Components
+% scales: 1, 2, 4
+% filled: false
+% label_anchor: 0 25 B
 % flip: disabled
-% label_anchor: 0 15 B
+
+% icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0   M -30 0 L -20 0   M 20 0 L 30 0  
+% add_icon: 1~= : [stroke-width=2.5] M -16 -3 A 17 17 0 0 1 16 -3 
+% add_icon: 1~= : [stroke-width=2.5] M 0 10 L 0 -10
 		% draw interior
 			\begin{scope}[shift={#1}, scale=\jlcscale] % no rotation for interior
 				%draw shade
@@ -732,12 +738,14 @@
 \newcommand{\resistor}[7]{%{position}{name}{horizontal/vertical/empty}{fixed/variable}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Passives
+% scales: 1, 2, 4
 % filled: false
 % label_anchor: 4 0.5 B
 % flip: disabled
-% preview_args: 4=fixed
-% icon_base: M 0 0 L 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 L 80 0
-% add_icon: 4==variable : M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7
+
+% icon_base: [stroke-width=2.8] M 10 0 L 15 -10  M 15 -10 L 25 10  M 25 10 L 35 -10  M 35 -10 L 45 10  M 45 10 L 55 -10  M 55 -10 L 65 10  M 65 10 L 70 0 
+% add_icon: 4==variable : [stroke-width=2.3] M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7
+% add_icon: 1~= : M 0 0 L 10 0  M 70 0 L 80 0
 		\IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -813,12 +821,13 @@
 \newcommand{\inductor}[7]{%{position}{name}{horizontal/vertical/empty}{fixed/variable}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Passives
+% scales: 1, 2, 4
 % filled: false
 % label_anchor: 4 1 B
 % flip: disabled
-% preview_args: 4=fixed
-% icon_base: M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0
-% add_icon: 4==variable : M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7
+
+% icon_base: [stroke-width=2.7] M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0
+% add_icon: 4==variable : [stroke-width=2.3] M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7
 		\IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -896,14 +905,16 @@
 \newcommand{\capacitor}[7]{%{position}{name}{horizontal/vertical/empty-fixed/variable}{plus/minus/none}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Passives
+% scales: 1, 2, 4
 % filled: false
 % label_anchor: 2 0.5 B
 % flip: disabled
-% preview_args: 3=fixed
-% icon_base: M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -15 L 24 15 M 24 0 L 40 0
-% add_icon: 3~=variable : M 10 12 L 30 -12 M 30 -12 L 24 -11 M 30 -12 L 28 -6
-% add_icon: 4==plus      : M 12 -12 L 12 -8 M 10 -10 L 14 -10
-% add_icon: 4==minus     : M 10 -10 L 14 -10
+
+% icon_base: M 0 0 L 16 0  M 24 0 L 40 0
+% add_icon: 3~=variable : [stroke-width=1.3] M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34      M 35 -15 L 8 8.5 // arrow
+% add_icon: 4==plus : [stroke-width=0.9] M 12 -12 L 12 -8 M 10 -10 L 14 -10 // plus sign
+% add_icon: 4==minus : [stroke-width=0.9] M 10 -10 L 14 -10 // minus sign
+% add_icon: 1~= : [stroke-width=2.9] M 16 -15 L 16 15  M 24 -15 L 24 15 // plates
 		\IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
