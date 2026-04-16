@@ -78,9 +78,9 @@
 % enabled
 % category: Switches
 % scales: 1, 2, 4
-% filled: true
 % label_anchor: B
 % flip: disabled
+% preview_args: 3=open
 
 % icon_base: [fill=solid] M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0
 % add_icon: 3==closed : [fill=solid] M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z
@@ -126,11 +126,12 @@
 \newcommand{\mechanicalswitchthreeport}[6]{%{position}{name}{state1/state2}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Switches
-% filled: true
+% scales: 1, 2, 4
 % label_anchor: B
 % flip: disabled
 % preview_args: 3=state1
-% icon_base: M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z
+
+% icon_base: [fill=solid] M 0 0 L 10 0    M 0 -20 L 10 -20    M 30 -10 L 40 -10    M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z    M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z    M 30 -10 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0
 % add_icon: 3==state1 : M 9 -2 L 30 -10 M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z
 % add_icon: 3==state2 : M 9 -18 L 30 -10 M 11 -18 A 1 1 0 1 0 9 -18 A 1 1 0 1 0 11 -18 Z
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
@@ -176,13 +177,13 @@
 % enabled
 % category: Switches
 % scales: 1, 2, 4
-% filled: true
 % label_anchor: B
 % flip: disabled
 % preview_args: 3=open
-% icon_base: M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -15 M 19 -15 L 21 -15
-% add_icon: 3==closed : M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12
-% add_icon: 3==open   : M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 20 -6 L 20 -7 M 20 -8 L 20 -9 M 20 -10 L 20 -11 M 20 -12 L 20 -13 M 20 -14 L 20 -15
+
+% icon_base: [fill=solid] M 0 0 L 10 0  M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z  M 20 -13 L 20 -15  M 19 -15 L 21 -15  M 15 -15 L 25 -15  M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // base
+% add_icon: 3==closed : [fill=solid] M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12
+% add_icon: 3==open : [fill=solid] M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 20 -6 L 20 -7 M 20 -8 L 20 -9 M 20 -10 L 20 -11 M 20 -12 L 20 -13 M 20 -14 L 20 -15 // open
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
@@ -235,20 +236,20 @@
 
 %% Controlled Switch - Box
 \newcommand{\controlledswitchbox}[7]{%{position}{name}{control value}{n/p}{rotation}{grid}{show (0,0)}
+% enabled
 % category: Switches
 % scales: 1, 2, 4
-% filled: false
 % label_anchor: B
 % flip: disabled
 % preview_args: 4=n
 
-% icon_base: M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 // Base terminals and angled bridge
-% add_icon: 1~=  : [stroke-width=2.8] M 9 0 L 9 -13 L 31 -13 L 31 2 L 9 2 L 9 0 // The thick main box
-% add_icon: 1~=  : [stroke-width=2.8] M 16 -18 L 24 -18 // WIDER horizontal top of the T
-% add_icon: 1~=  : [fill=solid] M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z // Solid pivot circles
-% add_icon: 4==n : [stroke-width=2.5, stroke-dasharray=2 2] M 20 -13 L 20 -18 // Thicker dashed N-line
-% add_icon: 4==p : [stroke-width=2.5, stroke-dasharray=2 2] M 20 -15 L 20 -18 // Thicker dashed P-line
-% add_icon: 4==p : M 19 -14 A 1 1 0 1 0 21 -14 A 1 1 0 1 0 19 -14 Z // Hollow inversion bubble with a solid unbroken line
+% icon_base: [fill=solid] M 0 0 L 10 0  M 30 0 L 40 0  M 10 0 L 28 -11  M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // Base terminals and angled bridge
+% add_icon: 1~= : M 9 -13 L 32 -13 L 32 4 L 9 4 Z // The thick main box
+% add_icon: 1~= : [stroke-width=2.8] M 16 -23 L 24 -23 // T
+% add_icon: 1~= : [fill=solid] M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z // Solid pivot circles
+% add_icon: 4==n : [stroke-width=1.6] M 20 -22.5 L 20 -12.5 // N-line
+% add_icon: 4==p : [stroke-width=1.6] M 20 -22 L 20 -18.5 // P-line
+% add_icon: 4==p : [stroke-width=0.7] M 20 -16 m -2.5 0 a 2.5 2.5 0 1 0 5 0 a 2.5 2.5 0 1 0 -5 0 // inversion bubble
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% handle inverted control value
@@ -363,8 +364,7 @@
 % enabled
 % category: Terminals
 % scales: 1, 2, 4
-% filled: false
-% label_anchor: 0 3.5 B
+% label_anchor: 0 20 B
 % flip: disabled
 
 % icon_base: M 0 0 L 0 15 // The vertical entry lead
@@ -423,7 +423,6 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% filled: false
 % label_anchor: 0 15 B
 % flip: disabled
 % preview_args: 4=standard
@@ -489,11 +488,11 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% filled: false
 % label_anchor: 0 15 B
 % flip: disabled
+% preview_args: 4=standard
 
-% icon_base: M -30 0 L -20 0 M 20 0 L 30 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5
+% icon_base: M -30 0 L -20 0  M 20 0 L 30 0  M -10 0 L 10 0  M 10 0 L 3 -5 L 10 0 L 3 5
 % add_icon: 4==standard : [stroke-width=2.5] M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0
 % add_icon: 4==controlled : [stroke-width=2.5] M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
@@ -550,12 +549,12 @@
 % enabled
 % category: Indicators
 % scales: 0.5, 1, 2, 4
-% filled: false
-% label_anchor: B
+% label_anchor: 0 10 B
 % flip: disabled
+% preview_args: 4=on
 
-% icon_base: M -15 0 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 9 L 12 9
-% add_icon: 4==on : [stroke-width=2.5] M 17 0 L 22 0 M -17 0 L -22 0 M 13 -11 L 18 -17 M 0 -15 L 0 -19 M -13 -11 L -18 -17
+% icon_base: M -15 -5 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6   M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9   M 20 20 L 20 8 L 11.5 8 L 20.5 8 // body
+% add_icon: 4==on : [stroke-width=2.5] M 17 0 L 22 0    M -17 0 L -22 0    M 15 -13 L 20 -19    M 0 -20 L 0 -24    M -14.5 -13 L -19.5 -19 // rays
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				% draw light and rays
@@ -599,14 +598,14 @@
 % enabled
 % category: Sources
 % scales: 0.5, 1, 2, 4
-% filled: false
 % label_anchor: 0 15 B
 % flip: disabled
+% preview_args: 4=sine
 
-% icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0
-% add_icon: 4==sine : [stroke-width=2.5] M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0
-% add_icon: 4==square : [stroke-width=2.5] M -15 0 L -12 0 L -12 -11 L -4 -11 L -4 11 L 4 11 L 4 -11 L 12 -11 L 12 0 L 15 0
-% add_icon: 4==triangle : [stroke-width=2.5] M -14 7 L -8 -11 L 0 11 L 8 -11 L 15 7
+% icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 // circle + terminals
+% add_icon: 4==sine : [stroke-width=2.5] M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0 // sine
+% add_icon: 4==square : [stroke-width=2.5] M -15 0 L -12 0 L -12 -11 L -4 -11 L -4 11 L 4 11 L 4 -11 L 12 -11 L 12 0 L 15 0 // square
+% add_icon: 4==triangle : [stroke-width=2.5] M -14 7 L -8 -11 L 0 11 L 8 -11 L 15 7 // triangle
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw circle
@@ -675,12 +674,11 @@
 % enabled
 % category: Basic Components
 % scales: 1, 2, 4
-% filled: false
-% label_anchor: 0 25 B
+% label_anchor: 0 15 B
 % flip: disabled
 
-% icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0   M -30 0 L -20 0   M 20 0 L 30 0  
-% add_icon: 1~= : [stroke-width=2.5] M -16 -3 A 17 17 0 0 1 16 -3 
+% icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0   M -30 0 L -20 0   M 20 0 L 30 0
+% add_icon: 1~= : [stroke-width=2.5] M -16 -3 A 17 17 0 0 1 16 -3
 % add_icon: 1~= : [stroke-width=2.5] M 0 10 L 0 -10
 		% draw interior
 			\begin{scope}[shift={#1}, scale=\jlcscale] % no rotation for interior
@@ -739,13 +737,13 @@
 % enabled
 % category: Passives
 % scales: 1, 2, 4
-% filled: false
-% label_anchor: 4 0.5 B
+% label_anchor: 40 7 B
 % flip: disabled
+% preview_args: 4=fixed
 
-% icon_base: [stroke-width=2.8] M 10 0 L 15 -10  M 15 -10 L 25 10  M 25 10 L 35 -10  M 35 -10 L 45 10  M 45 10 L 55 -10  M 55 -10 L 65 10  M 65 10 L 70 0 
-% add_icon: 4==variable : [stroke-width=2.3] M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7
-% add_icon: 1~= : M 0 0 L 10 0  M 70 0 L 80 0
+% icon_base: [stroke-width=2.8] M 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 // zig-zag
+% add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 48.33 -21.32 L 42.41 -17.44 L 48.33 -21.32 L 49.47 -14.13           M 28.5 16.5 L 47.5 -19.5 // arrow
+% add_icon: 1~= : M 0 0 L 11.5 0 M 80 0 L 68.5 0 // terminals
 		\IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -822,12 +820,12 @@
 % enabled
 % category: Passives
 % scales: 1, 2, 4
-% filled: false
-% label_anchor: 4 1 B
+% label_anchor: 40 0 B
 % flip: disabled
+% preview_args: 4=fixed
 
-% icon_base: [stroke-width=2.7] M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0
-% add_icon: 4==variable : [stroke-width=2.3] M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7
+% icon_base: [stroke-width=2.7] M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0 // coil
+% add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 25 10 L 53 -19    M 53 -19 L 46 -18 L 53 -19 L 51 -12 // arrow
 		\IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -906,12 +904,12 @@
 % enabled
 % category: Passives
 % scales: 1, 2, 4
-% filled: false
-% label_anchor: 2 0.5 B
+% label_anchor: 20 7 B
 % flip: disabled
+% preview_args: 3=fixed, 4=none
 
 % icon_base: M 0 0 L 16 0  M 24 0 L 40 0
-% add_icon: 3~=variable : [stroke-width=1.3] M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34      M 35 -15 L 8 8.5 // arrow
+% add_icon: 3~=variable : [stroke-width=1.3, rounded=true] M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34      M 35 -15 L 8 8.5 // arrow
 % add_icon: 4==plus : [stroke-width=0.9] M 12 -12 L 12 -8 M 10 -10 L 14 -10 // plus sign
 % add_icon: 4==minus : [stroke-width=0.9] M 10 -10 L 14 -10 // minus sign
 % add_icon: 1~= : [stroke-width=2.9] M 16 -15 L 16 15  M 24 -15 L 24 15 // plates
@@ -1036,13 +1034,13 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% filled: false
-% label_anchor: 0 15 B
+% label_anchor: 20 5 B
 % flip: disabled
-% preview_args: 3=fixed
-% icon_base: M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -7 L 24 7 M 24 0 L 40 0
-% add_icon: 3~=variable : M 10 12 L 30 -12 M 30 -12 L 24 -11 M 30 -12 L 28 -6
-% add_icon: 4==plus      : M 12 -12 L 12 -8 M 10 -10 L 14 -10
+
+% icon_base: M 0 0 L 16 0  M 16 -15 L 16 15  M 24 0 L 40 0 // terminals + positive
+% add_icon: 3~=variable : [rounded=true] M 8.5 13 L 28.5 -11  M 30 -12 L 24 -11 L 30 -12 L 28 -6 // arrow
+% add_icon: 4==plus : [stroke-width=1.1, rounded=true] M 12 -12 L 12 -8 M 10 -10 L 14 -10 // plus sign
+% add_icon: 1~= : [stroke-width=2.8] M 24 -7 L 24 7 // negative
 		\IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -1149,13 +1147,13 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% filled: false
-% label_anchor: 0.5 15 B
+% label_anchor: 0.5 7 B
 % flip: disabled
-% preview_args: 3=fixed
-% icon_base: M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0
-% add_icon: 3~=variable : M -5 12 L 25 -12 M 25 -12 L 19 -11 M 25 -12 L 23 -6
-% add_icon: 4==plus      : M -14 -12 L -14 -8 M -16 -10 L -12 -10
+
+% icon_base: M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0 // base
+% add_icon: 3~=variable : [stroke-width=1.6, rounded=true] M 20 -17 L 14 -16 L 20 -17 L 18 -11 M 19.5 -16.5 L -17 14 // arrow
+% add_icon: 4==plus : [stroke-width=0.8] M -14 -12 L -14 -8 M -16 -10 L -12 -10 // plus sign
+% add_icon: 1~= : [stroke-width=3.2, rounded=true] M 0 -7 L 0 7       M 20 -7 L 20 7 // negative poles
 		\IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -1263,13 +1261,16 @@
 \newcommand{\bipolartransistor}[7]{%{position}{name}{n/p}{terminals-case}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Active Components
-% filled: false
-% label_anchor: 0 2.5 B
+% scales: 1, 2, 4
+% label_anchor: -16 -10 L
 % flip: disabled
-% preview_args: 3=n
-% icon_base: M -40 0 L -10 0 M -10 -15 L -10 15 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0
-% add_icon: 3==n : M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M 10 25 L 4 25 L 8 18 Z
-% add_icon: 3==p : M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M -10 5 L -4 11 L -2 5 Z
+% preview_args: 3=n, 4=case
+
+% icon_base: M -40 0 L -10 0     M -10 -5 L 10 -25 L 10 -40     M -10 5 L 10 25 L 10 40     M -10 -5 L 10 -25 L 10 -40     M -10 5 L 10 25 L 10 40 // base
+% add_icon: 1~= : [stroke-width=3.5, rounded=true] M -10 -15 L -10 15 // transistor base line
+% add_icon: 3==n : [rounded=true] M 1.5 21.5 L 8.5 23 L 7 17 L 8 23 // arrow out
+% add_icon: 3==p : [rounded=true] M -1 8 L -8 6.5 L -6.5 12.5 L -7.5 6.5 // arrow in
+% add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 // case
 		\StrBefore{#5}{,}[\rotationvalue]
 		\StrBehind{#5}{,}[\flipvalue]
 		\IfSubStr{\flipvalue}{h}
@@ -1344,11 +1345,19 @@
 \newcommand{\mostransistor}[7]{%{position}{name}{n/p}{terminals-case-dot-arrow}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Active Components
-% icon_base: M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40
-% add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0
-% add_icon: 3==n & 4~=arrow : M 10 15 L 6 12 M 10 15 L 6 18
-% add_icon: 3==p & 4~=arrow : M -2 15 L 2 12 M -2 15 L 2 18
-% add_icon: 3==p & 4~=dot : M -25 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0
+% scales: 1, 2, 4
+% label_anchor: -10 -25 L
+% flip: enabled
+% preview_args: 3=n, 4=case-arrow
+
+% icon_base: M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M -40 0 L -18 0 // base layer
+% add_icon: 1~= : [stroke-width=3.3] M -10 -15 L -10 15 // gate line
+% add_icon: 3==n : M -10 0 L -40 0 // n gate segment
+% add_icon: 3==n && 4~=arrow : [rounded=true] M 10 15 L 6 12 L 10 15 L 6 18 // n arrow
+% add_icon: 3==p && 4~=arrow : [rounded=true] M -2 15 L 2 12 L -2 15 L 2 18 // p arrow
+% add_icon: 3==p : M -15 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // p dot
+% add_icon: 3==p && 4~=arrow : M -20 0 L -10 0 // p gate segment arrow
+% add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 // case
 		\StrBefore{#5}{,}[\rotationvalue]
 		\StrBehind{#5}{,}[\flipvalue]
 		\IfSubStr{\flipvalue}{h}
@@ -1443,8 +1452,16 @@
 \newcommand{\passgate}[6]{%{position}{name}{symbol(plain, normal or diamond)}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -40 0 L -20 0 M 20 0 L 40 0 M -20 -30 L 20 -30 M -20 30 L 20 30 M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -38 L 0 -50 M 0 30 L 0 50
+% scales: 1, 2, 4
+% label_anchor: -15 -25 L
 % flip: disabled
+% preview_args: 3=normal
+
+% icon_base: [rounded=true] M -40 0 L -20 0 M 20 0 L 40 0 // base
+% add_icon: 3==diamond : [rounded=true] M 0 -16 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M -20 0 L -20 -20 L 20 0 L 20 -20 L -20 0 M -20 0 L -20 20 M -20 20 L 20 0 M 20 0 L 20 20 M 20 20 L -20 0 M 0 -50 L 0 -20 M 0 10 L 0 50 // diamond
+% add_icon: 3==normal : [rounded=true] M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -50 L 0 -38 M 0 30 L 0 50 // normal
+% add_icon: 3==normal : [rounded=true] M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -20 -30 L 20 -30 M -20 30 L 20 30 // normal-plain
+% add_icon: 3==plain : [rounded=true] M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -20 -30 L 20 -30 M -20 30 L 20 30 // normal-plain
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				% draw body
@@ -1543,9 +1560,20 @@
 \newcommand{\opamplifier}[7]{%{position}{name}{flip}{supplyvoltage}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Active Components
-% icon: M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 30 -25 L 30 -15 M 25 20 L 35 20
+% scales: 1, 2, 4
+% label_anchor: 110 20 R
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+
+% icon_base: M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 25 20 L 35 20 // base
+% add_icon: 4!= : M 60 -20 L 60 -40 M 50 -40 L 70 -40 M 60 20 L 60 40 M 50 40 L 70 40 // supply terminals
+% add_icon: 3!=flip : M 30 -25 L 30 -15 // plus up
+% add_icon: 3~=flip : M 30 15 L 30 25 // plus down
+% pin: pin1 0 -20
+% pin: pin2 0 20
+% pin: pin3 120 0
+% pin: $4 60 -50
+% pin: -$4 60 50
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,2)  -- (2,2);
@@ -1591,10 +1619,13 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 2); % top left terminal (non-inverting input)
-				\coordinate (pin2) at (0, -2); % bottom left terminal (inverting input)
-				\coordinate (pin3) at (12, 0); % right terminal (output)
-		\end{scope}
+		        % coordinate pins
+        \coordinate (pin1) at (0.00, 2.00);
+        \coordinate (pin2) at (0.00, -2.00);
+        \coordinate (pin3) at (12.00, 0.00);
+        \coordinate ($4) at (6.00, 5.00);
+        \coordinate (-$4) at (6.00, -5.00);
+    \end{scope}
 }
 
 %% Diode

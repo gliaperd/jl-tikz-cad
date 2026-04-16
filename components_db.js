@@ -9,14 +9,17 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": true,
         "labelAnchor": {
             "auto": true,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "3": "open"
+        },
         "iconBase": "M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0",
         "iconBaseStyle": "fill=solid",
+        "filled": true,
         "iconLayers": [
             {
                 "condition": "3==closed",
@@ -64,13 +67,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -79,7 +82,11 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Switches",
-        "filled": true,
+        "scales": [
+            1,
+            2,
+            4
+        ],
         "labelAnchor": {
             "auto": true,
             "dir": "B"
@@ -88,7 +95,9 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "state1"
         },
-        "iconBase": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z",
+        "iconBase": "M 0 0 L 10 0    M 0 -20 L 10 -20    M 30 -10 L 40 -10    M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z    M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z    M 30 -10 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
+        "iconBaseStyle": "fill=solid",
+        "filled": true,
         "iconLayers": [
             {
                 "condition": "3==state1",
@@ -132,19 +141,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "bottom left terminal"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": ""
+                "label": "top left terminal"
             },
             {
                 "id": "pin3",
                 "x": 40.0,
                 "y": -10.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -158,7 +167,6 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": true,
         "labelAnchor": {
             "auto": true,
             "dir": "B"
@@ -167,16 +175,18 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "open"
         },
-        "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -15 M 19 -15 L 21 -15",
+        "iconBase": "M 0 0 L 10 0  M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z  M 20 -13 L 20 -15  M 19 -15 L 21 -15  M 15 -15 L 25 -15  M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
+        "iconBaseStyle": "fill=solid",
+        "filled": true,
         "iconLayers": [
             {
                 "condition": "3==closed",
-                "style": "",
+                "style": "fill=solid",
                 "path": "M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12"
             },
             {
                 "condition": "3==open",
-                "style": "",
+                "style": "fill=solid",
                 "path": "M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 20 -6 L 20 -7 M 20 -8 L 20 -9 M 20 -10 L 20 -11 M 20 -12 L 20 -13 M 20 -14 L 20 -15"
             }
         ],
@@ -215,13 +225,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -235,7 +245,6 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
             "auto": true,
             "dir": "B"
@@ -244,17 +253,19 @@ const JL_DATABASE = {
         "previewArgs": {
             "4": "n"
         },
-        "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11",
+        "iconBase": "M 0 0 L 10 0  M 30 0 L 40 0  M 10 0 L 28 -11  M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
+        "iconBaseStyle": "fill=solid",
+        "filled": true,
         "iconLayers": [
             {
                 "condition": "1~=",
-                "style": "stroke-width=2.8",
-                "path": "M 9 0 L 9 -13 L 31 -13 L 31 2 L 9 2 L 9 0"
+                "style": "",
+                "path": "M 9 -13 L 32 -13 L 32 4 L 9 4 Z"
             },
             {
                 "condition": "1~=",
                 "style": "stroke-width=2.8",
-                "path": "M 16 -18 L 24 -18"
+                "path": "M 16 -23 L 24 -23"
             },
             {
                 "condition": "1~=",
@@ -263,18 +274,18 @@ const JL_DATABASE = {
             },
             {
                 "condition": "4==n",
-                "style": "stroke-width=2.5, stroke-dasharray=2 2",
-                "path": "M 20 -13 L 20 -18"
+                "style": "stroke-width=1.6",
+                "path": "M 20 -22.5 L 20 -12.5"
             },
             {
                 "condition": "4==p",
-                "style": "stroke-width=2.5, stroke-dasharray=2 2",
-                "path": "M 20 -15 L 20 -18"
+                "style": "stroke-width=1.6",
+                "path": "M 20 -22 L 20 -18.5"
             },
             {
                 "condition": "4==p",
-                "style": "",
-                "path": "M 19 -14 A 1 1 0 1 0 21 -14 A 1 1 0 1 0 19 -14 Z"
+                "style": "stroke-width=0.7",
+                "path": "M 20 -16 m -2.5 0 a 2.5 2.5 0 1 0 5 0 a 2.5 2.5 0 1 0 -5 0"
             }
         ],
         "argNames": [
@@ -312,13 +323,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -332,14 +343,14 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
             "x": 0.0,
-            "y": 3.5,
+            "y": 20.0,
             "dir": "B"
         },
         "flippable": false,
         "iconBase": "M 0 0 L 0 15",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "1~=",
@@ -384,7 +395,7 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "top terminal"
             }
         ]
     },
@@ -398,7 +409,6 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
             "x": 0.0,
             "y": 15.0,
@@ -409,6 +419,7 @@ const JL_DATABASE = {
             "4": "standard"
         },
         "iconBase": "M -30 0 L -20 0 M 20 0 L 30 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "4==standard",
@@ -456,13 +467,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "positive terminal"
             },
             {
                 "id": "pin2",
                 "x": 30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "negative terminal"
             }
         ]
     },
@@ -476,14 +487,17 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
             "x": 0.0,
             "y": 15.0,
             "dir": "B"
         },
         "flippable": false,
-        "iconBase": "M -30 0 L -20 0 M 20 0 L 30 0 M -10 0 L 10 0 M 10 0 L 3 -5 M 10 0 L 3 5",
+        "previewArgs": {
+            "4": "standard"
+        },
+        "iconBase": "M -30 0 L -20 0  M 20 0 L 30 0  M -10 0 L 10 0  M 10 0 L 3 -5 L 10 0 L 3 5",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "4==standard",
@@ -531,13 +545,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "terminal 1"
             },
             {
                 "id": "pin2",
                 "x": 30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "terminal 2"
             }
         ]
     },
@@ -552,18 +566,22 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
-            "auto": true,
+            "x": 0.0,
+            "y": 10.0,
             "dir": "B"
         },
         "flippable": false,
-        "iconBase": "M -15 0 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 9 L 12 9",
+        "previewArgs": {
+            "4": "on"
+        },
+        "iconBase": "M -15 -5 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6   M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9   M 20 20 L 20 8 L 11.5 8 L 20.5 8",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "4==on",
                 "style": "stroke-width=2.5",
-                "path": "M 17 0 L 22 0 M -17 0 L -22 0 M 13 -11 L 18 -17 M 0 -15 L 0 -19 M -13 -11 L -18 -17"
+                "path": "M 17 0 L 22 0    M -17 0 L -22 0    M 15 -13 L 20 -19    M 0 -20 L 0 -24    M -14.5 -13 L -19.5 -19"
             }
         ],
         "argNames": [
@@ -597,13 +615,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -20.0,
                 "y": 20.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 20.0,
                 "y": 20.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -618,14 +636,17 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
             "x": 0.0,
             "y": 15.0,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "4": "sine"
+        },
         "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "4==sine",
@@ -678,13 +699,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -698,14 +719,14 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
             "x": 0.0,
-            "y": 25.0,
+            "y": 15.0,
             "dir": "B"
         },
         "flippable": false,
         "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0   M -30 0 L -20 0   M 20 0 L 30 0",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "1~=",
@@ -753,13 +774,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -773,25 +794,28 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
-            "x": 4.0,
-            "y": 0.5,
+            "x": 40.0,
+            "y": 7.0,
             "dir": "B"
         },
         "flippable": false,
-        "iconBase": "M 10 0 L 15 -10  M 15 -10 L 25 10  M 25 10 L 35 -10  M 35 -10 L 45 10  M 45 10 L 55 -10  M 55 -10 L 65 10  M 65 10 L 70 0",
+        "previewArgs": {
+            "4": "fixed"
+        },
+        "iconBase": "M 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0",
         "iconBaseStyle": "stroke-width=2.8",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "4==variable",
-                "style": "stroke-width=2.3",
-                "path": "M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7"
+                "style": "stroke-width=2.3, rounded=true",
+                "path": "M 48.33 -21.32 L 42.41 -17.44 L 48.33 -21.32 L 49.47 -14.13           M 28.5 16.5 L 47.5 -19.5"
             },
             {
                 "condition": "1~=",
                 "style": "",
-                "path": "M 0 0 L 10 0  M 70 0 L 80 0"
+                "path": "M 0 0 L 11.5 0 M 80 0 L 68.5 0"
             }
         ],
         "argNames": [
@@ -829,13 +853,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 80.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -849,20 +873,23 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
-            "x": 4.0,
-            "y": 1.0,
+            "x": 40.0,
+            "y": 0.0,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "4": "fixed"
+        },
         "iconBase": "M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0",
         "iconBaseStyle": "stroke-width=2.7",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "4==variable",
-                "style": "stroke-width=2.3",
-                "path": "M 25 15 L 53 -14 M 53 -14 L 46 -13 M 53 -14 L 51 -7"
+                "style": "stroke-width=2.3, rounded=true",
+                "path": "M 25 10 L 53 -19    M 53 -19 L 46 -18 L 53 -19 L 51 -12"
             }
         ],
         "argNames": [
@@ -900,13 +927,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 80.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -920,18 +947,22 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
-            "x": 2.0,
-            "y": 0.5,
+            "x": 20.0,
+            "y": 7.0,
             "dir": "B"
         },
         "flippable": false,
+        "previewArgs": {
+            "3": "fixed",
+            "4": "none"
+        },
         "iconBase": "M 0 0 L 16 0  M 24 0 L 40 0",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "3~=variable",
-                "style": "stroke-width=1.3",
+                "style": "stroke-width=1.3, rounded=true",
                 "path": "M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34      M 35 -15 L 8 8.5"
             },
             {
@@ -985,13 +1016,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -1005,27 +1036,29 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
-            "x": 0.0,
-            "y": 15.0,
+            "x": 20.0,
+            "y": 5.0,
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "3": "fixed"
-        },
-        "iconBase": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 -7 L 24 7 M 24 0 L 40 0",
+        "iconBase": "M 0 0 L 16 0  M 16 -15 L 16 15  M 24 0 L 40 0",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "3~=variable",
-                "style": "",
-                "path": "M 10 12 L 30 -12 M 30 -12 L 24 -11 M 30 -12 L 28 -6"
+                "style": "rounded=true",
+                "path": "M 8.5 13 L 28.5 -11  M 30 -12 L 24 -11 L 30 -12 L 28 -6"
             },
             {
                 "condition": "4==plus",
-                "style": "",
+                "style": "stroke-width=1.1, rounded=true",
                 "path": "M 12 -12 L 12 -8 M 10 -10 L 14 -10"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.8",
+                "path": "M 24 -7 L 24 7"
             }
         ],
         "argNames": [
@@ -1063,13 +1096,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -1083,27 +1116,29 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "filled": false,
         "labelAnchor": {
             "x": 0.5,
-            "y": 15.0,
+            "y": 7.0,
             "dir": "B"
         },
         "flippable": false,
-        "previewArgs": {
-            "3": "fixed"
-        },
         "iconBase": "M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0",
+        "filled": false,
         "iconLayers": [
             {
                 "condition": "3~=variable",
-                "style": "",
-                "path": "M -5 12 L 25 -12 M 25 -12 L 19 -11 M 25 -12 L 23 -6"
+                "style": "stroke-width=1.6, rounded=true",
+                "path": "M 20 -17 L 14 -16 L 20 -17 L 18 -11 M 19.5 -16.5 L -17 14"
             },
             {
                 "condition": "4==plus",
-                "style": "",
+                "style": "stroke-width=0.8",
                 "path": "M -14 -12 L -14 -8 M -16 -10 L -12 -10"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=3.2, rounded=true",
+                "path": "M 0 -7 L 0 7       M 20 -7 L 20 7"
             }
         ],
         "argNames": [
@@ -1141,13 +1176,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -1156,27 +1191,43 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Active Components",
-        "filled": false,
+        "scales": [
+            1,
+            2,
+            4
+        ],
         "labelAnchor": {
-            "x": 0.0,
-            "y": 2.5,
-            "dir": "B"
+            "x": -16.0,
+            "y": -10.0,
+            "dir": "L"
         },
         "flippable": false,
         "previewArgs": {
-            "3": "n"
+            "3": "n",
+            "4": "case"
         },
-        "iconBase": "M -40 0 L -10 0 M -10 -15 L -10 15 M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0",
+        "iconBase": "M -40 0 L -10 0     M -10 -5 L 10 -25 L 10 -40     M -10 5 L 10 25 L 10 40     M -10 -5 L 10 -25 L 10 -40     M -10 5 L 10 25 L 10 40",
+        "filled": false,
         "iconLayers": [
             {
+                "condition": "1~=",
+                "style": "stroke-width=3.5, rounded=true",
+                "path": "M -10 -15 L -10 15"
+            },
+            {
                 "condition": "3==n",
-                "style": "",
-                "path": "M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M 10 25 L 4 25 L 8 18 Z"
+                "style": "rounded=true",
+                "path": "M 1.5 21.5 L 8.5 23 L 7 17 L 8 23"
             },
             {
                 "condition": "3==p",
+                "style": "rounded=true",
+                "path": "M -1 8 L -8 6.5 L -6.5 12.5 L -7.5 6.5"
+            },
+            {
+                "condition": "4~=case",
                 "style": "",
-                "path": "M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M -10 5 L -4 11 L -2 5 Z"
+                "path": "M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0"
             }
         ],
         "argNames": [
@@ -1214,19 +1265,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -40.0,
                 "y": -0.0,
-                "label": "base"
+                "label": "left terminal (base)"
             },
             {
                 "id": "pin2",
                 "x": 10.0,
                 "y": -40.0,
-                "label": "collector"
+                "label": "top terminal (collector)"
             },
             {
                 "id": "pin3",
                 "x": 10.0,
                 "y": 40.0,
-                "label": "emitter"
+                "label": "bottom terminal (emitter)"
             }
         ]
     },
@@ -1235,27 +1286,58 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Active Components",
-        "iconBase": "M -40 0 L -10 0 M -10 -15 L -10 15 M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": -10.0,
+            "y": -25.0,
+            "dir": "L"
+        },
+        "flippable": true,
+        "previewArgs": {
+            "3": "n",
+            "4": "case-arrow"
+        },
+        "iconBase": "M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M -40 0 L -18 0",
+        "filled": false,
         "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=3.3",
+                "path": "M -10 -15 L -10 15"
+            },
+            {
+                "condition": "3==n",
+                "style": "",
+                "path": "M -10 0 L -40 0"
+            },
+            {
+                "condition": "3==n && 4~=arrow",
+                "style": "rounded=true",
+                "path": "M 10 15 L 6 12 L 10 15 L 6 18"
+            },
+            {
+                "condition": "3==p && 4~=arrow",
+                "style": "rounded=true",
+                "path": "M -2 15 L 2 12 L -2 15 L 2 18"
+            },
+            {
+                "condition": "3==p",
+                "style": "",
+                "path": "M -15 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
+            },
+            {
+                "condition": "3==p && 4~=arrow",
+                "style": "",
+                "path": "M -20 0 L -10 0"
+            },
             {
                 "condition": "4~=case",
                 "style": "",
                 "path": "M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0"
-            },
-            {
-                "condition": "3==n & 4~=arrow",
-                "style": "",
-                "path": "M 10 15 L 6 12 M 10 15 L 6 18"
-            },
-            {
-                "condition": "3==p & 4~=arrow",
-                "style": "",
-                "path": "M -2 15 L 2 12 M -2 15 L 2 18"
-            },
-            {
-                "condition": "3==p & 4~=dot",
-                "style": "",
-                "path": "M -25 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
             }
         ],
         "argNames": [
@@ -1293,19 +1375,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -40.0,
                 "y": -0.0,
-                "label": "gate"
+                "label": "left terminal (gate)"
             },
             {
                 "id": "pin2",
                 "x": 10.0,
                 "y": -40.0,
-                "label": "drain"
+                "label": "top terminal (drain)"
             },
             {
                 "id": "pin3",
                 "x": 10.0,
                 "y": 40.0,
-                "label": "source"
+                "label": "bottom terminal (source)"
             }
         ]
     },
@@ -1314,8 +1396,45 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -40 0 L -20 0 M 20 0 L 40 0 M -20 -30 L 20 -30 M -20 30 L 20 30 M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -38 L 0 -50 M 0 30 L 0 50",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": -15.0,
+            "y": -25.0,
+            "dir": "L"
+        },
         "flippable": false,
+        "previewArgs": {
+            "3": "normal"
+        },
+        "iconBase": "M -40 0 L -20 0 M 20 0 L 40 0",
+        "iconBaseStyle": "rounded=true",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "3==diamond",
+                "style": "rounded=true",
+                "path": "M 0 -16 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M -20 0 L -20 -20 L 20 0 L 20 -20 L -20 0 M -20 0 L -20 20 M -20 20 L 20 0 M 20 0 L 20 20 M 20 20 L -20 0 M 0 -50 L 0 -20 M 0 10 L 0 50"
+            },
+            {
+                "condition": "3==normal",
+                "style": "rounded=true",
+                "path": "M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -50 L 0 -38 M 0 30 L 0 50"
+            },
+            {
+                "condition": "3==normal",
+                "style": "rounded=true",
+                "path": "M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -20 -30 L 20 -30 M -20 30 L 20 30"
+            },
+            {
+                "condition": "3==plain",
+                "style": "rounded=true",
+                "path": "M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -20 -30 L 20 -30 M -20 30 L 20 30"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -1347,13 +1466,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -40.0,
                 "y": -0.0,
-                "label": ""
+                "label": "left terminal"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": ""
+                "label": "right terminal"
             }
         ]
     },
@@ -1362,8 +1481,36 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Active Components",
-        "icon": "M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 30 -25 L 30 -15 M 25 20 L 35 20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": 110.0,
+            "y": 20.0,
+            "dir": "R"
+        },
         "flippable": false,
+        "iconBase": "M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 25 20 L 35 20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "4!=",
+                "style": "",
+                "path": "M 60 -20 L 60 -40 M 50 -40 L 70 -40 M 60 20 L 60 40 M 50 40 L 70 40"
+            },
+            {
+                "condition": "3!=flip",
+                "style": "",
+                "path": "M 30 -25 L 30 -15"
+            },
+            {
+                "condition": "3~=flip",
+                "style": "",
+                "path": "M 30 15 L 30 25"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -1399,19 +1546,31 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "non-inverting input"
+                "label": ""
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": 20.0,
-                "label": "inverting input"
+                "label": ""
             },
             {
                 "id": "pin3",
                 "x": 120.0,
                 "y": -0.0,
-                "label": "output"
+                "label": ""
+            },
+            {
+                "id": "$4",
+                "x": 60.0,
+                "y": -50.0,
+                "label": ""
+            },
+            {
+                "id": "-$4",
+                "x": 60.0,
+                "y": 50.0,
+                "label": ""
             }
         ]
     },
@@ -1453,13 +1612,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "anode"
+                "label": "left terminal (anode)"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -0.0,
-                "label": "cathode"
+                "label": "right terminal (cathode)"
             }
         ]
     },
@@ -1501,13 +1660,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "anode"
+                "label": "left terminal (anode)"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -0.0,
-                "label": "cathode"
+                "label": "right terminal (cathode)"
             }
         ]
     },
@@ -1549,13 +1708,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "anode"
+                "label": "left terminal (anode)"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -0.0,
-                "label": "cathode"
+                "label": "right terminal (cathode)"
             }
         ]
     },
@@ -1597,13 +1756,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "anode"
+                "label": "left terminal (anode)"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -0.0,
-                "label": "cathode"
+                "label": "right terminal (cathode)"
             }
         ]
     },
@@ -1641,7 +1800,7 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": 10.0,
-                "label": ""
+                "label": "bottom terminal"
             }
         ]
     },
@@ -1683,25 +1842,25 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "terminal"
             },
             {
                 "id": "pin1",
                 "x": 10.0,
                 "y": -0.0,
-                "label": ""
+                "label": "terminal"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "terminal"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -10.0,
-                "label": ""
+                "label": "terminal"
             }
         ]
     },
@@ -1748,25 +1907,25 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "input-2"
+                "label": "middle left terminal (input-2)"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -1808,25 +1967,25 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "input-2"
+                "label": "middle left terminal (input-2)"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -1868,19 +2027,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -1922,19 +2081,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -1976,25 +2135,25 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "input-2"
+                "label": "middle left terminal (input-2)"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2036,25 +2195,25 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "input-2"
+                "label": "middle left terminal (input-2)"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2096,19 +2255,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2150,19 +2309,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2204,19 +2363,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2258,19 +2417,19 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "input-1"
+                "label": "top left terminal (input-1)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3"
+                "label": "bottom left terminal (input-3)"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2312,13 +2471,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "input"
+                "label": "left terminal (input)"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2360,13 +2519,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input"
+                "label": "left terminal (input)"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -10.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2408,13 +2567,13 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "input"
+                "label": "left terminal (input)"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -20.0,
-                "label": "output"
+                "label": "right terminal (output)"
             }
         ]
     },
@@ -2460,43 +2619,43 @@ const JL_DATABASE = {
                 "id": "pin4",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "clr"
+                "label": "bottom terminal (clr)"
             },
             {
                 "id": "pin4",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "clr"
+                "label": "bottom terminal (clr)"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "J"
+                "label": "top left terminal (J)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -50.0,
-                "label": "CLK"
+                "label": "middle left terminal (CLK)"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "K"
+                "label": "bottom left terminal (K)"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "Q"
+                "label": "top right terminal (Q)"
             },
             {
                 "id": "pin6",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "Qn"
+                "label": "bottom right terminal (Qn)"
             }
         ]
     },
@@ -2538,31 +2697,31 @@ const JL_DATABASE = {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -50.0,
-                "label": "E"
+                "label": "middle left terminal (E)"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "S"
+                "label": "top left terminal (S)"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "R"
+                "label": "bottom left terminal (R)"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "Q"
+                "label": "top right terminal (Q)"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "Qn"
+                "label": "bottom right terminal (Qn)"
             }
         ]
     },
@@ -2608,43 +2767,43 @@ const JL_DATABASE = {
                 "id": "pin4",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "clr"
+                "label": "bottom terminal (clr)"
             },
             {
                 "id": "pin4",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "clr"
+                "label": "bottom terminal (clr)"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "S"
+                "label": "top left terminal (S)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -50.0,
-                "label": "CLK"
+                "label": "middle left terminal (CLK)"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "R"
+                "label": "bottom left terminal (R)"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "Q"
+                "label": "top right terminal (Q)"
             },
             {
                 "id": "pin6",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "Qn"
+                "label": "bottom right terminal (Qn)"
             }
         ]
     },
@@ -2690,37 +2849,37 @@ const JL_DATABASE = {
                 "id": "pin3",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "clr"
+                "label": "bottom terminal (clr)"
             },
             {
                 "id": "pin3",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "clr"
+                "label": "bottom terminal (clr)"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "D"
+                "label": "top left terminal (D)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "CLK"
+                "label": "bottom left terminal (CLK)"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "Q"
+                "label": "top right terminal (Q)"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "Qn"
+                "label": "bottom right terminal (Qn)"
             }
         ]
     },
@@ -2762,25 +2921,25 @@ const JL_DATABASE = {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "E"
+                "label": "bottom left terminal (E)"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -50.0,
-                "label": "D"
+                "label": "top left terminal (D)"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -50.0,
-                "label": "Q"
+                "label": "top right terminal (Q)"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "Qn"
+                "label": "bottom right terminal (Qn)"
             }
         ]
     },
@@ -2826,37 +2985,37 @@ const JL_DATABASE = {
                 "id": "pin3",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "clr"
+                "label": "bottom terminal (clr)"
             },
             {
                 "id": "pin3",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "clr"
+                "label": "bottom terminal (clr)"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "T"
+                "label": "top left terminal (T)"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "CLK"
+                "label": "bottom left terminal (CLK)"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "Q"
+                "label": "top right terminal (Q)"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "Qn"
+                "label": "bottom right terminal (Qn)"
             }
         ]
     },
@@ -2976,43 +3135,43 @@ const JL_DATABASE = {
                 "id": "pin4",
                 "x": -20.0,
                 "y": -40.0,
-                "label": "ci"
+                "label": "left terminal (ci)"
             },
             {
                 "id": "pin5",
                 "x": 100.0,
                 "y": -40.0,
-                "label": "co"
+                "label": "right terminal (co)"
             },
             {
                 "id": "pin4",
                 "x": -20.0,
                 "y": -40.0,
-                "label": "co"
+                "label": "left terminal (co)"
             },
             {
                 "id": "pin5",
                 "x": 100.0,
                 "y": -40.0,
-                "label": "ci"
+                "label": "right terminal (ci)"
             },
             {
                 "id": "pin1",
                 "x": 60.0,
                 "y": -100.0,
-                "label": "a"
+                "label": "top right terminal (a)"
             },
             {
                 "id": "pin2",
                 "x": 20.0,
                 "y": -100.0,
-                "label": "b"
+                "label": "top left terminal (b)"
             },
             {
                 "id": "pin3",
                 "x": 40.0,
                 "y": 20.0,
-                "label": "s"
+                "label": "bottom terminal (s)"
             }
         ]
     },
@@ -3054,43 +3213,43 @@ const JL_DATABASE = {
                 "id": "pin4",
                 "x": -20.0,
                 "y": -40.0,
-                "label": "bi"
+                "label": "left terminal (bi)"
             },
             {
                 "id": "pin5",
                 "x": 100.0,
                 "y": -40.0,
-                "label": "bo"
+                "label": "right terminal (bo)"
             },
             {
                 "id": "pin4",
                 "x": -20.0,
                 "y": -40.0,
-                "label": "bo"
+                "label": "left terminal (bo)"
             },
             {
                 "id": "pin5",
                 "x": 100.0,
                 "y": -40.0,
-                "label": "bi"
+                "label": "right terminal (bi)"
             },
             {
                 "id": "pin1",
                 "x": 60.0,
                 "y": -100.0,
-                "label": "A"
+                "label": "top right terminal (A)"
             },
             {
                 "id": "pin2",
                 "x": 20.0,
                 "y": -100.0,
-                "label": "B"
+                "label": "top left terminal (B)"
             },
             {
                 "id": "pin3",
                 "x": 40.0,
                 "y": 20.0,
-                "label": "d"
+                "label": "bottom terminal (d)"
             }
         ]
     },
@@ -3109,7 +3268,7 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": ""
+                "label": "center terminal"
             }
         ]
     },

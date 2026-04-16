@@ -16,6 +16,7 @@ def svg_to_tikz(path_str, style_tag=""):
     sw = "1.5"
     dashed = ""
     fill_str = ""
+    rounded_str = ""
     
     if style_tag:
         if "stroke-width=" in style_tag:
@@ -26,6 +27,8 @@ def svg_to_tikz(path_str, style_tag=""):
             dashed = ", dashed"
         if "fill=solid" in style_tag:
             fill_str = ", fill=black"
+        if "rounded=true" in style_tag:
+            rounded_str = ", line cap=round, line join=round" 
 
     tikz = ""
     tokens = re.findall(r'[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?', path_str)
@@ -120,7 +123,7 @@ def svg_to_tikz(path_str, style_tag=""):
         else:
             i += 1
 
-    return f"\\draw [line width=\\linewidthscalefactor * \\zoomfactor * {sw}pt{dashed}{fill_str}] {tikz.strip()};"
+    return f"\\draw [line width=\\linewidthscalefactor * \\zoomfactor * {sw}pt{dashed}{fill_str}{rounded_str}] {tikz.strip()};"
 
 
 def compile_macro(macro_text):
@@ -142,15 +145,56 @@ def compile_macro(macro_text):
         
         comp_debug += f"        % overlay: {cond}\n"
         
-        if '==' in cond:
-            arg, val = cond.split('==')
-            block = f"        \\ifstrequal{{#{arg.strip()}}}{{{val.strip()}}}{{\n            {svg_to_tikz(path, style)}\n        }}{{}}\n"
-            comp_debug += block
-            comp_clean += block
-        else:
+        if cond == '1~=' or cond == '':
             block = f"        {svg_to_tikz(path, style)}\n"
             comp_debug += block
             comp_clean += block
+            continue
+            
+        # =====================================================================
+        # 2. ΧΕΙΡΙΣΜΟΣ ΠΟΛΥΠΛΟΚΗΣ ΛΟΓΙΚΗΣ (OR, Παρενθέσεις)
+        # =====================================================================
+        if '||' in cond or '(' in cond or ')' in cond:
+            print(f"⚠️  WARNING: Complex logic detected in overlay '{cond}'.")
+            print(f"   -> Generating STATIC TikZ code (Preview mode).")
+            
+            # Δημιουργία του Static Block
+            # Το σχήμα σχεδιάζεται κανονικά, αλλά προσθέτουμε σχόλια προειδοποίησης
+            static_tikz = svg_to_tikz(path, style)
+            warning_block = f"        % ⚠️ COMPLEX LOGIC DETECTED: {cond}\n"
+            warning_block += f"        % This overlay is rendered STATICALLY. Add your LaTeX logic manually below:\n"
+            warning_block += f"        {static_tikz}\n"
+            
+            comp_debug += warning_block
+            comp_clean += warning_block
+            continue
+        # =====================================================================
+        
+        # 3. Κανονική επεξεργασία για απλά AND        
+        conds = [c.strip() for c in cond.split('&&') if c.strip()]
+        
+        result_block_debug = f"        {svg_to_tikz(path, style)}\n"
+        result_block_clean = f"        {svg_to_tikz(path, style)}\n"
+        
+        # Build nested IFs backwards!
+        for c in reversed(conds):
+            if '==' in c:
+                arg, val = c.split('==')
+                result_block_debug = f"        \\ifstrequal{{#{arg.strip()}}}{{{val.strip()}}}{{\n    {result_block_debug}        }}{{}}\n"
+                result_block_clean = f"        \\ifstrequal{{#{arg.strip()}}}{{{val.strip()}}}{{\n    {result_block_clean}        }}{{}}\n"
+            elif '!=' in c:
+                # --- ΝΕΟ: Η λογική του NOT EQUAL στο LaTeX ---
+                # Αν το όρισμα ΙΣΟΥΤΑΙ με την τιμή, ΜΗΝ κάνεις τίποτα {}. ΑΛΛΙΩΣ, ζωγράφισε το layer!
+                arg, val = c.split('!=')
+                result_block_debug = f"        \\ifstrequal{{#{arg.strip()}}}{{{val.strip()}}}{{}}{{\n    {result_block_debug}        }}\n"
+                result_block_clean = f"        \\ifstrequal{{#{arg.strip()}}}{{{val.strip()}}}{{}}{{\n    {result_block_clean}        }}\n"
+            elif '~=' in c:
+                arg, val = c.split('~=')
+                result_block_debug = f"        \\ifstrequal{{#{arg.strip()}}}{{{val.strip()}}}{{}}{{\n    {result_block_debug}        }}\n"
+                result_block_clean = f"        \\ifstrequal{{#{arg.strip()}}}{{{val.strip()}}}{{}}{{\n    {result_block_clean}        }}\n"
+                
+        comp_debug += result_block_debug
+        comp_clean += result_block_clean
             
     comp_debug += "        % --- END COMPILED ---"
 

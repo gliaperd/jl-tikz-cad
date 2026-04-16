@@ -51,9 +51,23 @@ def generate_db(sty_file):
                         preview_args[k.strip()] = v.strip()
                 comp_data['previewArgs'] = preview_args
 
-            elif line.startswith('% icon_base:'):
-                path_data = line.replace('% icon_base:', '').strip()
+            # --- ΒΕΛΤΙΩΜΕΝΟ ICON_BASE PARSING ---
+            elif re.match(r'%\s*icon_base\s*:', line, re.IGNORECASE):
+                # Παίρνουμε ό,τι υπάρχει μετά το :
+                path_data = re.sub(r'%\s*icon_base\s*:', '', line, flags=re.IGNORECASE).strip()
                 style_str = ""
+                
+                # Εξαγωγή του [style] αν υπάρχει
+                if path_data.startswith('['):
+                    end_idx = path_data.find(']')
+                    if end_idx != -1:
+                        style_str = path_data[1:end_idx].strip()
+                        path_data = path_data[end_idx+1:].strip()
+                
+                comp_data['iconBase'] = path_data
+                if style_str:
+                    comp_data['iconBaseStyle'] = style_str
+                comp_data['filled'] = 'fill=solid' in style_str
                 
                 # Ψάχνουμε για προαιρετικές αγκύλες στιλ π.χ. [stroke-width=2.5]
                 if path_data.startswith('['):
@@ -108,10 +122,6 @@ def generate_db(sty_file):
                     comp_data['scales'] = [float(s.strip()) if '.' in s.strip() else int(s.strip()) for s in scales_str.split(',')]
                 except ValueError:
                     pass
-            
-            elif '% filled:' in line.lower() or '%filled:' in line.lower():
-                val = line.split(':')[1].strip().lower()
-                comp_data['filled'] = (val == 'true')
                 
             elif '% label_anchor:' in line.lower() or '%label_anchor:' in line.lower():
                 try:
@@ -145,14 +155,23 @@ def generate_db(sty_file):
 
         pins = []
         for line in body_lines:
-            coord_match = re.search(r'\\coordinate\s*\(([a-zA-Z0-9]+)\)\s*at\s*\(([-+]?[\d\.]+)[^,]*,\s*([-+]?[\d\.]+)[^)]*\)', line)
+            coord_match = re.search(r'\\coordinate\s*(?:\[.*?\])?\s*\(([^\)]+)\)\s*at\s*\(([-+]?[\d\.]+)[^,]*,\s*([-+]?[\d\.]+)[^)]*\)', line)
             if coord_match:
-                label_match = re.search(r'%.*\(([^)]+)\)', line)
+                # Επιστροφή στον αυστηρό κανόνα: 1 TikZ unit = 10 Pixels
+                val_x = float(coord_match.group(2)) * 10
+                val_y = float(coord_match.group(3)) * 10
+
+                # Αλεξίσφαιρη ανάγνωση του σχολίου (αγνοεί τις παρενθέσεις αν υπάρχουν)
+                label_str = ""
+                if '%' in line:
+                    comment_part = line.split('%', 1)[1].strip()
+                    label_str = re.sub(r'^\((.*)\)$', r'\1', comment_part).strip()
+
                 pins.append({
-                    "id": coord_match.group(1),
-                    "x": float(coord_match.group(2)) * 10,
-                    "y": -float(coord_match.group(3)) * 10,
-                    "label": label_match.group(1).strip() if label_match else ""
+                    "id": coord_match.group(1).strip(),
+                    "x": val_x,
+                    "y": -val_y, 
+                    "label": label_str
                 })
         comp_data['pins'] = pins
 

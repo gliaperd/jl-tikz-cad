@@ -6,7 +6,16 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #ecf0f1; margin: 0; padding: 15px; display: flex; gap: 15px; height: 100vh; box-sizing: border-box; }
         .panel { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 10px; }
-        .side-panel { flex: 1; overflow-y: auto; max-width: 400px; min-width: 340px; }
+        .side-panel { 
+			flex: 1; 
+			max-width: 400px; 
+			min-width: 340px; 
+			display: flex;           /* ΝΕΟ */
+			flex-direction: column;  /* ΝΕΟ */
+			height: 100%;            /* ΝΕΟ */
+			overflow: hidden;        /* ΝΕΟ: Απενεργοποιούμε το γενικό scroll */
+			padding: 15px 5px 15px 15px; /* Μικρή προσαρμογή padding για το scrollbar */
+		}
         .main-panel { flex: 2; display: flex; flex-direction: column; gap: 10px; }
         
         label { font-weight: bold; font-size: 10px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -65,7 +74,13 @@
         
         /* NEW: Extract Tool Styles */
         .shape-path.extractable:hover { stroke: #9b59b6 !important; stroke-width: 3px !important; opacity: 0.8; cursor: pointer !important; }
-        .shape-path.selected-extract { stroke: #9b59b6 !important; stroke-width: 3.5px !important; opacity: 1.0; stroke-dasharray: 4 4; filter: drop-shadow(0 0 2px #9b59b6); }
+        .shape-path.selected-extract { 
+			stroke: #9b59b6 !important; 
+			/* Αφαιρέσαμε το stroke-width: 3.5px !important; για να κρατάει το δικό του πάχος! */
+			opacity: 1.0; 
+			stroke-dasharray: 3 3; /* Το κάναμε 3 3 για να δείχνει πιο "φίνο" */
+			filter: drop-shadow(0 0 2px rgba(155, 89, 182, 0.8)); 
+		}
         .selection-box { fill: rgba(52, 152, 219, 0.2); stroke: #3498db; stroke-width: 0.4px; stroke-dasharray: 2 2; pointer-events: none; }
 		
 		/* NEW: Cursors for Select & Drag */
@@ -78,56 +93,91 @@
         .pin-marker { fill: #f1c40f; stroke: #d35400; stroke-width: 1; cursor: pointer; transition: 0.1s; }
         .pin-marker:hover { fill: #e74c3c; stroke-width: 2.5; } /* Removed the buggy transform: scale! */
         .pin-label { font-family: monospace; font-size: 5px; fill: #d35400; pointer-events: none; font-weight: bold; user-select: none; stroke: none !important;}
+		
+		/* Accordion / Collapsible Sections */
+        .section-header { cursor: pointer; transition: background 0.2s; border-radius: 4px; padding: 4px; display: flex; justify-content: space-between; align-items: center; margin-top: 5px; margin-bottom: 5px;}
+        .section-header:hover { background: #ebf5fb; }
+        .section-header .toggle-icon { font-size: 10px; color: #7f8c8d; transition: transform 0.2s; }
+        .section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
+        .section-content { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s ease-out; opacity: 1; max-height: 1000px; /* Αρκετά μεγάλο για να χωράει το περιεχόμενο */ }
+        .section-content.collapsed { max-height: 0; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: none; }
     </style>
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 
+    <style>
+        .section-header { transition: background 0.2s; border-radius: 4px; padding: 2px 4px; cursor: pointer; user-select: none; }
+        .section-header:hover { background: #ebf5fb; }
+        .section-header .toggle-icon { font-size: 10px; color: #7f8c8d; transition: transform 0.2s; display: inline-block; margin-right: 4px;}
+        .section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
+        .section-content { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s ease-out; opacity: 1; max-height: 1200px; /* Αρκετά μεγάλο για να χωράει τα πάντα */ }
+        .section-content.collapsed { max-height: 0; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: none; }
+    </style>
+
     <div class="panel side-panel">
-        <h2>📥 Importer</h2>
-        <textarea id="importCode" class="import-box" placeholder="Paste %% Name \newcommand{\name}... here"></textarea>
-        <button class="tool-btn" onclick="importSty()" style="background: #27ae60; border-color: #2ecc71;">Load into Editor</button>
-
-        <h2 style="margin-top: 5px;">⚙️ Config</h2>
-        <div style="display: flex; gap: 5px;">
-            <div style="flex: 1;"><label>Macro Name</label><input type="text" id="cName" value="newcomponent" oninput="generateCode()"></div>
-            <div style="flex: 1;"><label>Display Name</label><input type="text" id="dName" value="New Component" oninput="generateCode()"></div>
-        </div>
-        
-        <label>Arguments (Updates Layer Menus!)</label>
-        <input type="text" id="cArgs" value="{position}{name}{n/p}{rotation}{grid}{show (0,0)}" onblur="renderLayerList(); generateCode();" title="Hit Enter or click away to update menus">
-
-        <details class="help-box">
-            <summary>📘 Syntax Cheat Sheet</summary>
-            <ul>
-                <li><strong>Arguments:</strong> Defined inside `{}` brackets. The engine automatically numbers them starting at 1. (e.g., Arg 3 is `n/p`).</li>
-                <li><strong>Label Anchor:</strong> Direction letter (e.g., <code>B</code> for Bottom, <code>L</code> for Left) OR custom shifted coordinates like <code>0 3.5 B</code> (Shift X=0, Shift Y=3.5, Anchor=B).</li>
-                <li><strong>Scales:</strong> Comma separated list of allowable scales (e.g., <code>1, 2, 4</code>).</li>
-            </ul>
-        </details>
-
-        <div class="meta-box">
-            <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #34495e;">📝 META PROPERTIES</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
-                <div><label>Category</label><input type="text" id="mCat" value="Basic Components" oninput="generateCode()"></div>
-                <div><label>Label Anchor</label><input type="text" id="mAnchor" value="B" oninput="generateCode()"></div>
-                <div><label>Scales</label><input type="text" id="mScales" value="1, 2, 4" oninput="generateCode()"></div>
-                <div><label>Flip</label><input type="text" id="mFlip" value="disabled" oninput="generateCode()"></div>
+		<div style="overflow-y: auto; padding-right: 10px; margin-bottom: 10px; flex-shrink: 0;">
+			
+            <h2 class="section-header" onclick="toggleSection('sec-importer', this)" style="display: flex; justify-content: space-between; align-items: center; margin: 0; padding-bottom: 5px;">
+				<span style="display: flex; align-items: center;"><span class="toggle-icon">▼</span> 📥 Importer</span>
+				<div style="display: flex; gap: 4px;" onclick="event.stopPropagation()"> <button class="tool-btn" onclick="importSty()" title="Load from Textarea" style="background: #27ae60; border-color: #2ecc71; padding: 2px 8px; font-size: 11px;">🚀 Load</button>
+					<button class="icon-btn" onclick="document.getElementById('importCode').value = ''" style="color: #e74c3c; opacity: 1; font-size: 14px;" title="Clear Input">🗑️</button>
+				</div>
+			</h2>
+            <div id="sec-importer" class="section-content">
+			    <textarea id="importCode" class="import-box" placeholder="Paste %% Name \newcommand{\name}... here"></textarea>
             </div>
-            <div style="display: flex; gap: 15px; margin-top: 8px;">
-                <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mEnabled" checked onchange="generateCode()"> Enabled</label>
-                <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mFilled" onchange="generateCode()"> Filled</label>
-            </div>
-        </div>
 
-        <h2 style="margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
-            📚 Layers 
-            <div style="display: flex; gap: 5px;">
-                <button class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #e67e22; border-color: #d35400;" onclick="soloActiveLayer()" title="Solo / Un-solo Active Layer">👁️ Solo</button>
-                <button class="tool-btn" style="padding: 2px 8px; font-size: 10px;" onclick="addLayer()">+ Overlay</button>
+            <h2 class="section-header" onclick="toggleSection('sec-config', this)" style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> ⚙️ Config & Meta</span>
+            </h2>
+            <div id="sec-config" class="section-content">
+                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                    <div style="flex: 1;"><label>Macro Name</label><input type="text" id="cName" value="newcomponent" oninput="generateCode()"></div>
+                    <div style="flex: 1;"><label>Display Name</label><input type="text" id="dName" value="New Component" oninput="generateCode()"></div>
+                </div>
+                
+                <label style="margin-top: 8px; display: block;">Arguments (Updates Layer Menus!)</label>
+                <input type="text" id="cArgs" value="{position}{name}{n/p}{rotation}{grid}{show (0,0)}" onblur="renderLayerList(); generateCode();" title="Hit Enter or click away to update menus">
+
+                <details class="help-box" style="margin-top: 8px;">
+                    <summary>📘 Syntax Cheat Sheet</summary>
+                    <ul>
+                        <li><strong>Arguments:</strong> Defined inside `{}` brackets. The engine automatically numbers them starting at 1. (e.g., Arg 3 is `n/p`).</li>
+                        <li><strong>Label Anchor:</strong> Direction letter (e.g., <code>B</code> for Bottom, <code>L</code> for Left) OR custom shifted coordinates like <code>0 3.5 B</code> (Shift X=0, Shift Y=3.5, Anchor=B).</li>
+                        <li><strong>Scales:</strong> Comma separated list of allowable scales (e.g., <code>1, 2, 4</code>).</li>
+                    </ul>
+                </details>
+
+                <div class="meta-box" style="margin-top: 8px;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #34495e;">📝 META PROPERTIES</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
+                        <div><label>Category</label><input type="text" id="mCat" value="Basic Components" oninput="generateCode()"></div>
+                        <div><label>Label Anchor</label><input type="text" id="mAnchor" value="B" oninput="generateCode(); if(testModeActive) document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();"></div>
+                        <div><label>Scales</label><input type="text" id="mScales" value="1, 2, 4" oninput="generateCode()"></div>
+                        <div><label>Flip</label><input type="text" id="mFlip" value="disabled" oninput="generateCode()"></div>
+                        <div style="grid-column: span 2;"><label>Palette Defaults (Preview Args)</label><input type="text" id="mPreview" value="" placeholder="e.g. 3=p, 4=dot" oninput="generateCode(); if(testModeActive && document.getElementById('chkPalettePreview')?.checked) updateTestPreview();" title="Defines which overlays appear in the Circuit Editor Palette"></div>
+                    </div>
+                    <div style="display: flex; gap: 15px; margin-top: 8px;">
+                        <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mEnabled" checked onchange="generateCode()"> Enabled in Palette</label>
+                    </div>
+                </div>
             </div>
-        </h2>
-        <div class="layer-list" id="layerList"></div>
+
+            <button class="tool-btn" style="width: 100%; margin-top: 15px; padding: 8px; font-size: 13px; background: #8e44ad; border-color: #732d91; font-weight: bold;" onclick="openLogicTester()">👁️ Live Component Preview</button>
+		</div>
+
+		<div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 2px solid #ecf0f1; padding-top: 10px;">
+			<h2 style="position: sticky; top: 0; background: white; z-index: 10; padding-bottom: 10px; margin: 0; display: flex; justify-content: space-between; align-items: center;">
+				📚 Layers 
+				<div style="display: flex; gap: 5px;">
+					<button id="btnSolo" class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #e67e22; border-color: #d35400;" onclick="soloActiveLayer()" title="Solo / Un-solo Active Layer">👁️ Solo</button>
+					<button class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #c0392b; border-color: #a93226;" onclick="flattenLayers()" title="Merge all into Base">🥞 Flatten</button>
+					<button class="tool-btn" style="padding: 2px 8px; font-size: 10px;" onclick="addLayer()">+ Overlay</button>
+				</div>
+			</h2>
+			<div class="layer-list" id="layerList" style="flex: 1; overflow-y: auto; padding-right: 5px; padding-top: 5px;"></div>
+		</div>	
     </div>
 
     <div class="panel main-panel">
@@ -165,6 +215,7 @@
 
                 <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkDashed" onchange="updateActiveLayerStyle()"> Dash</label>
                 <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkSolid" onchange="updateActiveLayerStyle()"> Solid</label>
+				<label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkRounded" onchange="updateActiveLayerStyle()"> Rounded</label>
             </div>
             
             <div class="style-group" style="margin-left: auto;">
@@ -217,9 +268,322 @@
     </div>
 
     <script>
+        // --- UI ACCORDION LOGIC ---
+        function toggleSection(sectionId, headerEl) {
+            const section = document.getElementById(sectionId);
+            if (section.classList.contains('collapsed')) {
+                section.classList.remove('collapsed');
+                headerEl.classList.remove('collapsed');
+            } else {
+                section.classList.add('collapsed');
+                headerEl.classList.add('collapsed');
+            }
+        }
+	
+		// --- TEST MODE STATE ---
+        let testModeActive = false;
+        let testValues = {}; // Αποθηκεύει τις προσωρινές τιμές για το τεστ (π.χ. {3: 'n', 4: 'case'})
+		
+		function checkCond(arg, op, val) {
+            let actual = testValues[arg] || "";
+            if (op === '==') return actual.trim() === val;
+            if (op === '!=') return actual.trim() !== val;
+            if (op === '~=') return actual.includes(val);
+            return false;
+        }
+
+        function evaluateLayerVisibility(layer) {
+            if (layer.type === 'base') return true;
+            let rule = layer.rule;
+            if (!rule || (Array.isArray(rule) && rule.length === 0) || rule === '1~=') return true;
+
+            if (Array.isArray(rule)) {
+                // Graphical Mode (Array)
+                return rule.every(cond => checkCond(cond.arg, cond.op, cond.val));
+            } else {
+                // Text/Advanced Mode (String)
+                try {
+                    let parsedStr = rule.replace(/(\d+)\s*(==|!=|~=)\s*([^&|()\s]*)/g, function(match, arg, op, val) {
+                        return `checkCond(${arg}, '${op}', '${val}')`;
+                    });
+                    return eval(parsedStr);
+                } catch (e) {
+                    console.warn("Invalid Logic in Layer:", layer.id, e);
+                    return false; // Κρύβει το layer αν υπάρχει συντακτικό λάθος στο κείμενο
+                }
+            }
+        }
+		
+		function generateTestPreviewSVG() {
+            let theme = document.getElementById('selTheme').value;
+            let baseColor = (theme === 'cadence') ? "#007c3c" : "#2c3e50";
+            let labelColor = (theme === 'cadence') ? "#FFFFFF" : "#34495e";
+            let html = "";
+            let combinedPathForMath = "";
+
+            layers.forEach(l => {
+                let shouldShow = evaluateLayerVisibility(l);
+                if (!shouldShow || !l.pathStr.trim()) return;
+                let stroke = l.styles.stroke ? l.styles.stroke : baseColor;
+                let sw = parseFloat(l.styles.sw); 
+                let dash = l.styles.dashed ? 'stroke-dasharray="4 4"' : '';
+                let fill = l.styles.solid ? stroke : "none";
+                let lineCap = l.styles.rounded ? 'round' : 'butt';
+                let lineJoin = l.styles.rounded ? 'round' : 'miter';
+                combinedPathForMath += " " + l.pathStr;
+                let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                subPaths.forEach(sub => {
+                    html += `<path d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
+                });
+            });
+
+            // --- LOGIC ΓΙΑ ΤΟ LABEL ---
+            let argsList = getParsedArgs();
+            let nameArg = argsList.find(a => a.name.toLowerCase() === 'name' || a.name.toLowerCase() === 'text');
+            // Αν το πεδίο του tester είναι κενό, δείξε το Display Name ή "M1" για να βλέπουμε το Anchor!
+				let labelText = nameArg ? (testValues[nameArg.idx] || document.getElementById('dName').value || "M1") : "";
+            let anchorStr = document.getElementById('mAnchor').value.trim();
+
+            let symbolBBox = { x: -20, y: -20, width: 40, height: 40 };
+            if (combinedPathForMath.trim()) {
+                const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                tempPath.setAttribute('d', combinedPathForMath);
+                const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svgContainer.appendChild(tempPath);
+                document.body.appendChild(svgContainer);
+                try { let bbox = tempPath.getBBox(); if (bbox.width > 0) symbolBBox = bbox; } catch(e) {}
+                document.body.removeChild(svgContainer);
+            }
+
+            let lx, ly;
+            let parts = anchorStr.split(/\s+/);
+            let dir = (parts.length > 0) ? parts[parts.length - 1].toUpperCase() : "B";
+            
+            // --- Η ΜΕΓΑΛΗ ΔΙΟΡΘΩΣΗ: Απευθείας SVG Pixels ---
+            if (parts.length >= 3) {
+                // Παίρνουμε τις συντεταγμένες 1-προς-1 όπως τις γράφεις στο πεδίο!
+                lx = parseFloat(parts[0]); 
+                ly = parseFloat(parts[1]); 
+            } else {
+                // Auto Anchor: Υπολογισμός από το Bounding Box
+                lx = symbolBBox.x + symbolBBox.width / 2;
+                ly = symbolBBox.y + symbolBBox.height / 2;
+                if (dir === 'B') ly = symbolBBox.y + symbolBBox.height;
+                else if (dir === 'T') ly = symbolBBox.y;
+                else if (dir === 'L') lx = symbolBBox.x;
+                else if (dir === 'R') lx = symbolBBox.x + symbolBBox.width;
+            }
+
+            // Εφαρμογή σταθερού Gap (10 pixels = 1 κουτάκι grid στον editor)
+            let gap = 10; 
+            if (dir === 'B') ly += gap;
+            else if (dir === 'T') ly -= gap;
+            else if (dir === 'L') lx -= gap;
+            else if (dir === 'R') lx += gap;
+
+            if (labelText) {
+                let anchor = "middle";
+                let dy = "0.3em";
+                if (dir === 'B') { anchor = "middle"; dy = "0.8em"; }
+                else if (dir === 'T') { anchor = "middle"; dy = "-0.2em"; }
+                else if (dir === 'L') { anchor = "end"; dy = "0.3em"; }
+                else if (dir === 'R') { anchor = "start"; dy = "0.3em"; }
+
+                // Μείωση font-size στο 5.5 και stroke-width στο 1.5 για πιο κομψό αποτέλεσμα
+                html += `<text x="${lx}" y="${ly}" dy="${dy}" text-anchor="${anchor}" dominant-baseline="middle" font-family="Arial" font-size="5.5" fill="${labelColor}" font-weight="bold" style="paint-order: stroke; stroke: ${theme==='cadence'?'black':'white'}; stroke-width: 1.5px;">${labelText}</text>`;
+                combinedPathForMath += ` M ${lx-15} ${ly-10} L ${lx+15} ${ly+10}`;
+            }
+
+            // Auto-Zoom ViewBox
+            let vbX = -50, vbY = -50, vbW = 100, vbH = 100;
+            if (combinedPathForMath.trim()) {
+                const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                tempPath.setAttribute('d', combinedPathForMath);
+                const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svgContainer.appendChild(tempPath);
+                document.body.appendChild(svgContainer);
+                try { 
+                    let bbox = tempPath.getBBox(); 
+                    let pad = Math.max(bbox.width, bbox.height) * 0.35;
+                    vbX = bbox.x - pad; vbY = bbox.y - pad;
+                    vbW = bbox.width + (pad * 2); vbH = bbox.height + (pad * 2);
+                } catch(e) {}
+                document.body.removeChild(svgContainer);
+            }
+
+            return `<svg width="100%" height="160" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet" style="background:${theme==='cadence'?'#111':'#f4f6f7'}; border:1px solid #bdc3c7; border-radius:6px;">${html}</svg>`;
+        }
+		
+		function updateTestPreview() {
+            const chkPalette = document.getElementById('chkPalettePreview');
+            const previewStr = document.getElementById('mPreview').value.trim();
+            const argsList = getParsedArgs();
+
+            if (chkPalette && chkPalette.checked) {
+                let pArgs = {};
+                if (previewStr) {
+                    previewStr.split(',').forEach(pair => {
+                        let kv = pair.split('=');
+                        if(kv.length === 2) pArgs[parseInt(kv[0].trim())] = kv[1].trim();
+                    });
+                }
+                argsList.forEach(a => {
+                    testValues[a.idx] = pArgs[a.idx] !== undefined ? pArgs[a.idx] : "";
+                });
+            }
+            
+            renderCanvas();
+            const container = document.getElementById('test-preview-container');
+            if (container) container.innerHTML = generateTestPreviewSVG();
+        }
+		
+		function openLogicTester() {
+            let argsList = getParsedArgs();
+            if (argsList.length === 0) return Swal.fire("No arguments defined in Config!");
+
+            testModeActive = true; 
+            
+            let previewStr = document.getElementById('mPreview') ? document.getElementById('mPreview').value.trim() : "";
+
+            // 1. Δημιουργία του νέου UI με το Palette Checkbox
+            let htmlForm = `
+                <div style="margin-bottom: 10px; background: #ebf5fb; padding: 8px; border-radius: 6px; border: 1px solid #3498db; text-align: left;">
+                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:bold; color:#2980b9; cursor:pointer; margin: 0;">
+                        <input type="checkbox" id="chkPalettePreview" style="width: 16px; height: 16px;">
+                        🎨 View as Palette Default
+                    </label>
+                </div>
+                <div id="preview-args-form" style="text-align: left; font-size: 14px; max-height: 200px; overflow-y: auto; padding-right: 10px; border-top: 1px solid #eee; padding-top: 10px; transition: opacity 0.2s;">
+            `;
+            
+            argsList.forEach(a => {
+                let desc = a.name.toLowerCase();
+                if (desc.includes('position')) return;
+
+                let currentVal = testValues[a.idx] || "";
+                htmlForm += `<div style="margin-bottom: 10px;">
+                                <label style="display:block; font-weight:bold; font-size:11px; color:#2c3e50; margin-bottom:2px;">ARG ${a.idx}: ${a.name}</label>`;
+                
+                if (a.name.includes('/')) {
+                    let options = a.name.split('/');
+                    htmlForm += `<select id="test-arg-${a.idx}" class="swal2-input" style="width:100%; height:32px; font-size:13px; margin:0; padding:0 10px;">`;
+                    htmlForm += `<option value="">-- select --</option>`;
+                    options.forEach(opt => {
+                        let cleanOpt = opt.trim();
+                        let selected = (currentVal === cleanOpt) ? 'selected' : '';
+                        htmlForm += `<option value="${cleanOpt}" ${selected}>${cleanOpt}</option>`;
+                    });
+                    htmlForm += `</select>`;
+                } else {
+                    htmlForm += `<input id="test-arg-${a.idx}" class="swal2-input" style="width:100%; height:32px; font-size:13px; margin:0; padding:0 10px;" value="${currentVal}" placeholder="Type value...">`;
+                }
+                htmlForm += `</div>`;
+            });
+            htmlForm += '</div>';
+
+            renderCanvas();
+
+            // 2. Εμφάνιση του Swal
+            Swal.fire({
+                html: `
+                    <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-top: 0; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
+                        <span>⠿</span> Drag to move <span>⠿</span>
+                    </div>
+                    <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #2c3e50;">👁️ Component Preview</div>
+                    <div id="test-preview-container" style="margin-bottom: 15px;">
+                        ${generateTestPreviewSVG()}
+                    </div>
+                    ${htmlForm}
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Keep Current State',
+                cancelButtonText: 'Exit Preview',
+                confirmButtonColor: '#27ae60',
+                backdrop: false, 
+                didOpen: () => {
+                    const popup = Swal.getPopup();
+                    const handle = document.getElementById('swal-drag-handle');
+                    
+                    let isDragging = false, startX, startY, initialLeft, initialTop;
+
+                    const onMouseMove = (e) => {
+                        if (!isDragging) return;
+                        popup.style.left = (initialLeft + (e.clientX - startX)) + 'px';
+                        popup.style.top = (initialTop + (e.clientY - startY)) + 'px';
+                    };
+
+                    const onMouseUp = () => {
+                        isDragging = false;
+                        handle.style.cursor = 'grab';
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    };
+
+                    handle.addEventListener('mousedown', (e) => {
+                        isDragging = true;
+                        handle.style.cursor = 'grabbing';
+                        
+                        const rect = popup.getBoundingClientRect();
+                        popup.style.margin = '0';
+                        popup.style.position = 'fixed'; 
+                        popup.style.left = rect.left + 'px';
+                        popup.style.top = rect.top + 'px';
+                        popup.style.transform = 'none'; 
+                        
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        initialLeft = rect.left;
+                        initialTop = rect.top;
+
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                    });
+
+                    // --- ΛΟΓΙΚΗ ΓΙΑ ΤΟ PALETTE CHECKBOX ---
+                    const chkPalette = document.getElementById('chkPalettePreview');
+                    const formDiv = document.getElementById('preview-args-form');
+                    let savedManualValues = {...testValues}; // Κρατάμε μνήμη τι είχε γράψει ο χρήστης
+
+                    if (chkPalette) {
+                        chkPalette.addEventListener('change', (e) => {
+                            let isPaletteMode = e.target.checked;
+                            formDiv.style.opacity = isPaletteMode ? '0.4' : '1';
+                            formDiv.style.pointerEvents = isPaletteMode ? 'none' : 'auto';
+                            
+                            if (!isPaletteMode) testValues = {...savedManualValues};
+                            updateTestPreview(); // Χρήση της νέας συνάρτησης
+                        });
+                    }
+                    // --- ΛΟΓΙΚΗ ΓΙΑ ΤΑ ΧΕΙΡΟΚΙΝΗΤΑ INPUTS ---
+                    argsList.forEach(a => {
+                        let el = document.getElementById(`test-arg-${a.idx}`);
+                        if (el) {
+                            let eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+                            el.addEventListener(eventType, (e) => {
+                                testValues[a.idx] = e.target.value;
+                                savedManualValues[a.idx] = e.target.value; // Συγχρονισμός μνήμης
+                                renderCanvas();
+                                document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();
+                            });
+                        }
+                    });
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    layers.forEach(l => { l.visible = evaluateLayerVisibility(l); });
+                    testModeActive = false; 
+                    renderLayerList(); 
+                } else {
+                    testModeActive = false;
+                    renderCanvas();
+                }
+            });
+        }
+		
         // --- DATA STRUCTURES ---
         let layers = [{ id: 'l_base', type: 'base', name: 'Base Icon', rule: { type: 'base' }, pathStr: 'M -20 0 L 20 0', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] }];
         let activeLayerId = 'l_base';
+		let originalTikzBody = null; // Κρατάει τον αυθεντικό κώδικα LaTeX
         let layerCounter = 1;
         let currentTool = 'line', isDrawing = false, startPt = {x: 0, y: 0};
         let vbx = -50, vby = -50, vbw = 100, vbh = 100;
@@ -272,17 +636,44 @@
         function parseRuleText(condStr) {
             condStr = condStr.trim();
             if (condStr === 'icon_base') return { type: 'base' };
-            if (condStr === '1~=') return { type: 'always' };
-            if (condStr.includes('==')) { let parts = condStr.split('=='); return { type: 'condition', arg: parseInt(parts[0]), op: '==', val: parts[1].trim() }; }
-            if (condStr.includes('~=')) { let parts = condStr.split('~='); return { type: 'condition', arg: parseInt(parts[0]), op: '~=', val: parts[1].trim() }; }
-            return { type: 'always' }; 
+            if (condStr === '1~=' || condStr === '') return []; 
+            
+            // Αν έχει πολύπλοκη λογική, το επιστρέφουμε ως Raw String!
+            if (condStr.includes('||') || condStr.includes('(')) {
+                return condStr;
+            }
+
+            let parts = condStr.split('&&');
+            let conds = [];
+            parts.forEach(p => {
+                p = p.trim();
+                if (p.includes('!=')) { 
+                    let s = p.split('!='); 
+                    conds.push({ arg: parseInt(s[0]), op: '!=', val: s[1].trim() }); 
+                } else if (p.includes('==')) { 
+                    let s = p.split('=='); 
+                    conds.push({ arg: parseInt(s[0]), op: '==', val: s[1].trim() }); 
+                } else if (p.includes('~=')) { 
+                    let s = p.split('~='); 
+                    conds.push({ arg: parseInt(s[0]), op: '~=', val: s[1].trim() }); 
+                }
+            });
+            return conds; 
         }
 
         function buildRuleText(rule) {
-            if (rule.type === 'base') return 'icon_base';
-            if (rule.type === 'always') return '1~=';
-            if (rule.type === 'condition') return `${rule.arg}${rule.op}${rule.val}`;
-            return '1~=';
+            if (rule && rule.type === 'base') return 'icon_base';
+            if (Array.isArray(rule)) {
+                if (rule.length === 0) return '1~=';
+                return rule.map(c => `${c.arg}${c.op}${c.val}`).join(' && ');
+            }
+            return rule || '1~='; // Επιστρέφει το String αν είναι σε Advanced mode
+        }
+
+        function buildRuleText(rule) {
+            if (rule && rule.type === 'base') return 'icon_base';
+            if (!Array.isArray(rule) || rule.length === 0) return '1~=';
+            return rule.map(c => `${c.arg}${c.op}${c.val}`).join(' && ');
         }
 
         // --- LAYER RENDERING ---
@@ -290,36 +681,74 @@
             const list = document.getElementById('layerList');
             let argsList = getParsedArgs();
             list.innerHTML = '';
+			
+			// --- ΝΕΟ: Ενημέρωση της εμφάνισης του Solo Button ---
+            const btnSolo = document.getElementById('btnSolo');
+            if (btnSolo) {
+                // Θεωρούμε Solo Mode όταν μόνο ένα layer είναι ορατό
+                let visibleCount = layers.filter(l => l.visible).length;
+                let isSolo = (visibleCount === 1);
+                
+                if (isSolo) {
+                    btnSolo.style.background = "#e74c3c"; // Έντονο κόκκινο
+                    btnSolo.style.borderColor = "#c0392b";
+                    btnSolo.innerHTML = "🕶️ Un-Solo";
+                } else {
+                    btnSolo.style.background = "#e67e22"; // Το αρχικό πορτοκαλί
+                    btnSolo.style.borderColor = "#d35400";
+                    btnSolo.innerHTML = "👁️ Solo";
+                }
+            }
             
             layers.forEach(layer => {
                 let isBase = layer.type === 'base';
                 
-                // Graphical Rule Builder UI
+                // Graphical Rule Builder UI 
                 let ruleUI = '';
                 if (!isBase) {
-                    let argOpts = argsList.map(a => `<option value="${a.idx}" ${layer.rule.arg == a.idx ? 'selected' : ''}>Arg ${a.idx}: ${a.name}</option>`).join('');
-                    if (!layer.rule.arg && argsList.length > 0) layer.rule.arg = argsList[0].idx; 
-                    
-                    // FIX 3: Added onclick="event.stopPropagation()" to all inputs and selects
-                    ruleUI = `
-                    <div class="rule-builder">
-                        <span style="font-size:9px; color:#7f8c8d; font-weight:bold;">RULE:</span>
-                        <select onclick="event.stopPropagation()" onchange="updateRuleType('${layer.id}', this.value)" style="width: 85px;">
-                            <option value="always" ${layer.rule.type === 'always' ? 'selected' : ''}>Always ON</option>
-                            <option value="condition" ${layer.rule.type === 'condition' ? 'selected' : ''}>If Arg...</option>
-                        </select>
-                        ${layer.rule.type === 'condition' ? `
-                            <select onclick="event.stopPropagation()" onchange="updateRuleArg('${layer.id}', this.value)" style="width: 90px;">${argOpts}</select>
-                            <select onclick="event.stopPropagation()" onchange="updateRuleOp('${layer.id}', this.value)" style="width: 45px;">
-                                <option value="==" ${layer.rule.op === '==' ? 'selected' : ''}>==</option>
-                                <option value="~=" ${layer.rule.op === '~=' ? 'selected' : ''}>~=</option>
-                            </select>
-                            <input onclick="event.stopPropagation()" type="text" value="${layer.rule.val || ''}" onchange="updateRuleVal('${layer.id}', this.value)" placeholder="value" style="flex: 1;">
-                        ` : ''}
-                    </div>`;
+                    if (Array.isArray(layer.rule)) {
+                        // --- GRAPHICAL MODE ---
+                        let conditionsHtml = '';
+                        layer.rule.forEach((cond, index) => {
+                            let argOpts = argsList.map(a => `<option value="${a.idx}" ${cond.arg == a.idx ? 'selected' : ''}>Arg ${a.idx}: ${a.name}</option>`).join('');
+                            conditionsHtml += `
+                            <div style="display: flex; gap: 4px; align-items: center; margin-top: 4px;">
+                                <span style="font-size:10px; font-weight:bold; color:#7f8c8d;">${index > 0 ? 'AND' : 'IF'}</span>
+                                <select onclick="event.stopPropagation()" onchange="updateRuleArg('${layer.id}', ${index}, this.value)" style="width: 90px;">${argOpts}</select>
+                                <select onclick="event.stopPropagation()" onchange="updateRuleOp('${layer.id}', ${index}, this.value)" style="width: 45px;">
+                                    <option value="==" ${cond.op === '==' ? 'selected' : ''}>==</option>
+                                    <option value="!=" ${cond.op === '!=' ? 'selected' : ''}>!=</option>
+                                    <option value="~=" ${cond.op === '~=' ? 'selected' : ''}>~=</option>
+                                </select>
+                                <input onclick="event.stopPropagation()" type="text" value="${cond.val || ''}" onchange="updateRuleVal('${layer.id}', ${index}, this.value)" placeholder="value" style="flex: 1;">
+                                <button onclick="event.stopPropagation(); removeRuleCondition('${layer.id}', ${index})" class="icon-btn" style="color: #e74c3c;" title="Remove Condition">✖</button>
+                            </div>`;
+                        });
+
+                        ruleUI = `
+                        <div class="rule-builder" style="flex-direction: column; align-items: stretch; background: #fdfdfd; padding: 6px; border: 1px dashed #bdc3c7;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 9px; color: #2c3e50; font-weight: bold;">VISIBILITY CONDITIONS: ${layer.rule.length === 0 ? 'Always ON' : ''}</span>
+                                <div style="display:flex; gap:4px;">
+                                    <button onclick="event.stopPropagation(); switchToTextLogic('${layer.id}')" class="tool-btn" style="padding: 2px 6px; font-size: 9px; background: #8e44ad; border-color: #732d91;" title="Switch to Advanced Text Logic">🔤 Advanced</button>
+                                    <button onclick="event.stopPropagation(); addRuleCondition('${layer.id}')" class="tool-btn" style="padding: 2px 6px; font-size: 9px; background: #27ae60; border-color: #2ecc71;">+ Add Condition</button>
+                                </div>
+                            </div>
+                            ${conditionsHtml}
+                        </div>`;
+                    } else {
+                        // --- ADVANCED TEXT MODE ---
+                        ruleUI = `
+                        <div class="rule-builder" style="flex-direction: column; align-items: stretch; background: #fdfdfd; padding: 6px; border: 1px dashed #9b59b6;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span style="font-size: 9px; color: #8e44ad; font-weight: bold;">ADVANCED LOGIC:</span>
+                                <button onclick="event.stopPropagation(); switchToVisualLogic('${layer.id}')" class="tool-btn" style="padding: 2px 6px; font-size: 9px; background: #e67e22; border-color: #d35400;" title="Revert to Graphical Builder (Will clear logic)">📊 Visual</button>
+                            </div>
+                            <input onclick="event.stopPropagation()" type="text" value="${layer.rule}" onchange="updateLayerRuleText('${layer.id}', this.value)" placeholder="e.g. 3==n && (4!=case || 5~=x)" style="width: 100%; font-family: monospace; font-size: 11px; border: 1px solid #bdc3c7; background: #fff; padding: 4px; box-sizing:border-box;">
+                        </div>`;
+                    }
                 }
 
-                // FIX: Dropdown to swap Base/Overlay and the Merge Down button
                 let html = `
                     <div class="layer-item ${layer.id === activeLayerId ? 'active-layer' : ''}" onclick="setActiveLayer('${layer.id}')">
                         <div class="layer-header">
@@ -336,61 +765,161 @@
                                 <button class="icon-btn" onclick="event.stopPropagation(); deleteLayer('${layer.id}')" title="Delete">🗑️</button>
                             </div>
                         </div>
+
+                        <input onclick="event.stopPropagation()" type="text" value="${layer.description || ''}" onchange="updateLayerDescription('${layer.id}', this.value)" placeholder="📝 Layer Name / Comment..." style="font-size: 11px; font-weight: bold; margin-top: 6px; border: none; border-bottom: 1px solid #bdc3c7; background: transparent; color: #0000ff;">
+
                         ${ruleUI}
-                        <input onclick="event.stopPropagation()" type="text" value="${layer.pathStr}" onchange="updateLayerPath('${layer.id}', this.value)" placeholder="SVG Path Data..." style="font-size: 10px; margin-top: 4px; border-color: transparent; background: rgba(0,0,0,0.03);">
-                        <input onclick="event.stopPropagation()" type="text" value="${layer.description || ''}" onchange="updateLayerDescription('${layer.id}', this.value)" placeholder="📝 Comment / Description..." style="font-size: 10px; margin-top: 2px; border: none; border-bottom: 1px dashed #bdc3c7; background: transparent; color: #7f8c8d;">
+                        
+                        <input onclick="event.stopPropagation()" type="text" value="${layer.pathStr}" onchange="updateLayerPath('${layer.id}', this.value)" placeholder="SVG Path Data..." style="font-size: 10px; margin-top: 4px; border-color: transparent; background: rgba(0,0,0,0.03); color: #7f8c8d;">
                     </div>`;
                 list.innerHTML += html;
             });
             syncToolbarToActiveLayer();
             renderCanvas();
         }
+		
+		function switchToTextLogic(id) {
+            let l = layers.find(x => x.id === id);
+            l.rule = buildRuleText(l.rule); // Μετατρέπει τον πίνακα σε string!
+            renderLayerList(); generateCode();
+        }
+
+        function switchToVisualLogic(id) {
+            let l = layers.find(x => x.id === id);
+            l.rule = []; // Μηδενίζει τον κανόνα για επιστροφή στο UI
+            renderLayerList(); generateCode();
+        }
+
+        function updateLayerRuleText(id, val) {
+            let l = layers.find(x => x.id === id);
+            l.rule = val;
+            generateCode();
+            if(testModeActive) renderCanvas();
+        }
 
         // --- RULE UPDATERS ---
-        function updateRuleType(id, val) { let l = layers.find(x => x.id === id); l.rule.type = val; if(val==='condition' && !l.rule.op) { l.rule.op = '=='; l.rule.val = ''; } renderLayerList(); generateCode(); }
-        function updateRuleArg(id, val) { let l = layers.find(x => x.id === id); l.rule.arg = parseInt(val); generateCode(); }
-        function updateRuleOp(id, val) { let l = layers.find(x => x.id === id); l.rule.op = val; generateCode(); }
-        function updateRuleVal(id, val) { let l = layers.find(x => x.id === id); l.rule.val = val; generateCode(); }
-		function updateLayerDescription(id, val) { 
+        function addRuleCondition(id) { 
             let l = layers.find(x => x.id === id); 
-            l.description = val; 
-            generateCode(); 
+            let argList = getParsedArgs();
+            let defArg = argList.length > 0 ? argList[0].idx : 1;
+            if (!Array.isArray(l.rule)) l.rule = [];
+            l.rule.push({ arg: defArg, op: '==', val: '' }); 
+            renderLayerList(); generateCode(); 
         }
+        function removeRuleCondition(id, index) { let l = layers.find(x => x.id === id); l.rule.splice(index, 1); renderLayerList(); generateCode(); }
+        
+        // ΝΕΟ: Προστέθηκε το "if(testModeActive) renderCanvas();"
+        function updateRuleArg(id, index, val) { let l = layers.find(x => x.id === id); l.rule[index].arg = parseInt(val); generateCode(); if(testModeActive) renderCanvas(); }
+        function updateRuleOp(id, index, val) { let l = layers.find(x => x.id === id); l.rule[index].op = val; generateCode(); if(testModeActive) renderCanvas(); }
+        function updateRuleVal(id, index, val) { let l = layers.find(x => x.id === id); l.rule[index].val = val; generateCode(); if(testModeActive) renderCanvas(); }
+        
+        function updateLayerDescription(id, val) { let l = layers.find(x => x.id === id); l.description = val; generateCode(); }
+        // BONUS FIX: Προστέθηκε η συνάρτηση για χειροκίνητη αλλαγή του SVG Path
+        function updateLayerPath(id, val) { let l = layers.find(x => x.id === id); l.pathStr = val; generateCode(); renderCanvas(); }
 
         // --- LAYER CONTROLS ---
-        function setActiveLayer(id) { activeLayerId = id; renderLayerList(); }
-        function toggleVis(id) { let l = layers.find(x => x.id === id); l.visible = !l.visible; renderLayerList(); }
-        
-		function soloActiveLayer() {
-            // Ελέγχουμε αν ΟΛΑ τα άλλα layers είναι ήδη κρυμμένα
-            let allOthersHidden = layers.filter(l => l.id !== activeLayerId).every(l => !l.visible);
+        function setActiveLayer(id) { 
+            if (activeLayerId === id) return; // Αν κάναμε κλικ στο ίδιο, δεν κάνουμε τίποτα
+
+            // Μετράμε πόσα layers είναι ορατά ΑΥΤΗ τη στιγμή
+            let visibleLayersCount = layers.filter(l => l.visible).length;
             
-            if (allOthersHidden) {
-                // Αν είναι ήδη "Solo", τα ανάβουμε ΟΛΑ ξανά (Un-solo)
-                layers.forEach(l => l.visible = true);
-            } else {
-                // Διαφορετικά, κρύβουμε τα πάντα ΕΚΤΟΣ από το ενεργό (Solo Mode)
-                layers.forEach(l => {
-                    l.visible = (l.id === activeLayerId);
-                });
+            // Αν είναι ορατό μόνο ένα (ήμασταν σε Solo mode) και έχουμε πάνω από 1 layer συνολικά
+            let wasInSoloMode = (visibleLayersCount === 1 && layers.length > 1);
+
+            activeLayerId = id; // Αλλάζουμε το active layer
+
+            // Αν ήμασταν σε Solo, μεταφέρουμε το Solo στο νέο layer!
+            if (wasInSoloMode) {
+                layers.forEach(l => l.visible = (l.id === activeLayerId));
             }
-            renderLayerList();
+
+            renderLayerList(); 
         }
 		
-		function saveHistory(layer) { 
+		function flattenLayers() {
+            if (layers.length <= 1) {
+                return Swal.fire({ icon: 'info', title: 'Nothing to flatten', text: 'You only have one layer!' });
+            }
+
+            Swal.fire({
+                title: 'Flatten all layers?',
+                html: 'This will merge <b>all</b> overlays into the Base Layer and remove their conditional logic.<br><br><span style="color:#e74c3c; font-size:12px;">Warning: This action cannot be easily undone!</span>',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#c0392b',
+                cancelButtonColor: '#95a5a6',
+                confirmButtonText: 'Yes, flatten it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Βρίσκουμε ή ορίζουμε το Base Layer
+                    let baseLayer = layers.find(l => l.type === 'base');
+                    if (!baseLayer) {
+                        baseLayer = layers[0];
+                        baseLayer.type = 'base';
+                        baseLayer.rule = { type: 'base' };
+                    }
+                    
+                    // Σώζουμε το ιστορικό του Base σε περίπτωση που θέλει να κάνει Undo το Path
+                    saveHistory(baseLayer);
+
+                    // Συγκεντρώνουμε όλα τα paths
+                    let combinedPath = baseLayer.pathStr.trim();
+                    layers.forEach(l => {
+                        if (l.id !== baseLayer.id && l.pathStr.trim()) {
+                            combinedPath += (combinedPath ? " " : "") + l.pathStr.trim();
+                        }
+                    });
+
+                    // Ενημερώνουμε το Base Layer
+                    baseLayer.pathStr = combinedPath;
+                    
+                    // Κρατάμε ΜΟΝΟ το Base Layer στον πίνακα
+                    layers = [baseLayer];
+                    activeLayerId = baseLayer.id;
+                    
+                    // Κλείνουμε τυχόν ενεργά Solo ή Test modes
+                    testModeActive = false;
+                    baseLayer.visible = true;
+
+                    // Ανανεώνουμε το UI
+                    renderLayerList();
+                    
+                    Swal.fire({
+                        toast: true,
+                        position: 'bottom-end',
+                        icon: 'success',
+                        title: 'Layers flattened!',
+                        showConfirmButton: false,
+                        timer: 1500
+                    });
+                }
+            });
+        }
+		
+        function toggleVis(id) { let l = layers.find(x => x.id === id); l.visible = !l.visible; renderLayerList(); }
+        
+        function soloActiveLayer() {
+            let allOthersHidden = layers.filter(l => l.id !== activeLayerId).every(l => !l.visible);
+            if (allOthersHidden) layers.forEach(l => l.visible = true);
+            else layers.forEach(l => l.visible = (l.id === activeLayerId));
+            renderLayerList();
+        }
+        
+        function saveHistory(layer) { 
             if(!layer.history) layer.history = []; 
             if(!layer.redoHistory) layer.redoHistory = [];
             layer.history.push(layer.pathStr); 
             if(layer.history.length > 20) layer.history.shift(); 
-            layer.redoHistory = []; // Clear redo memory when drawing a brand new shape
+            layer.redoHistory = []; 
         }
         
         function undoLayer(id) {
             let l = layers.find(x => x.id === id);
             if(l.history && l.history.length > 0) {
                 if(!l.redoHistory) l.redoHistory = [];
-                l.redoHistory.push(l.pathStr); // Save current state to Redo
-                l.pathStr = l.history.pop();   // Revert to last state
+                l.redoHistory.push(l.pathStr); 
+                l.pathStr = l.history.pop();   
                 renderLayerList();
             }
         }
@@ -399,8 +928,8 @@
             let l = layers.find(x => x.id === id);
             if(l.redoHistory && l.redoHistory.length > 0) {
                 if(!l.history) l.history = [];
-                l.history.push(l.pathStr);     // Save current state back to Undo
-                l.pathStr = l.redoHistory.pop(); // Revert to future state
+                l.history.push(l.pathStr);     
+                l.pathStr = l.redoHistory.pop(); 
                 renderLayerList();
             }
         }
@@ -408,9 +937,7 @@
         function deleteLayer(id) { layers = layers.filter(x => x.id !== id); if(activeLayerId === id) activeLayerId = 'l_base'; renderLayerList(); }
         
         function addLayer() { 
-            let argList = getParsedArgs();
-            let defArg = argList.length > 0 ? argList[0].idx : 1;
-            layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: { type: 'always', arg: defArg, op: '==', val: '' }, pathStr: '', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] }); 
+            layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: [], pathStr: '', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false, rounded: false }, history: [], redoHistory: [] }); 
             activeLayerId = layers[layers.length - 1].id; 
             renderLayerList(); 
         }
@@ -424,11 +951,11 @@
                 document.getElementById('txtWidth').innerText = sw.toFixed(1);
                 
                 document.getElementById('inpColorHex').value = l.styles.stroke || "";
-                // Attempt to map valid hex to the visual picker, otherwise default to black visually
                 document.getElementById('inpColorPicker').value = /^#[0-9A-F]{6}$/i.test(l.styles.stroke) ? l.styles.stroke : "#000000";
                 
                 document.getElementById('chkDashed').checked = l.styles.dashed;
                 document.getElementById('chkSolid').checked = l.styles.solid;
+                document.getElementById('chkRounded').checked = l.styles.rounded || false; // ΝΕΟ
             }
         }
 
@@ -439,6 +966,7 @@
                 l.styles.stroke = document.getElementById('inpColorHex').value.trim();
                 l.styles.dashed = document.getElementById('chkDashed').checked;
                 l.styles.solid = document.getElementById('chkSolid').checked;
+                l.styles.rounded = document.getElementById('chkRounded').checked; // ΝΕΟ
                 renderCanvas();
             }
         }
@@ -449,6 +977,7 @@
             if (styles.stroke !== "") parts.push(`stroke=${styles.stroke}`);
             if (styles.dashed) parts.push(`stroke-dasharray=2 2`);
             if (styles.solid) parts.push(`fill=solid`);
+            if (styles.rounded) parts.push(`rounded=true`); // ΝΕΟ
             return parts.length > 0 ? `[${parts.join(', ')}] ` : "";
         }
 
@@ -457,6 +986,15 @@
             const code = document.getElementById('importCode').value;
             if(!code.includes('\\newcommand')) return Swal.fire({ icon: 'error', title: 'Import Failed', text: 'Invalid code. Missing \\newcommand' });;
             
+            // --- ΝΕΟ: Μηδενισμός της προσωρινής μνήμης του Tester ---
+            testValues = {}; 
+			
+			// --- ΝΕΟ: Μηδενισμός μνήμης ---
+            testValues = {}; 
+            originalTikzBody = null;
+            pins = [];
+            pinCounter = 1;
+
             let titleMatch = code.match(/%%\s*(.+)/);
             if(titleMatch) document.getElementById('dName').value = titleMatch[1].trim();
             
@@ -476,7 +1014,12 @@
             let mAnchor = code.match(/% label_anchor:\s*([^\n]+)/); if(mAnchor) document.getElementById('mAnchor').value = mAnchor[1].trim();
             let mScales = code.match(/% scales:\s*([^\n]+)/); if(mScales) document.getElementById('mScales').value = mScales[1].trim();
             let mFlip = code.match(/% flip:\s*([^\n]+)/); if(mFlip) document.getElementById('mFlip').value = mFlip[1].trim();
-            let mFilled = code.match(/% filled:\s*(true|false)/); if(mFilled) document.getElementById('mFilled').checked = mFilled[1] === 'true';
+            
+            let mPreview = code.match(/% preview_args:\s*([^\n]+)/); 
+            let previewInput = document.getElementById('mPreview');
+            if (previewInput) {
+                previewInput.value = mPreview ? mPreview[1].trim() : "";
+            }
 
             layers = []; layerCounter = 1;
 
@@ -488,15 +1031,15 @@
                 let pathStr = fullPathPart.split('//')[0].trim();
                 let desc = fullPathPart.includes('//') ? fullPathPart.split('//')[1].trim() : "";
                 
-                let sw = "1.8", dashed = false, solid = false, stroke = "";
+                let sw = "1.8", dashed = false, solid = false, stroke = "", rounded = false;
                 if(styleStr) {
                     if(styleStr.includes('stroke-width=')) sw = styleStr.match(/stroke-width=([\d\.]+)/)[1];
                     if(styleStr.includes('stroke=')) stroke = styleStr.match(/stroke=([^,\]]+)/)[1].trim();
                     if(styleStr.includes('stroke-dasharray')) dashed = true;
                     if(styleStr.includes('fill=solid')) solid = true;
+                    if(styleStr.includes('rounded=true')) rounded = true;
                 }
-                // ΔΙΟΡΘΩΣΗ: Προσθήκη description: desc
-                layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: pathStr, description: desc, visible: true, styles: { sw: sw, stroke: stroke, dashed: dashed, solid: solid }, history: [], redoHistory: [] });
+                layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: pathStr, description: desc, visible: true, styles: { sw: sw, stroke: stroke, dashed: dashed, solid: solid, rounded: rounded }, history: [], redoHistory: [] });
             }
 
             // --- OVERLAYS IMPORT ---
@@ -508,21 +1051,73 @@
                 let desc = fullPathPart.includes('//') ? fullPathPart.split('//')[1].trim() : "";
                 let ruleObj = parseRuleText(cond);
                 
-                let sw = "1.8", dashed = false, solid = false, stroke = "";
+                let sw = "1.8", dashed = false, solid = false, stroke = "", rounded = false;
                 if(styleStr) {
                     if(styleStr.includes('stroke-width=')) sw = styleStr.match(/stroke-width=([\d\.]+)/)[1];
                     if(styleStr.includes('stroke=')) stroke = styleStr.match(/stroke=([^,\]]+)/)[1].trim();
                     if(styleStr.includes('stroke-dasharray')) dashed = true;
                     if(styleStr.includes('fill=solid')) solid = true;
+                    if(styleStr.includes('rounded=true')) rounded = true;
                 }
-                // ΔΙΟΡΘΩΣΗ: Προσθήκη description: desc
-                layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: ruleObj, pathStr: pathStr, description: desc, visible: true, styles: { sw: sw, stroke: stroke, dashed: dashed, solid: solid }, history: [], redoHistory: [] });
+                layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: ruleObj, pathStr: pathStr, description: desc, visible: true, styles: { sw: sw, stroke: stroke, dashed: dashed, solid: solid, rounded: rounded }, history: [], redoHistory: [] });
             }
             
             if(layers.length === 0) layers.push({ id: 'l_base', type: 'base', rule: {type: 'base'}, pathStr: '', description: '', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false }, history: [], redoHistory: [] });
             
             activeLayerId = 'l_base';
-            resetView(); renderLayerList();
+            resetView(); 
+            renderLayerList();
+
+            // --- ΝΕΟ: Αν ο Tester είναι ανοιχτός, κάνε refresh το preview άμεσα ---
+            if (testModeActive) {
+                const container = document.getElementById('test-preview-container');
+                if (container) container.innerHTML = generateTestPreviewSVG();
+            }
+			
+			// --- ΝΕΟ: ΔΙΑΒΑΣΜΑ PINS ΚΑΙ ΑΥΘΕΝΤΙΚΟΥ TIKZ BODY (SUPER ROBUST) ---
+            // 1. Βρίσκουμε από πού ξεκινάει ο καθαρός κώδικας TikZ
+            let tikzStartMatch = code.match(/(\\IfSubStr|\\begin\{scope\})/);
+            if (tikzStartMatch) {
+                let rawTikz = code.substring(tikzStartMatch.index);
+                rawTikz = rawTikz.replace(/\}\s*$/, ''); // Αφαιρούμε το τελευταίο '}'
+                
+                // Αφαιρούμε τα παλιά \coordinate από το σώμα για να μην διπλογραφτούν
+                originalTikzBody = rawTikz.replace(/^[ \t]*\\coordinate.*?\n/gm, '');
+            }
+
+            // 2. Εξυπνο και χαλαρό Regex για τα Pins (Αγνοεί κενά, αγκύλες, κλπ)
+            let coordRegex = /\\coordinate\s*(?:\[.*?\])?\s*\(([^\)]+)\)\s*at\s*\(([-+]?[\d\.]+)\s*,\s*([-+]?[\d\.]+)\)\s*;(?:[ \t]*%\s*\(([^)]*)\))?/g;
+            let cMatch;
+            let foundPins = 0;
+
+            console.log("🔍 Ξεκινάει η αναζήτηση Pins στον κώδικα...");
+
+            while ((cMatch = coordRegex.exec(code)) !== null) {
+                let pId = cMatch[1].trim();
+                let tX = parseFloat(cMatch[2]);
+                let tY = parseFloat(cMatch[3]);
+                let pLbl = cMatch[4] ? cMatch[4].trim() : "";
+
+                console.log(`📍 Βρέθηκε Pin -> ID: ${pId}, X: ${tX}, Y: ${tY}, Label: ${pLbl}`);
+
+                // Αν είναι έγκυροι αριθμοί (και όχι γράμματα)
+                if (!isNaN(tX) && !isNaN(tY)) {
+                    // Μετατροπή από TikZ units πίσω σε Pixels
+                    pins.push({ id: pId, x: tX * 10, y: -tY * 10, label: pLbl });
+                    foundPins++;
+                } else {
+                    console.warn(`⚠️ Το Pin ${pId} έχει μη-αριθμητικές συντεταγμένες και αγνοήθηκε!`);
+                }
+                
+                // Ασφαλής αύξηση του counter
+                let numMatch = pId.match(/\d+/);
+                if (numMatch && parseInt(numMatch[0]) >= pinCounter) {
+                    pinCounter = parseInt(numMatch[0]) + 1;
+                }
+            }
+            
+            console.log(`✅ Φορτώθηκαν επιτυχώς ${foundPins} Pins!`);
+            renderCanvas();
         }
 
         // --- DRAWING ---
@@ -682,7 +1277,9 @@
                 let rw = Math.abs(currPt.x - startPt.x), rh = Math.abs(currPt.y - startPt.y);
                 d = `M ${rx} ${ry} L ${rx+rw} ${ry} L ${rx+rw} ${ry+rh} L ${rx} ${ry+rh} Z`;
             } else if (currentTool === 'circle') {
-                let r = Math.round(Math.sqrt(Math.pow(currPt.x - startPt.x, 2) + Math.pow(currPt.y - startPt.y, 2)) / 5) * 5;
+                // ΔΙΑΒΑΖΕΙ ΤΟ ALT ΚΑΙ ΓΙΑ ΤΗΝ ΑΚΤΙΝΑ
+                let snap = e.altKey ? 0.5 : 5; 
+                let r = Math.round(Math.sqrt(Math.pow(currPt.x - startPt.x, 2) + Math.pow(currPt.y - startPt.y, 2)) / snap) * snap;
                 if(r > 0) d = `M ${startPt.x} ${startPt.y} m -${r} 0 a ${r} ${r} 0 1 0 ${r*2} 0 a ${r} ${r} 0 1 0 -${r*2} 0`;
             }
             previewEl.setAttribute('d', d);
@@ -754,7 +1351,7 @@
             
             if (!isCopy) l.pathStr = remainingPaths.join(' ');
             
-            let newRule = (l.type === 'base') ? { type: 'always', arg: 1, op: '==', val: '' } : JSON.parse(JSON.stringify(l.rule));
+            let newRule = (l.type === 'base') ? [] : JSON.parse(JSON.stringify(l.rule));
             let newLayer = { id: `l_${layerCounter++}`, type: 'add', rule: newRule, pathStr: extractedPaths.join(' '), visible: true, styles: JSON.parse(JSON.stringify(l.styles)), history: [], redoHistory: [] };
             
             layers.push(newLayer);
@@ -890,7 +1487,7 @@
             let l = layers.find(x => x.id === id);
             l.type = newType;
             if (newType === 'base') l.rule = { type: 'base' };
-            else if (!l.rule || l.rule.type === 'base') l.rule = { type: 'always', arg: 1, op: '==', val: '' };
+            else if (!Array.isArray(l.rule)) l.rule = [];
             renderLayerList();
         }
 
@@ -909,19 +1506,36 @@
         // --- UPGRADED RENDERER ---
         function renderCanvas() {
             let theme = document.getElementById('selTheme').value;
-            let baseColor = (theme === 'cadence') ? "#27ae60" : "#2c3e50";
+            let baseColor = (theme === 'cadence') ? "#007c3c" : "#2c3e50";
+			
+			// --- ΝΕΟ: ΘΕΜΑΤΙΚΟΣ ΕΛΕΓΧΟΣ ΚΑΜΒΑ ---
+            let canvas = document.querySelector('.canvas-container');
+            let grid5 = document.getElementById('grid5').querySelector('path');
+            let grid10 = document.getElementById('grid10').querySelector('path');
+
+            if (theme === 'cadence') {
+                canvas.style.background = "#000000";
+                grid5.setAttribute('stroke', '#1a1a1a'); // Πολύ διακριτικό γκρι
+                grid10.setAttribute('stroke', '#333333'); // Πιο έντονο γκρι
+            } else {
+                canvas.style.background = "#ffffff";
+                grid5.setAttribute('stroke', '#ecf0f1');
+                grid10.setAttribute('stroke', '#bdc3c7');
+            }
+            // ------------------------------------
 
             let html = "";
             layers.forEach(l => {
-                if (!l.visible || !l.pathStr.trim()) return;
+                let shouldShow = testModeActive ? evaluateLayerVisibility(l) : l.visible;
+                if (!shouldShow || !l.pathStr.trim()) return;
                 
-                // FIX 2: Strictly follow the theme color, UNLESS the user picked a custom color. 
-                // Removed the "turn blue if active" logic.
                 let stroke = l.styles.stroke ? l.styles.stroke : baseColor;
                 
                 let sw = parseFloat(l.styles.sw); 
                 let dash = l.styles.dashed ? 'stroke-dasharray="4 4"' : '';
                 let fill = l.styles.solid ? stroke : "none";
+				let lineCap = l.styles.rounded ? 'round' : 'butt';
+                let lineJoin = l.styles.rounded ? 'round' : 'miter';
                 
                 // FIX 3: Apply the improved Regex here too so the hover-glow targets whole shapes!
                 let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
@@ -933,7 +1547,7 @@
                             interactionClass = selectedShapeIndices.has(idx) ? 'selected-extract' : 'extractable';
                         }
                     }
-                    html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="butt" stroke-linejoin="miter" />`;
+                    html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
                 });
             });
 			// NEW: Render Pins
@@ -955,11 +1569,17 @@
                 previewEl.setAttribute('fill', aLayer.styles.solid ? previewColor : 'none');
             }
 
+            // --- ΝΕΟ: Ζωντανός συγχρονισμός της μικρογραφίας του Tester ---
+            if (testModeActive) {
+                let testPreview = document.getElementById('test-preview-container');
+                if (testPreview) testPreview.innerHTML = generateTestPreviewSVG();
+            }
+
             generateCode();
         }
 
         // --- Advanced SVG to TikZ Converter ---
-        function svgToTikz(pathStr) {
+        function svgToTikz(pathStr, styles) {
             let x=0, y=0;
             let tikz = "";
             // Safely tokenize letters and complex decimals
@@ -989,6 +1609,23 @@
                     x += parseFloat(tokens[i]); y += parseFloat(tokens[i+1]); 
                     tikz += (cmd==='m'?'':`-- `) + `(${x/10}, ${-y/10}) `; i+=2; 
                     if(cmd === 'm') cmd = 'l';
+                }
+				// --- ΝΕΟ: ΥΠΟΣΤΗΡΙΞΗ CUBIC BEZIER (C, c) ---
+                else if(cmd === 'C' || cmd === 'c') {
+                    let cx1 = parseFloat(tokens[i]), cy1 = parseFloat(tokens[i+1]);
+                    let cx2 = parseFloat(tokens[i+2]), cy2 = parseFloat(tokens[i+3]);
+                    let ex = parseFloat(tokens[i+4]), ey = parseFloat(tokens[i+5]);
+                    if(cmd === 'c') { cx1+=x; cy1+=y; cx2+=x; cy2+=y; ex+=x; ey+=y; }
+                    tikz += `.. controls (${(cx1/10).toFixed(2)}, ${(-cy1/10).toFixed(2)}) and (${(cx2/10).toFixed(2)}, ${(-cy2/10).toFixed(2)}) .. (${(ex/10).toFixed(2)}, ${(-ey/10).toFixed(2)}) `;
+                    x = ex; y = ey; i+=6;
+                }
+                // --- ΝΕΟ: ΥΠΟΣΤΗΡΙΞΗ QUADRATIC BEZIER (Q, q) ---
+                else if(cmd === 'Q' || cmd === 'q') {
+                    let cx = parseFloat(tokens[i]), cy = parseFloat(tokens[i+1]);
+                    let ex = parseFloat(tokens[i+2]), ey = parseFloat(tokens[i+3]);
+                    if(cmd === 'q') { cx+=x; cy+=y; ex+=x; ey+=y; }
+                    tikz += `.. controls (${(cx/10).toFixed(2)}, ${(-cy/10).toFixed(2)}) .. (${(ex/10).toFixed(2)}, ${(-ey/10).toFixed(2)}) `;
+                    x = ex; y = ey; i+=4;
                 }
                 else if(cmd === 'A' || cmd === 'a') {
                     let rx = parseFloat(tokens[i])/10, ry = parseFloat(tokens[i+1])/10;
@@ -1030,6 +1667,13 @@
                 else if(cmd === 'Z' || cmd === 'z') { tikz += `-- cycle `; cmd=''; }
                 else { i++; } // Skip unknown
             }
+            let extra = "";
+            if (styles) {
+                if (styles.dashed) extra += ", dashed";
+                if (styles.solid) extra += ", fill=black";
+                if (styles.rounded) extra += ", line cap=round, line join=round";
+                return `\\draw [line width=\\linewidthscalefactor * \\zoomfactor * ${styles.sw}pt${extra}] ${tikz.trim()};`;
+            }
             return `\\draw [line width=\\linewidthscalefactor * \\zoomfactor * 1.5pt] ${tikz.trim()};`;
         }
 
@@ -1052,87 +1696,76 @@
             if(document.getElementById('mEnabled').checked) lines.push(`% enabled`);
             lines.push(`% category: ${document.getElementById('mCat').value.trim()}`);
             lines.push(`% scales: ${document.getElementById('mScales').value.trim()}`);
-            lines.push(`% filled: ${document.getElementById('mFilled').checked}`);
             lines.push(`% label_anchor: ${document.getElementById('mAnchor').value.trim()}`);
             lines.push(`% flip: ${document.getElementById('mFlip').value.trim()}`);
+            let prevArgsEl = document.getElementById('mPreview');
+            if (prevArgsEl && prevArgsEl.value.trim()) {
+                lines.push(`% preview_args: ${prevArgsEl.value.trim()}`);
+            }
             
-            // MODE 1: Standard .sty Metadata
-            if (mode === 'sty') {
-                lines.push(``);
-                layers.forEach(l => {
-                    if (!l.pathStr.trim()) return;
-                    let styleTag = formatStyleTag(l.styles);
-                    let conditionTag = buildRuleText(l.rule);
-                    
-                    // ΠΡΟΣΘΗΚΗ: Αν υπάρχει σχόλιο, βάλτο στο τέλος με //
-                    let descTag = l.description ? ` // ${l.description}` : "";
-                    
-                    if (l.type === 'base') lines.push(`% icon_base: ${styleTag}${l.pathStr}${descTag}`);
-                    else lines.push(`% add_icon: ${conditionTag} : ${styleTag}${l.pathStr}${descTag}`);
+            // --- ΠΑΡΑΓΩΓΗ ΤΩΝ META-TAGS (ΓΙΝΕΤΑΙ ΠΑΝΤΑ, ΣΕ ΟΛΑ ΤΑ MODES) ---
+            lines.push(``);
+            layers.forEach(l => {
+                if (!l.pathStr.trim()) return;
+                let styleTag = formatStyleTag(l.styles);
+                let conditionTag = buildRuleText(l.rule);
+                
+                let cleanPath = l.pathStr.replace(/\s+/g, ' ').trim();
+                let descTag = l.description ? ` // ${l.description.trim()}` : "";
+                
+                if (l.type === 'base') lines.push(`% icon_base: ${styleTag}${cleanPath}${descTag}`);
+                else lines.push(`% add_icon: ${conditionTag} : ${styleTag}${cleanPath}${descTag}`);
+            });
+            
+            // --- ΕΞΑΓΩΓΗ PINS ΣΤΟ HEADER ---
+            if (pins.length > 0) {
+                pins.forEach(p => {
+                    let lbl = p.label ? p.label : "";
+                    lines.push(`% pin: ${p.id} ${p.x} ${p.y} ${lbl}`.trim());
                 });
             }
-            // MODE 2: Full LaTeX / TikZ Macro Compiler
-            else {
-                // 1. Argument Parsing Boilerplate
-                lines.push(
-`   \\IfSubStr{#5}{h}{\\edef\\xscalevalue{-1}}{\\edef\\xscalevalue{1}}
-    \\IfSubStr{#5}{v}{\\edef\\yscalevalue{-1}}{\\edef\\yscalevalue{1}}
-    \\ifstrequal{#3}{horizontal}
-        {\\edef\\rotationangle{0}}
-        {
-            \\ifstrequal{#3}{vertical}
-                {\\edef\\rotationangle{90}}
-                {\\StrBefore{#5}{,}[\\rotationangle]}
-        }
-    \\begin{scope}[shift={#1}, scale=\\jlcscale, rotate=\\rotationangle, xscale=\\xscalevalue, yscale=\\yscalevalue]
-        \\getzoomfactor`);
 
-                // 2. Base Paths
-                let baseLayer = layers.find(l => l.type === 'base');
-                if(baseLayer && baseLayer.pathStr.trim()) {
-                    lines.push(`        % base drawing`);
-                    lines.push(`        ${svgToTikz(baseLayer.pathStr)}`);
-                }
-
-                // 3. Conditional Layers (Add-ons)
-                layers.filter(l => l.type === 'add' && l.pathStr.trim()).forEach(l => {
-                    lines.push(`        % overlay: ${l.rule.type === 'condition' ? 'If Arg ' + l.rule.arg + ' is ' + l.rule.val : 'Always'}`);
-                    if (l.rule.type === 'condition') {
-                        lines.push(`        \\ifstrequal{#${l.rule.arg}}{${l.rule.val}}`);
-                        lines.push(`            {`);
-                        lines.push(`                ${svgToTikz(l.pathStr)}`);
-                        lines.push(`            }{}`);
-                    } else {
-                        lines.push(`        ${svgToTikz(l.pathStr)}`);
+            // --- ΠΡΟΣΘΗΚΗ ΤΟΥ TIKZ BODY (ΜΟΝΟ ΑΝ ΕΙΝΑΙ ΣΕ FULL LATEX MODE) ---
+            if (mode === 'latex') {
+                if (originalTikzBody) {
+                    // --- HYBRID MODE: Επιστροφή του Αυθεντικού Κώδικα ---
+                    let newPinsStr = "";
+                    if (pins.length > 0) {
+                        newPinsStr = "        % coordinate pins\n";
+                        pins.forEach(p => {
+                            let tikzX = (p.x / 10).toFixed(2);
+                            let tikzY = (-p.y / 10).toFixed(2);
+                            let lbl = p.label ? ` % (${p.label})` : "";
+                            newPinsStr += `        \\coordinate (${p.id}) at (${tikzX}, ${tikzY});${lbl}\n`;
+                        });
                     }
-                });
 
-                // 4. Name Node & Grid
-                lines.push(
-`       % draw name
-        \\ifstrequal{#3}{horizontal}
-            {\\node[draw=none, align=center] at (0,-1) {#2};}
-            {
-                \\ifstrequal{#3}{vertical}
-                    {\\node[draw=none, anchor=east] at (-1,0) {#2};}
-                    {\\node[draw=none, align=center, rotate=\\rotationangle] at (0,-1) {#2};}
-            }
-        % draw grid & origin
-        \\ifstrequal{#6}{gridon}{\\draw[step=1cm,color=gray] (-2,-2) grid (2,2);}{}
-        \\ifstrequal{#7}{show}{\\node[draw=none, align=center, color=red] at (0,0) {#1};}{}`);
-
-                // 5. Pins
-                if (pins.length > 0) {
-                    lines.push(`        % coordinate pins`);
-                    pins.forEach(p => {
-                        lines.push(`        \\coordinate (${p.id}) at (${p.x/10}, ${-p.y/10});`);
+                    // Εισαγωγή των νέων pins ακριβώς πριν κλείσει το scope
+                    let finalBody = originalTikzBody.replace('\\end{scope}', newPinsStr + '    \\end{scope}');
+                    lines.push('    ' + finalBody.trim());
+                    lines.push(`}`);
+                } else {
+                    // --- FALLBACK MODE: Πειραματική παραγωγή από SVG ---
+                    lines.push(`   \\IfSubStr{#5}{h}{\\edef\\xscalevalue{-1}}{\\edef\\xscalevalue{1}}`);
+                    lines.push(`   \\IfSubStr{#5}{v}{\\edef\\yscalevalue{-1}}{\\edef\\yscalevalue{1}}`);
+                    lines.push(`   \\begin{scope}[shift={#1}, scale=\\jlcscale, rotate=#5, xscale=\\xscalevalue, yscale=\\yscalevalue]`);
+                    lines.push(`        \\getzoomfactor`);
+                    
+                    layers.forEach(l => {
+                        if(l.pathStr.trim()) lines.push(`        ${svgToTikz(l.pathStr, l.styles)}`);
                     });
+
+                    if (pins.length > 0) {
+                        lines.push(`        % coordinate pins`);
+                        pins.forEach(p => {
+                            let tikzX = (p.x / 10).toFixed(2);
+                            let tikzY = (-p.y / 10).toFixed(2);
+                            let lbl = p.label ? ` % (${p.label})` : "";
+                            lines.push(`        \\coordinate (${p.id}) at (${tikzX}, ${tikzY});${lbl}`);
+                        });
+                    }
+                    lines.push(`    \\end{scope}\n}`);
                 }
-                
-                lines.push(`    \\end{scope}`);
-                
-                // FIX: ONLY close the macro if we are exporting the full LaTeX body!
-                lines.push(`}`); 
             }
             
             // End of export logic

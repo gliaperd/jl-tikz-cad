@@ -418,7 +418,49 @@
 	// --- ΚΛΙΜΑΚΕΣ ΚΑΙ ΜΑΓΝΗΤΗΣ (ΑΠΟΛΥΤΗ ΤΑΥΤΙΣΗ) ---
     const PPU_MULT = 4;        // Το κρατάμε μόνο για να μην χαλάσουν τα πάχη στα καλώδια/fonts
     const EXPORT_DIV = 40;
-      
+	
+	// --- NATIVE DYNAMIC PIN LABELS ---
+    function getDynamicPortLabel(rawLabel, argsArray) {
+        if (!rawLabel) return '';
+        if (!rawLabel.includes('$')) return rawLabel; 
+
+        let hasEmptyArg = false;
+        let result = rawLabel.replace(/\$(\d+)/g, (match, argNum) => {
+            let idx = parseInt(argNum) - 1;
+            let val = argsArray[idx];
+            if (val === undefined || val === null || val.toString().trim() === "") {
+                hasEmptyArg = true; return "";
+            }
+            return val.toString().trim();
+        });
+
+        if (hasEmptyArg) {
+            return ""; 
+        }
+        return result;
+    }
+	
+	// --- NATIVE MATH HTML MIXER ---
+    function combineMathHtml(el) {
+        let mainHtml = el.get('mathHtmlMain') || '';
+        let pinsHtml = el.get('mathHtmlPins') || '';
+        let combined = mainHtml + pinsHtml;
+        
+        el.set('mathHtml', combined);
+        
+        if (combined.trim() !== '') {
+            el.attr('fo/display', 'block');
+            el.attr('fo/x', 0);
+            el.attr('fo/y', 0);
+            el.attr('fo/width', 1);
+            el.attr('fo/height', 1);
+            el.attr('fo/style', 'overflow: visible; pointer-events: none;');
+        } else {
+            el.attr('fo/display', 'none');
+        }
+    }
+
+         
 	function updateElementLabel(el, newText) {
         if (newText !== undefined) el.set('displayedText', newText);
         let text = el.get('displayedText') || "";
@@ -569,50 +611,29 @@
                 catch(e) { return match; }
             });
             
-            el.attr('fo/display', 'block');
-            
-            // 1. Lock the foreignObject firmly to the absolute top-left origin (0,0)
-            el.attr('fo/x', 0);
-            el.attr('fo/y', 0);
-            el.attr('fo/width', 1);
-            el.attr('fo/height', 1);
-            
-            // Clear out any old JointJS geometry references that might interfere
-            el.attr('fo/refX', null);
-            el.attr('fo/refX2', null);
-            el.attr('fo/refY', null);
-            el.attr('fo/refY2', null);
-            
-            el.attr('fo/style', 'overflow: visible; pointer-events: none;');
-            
-            // 2. THE CSS FIX: Wrap the Math in a "position: relative" anchor at (0,0)
-            // and use pure CSS to push the text exactly to centerX and centerY!
             let htmlStr = `
                 <div style="position: relative; width: 0px; height: 0px;">
                     <div style="position: absolute; left: ${centerX}px; top: ${centerY}px; transform: translate(-50%, -50%); white-space: nowrap; font-size: ${fontSize}px; color: ${txtColor}; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">
                         ${mathRendered}
                     </div>
                 </div>`;
-            el.set('mathHtml', htmlStr);
+            el.set('mathHtmlMain', htmlStr); // Αποθήκευση στο Main!
             
         } else {
-            el.attr('fo/display', 'none'); 
             el.attr('label/display', 'block'); 
             el.attr('label/text', displayText);
-            
-            // --- THE COLOR FIX: Force standard text to obey the theme ---
             el.attr('label/fill', txtColor);
-            
-            // Anchor to the absolute top-left of the box (0,0), then push exactly to our target
             el.attr('label/refX', '0%');
             el.attr('label/refX2', centerX); 
             el.attr('label/refY', '0%'); 
             el.attr('label/refY2', centerY); 
-            
             el.attr('label/fontSize', fontSize);
             el.attr('label/opacity', isEmpty ? 0.3 : 1);
-            el.set('mathHtml', ''); 
+            
+            el.set('mathHtmlMain', ''); // Καθαρισμός του Main
         }
+        
+        combineMathHtml(el); // <-- Κλήση του Μίκτη!
     }
 
 	const paper = new joint.dia.Paper({
@@ -1545,7 +1566,20 @@
                 element.attr('label/fontSize', 14 * PPU_MULT); // Λίγο πιο μεγάλο
             }
 
-            const ports = uniquePins.map(p => ({ 
+            // --- ΔΙΑΧΩΡΙΣΜΟΣ: ΠΡΑΓΜΑΤΙΚΑ PINS vs DYNAMIC LABELS ---
+            const realPins = [];
+            const dynamicLabels = [];
+
+            uniquePins.forEach(p => {
+                let rawLabel = p.label || p.id;
+                if (rawLabel.includes('$')) {
+                    dynamicLabels.push(p); // Είναι απλό κείμενο
+                } else {
+                    realPins.push(p);      // Είναι κανονικό pin
+                }
+            });
+
+            const ports = realPins.map(p => ({ 
                 id: p.id, group: 'absolute', 
                 args: { x: p.x + shiftX, y: p.y + shiftY }, 
                 markup: [
@@ -1554,22 +1588,17 @@
                     { tagName: 'text', selector: 'portLabel' }   
                 ],
                 attrs: { 
-                    portBody: { width: 8 * PPU_MULT, 
-						height: 8 * PPU_MULT, 
-						x: -4 * PPU_MULT, 
-						y: -4 * PPU_MULT, 
-						fill: theme.portBody 
-					},
+                    portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: theme.portBody },
                     portTitle: { text: p.label || p.id },
                     portLabel: { 
                         text: p.label || '', display: showPinNames ? 'block' : 'none',
-                        fontSize: 9 * PPU_MULT, // Κανονικό μέγεθος για τα Pin Names!
-                        fill: theme.portLabel, 
-						fontWeight: 'bold', fontFamily: 'monospace',
+                        fontSize: 9 * PPU_MULT, fill: theme.portLabel, 
+                        fontWeight: 'bold', fontFamily: 'monospace',
                         x: 6 * PPU_MULT, y: -6 * PPU_MULT, textAnchor: 'start' 
                     }
                 } 
             }));
+            
             
             // Αποθήκευση των "Αρχικών" θέσεων των pins για τέλειο Scaling
             let basePorts = {};
@@ -1609,7 +1638,8 @@
                 'baseVisualTop': absMinY - boxOriginY,
                 'baseVisualBottom': absMaxY - boxOriginY,
                 'baseVisualLeft': absMinX - boxOriginX,
-                'baseVisualRight': absMaxX - boxOriginX
+                'baseVisualRight': absMaxX - boxOriginX,
+				'dynamicLabels': dynamicLabels
             });
             
 			// ΑΠΟΛΥΤΟ SNAPPING: Κουμπώνουμε το μαθηματικό (0,0) στα 40px
@@ -2881,9 +2911,10 @@ ${indentedTikz}
         let macro = el.get('latexMacro');
         let dbData = JL_DATABASE[macro];
         if (!dbData) return;
+		
+		let dynLabels = el.get('dynamicLabels') || [];
 
         let basePath = dbData.iconBase || dbData.icon || "";
-        
         let dynamicMarkup = [
             { tagName: 'text', selector: 'label' },
             { tagName: 'foreignObject', selector: 'fo' },
@@ -2909,6 +2940,9 @@ ${indentedTikz}
                     if (cond.includes('==')) {
                         let [argIdx, val] = cond.split('==');
                         if ((argsArray[parseInt(argIdx) - 1] || "").trim() !== val.trim()) isMatch = false;
+                    } else if (cond.includes('!=')) { // Υποστήριξη !=
+                        let [argIdx, val] = cond.split('!=');
+                        if ((argsArray[parseInt(argIdx) - 1] || "").trim() === val.trim()) isMatch = false;
                     } else if (cond.includes('~=')) {
                         let [argIdx, val] = cond.split('~=');
                         if (!(argsArray[parseInt(argIdx) - 1] || "").includes(val.trim())) isMatch = false;
@@ -2918,42 +2952,117 @@ ${indentedTikz}
             });
         }
 
-        // Push new paths inside the iconGroup so they scale automatically!
         matchedLayers.forEach((layer, i) => {
             dynamicMarkup[3].children.push({ tagName: 'path', selector: `overlay_${i}` });
         });
+		
+		// Προσθήκη των Dynamic Labels στο Markup!
+		dynLabels.forEach((lbl, i) => {
+            dynamicMarkup.push({ tagName: 'text', selector: `dynLbl_${i}` });
+        });
 
+        // Εφαρμογή του νέου Markup
         el.set('markup', dynamicMarkup);
-        el.attr('iconFill/d', basePath);
-        el.attr('iconStroke/d', basePath);
 
+        // --- ΕΠΑΝΑΦΟΡΑ ΣΤΥΛ ΣΤΟ ΒΑΣΙΚΟ ΕΙΔΩΛΟ ---
         const theme = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
+        el.attr('iconFill/d', basePath);
+        el.attr('iconFill/fill', dbData.filled ? theme.componentIcon : 'none');
+        
+        el.attr('iconStroke/d', basePath);
+        el.attr('iconStroke/stroke', (macro === 'freetext') ? 'transparent' : theme.componentIcon);
+        el.attr('iconStroke/strokeWidth', 1.8); // Default πάχος
 
+        // Αν υπάρχει ειδικό στυλ στο icon_base (π.χ. διαφορετικό πάχος)
+        if (dbData.iconBaseStyle) {
+            dbData.iconBaseStyle.split(',').forEach(s => {
+                let p = s.split('=');
+                if (p.length === 2) {
+                    let k = p[0].trim(), v = p[1].trim();
+                    if (k === 'stroke-width') el.attr('iconStroke/strokeWidth', parseFloat(v));
+                    if (k === 'stroke') el.attr('iconStroke/stroke', v);
+                }
+            });
+        }
+
+        // Εφαρμογή στυλ στα Overlays
         matchedLayers.forEach((layer, i) => {
             let sel = `overlay_${i}`;
             el.attr(`${sel}/d`, layer.path);
             el.attr(`${sel}/fill`, 'none');
             el.attr(`${sel}/stroke`, theme.componentIcon);
-            el.attr(`${sel}/stroke-width`, 1.8);
+            el.attr(`${sel}/strokeWidth`, 1.8);
             
             if (layer.style) {
-                let styles = layer.style.split(',');
-                styles.forEach(s => {
+                layer.style.split(',').forEach(s => {
                     let parts = s.split('=');
                     if (parts.length === 2) {
-                        let k = parts[0].trim();
-                        let v = parts[1].trim();
-                        if (k === 'stroke-width') el.attr(`${sel}/stroke-width`, parseFloat(v));
+                        let k = parts[0].trim(), v = parts[1].trim();
+                        if (k === 'stroke-width') el.attr(`${sel}/strokeWidth`, parseFloat(v));
                         else if (k === 'stroke') el.attr(`${sel}/stroke`, v);
-                        else if (k === 'fill') {
-                            // THE FIX: Make 'solid' theme-aware!
-                            el.attr(`${sel}/fill`, v === 'solid' ? theme.componentIcon : v);
-                        }
+                        else if (k === 'fill') el.attr(`${sel}/fill`, v === 'solid' ? theme.componentIcon : v);
                         else el.attr(`${sel}/${k}`, v);
                     }
                 });
             }
         });
+		
+		let pinsHtml = '';
+
+        // --- NATIVE DYNAMIC LABELS RENDERER (ΜΕ LATEX ΥΠΟΣΤΗΡΙΞΗ) ---
+        dynLabels.forEach((lbl, i) => {
+            let sel = `dynLbl_${i}`;
+            let rawText = lbl.label || lbl.id;
+            let newText = getDynamicPortLabel(rawText, argsArray);
+            
+            let isVisible = newText.trim() !== "";
+            let shiftX = el.get('baseShiftX') !== undefined ? el.get('baseShiftX') : (el.get('shiftX') || 0);
+            let shiftY = el.get('baseShiftY') !== undefined ? el.get('baseShiftY') : (el.get('shiftY') || 0);
+
+            let finalX = lbl.x + shiftX;
+            let finalY = lbl.y + shiftY;
+
+            // Αν υπάρχει κείμενο ΚΑΙ περιέχει $, είναι Μαθηματικό!
+            if (isVisible && newText.includes('$')) {
+                
+                let mathRendered = newText.replace(/\$(.*?)\$/g, (match, mathExpr) => {
+                    try { 
+						let boldExpr = `\\boldsymbol{${mathExpr}}`;
+						return katex.renderToString(mathExpr, { throwOnError: false, displayMode: false }); 
+					} 
+                    catch(e) { return match; }
+                });
+
+                // Χτίζουμε το HTML του Pin
+                // ΑΥΞΗΣΗ ΜΕΓΕΘΟΥΣ: Αλλάξαμε το 11 * 4 σε 13 * 4 (ή και 14 * 4 αν τα θες θηρία!)
+                pinsHtml += `
+                    <div style="position: absolute; left: ${finalX}px; top: ${finalY}px; transform: translate(-50%, -50%); white-space: nowrap; font-size: ${13 * 4}px; font-weight: bold; color: ${theme.componentLabel}; pointer-events: none;">
+                        ${mathRendered}
+                    </div>
+                `;
+                
+                // Κρύβουμε εντελώς το SVG κείμενο για αυτό το pin
+                el.attr(`${sel}/display`, 'none');
+                
+            } else {
+                // Απλό Κανονικό SVG Text (αν πληκτρολόγησε π.χ. απλά "15V")
+                el.attr(`${sel}/text`, newText);
+                el.attr(`${sel}/x`, finalX);
+                el.attr(`${sel}/y`, finalY);
+                el.attr(`${sel}/fill`, theme.componentLabel); 
+                el.attr(`${sel}/fontSize`, 11 * 4);   
+                el.attr(`${sel}/fontWeight`, 'bold'); 
+                el.attr(`${sel}/textAnchor`, 'middle'); 
+                el.attr(`${sel}/display`, isVisible ? 'block' : 'none');
+                el.attr(`${sel}/pointer-events`, 'none'); 
+            }
+        });
+
+        // Αποθηκεύουμε τα HTML pins και καλούμε τον Μίκτη!
+        el.set('mathHtmlPins', pinsHtml);
+        if (typeof combineMathHtml === 'function') {
+            combineMathHtml(el);
+        }
     }
 	
 	// --- REAL-TIME PALETTE SEARCH ---
