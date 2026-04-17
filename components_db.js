@@ -17,7 +17,22 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "open"
         },
-        "iconBase": "M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "closed/open",
+                "defVal": "open",
+                "options": "closed, open"
+            },
+            {
+                "idx": 4,
+                "type": "text",
+                "label": "state tag",
+                "defVal": ""
+            }
+        ],
+        "iconBase": "M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0",
         "iconBaseStyle": "fill=solid",
         "filled": true,
         "iconLayers": [
@@ -67,13 +82,23 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
+            },
+            {
+                "id": "$4",
+                "x": 20.0,
+                "y": -5.0,
+                "label": "",
+                "dir": "T",
+                "condition": "3==closed"
             }
         ]
     },
@@ -95,7 +120,16 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "state1"
         },
-        "iconBase": "M 0 0 L 10 0    M 0 -20 L 10 -20    M 30 -10 L 40 -10    M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z    M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z    M 30 -10 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "state1/state2",
+                "defVal": "state1",
+                "options": "state1, state2"
+            }
+        ],
+        "iconBase": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 30 -10 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
         "iconBaseStyle": "fill=solid",
         "filled": true,
         "iconLayers": [
@@ -141,19 +175,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "bottom left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "top left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 40.0,
                 "y": -10.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -175,7 +212,22 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "open"
         },
-        "iconBase": "M 0 0 L 10 0  M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z  M 20 -13 L 20 -15  M 19 -15 L 21 -15  M 15 -15 L 25 -15  M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "closed/open",
+                "defVal": "open",
+                "options": "closed, open"
+            },
+            {
+                "idx": 4,
+                "type": "text",
+                "label": "control_terminal",
+                "defVal": ""
+            }
+        ],
+        "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -15 M 19 -15 L 21 -15 M 15 -15 L 25 -15 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
         "iconBaseStyle": "fill=solid",
         "filled": true,
         "iconLayers": [
@@ -225,13 +277,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
+            },
+            {
+                "id": "$4",
+                "x": 20.0,
+                "y": -15.0,
+                "label": "",
+                "dir": "T"
             }
         ]
     },
@@ -253,7 +314,23 @@ const JL_DATABASE = {
         "previewArgs": {
             "4": "n"
         },
-        "iconBase": "M 0 0 L 10 0  M 30 0 L 40 0  M 10 0 L 28 -11  M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
+        "argDefs": [
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "control value",
+                "defVal": "n",
+                "options": "n,p"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "n/p",
+                "defVal": "",
+                "options": ""
+            }
+        ],
+        "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
         "iconBaseStyle": "fill=solid",
         "filled": true,
         "iconLayers": [
@@ -323,13 +400,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
+            },
+            {
+                "id": "$3",
+                "x": 20.0,
+                "y": -25.0,
+                "label": "",
+                "dir": "T"
             }
         ]
     },
@@ -345,10 +431,18 @@ const JL_DATABASE = {
         ],
         "labelAnchor": {
             "x": 0.0,
-            "y": 20.0,
+            "y": 35.0,
             "dir": "B"
         },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
         "iconBase": "M 0 0 L 0 15",
         "filled": false,
         "iconLayers": [
@@ -395,7 +489,8 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "top terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -467,13 +562,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": "positive terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 30.0,
                 "y": -0.0,
-                "label": "negative terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -545,13 +642,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": "terminal 1"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 30.0,
                 "y": -0.0,
-                "label": "terminal 2"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -615,13 +714,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -20.0,
                 "y": 20.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 20.0,
                 "y": 20.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -699,13 +800,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 30.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -774,13 +877,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 30.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -853,13 +958,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 80.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -927,13 +1034,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 80.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -1016,13 +1125,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -1096,13 +1207,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -1176,13 +1289,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -30.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -1265,19 +1380,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -40.0,
                 "y": -0.0,
-                "label": "left terminal (base)"
+                "label": "base",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 10.0,
                 "y": -40.0,
-                "label": "top terminal (collector)"
+                "label": "collector",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 10.0,
                 "y": 40.0,
-                "label": "bottom terminal (emitter)"
+                "label": "emitter",
+                "dir": "R"
             }
         ]
     },
@@ -1301,6 +1419,22 @@ const JL_DATABASE = {
             "3": "n",
             "4": "case-arrow"
         },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "nMOS/pMOS",
+                "defVal": "n",
+                "options": "n,p"
+            },
+            {
+                "idx": 4,
+                "type": "flags",
+                "label": "",
+                "defVal": "case-arrow",
+                "options": "terminals, case, dot, arrow"
+            }
+        ],
         "iconBase": "M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M -40 0 L -18 0",
         "filled": false,
         "iconLayers": [
@@ -1375,19 +1509,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -40.0,
                 "y": -0.0,
-                "label": "left terminal (gate)"
+                "label": "gate",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 10.0,
                 "y": -40.0,
-                "label": "top terminal (drain)"
+                "label": "drain",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 10.0,
                 "y": 40.0,
-                "label": "bottom terminal (source)"
+                "label": "source",
+                "dir": "R"
             }
         ]
     },
@@ -1466,13 +1603,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": -40.0,
                 "y": -0.0,
-                "label": "left terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -0.0,
-                "label": "right terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -1546,31 +1685,36 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -20.0,
-                "label": ""
+                "label": "non-inverting input",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": 20.0,
-                "label": ""
+                "label": "inverting input",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 120.0,
                 "y": -0.0,
-                "label": ""
+                "label": "output",
+                "dir": "R"
             },
             {
                 "id": "$4",
                 "x": 60.0,
                 "y": -50.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "-$4",
                 "x": 60.0,
                 "y": 50.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -1612,13 +1756,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal (anode)"
+                "label": "anode",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -0.0,
-                "label": "right terminal (cathode)"
+                "label": "cathode",
+                "dir": "R"
             }
         ]
     },
@@ -1660,13 +1806,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal (anode)"
+                "label": "anode",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -0.0,
-                "label": "right terminal (cathode)"
+                "label": "cathode",
+                "dir": "R"
             }
         ]
     },
@@ -1708,13 +1856,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal (anode)"
+                "label": "anode",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -0.0,
-                "label": "right terminal (cathode)"
+                "label": "cathode",
+                "dir": "R"
             }
         ]
     },
@@ -1756,13 +1906,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "left terminal (anode)"
+                "label": "anode",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -0.0,
-                "label": "right terminal (cathode)"
+                "label": "cathode",
+                "dir": "R"
             }
         ]
     },
@@ -1800,7 +1952,8 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": 10.0,
-                "label": "bottom terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -1842,25 +1995,29 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 10.0,
                 "y": -0.0,
-                "label": "terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "terminal"
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -1907,25 +2064,29 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "middle left terminal (input-2)"
+                "label": "input-2",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -1967,25 +2128,29 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "middle left terminal (input-2)"
+                "label": "input-2",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2027,19 +2192,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2081,19 +2249,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2135,25 +2306,29 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "middle left terminal (input-2)"
+                "label": "input-2",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2195,25 +2370,29 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "middle left terminal (input-2)"
+                "label": "input-2",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2255,19 +2434,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2309,19 +2491,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2363,19 +2548,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2417,19 +2605,22 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -30.0,
-                "label": "top left terminal (input-1)"
+                "label": "input-1",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "bottom left terminal (input-3)"
+                "label": "input-3",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2471,13 +2662,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "left terminal (input)"
+                "label": "input",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2519,13 +2712,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "left terminal (input)"
+                "label": "input",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 40.0,
                 "y": -10.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2567,13 +2762,15 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "left terminal (input)"
+                "label": "input",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 50.0,
                 "y": -20.0,
-                "label": "right terminal (output)"
+                "label": "output",
+                "dir": "R"
             }
         ]
     },
@@ -2619,43 +2816,50 @@ const JL_DATABASE = {
                 "id": "pin4",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "bottom terminal (clr)"
+                "label": "clr",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "bottom terminal (clr)"
+                "label": "clr",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "top left terminal (J)"
+                "label": "J",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -50.0,
-                "label": "middle left terminal (CLK)"
+                "label": "CLK",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "bottom left terminal (K)"
+                "label": "K",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "top right terminal (Q)"
+                "label": "Q",
+                "dir": "R"
             },
             {
                 "id": "pin6",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "bottom right terminal (Qn)"
+                "label": "Qn",
+                "dir": "R"
             }
         ]
     },
@@ -2697,31 +2901,36 @@ const JL_DATABASE = {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -50.0,
-                "label": "middle left terminal (E)"
+                "label": "E",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "top left terminal (S)"
+                "label": "S",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "bottom left terminal (R)"
+                "label": "R",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "top right terminal (Q)"
+                "label": "Q",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "bottom right terminal (Qn)"
+                "label": "Qn",
+                "dir": "R"
             }
         ]
     },
@@ -2767,43 +2976,50 @@ const JL_DATABASE = {
                 "id": "pin4",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "bottom terminal (clr)"
+                "label": "clr",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "bottom terminal (clr)"
+                "label": "clr",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "top left terminal (S)"
+                "label": "S",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -50.0,
-                "label": "middle left terminal (CLK)"
+                "label": "CLK",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "bottom left terminal (R)"
+                "label": "R",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "top right terminal (Q)"
+                "label": "Q",
+                "dir": "R"
             },
             {
                 "id": "pin6",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "bottom right terminal (Qn)"
+                "label": "Qn",
+                "dir": "R"
             }
         ]
     },
@@ -2849,37 +3065,43 @@ const JL_DATABASE = {
                 "id": "pin3",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "bottom terminal (clr)"
+                "label": "clr",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "bottom terminal (clr)"
+                "label": "clr",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "top left terminal (D)"
+                "label": "D",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "bottom left terminal (CLK)"
+                "label": "CLK",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "top right terminal (Q)"
+                "label": "Q",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "bottom right terminal (Qn)"
+                "label": "Qn",
+                "dir": "R"
             }
         ]
     },
@@ -2921,25 +3143,29 @@ const JL_DATABASE = {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "bottom left terminal (E)"
+                "label": "E",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -50.0,
-                "label": "top left terminal (D)"
+                "label": "D",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 70.0,
                 "y": -50.0,
-                "label": "top right terminal (Q)"
+                "label": "Q",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "bottom right terminal (Qn)"
+                "label": "Qn",
+                "dir": "R"
             }
         ]
     },
@@ -2985,37 +3211,43 @@ const JL_DATABASE = {
                 "id": "pin3",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "bottom terminal (clr)"
+                "label": "clr",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 35.0,
                 "y": 10.0,
-                "label": "bottom terminal (clr)"
+                "label": "clr",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -80.0,
-                "label": "top left terminal (T)"
+                "label": "T",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "bottom left terminal (CLK)"
+                "label": "CLK",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 70.0,
                 "y": -80.0,
-                "label": "top right terminal (Q)"
+                "label": "Q",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 70.0,
                 "y": -20.0,
-                "label": "bottom right terminal (Qn)"
+                "label": "Qn",
+                "dir": "R"
             }
         ]
     },
@@ -3057,43 +3289,50 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 10.0,
                 "y": 10.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 20.0,
                 "y": 10.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 30.0,
                 "y": 10.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": 40.0,
                 "y": 10.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 50.0,
                 "y": 10.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin6",
                 "x": 60.0,
                 "y": 10.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             },
             {
                 "id": "pin7",
                 "x": 70.0,
                 "y": 10.0,
-                "label": ""
+                "label": "",
+                "dir": "R"
             }
         ]
     },
@@ -3135,43 +3374,50 @@ const JL_DATABASE = {
                 "id": "pin4",
                 "x": -20.0,
                 "y": -40.0,
-                "label": "left terminal (ci)"
+                "label": "ci",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 100.0,
                 "y": -40.0,
-                "label": "right terminal (co)"
+                "label": "co",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": -20.0,
                 "y": -40.0,
-                "label": "left terminal (co)"
+                "label": "co",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 100.0,
                 "y": -40.0,
-                "label": "right terminal (ci)"
+                "label": "ci",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 60.0,
                 "y": -100.0,
-                "label": "top right terminal (a)"
+                "label": "a",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 20.0,
                 "y": -100.0,
-                "label": "top left terminal (b)"
+                "label": "b",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 40.0,
                 "y": 20.0,
-                "label": "bottom terminal (s)"
+                "label": "s",
+                "dir": "R"
             }
         ]
     },
@@ -3213,43 +3459,50 @@ const JL_DATABASE = {
                 "id": "pin4",
                 "x": -20.0,
                 "y": -40.0,
-                "label": "left terminal (bi)"
+                "label": "bi",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 100.0,
                 "y": -40.0,
-                "label": "right terminal (bo)"
+                "label": "bo",
+                "dir": "R"
             },
             {
                 "id": "pin4",
                 "x": -20.0,
                 "y": -40.0,
-                "label": "left terminal (bo)"
+                "label": "bo",
+                "dir": "R"
             },
             {
                 "id": "pin5",
                 "x": 100.0,
                 "y": -40.0,
-                "label": "right terminal (bi)"
+                "label": "bi",
+                "dir": "R"
             },
             {
                 "id": "pin1",
                 "x": 60.0,
                 "y": -100.0,
-                "label": "top right terminal (A)"
+                "label": "A",
+                "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 20.0,
                 "y": -100.0,
-                "label": "top left terminal (B)"
+                "label": "B",
+                "dir": "R"
             },
             {
                 "id": "pin3",
                 "x": 40.0,
                 "y": 20.0,
-                "label": "bottom terminal (d)"
+                "label": "d",
+                "dir": "R"
             }
         ]
     },
@@ -3268,7 +3521,8 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "center terminal"
+                "label": "",
+                "dir": "R"
             }
         ]
     },

@@ -44,6 +44,7 @@
 \newcommand{\linewidthscalefactor}{1}
 %
 \newcommand{\settikzlinewidth}[1]
+% disabled!
 {
 \getzoomfactor
 \IfStrEq{#1}{}
@@ -67,7 +68,10 @@
 %
 % Global Scale Variable for JL CAD (circuit_to_tikz)
 \newcommand{\jlcscale}{1}
+%
 \newcommand{\setscale}[1]{\renewcommand{\jlcscale}{#1}}
+% disabled!
+%
 %
 %%%%%%%%%%%%%%%%%%%%
 %% ANALOG PARTS 
@@ -82,10 +86,14 @@
 % flip: disabled
 % preview_args: 3=open
 
-% icon_base: [fill=solid] M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0
-% add_icon: 3==closed : [fill=solid] M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z
-% add_icon: 3==open : [fill=solid] M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+% arg_def: 3 | select | closed/open | open | closed, open
+% arg_def: 4 | text | state tag | 
+
+
+% icon_base: [fill=solid] M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0 // base
+% add_icon: 3==closed : [fill=solid] M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z // closed
+% add_icon: 3==open : [fill=solid] M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z // open
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -117,9 +125,10 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 0); % left terminal
-				\coordinate (pin2) at (4, 0); % right terminal
-		\end{scope}
+            \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
+        \coordinate ($4) at (2.00, 0.50); % [T] IF:3==closed
+    \end{scope}
 }
 
 %% Three-Port Mechanical Switch
@@ -131,10 +140,13 @@
 % flip: disabled
 % preview_args: 3=state1
 
-% icon_base: [fill=solid] M 0 0 L 10 0    M 0 -20 L 10 -20    M 30 -10 L 40 -10    M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z    M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z    M 30 -10 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0
-% add_icon: 3==state1 : M 9 -2 L 30 -10 M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z
-% add_icon: 3==state2 : M 9 -18 L 30 -10 M 11 -18 A 1 1 0 1 0 9 -18 A 1 1 0 1 0 11 -18 Z
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
+% arg_def: 3 | select | state1/state2 | state1 | state1, state2
+
+
+% icon_base: [fill=solid] M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 30 -10 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // terminals
+% add_icon: 3==state1 : M 9 -2 L 30 -10 M 11 -2 A 1 1 0 1 0 9 -2 A 1 1 0 1 0 11 -2 Z // state-1
+% add_icon: 3==state2 : M 9 -18 L 30 -10 M 11 -18 A 1 1 0 1 0 9 -18 A 1 1 0 1 0 11 -18 Z // state-2
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				% draw terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -166,10 +178,10 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 0); % bottom left terminal
-				\coordinate (pin2) at (0, 2); % top left terminal
-				\coordinate (pin3) at (4, 1); % right terminal				
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % bottom left terminal  [R]
+        \coordinate (pin2) at (0.00, 2.00); % top left terminal  [R]
+        \coordinate (pin3) at (4.00, 1.00); % right terminal  [R]
+    \end{scope}
 }
 
 %% Controlled Switch
@@ -181,10 +193,14 @@
 % flip: disabled
 % preview_args: 3=open
 
-% icon_base: [fill=solid] M 0 0 L 10 0  M 30 0 L 40 0  M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z  M 20 -13 L 20 -15  M 19 -15 L 21 -15  M 15 -15 L 25 -15  M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // base
-% add_icon: 3==closed : [fill=solid] M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12
+% arg_def: 3 | select | closed/open | open | closed, open
+% arg_def: 4 | text | control_terminal | 
+
+
+% icon_base: [fill=solid] M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -15 M 19 -15 L 21 -15 M 15 -15 L 25 -15 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // base
+% add_icon: 3==closed : [fill=solid] M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z M 20 -1 L 20 -2 M 20 -3 L 20 -4 M 20 -5 L 20 -6 M 20 -7 L 20 -8 M 20 -9 L 20 -10 M 20 -11 L 20 -12 // closed
 % add_icon: 3==open : [fill=solid] M 10 0 L 28 -11 M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z M 20 -6 L 20 -7 M 20 -8 L 20 -9 M 20 -10 L 20 -11 M 20 -12 L 20 -13 M 20 -14 L 20 -15 // open
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -229,9 +245,10 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 0); % left terminal
-				\coordinate (pin2) at (4, 0); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
+        \coordinate ($4) at (2.00, 1.50); % [T]
+    \end{scope}
 }
 
 %% Controlled Switch - Box
@@ -243,14 +260,18 @@
 % flip: disabled
 % preview_args: 4=n
 
-% icon_base: [fill=solid] M 0 0 L 10 0  M 30 0 L 40 0  M 10 0 L 28 -11  M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // Base terminals and angled bridge
+% arg_def: 4 | select | control value | n | n,p
+% arg_def: 4 | select | n/p |  | 
+
+
+% icon_base: [fill=solid] M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // Base terminals and angled bridge
 % add_icon: 1~= : M 9 -13 L 32 -13 L 32 4 L 9 4 Z // The thick main box
 % add_icon: 1~= : [stroke-width=2.8] M 16 -23 L 24 -23 // T
 % add_icon: 1~= : [fill=solid] M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 29 -11 A 1 1 0 1 0 27 -11 A 1 1 0 1 0 29 -11 Z // Solid pivot circles
 % add_icon: 4==n : [stroke-width=1.6] M 20 -22.5 L 20 -12.5 // N-line
 % add_icon: 4==p : [stroke-width=1.6] M 20 -22 L 20 -18.5 // P-line
 % add_icon: 4==p : [stroke-width=0.7] M 20 -16 m -2.5 0 a 2.5 2.5 0 1 0 5 0 a 2.5 2.5 0 1 0 -5 0 // inversion bubble
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% handle inverted control value
 					\edef\effectiveswitchtype{#4}	
@@ -354,24 +375,29 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal
-				\coordinate (pin2) at (4, 0); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
+        \coordinate ($3) at (2.00, 2.50); % [T]
+    \end{scope}
 }
+
 
 %% Ground Terminal
 \newcommand{\groundterminal}[5]{%{position}{name}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Terminals
 % scales: 1, 2, 4
-% label_anchor: 0 20 B
+% label_anchor: 0 35 B
 % flip: disabled
+
+% arg_def: 3 | rotflip | Rotation & Flip | 0,none
+
 
 % icon_base: M 0 0 L 0 15 // The vertical entry lead
 % add_icon: 1~= : [stroke-width=4.5] M -15 15 L 15 15 // Top bar (Thickest)
 % add_icon: 1~= : [stroke-width=3.5] M -10 22 L 10 22 // Middle bar (Medium)
-% add_icon: 1~= : [stroke-width=3.0] M -5 29 L 5 29  // Bottom bar (Thinnest)
-		\IfSubStr{#3}{h}
+% add_icon: 1~= : [stroke-width=3.0] M -5 29 L 5 29 // Bottom bar (Thinnest)
+    \IfSubStr{#3}{h}
 			{
 				\edef\xscalevalue{-1}
 				\edef\groundnameanchorstring{east}
@@ -414,8 +440,8 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 0); % top terminal
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % top terminal  [R]
+    \end{scope}
 }
 
 %% Voltage Source (Independent/Controlled)
@@ -1350,6 +1376,10 @@
 % flip: enabled
 % preview_args: 3=n, 4=case-arrow
 
+% arg_def: 3 | select | nMOS/pMOS | n | n,p
+% arg_def: 4 | flags |  | case-arrow | terminals, case, dot, arrow
+
+
 % icon_base: M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M -40 0 L -18 0 // base layer
 % add_icon: 1~= : [stroke-width=3.3] M -10 -15 L -10 15 // gate line
 % add_icon: 3==n : M -10 0 L -40 0 // n gate segment
@@ -1358,9 +1388,7 @@
 % add_icon: 3==p : M -15 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // p dot
 % add_icon: 3==p && 4~=arrow : M -20 0 L -10 0 // p gate segment arrow
 % add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 // case
-		\StrBefore{#5}{,}[\rotationvalue]
-		\StrBehind{#5}{,}[\flipvalue]
-		\IfSubStr{\flipvalue}{h}
+    \IfSubStr{\flipvalue}{h}
 			{
 				\edef\xscalevalue{-1}
 			}
@@ -1442,10 +1470,10 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (-4, 0); % left terminal (gate)
-				\coordinate (pin2) at (1, 4); % top terminal (drain)
-				\coordinate (pin3) at (1, -4); % bottom terminal (source)
-		\end{scope}
+		\coordinate (pin1) at (-4.00, 0.00); % left terminal (gate)
+        \coordinate (pin2) at (1.00, 4.00); % top terminal (drain)
+        \coordinate (pin3) at (1.00, -4.00); % bottom terminal (source)
+    \end{scope}
 }
 
 %% Transmission Gate
@@ -1620,9 +1648,9 @@
 						{
 						}
 		        % coordinate pins
-        \coordinate (pin1) at (0.00, 2.00);
-        \coordinate (pin2) at (0.00, -2.00);
-        \coordinate (pin3) at (12.00, 0.00);
+        \coordinate (pin1) at (0.00, 2.00); % top left terminal (non-inverting input)
+        \coordinate (pin2) at (0.00, -2.00); % bottom left terminal (inverting input)
+        \coordinate (pin3) at (12.00, 0.00); % right terminal (output)
         \coordinate ($4) at (6.00, 5.00);
         \coordinate (-$4) at (6.00, -5.00);
     \end{scope}

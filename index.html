@@ -314,7 +314,7 @@
         markup: [{ tagName: 'rect', selector: 'hitbox' }, { tagName: 'circle', selector: 'dot' }]
     });
 	
-	// --- ΕΞΥΠΝΟ ΕΞΑΡΤΗΜΑ (Με ενεργό Hitbox για διπλό κλικ) ---
+    // --- ΕΞΥΠΝΟ ΕΞΑΡΤΗΜΑ (Με ενεργό Hitbox και Rotatable Group) ---
     joint.shapes.jl.Component = joint.dia.Element.define('jl.Component', {
         size: { width: 40, height: 40 },
         attrs: {
@@ -324,16 +324,20 @@
             fo: { display: 'none', width: 1, height: 1, 'pointer-events': 'none' }
         }
     }, {
-        markup: [
-            { tagName: 'text', selector: 'label' },
-            { tagName: 'foreignObject', selector: 'fo' },
-            { tagName: 'rect', selector: 'body' },
-            // THE FIX: Wrap all visual paths in an SVG Group!
-            { tagName: 'g', selector: 'iconGroup', children: [
-                { tagName: 'path', selector: 'iconFill' },   
-                { tagName: 'path', selector: 'iconStroke' }  
-            ]}
-        ]
+        markup: [{
+            tagName: 'g',
+            selector: 'rotatable',
+            className: 'rotatable',
+            children: [
+                { tagName: 'text', selector: 'label' },
+                { tagName: 'foreignObject', selector: 'fo' },
+                { tagName: 'rect', selector: 'body' },
+                { tagName: 'g', selector: 'iconGroup', children: [
+                    { tagName: 'path', selector: 'iconFill' },   
+                    { tagName: 'path', selector: 'iconStroke' }  
+                ]}
+            ]
+        }]
     });
 
 	// Το View που φτιάχνει ένα ΠΡΑΓΜΑΤΙΚΟ HTML div (ώστε ο browser να το κάνει render)
@@ -420,23 +424,20 @@
     const EXPORT_DIV = 40;
 	
 	// --- NATIVE DYNAMIC PIN LABELS ---
-    function getDynamicPortLabel(rawLabel, argsArray) {
+    function getDynamicPortLabel(rawLabel, argsArray, argNames) {
         if (!rawLabel) return '';
         if (!rawLabel.includes('$')) return rawLabel; 
 
-        let hasEmptyArg = false;
         let result = rawLabel.replace(/\$(\d+)/g, (match, argNum) => {
             let idx = parseInt(argNum) - 1;
             let val = argsArray[idx];
+            // Αν είναι άδειο, δείξε Placeholder αντί για κενό
             if (val === undefined || val === null || val.toString().trim() === "") {
-                hasEmptyArg = true; return "";
+                let name = (argNames && argNames[idx]) ? argNames[idx].name.split('/')[0] : match;
+                return `[${name.trim()}]`;
             }
             return val.toString().trim();
         });
-
-        if (hasEmptyArg) {
-            return ""; 
-        }
         return result;
     }
 	
@@ -460,15 +461,12 @@
         }
     }
 
-         
 	function updateElementLabel(el, newText) {
         if (newText !== undefined) el.set('displayedText', newText);
         let text = el.get('displayedText') || "";
         
         let isFreeText = el.get('latexMacro') === 'freetext';
         let scale = el.get('customScale') || 1; 
-        
-        // Manual nudges from the property editor
         let lblOffsetX = el.get('labelOffsetX') || 0;
         let lblOffsetY = el.get('labelOffsetY') || 0;
         
@@ -479,7 +477,6 @@
         let isMath = displayText.includes('$');
         let fontSize = isFreeText ? Math.round(14 * PPU_MULT * scale) : 12 * PPU_MULT; 
         
-        // --- NEW: PRE-RENDER THE MATH ONCE ---
         let renderedContent = displayText;
         if (isMath) {
             renderedContent = displayText.replace(/\$(.*?)\$/g, (match, mathExpr) => {
@@ -488,137 +485,108 @@
             });
         }
 
-        // --- NEW: THE "GHOST MEASUREMENT" TRICK ---
         if (isFreeText) { 
             let tempDiv = document.createElement('div');
             tempDiv.style.position = 'absolute';
-            tempDiv.style.visibility = 'hidden'; // Invisible to the user
+            tempDiv.style.visibility = 'hidden'; 
             tempDiv.style.whiteSpace = 'nowrap';
             tempDiv.style.fontSize = fontSize + 'px';
-            
             if (isMath) tempDiv.innerHTML = renderedContent;
             else tempDiv.innerText = displayText;
-
             document.body.appendChild(tempDiv);
-            let dynamicW = tempDiv.offsetWidth + (30 * scale); // 30px width padding
-            let dynamicH = tempDiv.offsetHeight + (20 * scale); // 20px height padding
+            let dynamicW = tempDiv.offsetWidth + (30 * scale); 
+            let dynamicH = tempDiv.offsetHeight + (20 * scale); 
             document.body.removeChild(tempDiv);
 
-            // Never go smaller than a standard 80x40 grid block
             let finalW = Math.max(80 * scale, dynamicW);
             let finalH = Math.max(40 * scale, dynamicH);
-            
             el.resize(finalW, finalH);
-            
-            // Save the new base dimensions so scaling doesn't distort it later!
             el.set('baseWidth', finalW / scale);
             el.set('baseHeight', finalH / scale);
         }
         
-        // --- NEW: Database Override vs Auto-Pin Logic ---
         let macro = el.get('latexMacro');
         let data = JL_DATABASE[macro];
         let centerX, centerY;
 
         if (data && data.labelAnchor) {
-            // OPTION A: Exact Coordinate Anchor from .sty
             let flipH = el.get('flipH') || false;
             let flipV = el.get('flipV') || false;
-
-            // --- SAFELY get the shift values (Fallback for older components) ---
-            let shiftX = el.get('baseShiftX');
-            if (shiftX === undefined) shiftX = el.get('shiftX') || 0;
             
-            let shiftY = el.get('baseShiftY');
-            if (shiftY === undefined) shiftY = el.get('shiftY') || 0;
+            // Το SHIFT πρέπει να πολλαπλασιάζεται πάντα με το Scale!
+            let shiftX = (el.get('baseShiftX') !== undefined ? el.get('baseShiftX') : (el.get('shiftX') || 0)) * scale;
+            let shiftY = (el.get('baseShiftY') !== undefined ? el.get('baseShiftY') : (el.get('shiftY') || 0)) * scale;
 
-            // 1. Calculate exact pixel location (Auto vs Manual)
-            let basePixelX, basePixelY;
+            let ax, ay;
             let currentDir = data.labelAnchor.dir;
             
             if (data.labelAnchor.auto) {
-                // Auto Mode: Grab the visual extremes of the component
-                let vTop = el.get('baseVisualTop') || 0;
-                let vBot = el.get('baseVisualBottom') || (el.get('baseHeight') || 40);
-                let vLeft = el.get('baseVisualLeft') || 0;
-                let vRight = el.get('baseVisualRight') || (el.get('baseWidth') || 40);
+                // Αφαιρούμε το shift για να πάρουμε τις καθαρές συντεταγμένες
+                let vTopRaw = (el.get('baseVisualTop') || 0) - shiftY;
+                let vBotRaw = (el.get('baseVisualBottom') || (el.get('baseHeight') || 40)) - shiftY;
+                let vLeftRaw = (el.get('baseVisualLeft') || 0) - shiftX;
+                let vRightRaw = (el.get('baseVisualRight') || (el.get('baseWidth') || 40)) - shiftX;
                 
-                // Find the exact visual center-points
-                if (currentDir === 'T') { basePixelX = (vLeft + vRight) / 2; basePixelY = vTop; }
-                else if (currentDir === 'B') { basePixelX = (vLeft + vRight) / 2; basePixelY = vBot; }
-                else if (currentDir === 'L') { basePixelX = vLeft; basePixelY = (vTop + vBot) / 2; }
-                else if (currentDir === 'R') { basePixelX = vRight; basePixelY = (vTop + vBot) / 2; }
+                let rawX, rawY;
+                if (currentDir === 'T') { rawX = (vLeftRaw + vRightRaw) / 2; rawY = vTopRaw; }
+                else if (currentDir === 'B') { rawX = (vLeftRaw + vRightRaw) / 2; rawY = vBotRaw; }
+                else if (currentDir === 'L') { rawX = vLeftRaw; rawY = (vTopRaw + vBotRaw) / 2; }
+                else if (currentDir === 'R') { rawX = vRightRaw; rawY = (vTopRaw + vBotRaw) / 2; }
+                
+                ax = rawX * scale;
+                ay = rawY * scale;
             } else {
-                // Manual Mode: Use the raw coordinates from the .sty file
-                basePixelX = (data.labelAnchor.x * PPU_MULT) + shiftX;
-                basePixelY = (data.labelAnchor.y * PPU_MULT) + shiftY;
+                let rawX = data.labelAnchor.x * PPU_MULT;
+                let rawY = data.labelAnchor.y * PPU_MULT;
+                // Η ΛΥΣΗ: Πολλαπλασιάζουμε ΠΡΩΤΑ, προσθέτουμε ΜΕΤΑ
+                ax = (rawX * scale) + shiftX;
+                ay = (rawY * scale) + shiftY;
             }
 
-            // 2. Apply the user's custom scale to the point
-            let ax = basePixelX * scale;
-            let ay = basePixelY * scale;
-
-            // 3. Handle Flipping (Mirror the coordinate and reverse the direction!)
-            currentDir = data.labelAnchor.dir;
             if (flipH) {
-                let bw = el.get('baseWidth') || (el.size().width / scale);
-                ax = (bw * scale) - ax;
+                let bw = (el.get('baseWidth') || (el.size().width / scale)) * scale;
+                ax = bw - ax;
                 if (currentDir === 'L') currentDir = 'R';
                 else if (currentDir === 'R') currentDir = 'L';
             }
             if (flipV) {
-                let bh = el.get('baseHeight') || (el.size().height / scale);
-                ay = (bh * scale) - ay;
+                let bh = (el.get('baseHeight') || (el.size().height / scale)) * scale;
+                ay = bh - ay;
                 if (currentDir === 'T') currentDir = 'B';
                 else if (currentDir === 'B') currentDir = 'T';
             }
 
-            // 4. Apply the constant grid gap (Exactly 1 grid step = 40px)
             let gap = 40;
             if (currentDir === 'T') ay -= gap;
             if (currentDir === 'B') ay += gap;
             if (currentDir === 'L') ax -= gap;
             if (currentDir === 'R') ax += gap;
 
-            // 5. Add any manual nudges from the property editor
             centerX = ax + lblOffsetX;
             centerY = ay + lblOffsetY;
-            
         } else {
-            // OPTION B: Fallback to the "Lowest Pin" auto-math if no tag exists
             let bottomY = el.size().height / 2; 
             if (!isFreeText) {
                 let ports = el.getPorts();
-                if (ports && ports.length > 0) {
-                    bottomY = Math.max(...ports.map(p => el.portProp(p.id, 'args/y')));
-                } else {
-                    bottomY = el.size().height; 
-                }
+                if (ports && ports.length > 0) bottomY = Math.max(...ports.map(p => el.portProp(p.id, 'args/y')));
+                else bottomY = el.size().height; 
             }
             centerX = (el.size().width / 2) + lblOffsetX;
             centerY = (isFreeText ? el.size().height / 2 : bottomY + 40) + lblOffsetY;
         }
 
-        // --- Get the Active Theme Color ---
         let themeObj = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
         let txtColor = isFreeText ? themeObj.freeText : themeObj.componentLabel;
 
         if (isMath) {
             el.attr('label/display', 'none'); 
-            
-            let mathRendered = displayText.replace(/\$(.*?)\$/g, (match, mathExpr) => {
-                try { return katex.renderToString(mathExpr, { throwOnError: false, displayMode: false }); } 
-                catch(e) { return match; }
-            });
-            
             let htmlStr = `
                 <div style="position: relative; width: 0px; height: 0px;">
                     <div style="position: absolute; left: ${centerX}px; top: ${centerY}px; transform: translate(-50%, -50%); white-space: nowrap; font-size: ${fontSize}px; color: ${txtColor}; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">
-                        ${mathRendered}
+                        ${renderedContent}
                     </div>
                 </div>`;
-            el.set('mathHtmlMain', htmlStr); // Αποθήκευση στο Main!
-            
+            el.set('mathHtmlMain', htmlStr); 
         } else {
             el.attr('label/display', 'block'); 
             el.attr('label/text', displayText);
@@ -629,12 +597,220 @@
             el.attr('label/refY2', centerY); 
             el.attr('label/fontSize', fontSize);
             el.attr('label/opacity', isEmpty ? 0.3 : 1);
-            
-            el.set('mathHtmlMain', ''); // Καθαρισμός του Main
+            el.set('mathHtmlMain', ''); 
         }
         
-        combineMathHtml(el); // <-- Κλήση του Μίκτη!
+        combineMathHtml(el); 
     }
+
+    // --- ΡΩΜΑΛΕΟ SCALING (Τέλειο Bounding Box, Σταθερά Labels) ---
+    function applyRobustScale(el, newScale) {
+        let shiftX = el.get('baseShiftX');
+        if (shiftX === undefined) {
+            shiftX = el.get('shiftX') || 0;
+            let shiftY = el.get('shiftY') || 0;
+            
+            el.set('baseWidth', el.size().width);
+            el.set('baseHeight', el.size().height);
+            el.set('baseOffsetX', el.get('offsetX'));
+            el.set('baseOffsetY', el.get('offsetY'));
+            
+            let initialBasePorts = {};
+            el.getPorts().forEach(p => { 
+                initialBasePorts[p.id] = { x: p.args.x - shiftX, y: p.args.y - shiftY }; 
+            });
+            
+            el.set('basePorts', initialBasePorts);
+            el.set('baseShiftX', shiftX);
+            el.set('baseShiftY', shiftY);
+        }
+
+        let w = Math.round(el.get('baseWidth') * newScale);
+        let h = Math.round(el.get('baseHeight') * newScale);
+        
+        let sX = shiftX * newScale; 
+        let sY = el.get('baseShiftY') * newScale;
+
+        el.set('offsetX', Math.round(el.get('baseOffsetX') * newScale));
+        el.set('offsetY', Math.round(el.get('baseOffsetY') * newScale));
+
+        let totalScale = newScale * PPU_MULT; 
+        let flipH = el.get('flipH') || false;
+        let flipV = el.get('flipV') || false;
+        let sx = flipH ? -1 : 1;
+        let sy = flipV ? -1 : 1;
+
+        el.attr('iconGroup/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${sX}, ${sY}) scale(${totalScale})`);
+
+        let basePorts = el.get('basePorts');
+        el.getPorts().forEach(port => {
+            let px = (basePorts[port.id].x * newScale) + sX;
+            let py = (basePorts[port.id].y * newScale) + sY;
+            if (flipH) px = w - px;
+            if (flipV) py = h - py;
+            el.portProp(port.id, 'args/x', Math.round(px));
+            el.portProp(port.id, 'args/y', Math.round(py));
+        });
+
+        el.resize(w, h);
+        el.set('customScale', newScale); 
+        updateElementLabel(el);          
+    }
+
+    // --- SMART ICON ASSEMBLER ---
+    function assembleIcon(el, argsArray) {
+        let macro = el.get('latexMacro');
+        let dbData = JL_DATABASE[macro];
+        if (!dbData) return;
+        
+        const theme = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
+        let dynLabels = el.get('dynamicLabels') || [];
+        let basePath = dbData.iconBase || dbData.icon || "";
+
+        let dynamicMarkup = [{
+            tagName: 'g', selector: 'rotatable', className: 'rotatable', children: [
+                { tagName: 'text', selector: 'label' },
+                { tagName: 'foreignObject', selector: 'fo' },
+                { tagName: 'rect', selector: 'body' },
+                { tagName: 'g', selector: 'iconGroup', children: [
+                    { tagName: 'path', selector: 'iconFill' },
+                    { tagName: 'path', selector: 'iconStroke' }
+                ]}
+            ]
+        }];
+
+        let staticTexts = [];
+        let baseExtracted = extractStaticTexts(basePath);
+        basePath = baseExtracted.cleanPath;
+        baseExtracted.texts.forEach((t, idx) => staticTexts.push({ ...t, id: `baseTxt_${idx}` }));
+
+        let matchedLayers = [];
+        if (dbData.iconLayers) {
+            dbData.iconLayers.forEach(layer => {
+                if (evaluatePinCondition(layer.condition, argsArray)) matchedLayers.push(layer);
+            });
+        }
+
+        matchedLayers.forEach((layer, i) => {
+            let lExtracted = extractStaticTexts(layer.path);
+            layer.path = lExtracted.cleanPath;
+            lExtracted.texts.forEach((t, idx) => staticTexts.push({ ...t, id: `lyrTxt_${i}_${idx}` }));
+            dynamicMarkup[0].children[3].children.push({ tagName: 'path', selector: `overlay_${i}` });
+        });
+
+        staticTexts.forEach(t => { dynamicMarkup[0].children[3].children.push({ tagName: 'text', selector: t.id }); });
+        dynLabels.forEach((lbl, i) => { dynamicMarkup[0].children[3].children.push({ tagName: 'text', selector: `dynLbl_${i}` }); });
+
+        el.set('markup', dynamicMarkup);
+
+        let scale = el.get('customScale') || 1;
+        let shiftX = (el.get('baseShiftX') !== undefined ? el.get('baseShiftX') : (el.get('shiftX') || 0)) * scale;
+        let shiftY = (el.get('baseShiftY') !== undefined ? el.get('baseShiftY') : (el.get('shiftY') || 0)) * scale;
+        
+        let flipH = el.get('flipH') || false;
+        let flipV = el.get('flipV') || false;
+        let sx = flipH ? -1 : 1; 
+        let sy = flipV ? -1 : 1;
+        let w = el.size().width, h = el.size().height;
+
+        el.attr('iconGroup/transform', `translate(${w/2},${h/2}) scale(${sx},${sy}) translate(${-w/2},${-h/2}) translate(${shiftX},${shiftY}) scale(${PPU_MULT * scale})`);
+
+        el.attr('iconFill/d', basePath);
+        el.attr('iconFill/fill', dbData.filled ? theme.componentIcon : 'none');
+        el.attr('iconStroke/d', basePath);
+        el.attr('iconStroke/stroke', theme.componentIcon);
+        el.attr('iconStroke/stroke-width', 1.8);
+
+        matchedLayers.forEach((layer, i) => {
+            let sel = `overlay_${i}`;
+            el.attr(`${sel}/d`, layer.path);
+            el.attr(`${sel}/stroke`, theme.componentIcon);
+            el.attr(`${sel}/stroke-width`, 1.8);
+            el.attr(`${sel}/fill`, layer.style && layer.style.includes('fill=solid') ? theme.componentIcon : 'none');
+        });
+
+        staticTexts.forEach(t => {
+            el.attr(`${t.id}/text`, t.str);
+            el.attr(`${t.id}/transform`, `translate(${t.x}, ${t.y}) scale(${sx}, ${sy})`);
+            el.attr(`${t.id}/x`, 0); 
+            el.attr(`${t.id}/y`, 0);
+            el.attr(`${t.id}/font-size`, t.size);
+            el.attr(`${t.id}/fill`, theme.componentIcon);
+            el.attr(`${t.id}/text-anchor`, 'middle'); el.attr(`${t.id}/dominant-baseline`, 'central');
+        });
+
+        let pinsHtml = '';
+        el.getPorts().forEach(port => {
+            let isVisible = evaluatePinCondition(port.condition, argsArray);
+            el.portProp(port.id, 'attrs/portBody/display', isVisible ? 'block' : 'none');
+            el.portProp(port.id, 'attrs/portBody/pointer-events', isVisible ? 'all' : 'none');
+            el.portProp(port.id, 'attrs/portLabel/display', (isVisible && showPinNames) ? 'block' : 'none');
+        });
+
+        dynLabels.forEach((lbl, i) => {
+            let sel = `dynLbl_${i}`;
+            let isVisibleCond = evaluatePinCondition(lbl.condition, argsArray);
+            if (!isVisibleCond) { el.attr(`${sel}/display`, 'none'); return; }
+
+            let rawText = lbl.label || lbl.id;
+            let newText = getDynamicPortLabel(rawText, argsArray, dbData.argNames);
+            let isVisibleText = newText.trim() !== "";
+            let isPlaceholder = newText.startsWith('[') && newText.endsWith(']');
+            let dir = lbl.dir || 'R';
+
+            if (isVisibleText && newText.includes('$')) {
+                let mathRendered = newText.replace(/\$(.*?)\$/g, (match, mathExpr) => {
+                    try { return katex.renderToString(mathExpr, { throwOnError: false }); } catch(e) { return match; }
+                });
+
+                let finalX = (lbl.x * scale) + shiftX; 
+                let finalY = (lbl.y * scale) + shiftY;
+
+                if (flipH) { finalX = w - finalX; if (dir==='L') dir='R'; else if (dir==='R') dir='L'; }
+                if (flipV) { finalY = h - finalY; if (dir==='T') dir='B'; else if (dir==='B') dir='T'; }
+
+                let htmlGap = 12 * scale; 
+                let htmlTransform = 'translate(-50%, -50%)';
+
+                if (dir === 'T') { finalY -= htmlGap; htmlTransform = 'translate(-50%, -100%)'; }
+                else if (dir === 'B') { finalY += htmlGap; htmlTransform = 'translate(-50%, 0%)'; }
+                else if (dir === 'L') { finalX -= htmlGap; htmlTransform = 'translate(-100%, -50%)'; }
+                else { finalX += htmlGap; htmlTransform = 'translate(0%, -50%)'; }
+
+                pinsHtml += `<div style="position: absolute; left: ${finalX}px; top: ${finalY}px; transform: ${htmlTransform}; white-space: nowrap; font-size: ${13 * PPU_MULT}px; font-weight: bold; color: ${theme.componentLabel}; opacity: ${isPlaceholder ? 0.4 : 1}; pointer-events: none;">${mathRendered}</div>`;
+                el.attr(`${sel}/display`, 'none');
+            } else {
+                let svgX = lbl.x / PPU_MULT; 
+                let svgY = lbl.y / PPU_MULT;
+                let svgGap = 3; 
+
+                if (sx === -1) { if (dir==='L') dir='R'; else if (dir==='R') dir='L'; }
+                if (sy === -1) { if (dir==='T') dir='B'; else if (dir==='B') dir='T'; }
+
+                let alignX = 'start', domBaseline = 'central';
+                if (dir === 'T') { svgY -= svgGap; alignX = 'middle'; domBaseline = 'alphabetic'; }
+                else if (dir === 'B') { svgY += svgGap; alignX = 'middle'; domBaseline = 'hanging'; }
+                else if (dir === 'L') { svgX -= svgGap; alignX = 'end'; domBaseline = 'central'; }
+                else { svgX += svgGap; alignX = 'start'; domBaseline = 'central'; }
+
+                el.attr(`${sel}/text`, newText);
+                el.attr(`${sel}/transform`, `translate(${svgX}, ${svgY}) scale(${sx}, ${sy})`);
+                el.attr(`${sel}/x`, 0);
+                el.attr(`${sel}/y`, 0);
+                el.attr(`${sel}/fill`, theme.componentLabel);
+                el.attr(`${sel}/font-size`, 11);
+                el.attr(`${sel}/font-weight`, 'bold');
+                el.attr(`${sel}/text-anchor`, alignX);
+                el.attr(`${sel}/dominant-baseline`, domBaseline);
+                el.attr(`${sel}/opacity`, isPlaceholder ? 0.4 : 1);
+                el.attr(`${sel}/display`, isVisibleText ? 'block' : 'none');
+            }
+        });
+
+        el.set('mathHtmlPins', pinsHtml);
+        combineMathHtml(el);
+    }        
+	
 
 	const paper = new joint.dia.Paper({
         el: document.getElementById('my-paper'),
@@ -1174,6 +1350,21 @@
                 let newPin = getVisualOrigin(el); 
                 let p = el.position();
                 el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
+                
+                // --- NEW: Sync visual rotation back to properties ---
+                if (dbData && dbData.argDefs) {
+                    let customArgs = el.get('customArgs') || [];
+                    let rot = (360 - (el.get('angle') || 0)) % 360;
+                    let flipH = el.get('flipH') ? 'h' : '';
+                    let flipV = el.get('flipV') ? 'v' : '';
+                    let flipStr = flipH && flipV ? 'hv' : (flipH || flipV || 'none');
+                    
+                    dbData.argDefs.forEach(def => {
+                        if (def.type === 'rotflip') customArgs[def.idx - 1] = `${rot},${flipStr}`;
+                        else if (def.type === 'rotation') customArgs[def.idx - 1] = `${rot}`;
+                    });
+                    el.set('customArgs', customArgs);
+                }
             }
         });
         exportLatex(); saveState();
@@ -1189,6 +1380,21 @@
                 let newPin = getVisualOrigin(el);
                 let p = el.position();
                 el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
+                
+                // --- NEW: Sync visual flip back to properties ---
+                if (dbData && dbData.argDefs) {
+                    let customArgs = el.get('customArgs') || [];
+                    let rot = (360 - (el.get('angle') || 0)) % 360;
+                    let flipH = el.get('flipH') ? 'h' : '';
+                    let flipV = el.get('flipV') ? 'v' : '';
+                    let flipStr = flipH && flipV ? 'hv' : (flipH || flipV || 'none');
+                    
+                    dbData.argDefs.forEach(def => {
+                        if (def.type === 'rotflip') customArgs[def.idx - 1] = `${rot},${flipStr}`;
+                        else if (def.type === 'flip') customArgs[def.idx - 1] = `${flipStr}`;
+                    });
+                    el.set('customArgs', customArgs);
+                }
             }
         });
         forceExportLatex(); saveState();
@@ -1211,55 +1417,7 @@
 	
 	// --- ΣΥΝΑΡΤΗΣΗ ΑΛΛΑΓΗΣ ΚΛΙΜΑΚΑΣ ΜΕ PREDEFINED STEPS ---
 
-	// --- ΡΩΜΑΛΕΟ SCALING (Τέλειο Bounding Box, Σταθερά Labels) ---
-    function applyRobustScale(el, newScale) {
-        if (el.get('baseWidth') === undefined) {
-            el.set('baseWidth', el.size().width);
-            el.set('baseHeight', el.size().height);
-            el.set('baseOffsetX', el.get('offsetX'));
-            el.set('baseOffsetY', el.get('offsetY'));
-            let initialBasePorts = {};
-            el.getPorts().forEach(p => { initialBasePorts[p.id] = { x: p.args.x, y: p.args.y }; });
-            el.set('basePorts', initialBasePorts);
-            el.set('baseShiftX', el.get('shiftX') || 0);
-            el.set('baseShiftY', el.get('shiftY') || 0);
-        }
 
-        let w = Math.round(el.get('baseWidth') * newScale);
-        let h = Math.round(el.get('baseHeight') * newScale);
-
-        el.set('offsetX', Math.round(el.get('baseOffsetX') * newScale));
-        el.set('offsetY', Math.round(el.get('baseOffsetY') * newScale));
-
-        let shiftX = el.get('baseShiftX') * newScale;
-        let shiftY = el.get('baseShiftY') * newScale;
-        let totalScale = newScale * PPU_MULT; 
-
-        let flipH = el.get('flipH') || false;
-        let flipV = el.get('flipV') || false;
-        let sx = flipH ? -1 : 1;
-        let sy = flipV ? -1 : 1;
-
-        // THE FIX: Scale the whole group instantly!
-        el.attr('iconGroup/transform', `translate(${w/2}, ${h/2}) scale(${sx}, ${sy}) translate(${-w/2}, ${-h/2}) translate(${shiftX}, ${shiftY}) scale(${totalScale})`);
-
-		// ΛΥΣΗ SCALE DOWN: Μετακινούμε ΠΡΩΤΑ τα Ports...
-        let basePorts = el.get('basePorts');
-        el.getPorts().forEach(port => {
-            let px = basePorts[port.id].x * newScale;
-            let py = basePorts[port.id].y * newScale;
-            if (flipH) px = w - px;
-            if (flipV) py = h - py;
-            el.portProp(port.id, 'args/x', Math.round(px));
-            el.portProp(port.id, 'args/y', Math.round(py));
-        });
-
-        // ...ΚΑΙ ΜΕΤΑ κάνουμε resize το κουτί! 
-        el.resize(w, h);
-
-        el.set('customScale', newScale); // <--- ΑΥΤΟ ΠΑΕΙ ΠΑΝΩ
-        updateElementLabel(el);          // <--- ΚΑΙ ΑΥΤΟ ΚΑΤΩ 
-    }
 
     function deleteSelected() { [...selectedElements, ...selectedLinks].forEach(c => c.remove()); clearSelection(); exportLatex(); saveState();}
 
@@ -1323,6 +1481,18 @@
                 
                 // --- NEW: Generate the layered preview data! ---
                 let iconData = getPaletteIconData(data);
+                
+                // Εξαγωγή Στατικού Κειμένου για την Παλέτα
+                let baseExtracted = extractStaticTexts(iconData.base);
+                iconData.base = baseExtracted.cleanPath;
+                let allPaletteTexts = [...baseExtracted.texts];
+
+                iconData.layers.forEach(l => {
+                    let lExtracted = extractStaticTexts(l.path);
+                    l.path = lExtracted.cleanPath;
+                    allPaletteTexts.push(...lExtracted.texts);
+                });
+
                 let combinedPathForMath = iconData.base + " " + iconData.layers.map(l => l.path).join(" ");
 
                 if (k === 'connectordot') {
@@ -1393,12 +1563,19 @@
                         return `<path d="${l.path}" transform="scale(${PPU_MULT})" style="vector-effect: non-scaling-stroke;" stroke="${stroke}" stroke-width="${strokeWidth}" fill="${fill}" />`;
                     }).join('\n');
 
+                    let textsHtml = allPaletteTexts.map(t => {
+                        let fw = t.style === 'bold' ? 'bold' : 'normal';
+                        let fs = t.style === 'italic' ? 'italic' : 'normal';
+                        return `<text x="${t.x}" y="${t.y}" font-family="Arial" font-size="${t.size}" font-weight="${fw}" font-style="${fs}" fill="#2c3e50" text-anchor="middle" dominant-baseline="central">${t.str}</text>`;
+                    }).join('\n');
+
                     iconSvg = `
                         <svg width="100%" height="100%" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet">
                             <path d="${iconData.base}" transform="scale(${PPU_MULT})"
                                   style="vector-effect: non-scaling-stroke;" 
                                   stroke="#2c3e50" stroke-width="1.5" fill="none" /> 
                             ${layersHtml}
+                            <g transform="scale(${PPU_MULT})">${textsHtml}</g>
                         </svg>`;
                 }
                 
@@ -1462,9 +1639,13 @@
 		} else {
 			element = new joint.shapes.jl.Component();
 
-            let iconPath = data.icon || ''; 
+            // Build the base path for drawing
+            let rawIconPath = data.icon || data.iconBase || ''; 
+            let extractedInit = extractStaticTexts(rawIconPath);
+            let iconPath = extractedInit.cleanPath;
 
-			// Καθαρισμός διπλότυπων Pins (και διατήρηση των Labels)
+            // --- THIS IS THE MISSING PIECE ---
+            // Καθαρισμός διπλότυπων Pins (και διατήρηση των Labels)
             const uniquePins = [];
             const seenIds = new Set();
             data.pins.forEach(p => {
@@ -1476,15 +1657,22 @@
                     if (existing && !existing.label && p.label) existing.label = p.label;
                 }
             });
+            // ----------------------------------
+
+            // Build the combined path (base + layers) specifically for accurate bounding box measurement
+            let iconData = getPaletteIconData(data);
+            let combinedPathForMath = iconData.base + " " + iconData.layers.map(l => l.path).join(" ");
+            let combinedExtracted = extractStaticTexts(combinedPathForMath);
+            let measurePath = combinedExtracted.cleanPath;
 
             // Bulletproof Μέτρηση του SVG
             let bbox = { x: 0, y: 0, width: 0, height: 0 };
-            if (iconPath) {
+            if (measurePath) {
                 const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 tempSvg.setAttribute('width', '500'); tempSvg.setAttribute('height', '500');
                 const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                tempPath.setAttribute('d', iconPath);
-				tempPath.setAttribute('transform', `scale(${PPU_MULT})`);
+                tempPath.setAttribute('d', measurePath);
+                tempPath.setAttribute('transform', `scale(${PPU_MULT})`);
                 tempSvg.appendChild(tempPath);
                 Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
                 document.body.appendChild(tempSvg);
@@ -1502,10 +1690,11 @@
             const minPinY = ys.length ? Math.min(...ys) : 0;
             const maxPinY = ys.length ? Math.max(...ys) : 0;
 
-            const absMinX = bbox.width > 0 ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
-            const absMaxX = bbox.width > 0 ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
-            const absMinY = bbox.height > 0 ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
-            const absMaxY = bbox.height > 0 ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
+            let hasBounds = bbox.width > 0 || bbox.height > 0;
+            const absMinX = hasBounds ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
+            const absMaxX = hasBounds ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
+            const absMinY = hasBounds ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
+            const absMaxY = hasBounds ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
 				
 			// Snapping Bounding Box στο Grid των 40px (1 TikZ Unit)
             const pad = 10; 
@@ -1582,6 +1771,7 @@
             const ports = realPins.map(p => ({ 
                 id: p.id, group: 'absolute', 
                 args: { x: p.x + shiftX, y: p.y + shiftY }, 
+				condition: p.condition, // ΝΕΟ! Περνάει τη συνθήκη
                 markup: [
                     { tagName: 'rect', selector: 'portBody' },
                     { tagName: 'title', selector: 'portTitle' }, 
@@ -1602,7 +1792,7 @@
             
             // Αποθήκευση των "Αρχικών" θέσεων των pins για τέλειο Scaling
             let basePorts = {};
-            ports.forEach(p => { basePorts[p.id] = { x: p.args.x, y: p.args.y }; });
+            ports.forEach(p => { basePorts[p.id] = { x: p.args.x - shiftX, y: p.args.y - shiftY }; });
 
             element.prop('ports', { groups: { 'absolute': { position: { name: 'absolute' } } } });
             element.addPorts(ports);
@@ -1806,9 +1996,12 @@
 
                     if (desc.includes('position')) {
                         innerVal = `(${tx},${ty})`;
-                    } else if (desc.includes('rotation')) {
-                        if (desc.includes('flip')) innerVal = `${rot},${flipStr}`;
-                        else innerVal = `${rot}`;
+                    } else if (desc.includes('rotation') && desc.includes('flip')) {
+                        innerVal = `${rot},${flipStr}`; // Το combined
+                    } else if (desc.includes('rotation') || desc.includes('angle')) {
+                        innerVal = `${rot}`;            // Μόνο μοίρες
+                    } else if (desc.includes('flip')) {
+                        innerVal = `${flipStr}`;        // Μόνο h, v
                     } else {
                         if (customArgs[i] !== undefined) {
                             innerVal = customArgs[i];
@@ -2367,6 +2560,38 @@ ${indentedTikz}
         return errors;
     }
 	
+	// --- NATIVE GEOMETRY PARSER ---
+    function parseGeomArgs(data, argsArray) {
+        let angle = 0;
+        let flipH = false;
+        let flipV = false;
+
+        for (let i = 0; i < data.argsCount; i++) {
+            let argDef = data.argNames[i] || { name: '' };
+            let desc = argDef.name.toLowerCase();
+            let customDef = data.argDefs ? data.argDefs.find(d => d.idx === i + 1) : null;
+            let typeMatch = customDef ? customDef.type : '';
+            let val = argsArray[i];
+
+            if (!val) continue;
+
+            if (typeMatch === 'rotflip' || (!customDef && desc.includes('rotation') && desc.includes('flip'))) {
+                let parts = val.split(',');
+                let tikzRot = parseFloat(parts[0]) || 0;
+                angle = (360 - tikzRot) % 360;
+                let f = parts[1] ? parts[1].trim() : '';
+                if (f==='h') flipH = true; if (f==='v') flipV = true; if (f==='hv'||f==='vh') { flipH=true; flipV=true; }
+            } else if (typeMatch === 'rotation' || (!customDef && (desc.includes('rotation') || desc.includes('angle')))) {
+                let tikzRot = parseFloat(val) || 0;
+                angle = (360 - tikzRot) % 360;
+            } else if (typeMatch === 'flip' || (!customDef && desc.includes('flip'))) {
+                let f = val.trim();
+                if (f==='h') flipH = true; if (f==='v') flipV = true; if (f==='hv'||f==='vh') { flipH=true; flipV=true; }
+            }
+        }
+        return { angle, flipH, flipV };
+    }
+	
 	// --- 10. PROPERTY EDITOR (DOUBLE CLICK) WITH DRAG, PREVIEW & REVERT ---
     paper.on('cell:pointerdblclick', function(cellView) {
         let el = cellView.model;
@@ -2376,21 +2601,19 @@ ${indentedTikz}
         let data = JL_DATABASE[macro];
         if (!data) return;
 
-        // --- NEW: Take a snapshot of the original state before doing anything! ---
         const originalState = {
-            args: [...(el.get('customArgs') || [])], // Spread operator makes a safe copy of the array
+            args: [...(el.get('customArgs') || [])], 
             scale: el.get('customScale') || 1,
             lblX: el.get('labelOffsetX') || 0,
             lblY: el.get('labelOffsetY') || 0,
-            iconPath: el.attr('iconStroke/d')
+            angle: el.get('angle') || 0,
+            flipH: el.get('flipH') || false,
+            flipV: el.get('flipV') || false
         };
 
         let currentArgs = el.get('customArgs') || [];
-        // Added margin-top: -20px to forcibly pull the form up!
-        let htmlForm = '<div style="text-align: left; font-size: 14px;">';
+        let htmlForm = '<div style="text-align: left; max-height: 60vh; overflow-y: auto; overflow-x: hidden; padding: 5px 10px;">';
 
-        let variantIndex = data.variantArg ? data.variantArg - 1 : -1;
-        
         let currentScale = el.get('customScale') || 1;
         let currentLblX = el.get('labelOffsetX') || 0;
         let currentLblY = el.get('labelOffsetY') || 0;
@@ -2424,37 +2647,94 @@ ${indentedTikz}
             let desc = argDef.name.toLowerCase();
             let val = currentArgs[i] !== undefined ? currentArgs[i] : "";
 
-            if (val === "" && (desc === 'name' || desc === 'text')) {
-                val = el.get('displayedText') || data.name;
+            if (val === "" && (desc === 'name' || desc === 'text')) val = el.get('displayedText') || data.name;
+
+            let isSystem = desc.includes('position') || desc.includes('grid') || desc.includes('show');
+            if (isSystem) {
+                htmlForm += `<input type="hidden" id="swal-input-${i}" value="${val}">`;
+                continue;
             }
 
-            let isReadOnly = desc.includes('position') || desc.includes('rotation');
-            
-            htmlForm += `<div style="margin-bottom: 12px;">
-                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">${argDef.name}</label>`;
+            htmlForm += `<div style="margin-bottom: 12px; background: #fdfdfd; border: 1px solid #ecf0f1; padding: 8px; border-radius: 6px;">`;
 
-            if (isReadOnly) {
-                htmlForm += `<input disabled class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; background: #ecf0f1; cursor: not-allowed; color: #7f8c8d;" value="Auto from canvas">`;
-            } else if (i === variantIndex || argDef.name.includes('/')) {
-                let options = argDef.name.split('/'); 
-                htmlForm += `<select id="swal-input-${i}" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;">`;
-                options.forEach(opt => {
-                    let cleanOpt = opt.trim();
-                    let selected = (val === cleanOpt || (!val && cleanOpt === options[0].trim())) ? 'selected' : '';
-                    htmlForm += `<option value="${cleanOpt}" ${selected}>${cleanOpt}</option>`;
-                });
-                htmlForm += `</select>`;
+            let customDef = data.argDefs ? data.argDefs.find(d => d.idx === (i + 1)) : null;
+            let labelText = customDef ? customDef.label : argDef.name;
+            htmlForm += `<label style="display:block; margin-bottom: 6px; font-weight: 700; color: #2c3e50; font-size: 11px; letter-spacing: 0.5px;">${labelText}</label>`;
+
+            if (customDef) {
+                let activeVal = val !== "" ? val : customDef.defVal;
+
+                if (customDef.type === 'select') {
+                    let options = customDef.options.split(',').map(o => o.trim());
+                    htmlForm += `<select id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; font-size:13px; margin:0; padding:2px 8px;">`;
+                    options.forEach(opt => {
+                        let selected = (activeVal === opt) ? 'selected' : '';
+                        htmlForm += `<option value="${opt}" ${selected}>${opt}</option>`;
+                    });
+                    htmlForm += `</select>`;
+                } 
+                else if (customDef.type === 'flags') {
+                    let allFlags = customDef.options.split(',').map(o => o.trim());
+                    let activeFlags = activeVal.split('-').map(o => o.trim());
+                    
+                    htmlForm += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
+                    allFlags.forEach(flag => {
+                        let checked = activeFlags.includes(flag) ? 'checked' : '';
+                        htmlForm += `<label style="font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="flag-group-${i}" value="${flag}" ${checked} onchange="updateEditorFlags(${i})"> ${flag}</label>`;
+                    });
+                    htmlForm += `</div><input type="hidden" id="swal-input-${i}" value="${activeVal}">`;
+                }
+                else if (customDef.type === 'rotflip') {
+                    let [r, f] = (val || "0,none").split(',');
+                    if (!f) f = "none";
+                    htmlForm += `
+                        <div style="display: flex; gap: 5px;">
+                            <input type="number" id="swal-input-${i}-rot" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" value="${r}" oninput="syncRotFlip(${i})">
+                            <select id="swal-input-${i}-flip" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" onchange="syncRotFlip(${i})">
+                                <option value="none" ${f==='none'?'selected':''}>None</option>
+                                <option value="h" ${f==='h'?'selected':''}>Flip H</option>
+                                <option value="v" ${f==='v'?'selected':''}>Flip V</option>
+                                <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
+                            </select>
+                        </div>
+                        <input type="hidden" id="swal-input-${i}" value="${val || '0,none'}">`;
+                }
+                else if (customDef.type === 'rotation') {
+                    htmlForm += `<input type="number" id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${val || '0'}">`;
+                }
+                else if (customDef.type === 'flip') {
+                    let f = val || 'none';
+                    htmlForm += `
+                        <select id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;">
+                            <option value="none" ${f==='none'?'selected':''}>None</option>
+                            <option value="h" ${f==='h'?'selected':''}>Flip H</option>
+                            <option value="v" ${f==='v'?'selected':''}>Flip V</option>
+                            <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
+                        </select>`;
+                }
+                else { 
+                    htmlForm += `<input id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${activeVal}">`;
+                }
             } else {
-                htmlForm += `<input id="swal-input-${i}" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${val}">`;
+                if (argDef.name.includes('/')) {
+                    let options = argDef.name.split('/'); 
+                    htmlForm += `<select id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;">`;
+                    options.forEach(opt => {
+                        let cleanOpt = opt.trim();
+                        let selected = (val === cleanOpt || (!val && cleanOpt === options[0].trim())) ? 'selected' : '';
+                        htmlForm += `<option value="${cleanOpt}" ${selected}>${cleanOpt}</option>`;
+                    });
+                    htmlForm += `</select>`;
+                } else {
+                    htmlForm += `<input id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${val}">`;
+                }
             }
             htmlForm += `</div>`;
         }
         
-        htmlForm += `<button type="button" id="btn-swal-preview" class="tool-btn" style="width: 100%; margin-top: 10px; background: #3498db; font-weight: bold; transition: background 0.3s;">👁️ Preview Changes</button>`;
         htmlForm += '</div>';
 
         Swal.fire({
-            // --- NO TITLE PROPERTY! WE PUT EVERYTHING IN HTML ---
             html: `
                 <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-top: 0; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
                     <span>⠿</span> Drag to move <span>⠿</span>
@@ -2472,46 +2752,18 @@ ${indentedTikz}
                 const handle = document.getElementById('swal-drag-handle');
                 
                 let isDragging = false, startX, startY, initialLeft, initialTop;
-
-                const onMouseMove = (e) => {
-                    if (!isDragging) return;
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
-                    popup.style.left = (initialLeft + dx) + 'px';
-                    popup.style.top = (initialTop + dy) + 'px';
-                };
-
-                const onMouseUp = () => {
-                    isDragging = false;
-                    handle.style.cursor = 'grab';
-                    document.removeEventListener('mousemove', onMouseMove);
-                    document.removeEventListener('mouseup', onMouseUp);
-                };
-
+                const onMouseMove = (e) => { if(!isDragging) return; popup.style.left=(initialLeft+e.clientX-startX)+'px'; popup.style.top=(initialTop+e.clientY-startY)+'px'; };
+                const onMouseUp = () => { isDragging = false; handle.style.cursor = 'grab'; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+                
                 handle.addEventListener('mousedown', (e) => {
-                    isDragging = true;
-                    handle.style.cursor = 'grabbing';
-                    
-                    const rect = popup.getBoundingClientRect();
-                    popup.style.margin = '0';
-                    popup.style.position = 'fixed'; 
-                    popup.style.left = rect.left + 'px';
-                    popup.style.top = rect.top + 'px';
-                    popup.style.transform = 'none'; 
-                    
-                    startX = e.clientX;
-                    startY = e.clientY;
-                    initialLeft = rect.left;
-                    initialTop = rect.top;
-
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
+                    isDragging=true; handle.style.cursor='grabbing';
+                    const rect=popup.getBoundingClientRect(); popup.style.margin='0'; popup.style.position='fixed'; 
+                    popup.style.left=rect.left+'px'; popup.style.top=rect.top+'px'; popup.style.transform='none'; 
+                    startX=e.clientX; startY=e.clientY; initialLeft=rect.left; initialTop=rect.top;
+                    document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
                 });
 
-                const previewBtn = document.getElementById('btn-swal-preview');
-                previewBtn.addEventListener('click', (e) => {
-                    e.preventDefault(); 
-
+                const applyLivePreview = () => {
                     let previewScale = parseFloat(document.getElementById('swal-input-scale').value);
                     let previewLblX = parseInt(document.getElementById('swal-input-lblx').value) || 0;
                     let previewLblY = parseInt(document.getElementById('swal-input-lbly').value) || 0;
@@ -2519,9 +2771,11 @@ ${indentedTikz}
                     let previewArgs = [];
                     for (let i = 0; i < data.argsCount; i++) {
                         let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
-                        if (desc.includes('position') || desc.includes('rotation')) previewArgs.push(""); 
+                        if (desc.includes('position')) previewArgs.push(""); 
                         else previewArgs.push(document.getElementById(`swal-input-${i}`).value);
                     }
+
+                    let geom = parseGeomArgs(data, previewArgs);
 
                     el.set('labelOffsetX', previewLblX);
                     el.set('labelOffsetY', previewLblY);
@@ -2529,9 +2783,24 @@ ${indentedTikz}
                     
                     assembleIcon(el, previewArgs);
 
-                    if (previewScale !== currentScale) {
+                    let needsGeomUpdate = (geom.angle !== (el.get('angle')||0)) || 
+                                          (geom.flipH !== (el.get('flipH')||false)) || 
+                                          (geom.flipV !== (el.get('flipV')||false));
+
+                    if (previewScale !== currentScale || needsGeomUpdate) {
+                        let oldPin = getVisualOrigin(el);
+                        
+                        el.rotate(geom.angle, true);
+                        el.set('flipH', geom.flipH);
+                        el.set('flipV', geom.flipV);
                         applyRobustScale(el, previewScale);
+                        
                         currentScale = previewScale; 
+                        
+                        let newPin = getVisualOrigin(el);
+                        let p = el.position();
+                        // ΤΟ ΜΥΣΤΙΚΟ: Απενεργοποιεί το snap!
+                        el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
                     }
 
                     for (let i = 0; i < data.argsCount; i++) {
@@ -2541,18 +2810,12 @@ ${indentedTikz}
                             updateElementLabel(el, newName);
                         }
                     }
-
                     const view = paper.findViewByModel(el);
                     if (view) view.update();
+                };
 
-                    let originalText = previewBtn.innerHTML;
-                    previewBtn.innerHTML = '✅ Applied!';
-                    previewBtn.style.background = '#27ae60';
-                    setTimeout(() => {
-                        previewBtn.innerHTML = originalText;
-                        previewBtn.style.background = '#3498db';
-                    }, 800);
-                });
+                popup.addEventListener('input', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') applyLivePreview(); });
+                popup.addEventListener('change', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') applyLivePreview(); });
             },
             preConfirm: () => {
                 let results = { 
@@ -2563,16 +2826,16 @@ ${indentedTikz}
                 };
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
-                    if (desc.includes('position') || desc.includes('rotation')) results.args.push(""); 
+                    if (desc.includes('position')) results.args.push(""); 
                     else results.args.push(document.getElementById(`swal-input-${i}`).value);
                 }
                 return results;
             }
         }).then((result) => {
             if (result.isConfirmed) {
-                // User clicked SAVE - Commit the previewed changes
                 let newArgs = result.value.args;
                 let newScale = result.value.scale;
+                let geom = parseGeomArgs(data, newArgs);
                 
                 el.set('labelOffsetX', result.value.lblX);
                 el.set('labelOffsetY', result.value.lblY);
@@ -2580,8 +2843,21 @@ ${indentedTikz}
 
                 assembleIcon(el, newArgs);
 
-                if (newScale !== currentScale) {
+                let needsGeomUpdate = (geom.angle !== (el.get('angle')||0)) || 
+                                      (geom.flipH !== (el.get('flipH')||false)) || 
+                                      (geom.flipV !== (el.get('flipV')||false));
+
+                if (newScale !== currentScale || needsGeomUpdate) {
+                    let oldPin = getVisualOrigin(el);
+                    
+                    el.rotate(geom.angle, true);
+                    el.set('flipH', geom.flipH);
+                    el.set('flipV', geom.flipV);
                     applyRobustScale(el, newScale);
+                    
+                    let newPin = getVisualOrigin(el);
+                    let p = el.position();
+                    el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
                 }
 
                 for (let i = 0; i < data.argsCount; i++) {
@@ -2591,37 +2867,41 @@ ${indentedTikz}
                         updateElementLabel(el, newName);
                     }
                 }
-
-                forceExportLatex();
-				saveState();
+                forceExportLatex(); saveState();
                 
             } else if (result.isDismissed) {
-                // --- NEW: User clicked CANCEL - Revert everything to the snapshot! ---
                 el.set('labelOffsetX', originalState.lblX);
                 el.set('labelOffsetY', originalState.lblY);
                 el.set('customArgs', originalState.args);
 
-                if (originalState.iconPath) {
-                    el.attr('iconFill/d', originalState.iconPath);  
-                    el.attr('iconStroke/d', originalState.iconPath); 
-                }
+                let needsGeomUpdate = (originalState.angle !== (el.get('angle')||0)) || 
+                                      (originalState.flipH !== (el.get('flipH')||false)) || 
+                                      (originalState.flipV !== (el.get('flipV')||false));
 
-                if (originalState.scale !== currentScale) {
+                assembleIcon(el, originalState.args);
+
+                if (originalState.scale !== currentScale || needsGeomUpdate) {
+                    let oldPin = getVisualOrigin(el);
+                    
+                    el.rotate(originalState.angle, true);
+                    el.set('flipH', originalState.flipH);
+                    el.set('flipV', originalState.flipV);
                     applyRobustScale(el, originalState.scale);
-                    currentScale = originalState.scale; // Reset internal tracker just in case
+                    currentScale = originalState.scale; 
+                    
+                    let newPin = getVisualOrigin(el);
+                    let p = el.position();
+                    el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
                 }
 
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
                     if (desc === 'name' || desc === 'text') {
-                        // Fallback safely if they never had a custom name typed
                         let fallbackName = originalState.args[i] || data.name;
                         let oldName = fallbackName === '$NAME$' ? data.name : fallbackName;
                         updateElementLabel(el, oldName);
                     }
                 }
-
-                // Force a repaint so the canvas visually snaps back immediately
                 const view = paper.findViewByModel(el);
                 if (view) view.update();
             }
@@ -2650,6 +2930,26 @@ ${indentedTikz}
         }
         return args;
     }
+	
+	function evaluatePinCondition(condStr, argsArray) {
+        if (!condStr) return true; // Αν δεν έχει συνθήκη, είναι Always On
+        let conditions = condStr.split('&');
+        let isMatch = true;
+        conditions.forEach(cond => {
+            cond = cond.trim();
+            if (cond.includes('==')) {
+                let [argIdx, val] = cond.split('==');
+                if ((argsArray[parseInt(argIdx) - 1] || "").trim() !== val.trim()) isMatch = false;
+            } else if (cond.includes('!=')) {
+                let [argIdx, val] = cond.split('!=');
+                if ((argsArray[parseInt(argIdx) - 1] || "").trim() === val.trim()) isMatch = false;
+            } else if (cond.includes('~=')) {
+                let [argIdx, val] = cond.split('~=');
+                if (!(argsArray[parseInt(argIdx) - 1] || "").includes(val.trim())) isMatch = false;
+            }
+        });
+        return isMatch;
+    }
 
     function syncFromLatex() {
         const text = document.getElementById('latex-output').innerText;
@@ -2671,24 +2971,84 @@ ${indentedTikz}
                 if (extractedArgs.length !== data.argsCount) return;
 
                 let customArgs = cell.get('customArgs') || [];
-                let variantIndex = data.variantArg ? data.variantArg - 1 : -1;
+                
+                // ΝΕΟ: Μεταβλητές για την Περιστροφή & Αναστροφή
+                let applyGeom = false;
+                let newAngle = cell.get('angle') || 0;
+                let newFlipH = cell.get('flipH') || false;
+                let newFlipV = cell.get('flipV') || false;
 
-                // Ενημερώνουμε τις ιδιότητες (Αγνοούμε τη θέση/περιστροφή για να μην "σπάσει" η δομή στον καμβά)
+                // Ενημερώνουμε τις ιδιότητες (Αγνοούμε μόνο τη θέση (position) πλέον)
                 for(let i=0; i<data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
-                    if (!desc.includes('position') && !desc.includes('rotation')) {
+                    
+                    if (desc.includes('rotation') && desc.includes('flip')) {
+                        let rotVal = extractedArgs[i].toLowerCase();
+                        if (rotVal && !rotVal.includes('...')) {
+                            let parts = rotVal.split(',');
+                            let tikzRot = parseFloat(parts[0]) || 0;
+                            newAngle = (360 - tikzRot) % 360;
+                            
+                            newFlipH = false; newFlipV = false;
+                            if (parts.length > 1) {
+                                let fStr = parts[1].trim();
+                                if (fStr === 'hv' || fStr === 'vh') { newFlipH = true; newFlipV = true; }
+                                else if (fStr === 'h') newFlipH = true;
+                                else if (fStr === 'v') newFlipV = true;
+                            }
+                            applyGeom = true;
+                        }
+                    } 
+                    else if (desc.includes('rotation') || desc.includes('angle')) {
+                        let rotVal = extractedArgs[i].toLowerCase();
+                        if (rotVal && !rotVal.includes('...')) {
+                            let tikzRot = parseFloat(rotVal) || 0;
+                            newAngle = (360 - tikzRot) % 360;
+                            applyGeom = true;
+                        }
+                    }
+                    else if (desc.includes('flip')) {
+                        let fStr = extractedArgs[i].toLowerCase().trim();
+                        if (fStr && !fStr.includes('...')) {
+                            if (fStr === 'hv' || fStr === 'vh') { newFlipH = true; newFlipV = true; }
+                            else if (fStr === 'h') { newFlipH = true; newFlipV = false; }
+                            else if (fStr === 'v') { newFlipH = false; newFlipV = true; }
+                            else if (fStr === 'none') { newFlipH = false; newFlipV = false; }
+                            applyGeom = true;
+                        }
+                    }
+                    else if (!desc.includes('position')) {
                         customArgs[i] = extractedArgs[i];
                         
-                        // Ενημέρωση του Ονόματος ή του Κειμένου στον Καμβά
                         if (desc === 'name' || desc === 'text') {
 							let newName = extractedArgs[i] === '$NAME$' ? data.name : extractedArgs[i];
 							updateElementLabel(cell, newName);
                         }
                     }
                 }
+                
                 cell.set('customArgs', customArgs);
-				// --- NEW: Assemble layers after syncing args! ---
-					assembleIcon(cell, customArgs);
+				// Assemble layers after syncing args
+                assembleIcon(cell, customArgs);
+
+                // --- ΝΕΟ: Εφαρμογή Rotation & Flip από τον κώδικα στον Καμβά ---
+                if (applyGeom) {
+                    // 1. Σώζουμε τη μαθηματική θέση του Pin (0,0)
+                    let oldPin = getVisualOrigin(cell);
+                    
+                    // 2. Εφαρμόζουμε τις νέες ιδιότητες
+                    cell.rotate(newAngle, true);
+                    cell.set('flipH', newFlipH);
+                    cell.set('flipV', newFlipV);
+                    
+                    // 3. Το applyRobustScale αναλαμβάνει να γυρίσει τα γραφικά, τα ports και τα labels!
+                    applyRobustScale(cell, cell.get('customScale') || 1);
+                    
+                    // 4. Επαναφέρουμε το εξάρτημα ώστε το Pin (0,0) να μείνει ακλόνητο στο grid!
+                    let newPin = getVisualOrigin(cell);
+                    let p = cell.position();
+                    cell.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
+                }
             }
         });
 
@@ -2866,6 +3226,30 @@ ${indentedTikz}
         setTimeout(() => { updateDynamicGrid(); }, 310);
     }
 	
+	// --- NATIVE TEXT PARSER ΓΙΑ ΤΑ ΣΥΜΒΟΛΑ ---
+    function extractStaticTexts(pathStr) {
+        let texts = [];
+        if (!pathStr) return { cleanPath: "", texts: [] };
+        
+        // FIX: Το regex τώρα απαιτεί ακριβώς τη δομή "M x y L x y" πριν το σχόλιο!
+        // Έτσι δεν καταπίνει τα προηγούμενα M του σχεδίου και βρίσκει τις ΣΩΣΤΕΣ συντεταγμένες.
+        let cleanPath = pathStr.replace(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+)\s*L\s*[-+]?[\d\.]+\s*[-+]?[\d\.]+\s*\/\*TEXT:([^,]+),([^,]+),(.*?)\*\//g, (match, x, y, size, style, str) => {
+            texts.push({
+                x: parseFloat(x), 
+                y: parseFloat(y), 
+                size: parseFloat(size), 
+                style: style, 
+                str: str
+            });
+            return ""; // Αφαιρεί ΜΟΝΟ το dummy path από το καθαρό SVG
+        }).trim();
+        
+        // Failsafe για τυχόν ορφανά comments
+        cleanPath = cleanPath.replace(/\/\*TEXT:[^\*]+\*\//g, '').trim();
+        
+        return { cleanPath, texts };
+    }
+	
 	// --- DEFAULT ICON GENERATOR FOR PALETTE ---
     function getPaletteIconData(data) {
         let base = data.iconBase || data.icon || '';
@@ -2905,165 +3289,7 @@ ${indentedTikz}
         }
         return { base, layers };
     }
-	
-	// --- SMART ICON ASSEMBLER (WITH DYNAMIC STYLING) ---
-    function assembleIcon(el, argsArray) {
-        let macro = el.get('latexMacro');
-        let dbData = JL_DATABASE[macro];
-        if (!dbData) return;
-		
-		let dynLabels = el.get('dynamicLabels') || [];
 
-        let basePath = dbData.iconBase || dbData.icon || "";
-        let dynamicMarkup = [
-            { tagName: 'text', selector: 'label' },
-            { tagName: 'foreignObject', selector: 'fo' },
-            { tagName: 'rect', selector: 'body' },
-            { tagName: 'g', selector: 'iconGroup', children: [
-                { tagName: 'path', selector: 'iconFill' },
-                { tagName: 'path', selector: 'iconStroke' }
-            ]}
-        ];
-
-        let matchedLayers = [];
-        if (dbData.variantArg && dbData.icons) {
-            let val = argsArray[dbData.variantArg - 1];
-            if (dbData.icons[val]) basePath = dbData.icons[val];
-        }
-
-        if (dbData.iconLayers) {
-            dbData.iconLayers.forEach(layer => {
-                let conditions = layer.condition.split('&');
-                let isMatch = true;
-                conditions.forEach(cond => {
-                    cond = cond.trim();
-                    if (cond.includes('==')) {
-                        let [argIdx, val] = cond.split('==');
-                        if ((argsArray[parseInt(argIdx) - 1] || "").trim() !== val.trim()) isMatch = false;
-                    } else if (cond.includes('!=')) { // Υποστήριξη !=
-                        let [argIdx, val] = cond.split('!=');
-                        if ((argsArray[parseInt(argIdx) - 1] || "").trim() === val.trim()) isMatch = false;
-                    } else if (cond.includes('~=')) {
-                        let [argIdx, val] = cond.split('~=');
-                        if (!(argsArray[parseInt(argIdx) - 1] || "").includes(val.trim())) isMatch = false;
-                    }
-                });
-                if (isMatch) matchedLayers.push(layer);
-            });
-        }
-
-        matchedLayers.forEach((layer, i) => {
-            dynamicMarkup[3].children.push({ tagName: 'path', selector: `overlay_${i}` });
-        });
-		
-		// Προσθήκη των Dynamic Labels στο Markup!
-		dynLabels.forEach((lbl, i) => {
-            dynamicMarkup.push({ tagName: 'text', selector: `dynLbl_${i}` });
-        });
-
-        // Εφαρμογή του νέου Markup
-        el.set('markup', dynamicMarkup);
-
-        // --- ΕΠΑΝΑΦΟΡΑ ΣΤΥΛ ΣΤΟ ΒΑΣΙΚΟ ΕΙΔΩΛΟ ---
-        const theme = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
-        el.attr('iconFill/d', basePath);
-        el.attr('iconFill/fill', dbData.filled ? theme.componentIcon : 'none');
-        
-        el.attr('iconStroke/d', basePath);
-        el.attr('iconStroke/stroke', (macro === 'freetext') ? 'transparent' : theme.componentIcon);
-        el.attr('iconStroke/strokeWidth', 1.8); // Default πάχος
-
-        // Αν υπάρχει ειδικό στυλ στο icon_base (π.χ. διαφορετικό πάχος)
-        if (dbData.iconBaseStyle) {
-            dbData.iconBaseStyle.split(',').forEach(s => {
-                let p = s.split('=');
-                if (p.length === 2) {
-                    let k = p[0].trim(), v = p[1].trim();
-                    if (k === 'stroke-width') el.attr('iconStroke/strokeWidth', parseFloat(v));
-                    if (k === 'stroke') el.attr('iconStroke/stroke', v);
-                }
-            });
-        }
-
-        // Εφαρμογή στυλ στα Overlays
-        matchedLayers.forEach((layer, i) => {
-            let sel = `overlay_${i}`;
-            el.attr(`${sel}/d`, layer.path);
-            el.attr(`${sel}/fill`, 'none');
-            el.attr(`${sel}/stroke`, theme.componentIcon);
-            el.attr(`${sel}/strokeWidth`, 1.8);
-            
-            if (layer.style) {
-                layer.style.split(',').forEach(s => {
-                    let parts = s.split('=');
-                    if (parts.length === 2) {
-                        let k = parts[0].trim(), v = parts[1].trim();
-                        if (k === 'stroke-width') el.attr(`${sel}/strokeWidth`, parseFloat(v));
-                        else if (k === 'stroke') el.attr(`${sel}/stroke`, v);
-                        else if (k === 'fill') el.attr(`${sel}/fill`, v === 'solid' ? theme.componentIcon : v);
-                        else el.attr(`${sel}/${k}`, v);
-                    }
-                });
-            }
-        });
-		
-		let pinsHtml = '';
-
-        // --- NATIVE DYNAMIC LABELS RENDERER (ΜΕ LATEX ΥΠΟΣΤΗΡΙΞΗ) ---
-        dynLabels.forEach((lbl, i) => {
-            let sel = `dynLbl_${i}`;
-            let rawText = lbl.label || lbl.id;
-            let newText = getDynamicPortLabel(rawText, argsArray);
-            
-            let isVisible = newText.trim() !== "";
-            let shiftX = el.get('baseShiftX') !== undefined ? el.get('baseShiftX') : (el.get('shiftX') || 0);
-            let shiftY = el.get('baseShiftY') !== undefined ? el.get('baseShiftY') : (el.get('shiftY') || 0);
-
-            let finalX = lbl.x + shiftX;
-            let finalY = lbl.y + shiftY;
-
-            // Αν υπάρχει κείμενο ΚΑΙ περιέχει $, είναι Μαθηματικό!
-            if (isVisible && newText.includes('$')) {
-                
-                let mathRendered = newText.replace(/\$(.*?)\$/g, (match, mathExpr) => {
-                    try { 
-						let boldExpr = `\\boldsymbol{${mathExpr}}`;
-						return katex.renderToString(mathExpr, { throwOnError: false, displayMode: false }); 
-					} 
-                    catch(e) { return match; }
-                });
-
-                // Χτίζουμε το HTML του Pin
-                // ΑΥΞΗΣΗ ΜΕΓΕΘΟΥΣ: Αλλάξαμε το 11 * 4 σε 13 * 4 (ή και 14 * 4 αν τα θες θηρία!)
-                pinsHtml += `
-                    <div style="position: absolute; left: ${finalX}px; top: ${finalY}px; transform: translate(-50%, -50%); white-space: nowrap; font-size: ${13 * 4}px; font-weight: bold; color: ${theme.componentLabel}; pointer-events: none;">
-                        ${mathRendered}
-                    </div>
-                `;
-                
-                // Κρύβουμε εντελώς το SVG κείμενο για αυτό το pin
-                el.attr(`${sel}/display`, 'none');
-                
-            } else {
-                // Απλό Κανονικό SVG Text (αν πληκτρολόγησε π.χ. απλά "15V")
-                el.attr(`${sel}/text`, newText);
-                el.attr(`${sel}/x`, finalX);
-                el.attr(`${sel}/y`, finalY);
-                el.attr(`${sel}/fill`, theme.componentLabel); 
-                el.attr(`${sel}/fontSize`, 11 * 4);   
-                el.attr(`${sel}/fontWeight`, 'bold'); 
-                el.attr(`${sel}/textAnchor`, 'middle'); 
-                el.attr(`${sel}/display`, isVisible ? 'block' : 'none');
-                el.attr(`${sel}/pointer-events`, 'none'); 
-            }
-        });
-
-        // Αποθηκεύουμε τα HTML pins και καλούμε τον Μίκτη!
-        el.set('mathHtmlPins', pinsHtml);
-        if (typeof combineMathHtml === 'function') {
-            combineMathHtml(el);
-        }
-    }
 	
 	// --- REAL-TIME PALETTE SEARCH ---
     document.getElementById('palette-search').addEventListener('input', function(e) {
@@ -3101,6 +3327,29 @@ ${indentedTikz}
             currentHeader.style.display = visibleCountInCategory > 0 ? 'block' : 'none';
         }
     });
+	
+	function updateEditorFlags(argIdx) {
+        let checkboxes = document.querySelectorAll(`.flag-group-${argIdx}`);
+        let selected = [];
+        checkboxes.forEach(cb => {
+            if (cb.checked) selected.push(cb.value);
+        });
+        let hiddenInput = document.getElementById(`swal-input-${argIdx}`);
+        hiddenInput.value = selected.join('-');
+        
+        // ΝΕΟ: Στέλνει "σήμα" στο popup ότι κάτι άλλαξε, για να τρέξει το Live Preview!
+        hiddenInput.dispatchEvent(new Event('change', { bubbles: true })); 
+    }
+	
+	function syncRotFlip(argIdx) {
+		let r = document.getElementById(`swal-input-${argIdx}-rot`).value || "0";
+		let f = document.getElementById(`swal-input-${argIdx}-flip`).value;
+		let hidden = document.getElementById(`swal-input-${argIdx}`);
+		hidden.value = `${r},${f}`;
+		
+		// Ενεργοποίηση του Live Preview στον Editor
+		hidden.dispatchEvent(new Event('change', { bubbles: true }));
+	}
 	
 </script>
 </body>

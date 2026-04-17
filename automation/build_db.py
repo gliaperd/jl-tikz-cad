@@ -2,6 +2,10 @@ import re, json
 
 def generate_db(sty_file):
     database = {}
+    ignored_components = [] # Λίστα από tuples: (όνομα, αιτιολογία)
+    total_found = 0
+    imported_count = 0
+    
     try:
         with open(sty_file, 'r', encoding='utf-8') as f:
             content = f.read()
@@ -16,10 +20,18 @@ def generate_db(sty_file):
         arg_count = int(match.group(2))
         body = match.group(3)
         
-        # --- THE FIX: Strip out // comments from every line before processing! ---
+        # Strip out // comments from every line
         body_lines = [line.split('//')[0].strip() for line in body.strip().split('\n')]
         
+        # --- 1. ΑΘΟΡΥΒΟ DISABLE (% disabled!) ---
+        if any(line.lower() == '% disabled!' for line in body_lines):
+            continue # Το αγνοούμε εντελώς, δεν μπαίνει καν στα στατιστικά!
+            
+        total_found += 1
+        
+        # --- 2. ΚΑΝΟΝΙΚΟ DISABLE (% disabled) ---
         if any(line.lower() == '% disabled' for line in body_lines):
+            ignored_components.append((name, "disabled"))
             continue
         
         comp_data = {
@@ -41,7 +53,6 @@ def generate_db(sty_file):
                 except ValueError:
                     pass
             
-            # --- The Preview Override ---
             elif line.startswith('% preview_args:'):
                 pairs = line.replace('% preview_args:', '').split(',')
                 preview_args = {}
@@ -51,13 +62,31 @@ def generate_db(sty_file):
                         preview_args[k.strip()] = v.strip()
                 comp_data['previewArgs'] = preview_args
 
-            # --- ΒΕΛΤΙΩΜΕΝΟ ICON_BASE PARSING ---
+            # --- DYNAMIC PROPERTIES (arg_def) ---
+            elif line.startswith('% arg_def:'):
+                try:
+                    parts = line.replace('% arg_def:', '').split('|')
+                    if len(parts) >= 4:
+                        if 'argDefs' not in comp_data:
+                            comp_data['argDefs'] = []
+                        
+                        arg_def = {
+                            "idx": int(parts[0].strip()),
+                            "type": parts[1].strip(),
+                            "label": parts[2].strip(),
+                            "defVal": parts[3].strip()
+                        }
+                        if len(parts) >= 5:
+                            arg_def["options"] = parts[4].strip()
+                            
+                        comp_data['argDefs'].append(arg_def)
+                except Exception as e:
+                    print(f"Error parsing arg_def in {name}: {e}")
+
             elif re.match(r'%\s*icon_base\s*:', line, re.IGNORECASE):
-                # Παίρνουμε ό,τι υπάρχει μετά το :
                 path_data = re.sub(r'%\s*icon_base\s*:', '', line, flags=re.IGNORECASE).strip()
                 style_str = ""
                 
-                # Εξαγωγή του [style] αν υπάρχει
                 if path_data.startswith('['):
                     end_idx = path_data.find(']')
                     if end_idx != -1:
@@ -68,17 +97,6 @@ def generate_db(sty_file):
                 if style_str:
                     comp_data['iconBaseStyle'] = style_str
                 comp_data['filled'] = 'fill=solid' in style_str
-                
-                # Ψάχνουμε για προαιρετικές αγκύλες στιλ π.χ. [stroke-width=2.5]
-                if path_data.startswith('['):
-                    end_idx = path_data.find(']')
-                    if end_idx != -1:
-                        style_str = path_data[1:end_idx].strip()
-                        path_data = path_data[end_idx+1:].strip()
-                
-                comp_data['iconBase'] = path_data
-                if style_str:
-                    comp_data['iconBaseStyle'] = style_str
 
             elif line.startswith('% add_icon:'):
                 parts = line.replace('% add_icon:', '').split(':', 1)
@@ -86,7 +104,6 @@ def generate_db(sty_file):
                     condition = parts[0].strip()
                     path_data = parts[1].strip()
                     
-                    # Look for optional styling brackets [stroke=red, stroke-width=2]
                     style_str = ""
                     if path_data.startswith('['):
                         end_idx = path_data.find(']')
@@ -157,29 +174,68 @@ def generate_db(sty_file):
         for line in body_lines:
             coord_match = re.search(r'\\coordinate\s*(?:\[.*?\])?\s*\(([^\)]+)\)\s*at\s*\(([-+]?[\d\.]+)[^,]*,\s*([-+]?[\d\.]+)[^)]*\)', line)
             if coord_match:
-                # Επιστροφή στον αυστηρό κανόνα: 1 TikZ unit = 10 Pixels
                 val_x = float(coord_match.group(2)) * 10
                 val_y = float(coord_match.group(3)) * 10
 
-                # Αλεξίσφαιρη ανάγνωση του σχολίου (αγνοεί τις παρενθέσεις αν υπάρχουν)
                 label_str = ""
+                dir_str = "R"
+                cond_str = "" # ΝΕΟ
+                
                 if '%' in line:
                     comment_part = line.split('%', 1)[1].strip()
-                    label_str = re.sub(r'^\((.*)\)$', r'\1', comment_part).strip()
+                    
+                    # ΝΕΟ: Parse IF condition
+                    if_match = re.search(r'IF:(.+)$', comment_part)
+                    if if_match:
+                        cond_str = if_match.group(1).strip()
+                        comment_part = comment_part[:if_match.start()].strip()
 
-                pins.append({
+                    dir_match = re.search(r'\[([TBLR])\]', comment_part)
+                    if dir_match:
+                        dir_str = dir_match.group(1).upper()
+                    
+                    paren_match = re.search(r'\(([^)]+)\)', comment_part)
+                    if paren_match:
+                        label_str = paren_match.group(1).strip()
+
+                pin_obj = {
                     "id": coord_match.group(1).strip(),
                     "x": val_x,
                     "y": -val_y, 
-                    "label": label_str
-                })
+                    "label": label_str,
+                    "dir": dir_str
+                }
+                if cond_str: # Αποθήκευση μόνο αν υπάρχει συνθήκη
+                    pin_obj["condition"] = cond_str
+                
+                pins.append(pin_obj)
+                
         comp_data['pins'] = pins
 
+        # --- 3. ΕΛΕΓΧΟΣ IMPORT & PINS ---
         if pins or name in ['connectordot', 'freetext']:
             database[name] = comp_data
+            imported_count += 1
+        else:
+            ignored_components.append((name, "no pins"))
 
+    # Εγγραφή της βάσης στο αρχείο
     with open("components_db.js", "w", encoding="utf-8") as f:
         f.write(f"const JL_DATABASE = {json.dumps(database, indent=4)};")
-    print(f"Success! {len(database)} components exported.")
+        
+    # --- ΤΕΛΙΚΟ REPORT ---
+    print("\n" + "="*50)
+    print(" 🛠️  JL CAD DATABASE BUILDER REPORT")
+    print("="*50)
+    print(f" Found    : {total_found} components")
+    print(f" Imported : {imported_count} components")
+    print(f" Ignored  : {len(ignored_components)} components")
+    
+    if ignored_components:
+        print("-" * 50)
+        print(" List of ignored components:")
+        for comp_name, reason in ignored_components:
+            print(f"   • {comp_name:<25} - {reason}")
+    print("="*50 + "\n")
 
 generate_db('tikz_electronic_parts.sty')

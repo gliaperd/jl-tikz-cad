@@ -6,16 +6,7 @@
     <style>
         body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #ecf0f1; margin: 0; padding: 15px; display: flex; gap: 15px; height: 100vh; box-sizing: border-box; }
         .panel { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 10px; }
-        .side-panel { 
-			flex: 1; 
-			max-width: 400px; 
-			min-width: 340px; 
-			display: flex;           /* ΝΕΟ */
-			flex-direction: column;  /* ΝΕΟ */
-			height: 100%;            /* ΝΕΟ */
-			overflow: hidden;        /* ΝΕΟ: Απενεργοποιούμε το γενικό scroll */
-			padding: 15px 5px 15px 15px; /* Μικρή προσαρμογή padding για το scrollbar */
-		}
+
         .main-panel { flex: 2; display: flex; flex-direction: column; gap: 10px; }
         
         label { font-weight: bold; font-size: 10px; color: #7f8c8d; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -58,9 +49,9 @@
         .icon-btn:hover { opacity: 1; transform: scale(1.1); }
         .icon-btn.on { opacity: 1; filter: drop-shadow(0 0 2px rgba(52, 152, 219, 0.5)); }
         
-        .output-box { background: #2c3e50; color: #ecf0f1; height: 140px; font-size: 11px; white-space: pre; overflow: auto; }
+        .output-box { background: #2c3e50; color: #ecf0f1; font-size: 11px; white-space: pre; overflow: auto; }
         .import-box { background: #f4f6f7; min-height: 60px; font-size: 11px; margin-bottom: 5px; flex-shrink: 0; }
-		.side-panel > * { flex-shrink: 0; }
+		
         h2 { margin: 0; color: #2c3e50; font-size: 14px; border-bottom: 1px solid #ecf0f1; padding-bottom: 5px;}
         
         /* Rule Builder */
@@ -76,10 +67,9 @@
         .shape-path.extractable:hover { stroke: #9b59b6 !important; stroke-width: 3px !important; opacity: 0.8; cursor: pointer !important; }
         .shape-path.selected-extract { 
 			stroke: #9b59b6 !important; 
-			/* Αφαιρέσαμε το stroke-width: 3.5px !important; για να κρατάει το δικό του πάχος! */
 			opacity: 1.0; 
-			stroke-dasharray: 3 3; /* Το κάναμε 3 3 για να δείχνει πιο "φίνο" */
-			filter: drop-shadow(0 0 2px rgba(155, 89, 182, 0.8)); 
+			stroke-dasharray: 2 2; /* Πιο πυκνή διακεκομμένη */
+			filter: drop-shadow(0 0 1px rgba(155, 89, 182, 0.4)); /* Τέλος η αγιότητα, ένα απλό glow */
 		}
         .selection-box { fill: rgba(52, 152, 219, 0.2); stroke: #3498db; stroke-width: 0.4px; stroke-dasharray: 2 2; pointer-events: none; }
 		
@@ -94,53 +84,127 @@
         .pin-marker:hover { fill: #e74c3c; stroke-width: 2.5; } /* Removed the buggy transform: scale! */
         .pin-label { font-family: monospace; font-size: 5px; fill: #d35400; pointer-events: none; font-weight: bold; user-select: none; stroke: none !important;}
 		
-		/* Accordion / Collapsible Sections */
-        .section-header { cursor: pointer; transition: background 0.2s; border-radius: 4px; padding: 4px; display: flex; justify-content: space-between; align-items: center; margin-top: 5px; margin-bottom: 5px;}
-        .section-header:hover { background: #ebf5fb; }
-        .section-header .toggle-icon { font-size: 10px; color: #7f8c8d; transition: transform 0.2s; }
-        .section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
-        .section-content { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s ease-out; opacity: 1; max-height: 1000px; /* Αρκετά μεγάλο για να χωράει το περιεχόμενο */ }
-        .section-content.collapsed { max-height: 0; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: none; }
-    </style>
-	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-<body>
-
-    <style>
-        .section-header { transition: background 0.2s; border-radius: 4px; padding: 2px 4px; cursor: pointer; user-select: none; }
+	
+		/* Διόρθωση για το πλάτος των inputs στα Swal */
+		.swal2-input {
+			box-sizing: border-box !important; /* Εξασφαλίζει ότι το padding δεν μεγαλώνει το input */
+			width: 100% !important;
+			max-width: 100% !important;
+			margin: 10px 0 !important;
+		}
+		
+		.section-header { transition: background 0.2s; border-radius: 4px; padding: 2px 4px; cursor: pointer; user-select: none; }
         .section-header:hover { background: #ebf5fb; }
         .section-header .toggle-icon { font-size: 10px; color: #7f8c8d; transition: transform 0.2s; display: inline-block; margin-right: 4px;}
         .section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
         .section-content { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s ease-out; opacity: 1; max-height: 1200px; /* Αρκετά μεγάλο για να χωράει τα πάντα */ }
         .section-content.collapsed { max-height: 0; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: none; }
-    </style>
+		
+		/* Κρύβει τα κουμπιά ελέγχου μέσα στο header όταν η ενότητα είναι collapsed */
+        .section-header.collapsed .header-controls {
+            display: none !important;
+        }
+		
+		/* Αποτροπή εφαρμογής του πάχους της γραμμής στο κείμενο */
+        g.shape-path text {
+            stroke: none !important;
+            user-select: none;
+        }
+        /* Καθαρό selection effect για το κείμενο (μόνο αλλαγή χρώματος, όχι glow) */
+        g.shape-path.selected-extract text {
+            fill: #9b59b6 !important;
+            filter: none !important;
+        }
+		
+		/* --- Λεπτότερη διακεκομμένη γραμμή ειδικά για τα Pins --- */
+        g.shape-path[data-is-pin="true"].selected-extract circle {
+            stroke-width: 1px !important;
+            stroke-dasharray: 1.5 1.5 !important;
+        }
+        /* Προαιρετικά: Να μην γίνεται τεράστιο ούτε στο απλό hover του ✂️ εργαλείου */
+        g.shape-path[data-is-pin="true"].extractable:hover circle {
+            stroke-width: 1.5px !important;
+        }
+		
+		/* --- ΑΛΕΞΙΣΦΑΙΡΟ LAYOUT ΓΙΑ ΤΟ ΑΡΙΣΤΕΡΟ ΠΑΝΕΛ --- */
+        .side-panel { 
+            flex: 1; 
+            max-width: 400px; 
+            min-width: 340px; 
+            display: flex;           
+            flex-direction: column;  
+            /* ΚΡΙΣΙΜΟ: Το ύψος πρέπει να αφαιρεί το padding του body (15px πάνω + 15px κάτω = 30px) */
+            height: calc(100vh - 30px); 
+            overflow: hidden;        
+            padding: 15px 5px 15px 15px; 
+            box-sizing: border-box;
+        }
 
+        /* Σταθερό πάνω μέρος */
+        .side-panel-top {
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            padding-right: 10px;
+        }
+
+        /* Κυλιόμενο κάτω μέρος */
+        .side-panel-scroll {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            min-height: 0; /* Κρίσιμο για να λειτουργήσει το scroll στο Flexbox */
+            padding-right: 10px;
+            margin-top: 10px;
+        }
+
+        /* Accordion / Collapsible Sections */
+        .section-header { transition: background 0.2s; border-radius: 4px; padding: 4px; cursor: pointer; user-select: none; margin-top: 5px; margin-bottom: 5px; flex-shrink: 0; }
+        .section-header:hover { background: #ebf5fb; }
+        .section-header .toggle-icon { font-size: 10px; color: #7f8c8d; transition: transform 0.2s; display: inline-block; margin-right: 4px;}
+        .section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
+        
+        .section-content { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s ease-out; opacity: 1; max-height: 2500px; }
+        .section-content.collapsed { max-height: 0 !important; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: none; }
+        
+        /* Εξασφαλίζουμε ότι ο Importer δεν θα κρυφτεί ποτέ */
+        #sec-importer:not(.collapsed) { max-height: none !important; overflow: visible; }
+		
+    </style>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
     <div class="panel side-panel">
-		<div style="overflow-y: auto; padding-right: 10px; margin-bottom: 10px; flex-shrink: 0;">
-			
+
+        <div class="side-panel-top">
             <h2 class="section-header" onclick="toggleSection('sec-importer', this)" style="display: flex; justify-content: space-between; align-items: center; margin: 0; padding-bottom: 5px;">
-				<span style="display: flex; align-items: center;"><span class="toggle-icon">▼</span> 📥 Importer</span>
-				<div style="display: flex; gap: 4px;" onclick="event.stopPropagation()"> <button class="tool-btn" onclick="importSty()" title="Load from Textarea" style="background: #27ae60; border-color: #2ecc71; padding: 2px 8px; font-size: 11px;">🚀 Load</button>
-					<button class="icon-btn" onclick="document.getElementById('importCode').value = ''" style="color: #e74c3c; opacity: 1; font-size: 14px;" title="Clear Input">🗑️</button>
-				</div>
-			</h2>
+                <span style="display: flex; align-items: center;"><span class="toggle-icon">▼</span> 📥 Importer</span>
+                <div class="header-controls" style="display: flex; gap: 4px;" onclick="event.stopPropagation()"> 
+                    <button class="tool-btn" onclick="importSty()" title="Load from Textarea" style="background: #27ae60; border-color: #2ecc71; padding: 2px 8px; font-size: 11px;">🚀 Load</button>
+                    <button class="icon-btn" onclick="document.getElementById('importCode').value = ''" style="color: #e74c3c; opacity: 1; font-size: 14px;" title="Clear Input">🗑️</button>
+                </div>
+            </h2>
             <div id="sec-importer" class="section-content">
-			    <textarea id="importCode" class="import-box" placeholder="Paste %% Name \newcommand{\name}... here"></textarea>
+                <textarea id="importCode" class="import-box" placeholder="Paste %% Name \newcommand{\name}... here"></textarea>
             </div>
 
-            <h2 class="section-header" onclick="toggleSection('sec-config', this)" style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
-                <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> ⚙️ Config & Meta</span>
+            <button class="tool-btn" style="width: 100%; margin-top: 10px; padding: 8px; font-size: 13px; background: #8e44ad; border-color: #732d91; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);" onclick="openLogicTester()">👁️ Live Component Preview</button>
+        </div>
+
+        <div class="side-panel-scroll">
+            
+            <h2 class="section-header collapsed" onclick="toggleSection('sec-config', this)" style="margin-top: 0; display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> ⚙️ Basic Config</span>
             </h2>
-            <div id="sec-config" class="section-content">
+            <div id="sec-config" class="section-content collapsed">
                 <div style="display: flex; gap: 5px; margin-top: 5px;">
                     <div style="flex: 1;"><label>Macro Name</label><input type="text" id="cName" value="newcomponent" oninput="generateCode()"></div>
                     <div style="flex: 1;"><label>Display Name</label><input type="text" id="dName" value="New Component" oninput="generateCode()"></div>
                 </div>
                 
                 <label style="margin-top: 8px; display: block;">Arguments (Updates Layer Menus!)</label>
-                <input type="text" id="cArgs" value="{position}{name}{n/p}{rotation}{grid}{show (0,0)}" onblur="renderLayerList(); generateCode();" title="Hit Enter or click away to update menus">
+                <input type="text" id="cArgs" value="{position}{name}{customArg1}{customArg2}{customArg3}{customArg4}{grid}{show (0,0)}" onchange="validateArgs(this)" title="Hit Enter or click away to update menus">
 
-                <details class="help-box" style="margin-top: 8px;">
+                <details class="help-box" style="margin-top: 8px; margin-bottom: 8px;">
                     <summary>📘 Syntax Cheat Sheet</summary>
                     <ul>
                         <li><strong>Arguments:</strong> Defined inside `{}` brackets. The engine automatically numbers them starting at 1. (e.g., Arg 3 is `n/p`).</li>
@@ -148,126 +212,157 @@
                         <li><strong>Scales:</strong> Comma separated list of allowable scales (e.g., <code>1, 2, 4</code>).</li>
                     </ul>
                 </details>
+            </div>
 
-                <div class="meta-box" style="margin-top: 8px;">
-                    <h3 style="margin: 0 0 8px 0; font-size: 11px; color: #34495e;">📝 META PROPERTIES</h3>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px;">
-                        <div><label>Category</label><input type="text" id="mCat" value="Basic Components" oninput="generateCode()"></div>
-                        <div><label>Label Anchor</label><input type="text" id="mAnchor" value="B" oninput="generateCode(); if(testModeActive) document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();"></div>
-                        <div><label>Scales</label><input type="text" id="mScales" value="1, 2, 4" oninput="generateCode()"></div>
-                        <div><label>Flip</label><input type="text" id="mFlip" value="disabled" oninput="generateCode()"></div>
-                        <div style="grid-column: span 2;"><label>Palette Defaults (Preview Args)</label><input type="text" id="mPreview" value="" placeholder="e.g. 3=p, 4=dot" oninput="generateCode(); if(testModeActive && document.getElementById('chkPalettePreview')?.checked) updateTestPreview();" title="Defines which overlays appear in the Circuit Editor Palette"></div>
-                    </div>
-                    <div style="display: flex; gap: 15px; margin-top: 8px;">
-                        <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mEnabled" checked onchange="generateCode()"> Enabled in Palette</label>
-                    </div>
+            <h2 class="section-header collapsed" onclick="toggleSection('sec-meta', this)" style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> 📝 Meta Properties</span>
+            </h2>
+            <div id="sec-meta" class="section-content collapsed">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 11px; padding: 5px 0;">
+                    <div><label>Category</label><input type="text" id="mCat" value="Basic Components" oninput="generateCode()"></div>
+                    <div><label>Label Anchor</label><input type="text" id="mAnchor" value="B" oninput="generateCode(); if(testModeActive) document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();"></div>
+                    <div><label>Scales</label><input type="text" id="mScales" value="1, 2, 4" oninput="generateCode()"></div>
+                    <div><label>Flip</label><input type="text" id="mFlip" value="disabled" oninput="generateCode()"></div>
+                    <div style="grid-column: span 2;"><label>Palette Defaults (Preview Args)</label><input type="text" id="mPreview" value="" placeholder="e.g. 3=p, 4=dot" oninput="generateCode(); if(testModeActive && document.getElementById('chkPalettePreview')?.checked) updateTestPreview();" title="Defines which overlays appear in the Circuit Editor Palette"></div>
+                </div>
+                <div style="display: flex; gap: 15px; margin-top: 4px; margin-bottom: 8px;">
+                    <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mEnabled" checked onchange="generateCode()"> Enabled in Palette</label>
                 </div>
             </div>
 
-            <button class="tool-btn" style="width: 100%; margin-top: 15px; padding: 8px; font-size: 13px; background: #8e44ad; border-color: #732d91; font-weight: bold;" onclick="openLogicTester()">👁️ Live Component Preview</button>
-		</div>
+            <h2 class="section-header collapsed" onclick="toggleSection('sec-dynamic', this)" style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> 🎛️ Dynamic Properties</span>
+                <div class="header-controls">
+                    <button class="tool-btn" onclick="event.stopPropagation(); addArgDef()" style="padding: 2px 6px; font-size: 9px; background: #3498db; border-color: #2980b9;" title="Add new property">+</button>
+                </div>
+            </h2>
+            <div id="sec-dynamic" class="section-content collapsed">
+                <div id="argDefList" style="display: flex; flex-direction: column; gap: 5px; padding: 5px 0;">
+                </div>
+            </div>
 
-		<div style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 2px solid #ecf0f1; padding-top: 10px;">
-			<h2 style="position: sticky; top: 0; background: white; z-index: 10; padding-bottom: 10px; margin: 0; display: flex; justify-content: space-between; align-items: center;">
-				📚 Layers 
-				<div style="display: flex; gap: 5px;">
-					<button id="btnSolo" class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #e67e22; border-color: #d35400;" onclick="soloActiveLayer()" title="Solo / Un-solo Active Layer">👁️ Solo</button>
-					<button class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #c0392b; border-color: #a93226;" onclick="flattenLayers()" title="Merge all into Base">🥞 Flatten</button>
-					<button class="tool-btn" style="padding: 2px 8px; font-size: 10px;" onclick="addLayer()">+ Overlay</button>
-				</div>
-			</h2>
-			<div class="layer-list" id="layerList" style="flex: 1; overflow-y: auto; padding-right: 5px; padding-top: 5px;"></div>
-		</div>	
+            <h2 class="section-header collapsed" onclick="toggleSection('sec-layers', this)" style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+                <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> 📚 Layers</span>
+                <div class="header-controls" style="display: flex; gap: 5px;" onclick="event.stopPropagation()">
+                    <button id="btnSolo" class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #e67e22; border-color: #d35400;" onclick="soloActiveLayer()" title="Solo / Un-solo Active Layer">👁️ Solo</button>
+                    <button class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #c0392b; border-color: #a93226;" onclick="flattenLayers()" title="Merge all into Base">🥞 Flatten</button>
+                    <button class="tool-btn" style="padding: 2px 8px; font-size: 10px;" onclick="addLayer()">+ Overlay</button>
+                </div>
+            </h2>
+            <div id="sec-layers" class="section-content collapsed">
+                <div class="layer-list" id="layerList" style="padding: 5px 0;"></div>
+            </div>
+
+        </div>
     </div>
 
     <div class="panel main-panel">
-        <div class="toolbar">
-            <span style="font-size: 11px; font-weight: bold; color: #bdc3c7;">DRAW:</span>
-            <button class="tool-btn active" onclick="setTool('line')" id="btn-line">Line</button>
-            <button class="tool-btn" onclick="setTool('rect')" id="btn-rect">Rectangle</button>
-            <button class="tool-btn" onclick="setTool('circle')" id="btn-circle">Circle</button>
-            <button class="tool-btn" onclick="setTool('erase')" id="btn-erase" style="border-color: #e74c3c;">🧽 Erase</button>
-            <button class="tool-btn" onclick="setTool('extract')" id="btn-extract" style="border-color: #9b59b6; background: #8e44ad;">✂️ Select/Split</button>
-            <button class="tool-btn" onclick="setTool('pin')" id="btn-pin" style="background: #e67e22; border-color: #d35400;">📌 Pin</button>
-            
-            <div id="extractTools" style="display:none; gap: 5px; align-items: center; border-left: 1px solid #7f8c8d; padding-left: 10px; margin-left: 5px;">
-                <span style="font-size: 9px; font-weight: bold; color: #f1c40f;">SELECTED:</span>
-                <button class="tool-btn" style="background:#27ae60; border-color:#2ecc71; padding: 3px 8px;" onclick="extractAction(false)">Move to New Layer</button>
-                <button class="tool-btn" style="background:#2980b9; border-color:#3498db; padding: 3px 8px;" onclick="extractAction(true)">Copy to New Layer</button>
-                <button class="tool-btn" style="background:#c0392b; border-color:#e74c3c; padding: 3px 8px;" onclick="explodeSelected()">💥 Shatter</button>
-                <button class="tool-btn" style="background:#f39c12; border-color:#e67e22; padding: 3px 8px;" onclick="recombineSelected()">🧲 Recombine</button>
-				<button class="tool-btn" style="background:#8e44ad; border-color:#9b59b6; padding: 3px 8px;" onclick="rotateSelectedAction()">↻ Rotate</button>
-            </div>
-            
-            <div class="style-group">
-                <span style="font-size: 11px; font-weight: bold; color: #bdc3c7;">STYLES:</span>
+        
+        <h2 class="section-header" onclick="toggleSection('sec-canvas', this)" style="margin: 0; padding: 4px 8px; background: #ecf0f1; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="display: flex; align-items: center; gap: 6px;"><span class="toggle-icon">▼</span> 🎨 Drawing Canvas</span>
+        </h2>
+        
+        <div id="sec-canvas" class="section-content" style="display: flex; flex-direction: column; flex: 3; margin-top: 10px;">
+            <div class="toolbar">
+                <span style="font-size: 11px; font-weight: bold; color: #bdc3c7;">DRAW:</span>
+                <button class="tool-btn active" onclick="setTool('line')" id="btn-line">Line</button>
+                <button class="tool-btn" onclick="setTool('rect')" id="btn-rect">Rectangle</button>
+                <button class="tool-btn" onclick="setTool('circle')" id="btn-circle">Circle</button>
+                <button class="tool-btn" onclick="setTool('text')" id="btn-text">T Text</button>
+                <button class="tool-btn" onclick="setTool('erase')" id="btn-erase" style="border-color: #e74c3c;">🧽 Erase</button>
+                <button class="tool-btn" onclick="setTool('extract')" id="btn-extract" style="border-color: #9b59b6; background: #8e44ad;">✂️ Select/Split</button>
+                <button class="tool-btn" onclick="setTool('pin')" id="btn-pin" style="background: #e67e22; border-color: #d35400;">📌 Pin</button>
                 
-                <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.15); padding: 2px 6px; border-radius: 4px;">
-                    <span style="font-size: 11px;">Width:</span>
-                    <input type="range" id="rngWidth" min="0.5" max="10.0" step="0.1" value="1.8" oninput="document.getElementById('txtWidth').innerText = parseFloat(this.value).toFixed(1); updateActiveLayerStyle()" style="width: 60px; margin: 0; cursor: ew-resize;">
-                    <span id="txtWidth" style="font-size: 11px; font-weight: bold; width: 18px; text-align: right;">1.8</span>
+                <label style="color: white; margin-left: 10px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                    <input type="checkbox" id="chkHidePinData" onchange="renderCanvas()"> Hide Pin Data
+                </label>
+                
+                <div id="extractTools" style="display:none; gap: 5px; align-items: center; border-left: 1px solid #7f8c8d; padding-left: 10px; margin-left: 5px;">
+                    <span style="font-size: 9px; font-weight: bold; color: #f1c40f;">SELECTED:</span>
+                    <button class="tool-btn" style="background:#27ae60; border-color:#2ecc71; padding: 3px 8px;" onclick="extractAction(false)">Move to New Layer</button>
+                    <button class="tool-btn" style="background:#2980b9; border-color:#3498db; padding: 3px 8px;" onclick="extractAction(true)">Copy to New Layer</button>
+                    <button class="tool-btn" style="background:#c0392b; border-color:#e74c3c; padding: 3px 8px;" onclick="explodeSelected()">💥 Shatter</button>
+                    <button class="tool-btn" style="background:#f39c12; border-color:#e67e22; padding: 3px 8px;" onclick="recombineSelected()">🧲 Recombine</button>
+                    <button class="tool-btn" style="background:#8e44ad; border-color:#9b59b6; padding: 3px 8px;" onclick="rotateSelectedAction()">↻ Rotate</button>
                 </div>
+                
+                <div class="style-group">
+                    <span style="font-size: 11px; font-weight: bold; color: #bdc3c7;">STYLES:</span>
+                    
+                    <div style="display: flex; align-items: center; gap: 4px; background: rgba(0,0,0,0.15); padding: 2px 6px; border-radius: 4px;">
+                        <span style="font-size: 11px;">Width:</span>
+                        <input type="range" id="rngWidth" min="0.5" max="10.0" step="0.1" value="1.8" oninput="document.getElementById('txtWidth').innerText = parseFloat(this.value).toFixed(1); updateActiveLayerStyle()" style="width: 60px; margin: 0; cursor: ew-resize;">
+                        <span id="txtWidth" style="font-size: 11px; font-weight: bold; width: 18px; text-align: right;">1.8</span>
+                    </div>
 
-                <div style="display: flex; align-items: center; gap: 2px; background: rgba(0,0,0,0.15); padding: 2px; border-radius: 4px; margin-left: 5px;">
-                    <input type="color" id="inpColorPicker" oninput="document.getElementById('inpColorHex').value = this.value; updateActiveLayerStyle()" style="width: 22px; height: 22px; padding: 0; border: none; cursor: pointer; background: transparent;" title="Pick Color">
-                    <input type="text" id="inpColorHex" onchange="document.getElementById('inpColorPicker').value = this.value || '#000000'; updateActiveLayerStyle()" placeholder="Auto Theme" style="width: 70px; height: 22px; padding: 2px 4px; font-size: 10px;" title="Type named color (red) or hex (#ff0000)">
+                    <div style="display: flex; align-items: center; gap: 2px; background: rgba(0,0,0,0.15); padding: 2px; border-radius: 4px; margin-left: 5px;">
+                        <input type="color" id="inpColorPicker" oninput="document.getElementById('inpColorHex').value = this.value; updateActiveLayerStyle()" style="width: 22px; height: 22px; padding: 0; border: none; cursor: pointer; background: transparent;" title="Pick Color">
+                        <input type="text" id="inpColorHex" onchange="document.getElementById('inpColorPicker').value = this.value || '#000000'; updateActiveLayerStyle()" placeholder="Auto Theme" style="width: 70px; height: 22px; padding: 2px 4px; font-size: 10px;" title="Type named color (red) or hex (#ff0000)">
+                    </div>
+
+                    <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkDashed" onchange="updateActiveLayerStyle()"> Dash</label>
+                    <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkSolid" onchange="updateActiveLayerStyle()"> Solid</label>
+                    <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkRounded" onchange="updateActiveLayerStyle()"> Rounded</label>
                 </div>
-
-                <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkDashed" onchange="updateActiveLayerStyle()"> Dash</label>
-                <label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkSolid" onchange="updateActiveLayerStyle()"> Solid</label>
-				<label style="color: white; margin-left: 5px; font-size: 11px; cursor: pointer;"><input type="checkbox" id="chkRounded" onchange="updateActiveLayerStyle()"> Rounded</label>
+                
+                <div class="style-group" style="margin-left: auto;">
+                    <select id="selTheme" onchange="renderCanvas()" style="width: auto; padding: 3px; font-size: 11px; font-weight: bold; background: #fdfdfd; color: #2c3e50; border: none; border-radius: 4px;">
+                        <option value="standard">🔵 Standard Theme</option>
+                        <option value="cadence">🟢 Cadence Theme</option>
+                    </select>
+                </div>
             </div>
-            
-            <div class="style-group" style="margin-left: auto;">
-                <select id="selTheme" onchange="renderCanvas()" style="width: auto; padding: 3px; font-size: 11px; font-weight: bold; background: #fdfdfd; color: #2c3e50; border: none; border-radius: 4px;">
-                    <option value="standard">🔵 Standard Theme</option>
-                    <option value="cadence">🟢 Cadence Theme</option>
-                </select>
+
+            <div class="canvas-container" style="flex: 1; min-height: 200px;">
+                <svg id="drawingSvg">
+                    <defs>
+                        <pattern id="grid5" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M 5 0 L 0 0 0 5" fill="none" stroke="#ecf0f1" stroke-width="0.15"/></pattern>
+                        <pattern id="grid10" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="url(#grid5)"/><path d="M 10 0 L 0 0 0 10" fill="none" stroke="#bdc3c7" stroke-width="0.3"/></pattern>
+                    </defs>
+                    <rect x="-2000" y="-2000" width="4000" height="4000" fill="url(#grid10)" />
+                    <line x1="-2000" y1="0" x2="2000" y2="0" stroke="#95a5a6" stroke-width="0.4" />
+                    <line x1="0" y1="-2000" x2="0" y2="2000" stroke="#95a5a6" stroke-width="0.4" />
+                    
+                    <g id="renderedPaths"></g>
+                    <path id="livePreview" stroke="#3498db" fill="none" />
+                    <rect id="selectionBox" class="selection-box" display="none" />
+                </svg>
+                
+                <div class="view-controls">
+                    <button class="view-btn" onclick="pan(0, 20)">▲</button>
+                    <button class="view-btn" onclick="pan(0, -20)">▼</button>
+                    <button class="view-btn" onclick="pan(20, 0)">◄</button>
+                    <button class="view-btn" onclick="pan(-20, 0)">►</button>
+                    <div style="width: 10px;"></div>
+                    <button class="view-btn" onclick="zoom(0.8)">➕</button>
+                    <button class="view-btn" onclick="zoom(1.2)">➖</button>
+                    <button class="view-btn" onclick="resetView()" style="font-size: 11px;">Reset</button>
+                </div>
             </div>
         </div>
 
-        <div class="canvas-container">
-            <svg id="drawingSvg">
-                <defs>
-                    <pattern id="grid5" width="5" height="5" patternUnits="userSpaceOnUse"><path d="M 5 0 L 0 0 0 5" fill="none" stroke="#ecf0f1" stroke-width="0.15"/></pattern>
-                    <pattern id="grid10" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="url(#grid5)"/><path d="M 10 0 L 0 0 0 10" fill="none" stroke="#bdc3c7" stroke-width="0.3"/></pattern>
-                </defs>
-                <rect x="-2000" y="-2000" width="4000" height="4000" fill="url(#grid10)" />
-                <line x1="-2000" y1="0" x2="2000" y2="0" stroke="#95a5a6" stroke-width="0.4" />
-                <line x1="0" y1="-2000" x2="0" y2="2000" stroke="#95a5a6" stroke-width="0.4" />
-                
-                <g id="renderedPaths"></g>
-                <path id="livePreview" stroke="#3498db" fill="none" />
-                <rect id="selectionBox" class="selection-box" display="none" />
-            </svg>
+        <h2 class="section-header collapsed" onclick="toggleSection('sec-exported-code', this)" style="margin-top: 10px; padding: 4px 8px; background: #ecf0f1; border-radius: 6px; display: flex; justify-content: space-between; align-items: center;">
+            <span style="display: flex; align-items: center; gap: 6px;"><span class="toggle-icon">▼</span> 📋 Exported Code</span>
             
-            <div class="view-controls">
-                <button class="view-btn" onclick="pan(0, 20)">▲</button>
-                <button class="view-btn" onclick="pan(0, -20)">▼</button>
-                <button class="view-btn" onclick="pan(20, 0)">◄</button>
-                <button class="view-btn" onclick="pan(-20, 0)">►</button>
-                <div style="width: 10px;"></div>
-                <button class="view-btn" onclick="zoom(0.8)">➕</button>
-                <button class="view-btn" onclick="zoom(1.2)">➖</button>
-                <button class="view-btn" onclick="resetView()" style="font-size: 11px;">Reset</button>
-            </div>
-        </div>
-
-        <h2 style="display: flex; justify-content: space-between; align-items: center;">
-            <span>📋 Exported Code</span>
-            <div style="display: flex; gap: 8px; align-items: center;">
+            <div class="header-controls" style="display: flex; gap: 8px; align-items: center;" onclick="event.stopPropagation()">
                 <button id="btnCopyOutput" class="tool-btn" onclick="copyOutputToClipboard()" style="background: #27ae60; border-color: #2ecc71; font-size: 11px; padding: 2px 10px;">📋 Copy to Clipboard</button>
                 
-                <select id="exportMode" onchange="generateCode()" style="width: auto; padding: 2px; font-size: 11px; background: #3498db; color: white; border: none; font-weight: bold;">
-                    <option value="sty">.sty Metadata Only</option>
+                <select id="exportMode" onchange="generateCode()" style="width: auto; padding: 3px; font-size: 11px; background: #3498db; color: white; border: none; font-weight: bold; border-radius: 4px; outline: none;">                 
                     <option value="latex">Full LaTeX / TikZ Macro</option>
+					<option value="sty">.sty Metadata Only</option>
                 </select>
             </div>
         </h2>
-        <textarea id="outputSty" class="output-box" readonly></textarea>
+        
+        <div id="sec-exported-code" class="section-content collapsed" style="display: flex; flex-direction: column; flex: 1; margin-top: 5px;">
+            <textarea id="outputSty" class="output-box" readonly style="flex: 1; width: 100%; box-sizing: border-box; border-radius: 6px; border: 1px solid #bdc3c7; min-height: 150px;"></textarea>
+        </div>
     </div>
 
     <script>
+	
+		let argDefs = []; // Θα αποθηκεύει αντικείμενα { idx, type, label, defVal, options }
+	
         // --- UI ACCORDION LOGIC ---
         function toggleSection(sectionId, headerEl) {
             const section = document.getElementById(sectionId);
@@ -318,9 +413,63 @@
             let theme = document.getElementById('selTheme').value;
             let baseColor = (theme === 'cadence') ? "#007c3c" : "#2c3e50";
             let labelColor = (theme === 'cadence') ? "#FFFFFF" : "#34495e";
-            let html = "";
-            let combinedPathForMath = "";
+            let geomHtml = "";
+            let textHtml = "";
+            let combinedPathForMath = ""; 
 
+            let previewAngle = 0;
+            let previewFlipH = false;
+            let previewFlipV = false;
+
+            // 1. ΔΙΑΒΑΣΜΑ ΤΩΝ GEOM PROPERTIES ΑΠΟ ΤΟ UI
+            let argsList = getParsedArgs();
+            argsList.forEach(a => {
+                let domInput = document.getElementById(`test-arg-${a.idx}`);
+                let val = domInput ? domInput.value : testValues[a.idx];
+                if (!val) return;
+
+                let customDef = argDefs.find(def => def.idx == a.idx);
+                let typeMatch = customDef ? customDef.type : '';
+
+                if (typeMatch === 'rotflip' || (!customDef && a.name.toLowerCase().includes('rotation') && a.name.toLowerCase().includes('flip'))) {
+                    let parts = val.split(',');
+                    previewAngle = parseFloat(parts[0]) || 0;
+                    let f = parts[1] ? parts[1].trim() : '';
+                    if (f==='h') previewFlipH = true; if (f==='v') previewFlipV = true; if (f==='hv'||f==='vh') { previewFlipH=true; previewFlipV=true; }
+                } else if (typeMatch === 'rotation' || (!customDef && (a.name.toLowerCase().includes('rotation') || a.name.toLowerCase().includes('angle')))) {
+                    previewAngle = parseFloat(val) || 0;
+                } else if (typeMatch === 'flip' || (!customDef && a.name.toLowerCase().includes('flip'))) {
+                    let f = val.trim();
+                    if (f==='h') previewFlipH = true; if (f==='v') previewFlipV = true; if (f==='hv'||f==='vh') { previewFlipH=true; previewFlipV=true; }
+                }
+            });
+
+            // 2. ΜΑΘΗΜΑΤΙΚΟΣ ΚΙΝΗΤΗΡΑΣ ΜΕΤΑΣΧΗΜΑΤΙΣΜΩΝ
+            let sx = previewFlipH ? -1 : 1;
+            let sy = previewFlipV ? -1 : 1;
+            let transformStr = `rotate(${-previewAngle}, 0, 0) scale(${sx}, ${sy})`;
+
+            let rad = -previewAngle * Math.PI / 180;
+            function trans(x, y) {
+                let x1 = x * sx; let y1 = y * sy;
+                return {
+                    x: x1 * Math.cos(rad) - y1 * Math.sin(rad),
+                    y: x1 * Math.sin(rad) + y1 * Math.cos(rad)
+                };
+            }
+
+            function transDir(d) {
+                if (sx === -1) { if (d==='L') d='R'; else if (d==='R') d='L'; }
+                if (sy === -1) { if (d==='T') d='B'; else if (d==='B') d='T'; }
+                
+                let ang = (previewAngle % 360 + 360) % 360; 
+                if (ang === 90) { if (d==='R') d='T'; else if (d==='T') d='L'; else if (d==='L') d='B'; else if (d==='B') d='R'; } 
+                else if (ang === 180) { if (d==='R') d='L'; else if (d==='L') d='R'; else if (d==='T') d='B'; else if (d==='B') d='T'; } 
+                else if (ang === 270) { if (d==='R') d='B'; else if (d==='T') d='R'; else if (d==='L') d='T'; else if (d==='B') d='L'; }
+                return d;
+            }
+
+            // 3. ZΩΓΡΑΦΙΚΗ ΤΩΝ LAYERS
             layers.forEach(l => {
                 let shouldShow = evaluateLayerVisibility(l);
                 if (!shouldShow || !l.pathStr.trim()) return;
@@ -330,88 +479,121 @@
                 let fill = l.styles.solid ? stroke : "none";
                 let lineCap = l.styles.rounded ? 'round' : 'butt';
                 let lineJoin = l.styles.rounded ? 'round' : 'miter';
-                combinedPathForMath += " " + l.pathStr;
+                
                 let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
                 subPaths.forEach(sub => {
-                    html += `<path d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
+                    let textMatch = sub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
+                    if (textMatch) {
+                        let tx = parseFloat(textMatch[1]); let ty = parseFloat(textMatch[2]);
+                        let tSize = parseFloat(textMatch[3]); let tStyle = textMatch[4]; let tStr = textMatch[5];
+                        let fw = tStyle === 'bold' ? 'bold' : 'normal'; let fs = tStyle === 'italic' ? 'italic' : 'normal';
+                        
+                        let pt = trans(tx, ty);
+                        textHtml += `<text x="${pt.x}" y="${pt.y}" font-family="Arial" font-size="${tSize}" font-weight="${fw}" font-style="${fs}" fill="${stroke}" text-anchor="middle" dominant-baseline="central">${tStr}</text>`;
+                    } else {
+                        geomHtml += `<path d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
+                        combinedPathForMath += " " + sub;
+                    }
                 });
             });
 
-            // --- LOGIC ΓΙΑ ΤΟ LABEL ---
-            let argsList = getParsedArgs();
+            // 4. ΔΥΝΑΜΙΚΑ PINS & LABELS
+            pins.forEach(p => {
+                let pLayer = layers.find(l => l.id === p.layerId);
+                let isVisible = pLayer ? evaluateLayerVisibility(pLayer) : true;
+                if (!isVisible || !p.id.includes('$')) return; 
+
+                let textOpacity = 1;
+                let displayText = p.id.replace(/\$(\d+)/g, (match, idxStr) => {
+                    let argIdx = parseInt(idxStr);
+                    let domInput = document.getElementById(`test-arg-${argIdx}`);
+                    let val = domInput ? domInput.value : testValues[argIdx];
+                    if (val && val.toString().trim() !== "") return val.toString().trim(); 
+                    let argObj = argsList.find(a => a.idx === argIdx);
+                    let argName = argObj ? argObj.name.split('/')[0].trim() : `Arg ${argIdx}`;
+                    textOpacity = 0.5;
+                    return `[${argName}]`;
+                });
+
+                let pt = trans(p.x, p.y);
+                let d = transDir(p.dir || 'R');
+
+                let lx = pt.x, ly = pt.y, align = "start";
+                if (d === 'R') { lx += 3; ly -= 2; align = "start"; }
+                else if (d === 'L') { lx -= 3; ly -= 2; align = "end"; }
+                else if (d === 'T') { ly -= 4; align = "middle"; }
+                else if (d === 'B') { ly += 6; align = "middle"; }
+
+                textHtml += `<circle cx="${pt.x}" cy="${pt.y}" r="1.5" fill="#f1c40f" stroke="#d35400" stroke-width="1" />`;
+                textHtml += `<text x="${lx}" y="${ly}" font-family="Arial" font-size="5.5" fill="${baseColor}" font-weight="bold" text-anchor="${align}" opacity="${textOpacity}">${displayText}</text>`;
+            });
+
+            // 5. ΚΕΝΤΡΙΚΟ LABEL (Name του εξαρτήματος)
             let nameArg = argsList.find(a => a.name.toLowerCase() === 'name' || a.name.toLowerCase() === 'text');
-            // Αν το πεδίο του tester είναι κενό, δείξε το Display Name ή "M1" για να βλέπουμε το Anchor!
-				let labelText = nameArg ? (testValues[nameArg.idx] || document.getElementById('dName').value || "M1") : "";
+            let labelText = nameArg ? (testValues[nameArg.idx] || document.getElementById('dName').value || "M1") : "";
             let anchorStr = document.getElementById('mAnchor').value.trim();
 
-            let symbolBBox = { x: -20, y: -20, width: 40, height: 40 };
-            if (combinedPathForMath.trim()) {
-                const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                tempPath.setAttribute('d', combinedPathForMath);
-                const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svgContainer.appendChild(tempPath);
-                document.body.appendChild(svgContainer);
-                try { let bbox = tempPath.getBBox(); if (bbox.width > 0) symbolBBox = bbox; } catch(e) {}
-                document.body.removeChild(svgContainer);
-            }
-
-            let lx, ly;
+            let origLx, origLy;
             let parts = anchorStr.split(/\s+/);
-            let dir = (parts.length > 0) ? parts[parts.length - 1].toUpperCase() : "B";
+            let initialDir = (parts.length > 0) ? parts[parts.length - 1].toUpperCase() : "B";
             
-            // --- Η ΜΕΓΑΛΗ ΔΙΟΡΘΩΣΗ: Απευθείας SVG Pixels ---
             if (parts.length >= 3) {
-                // Παίρνουμε τις συντεταγμένες 1-προς-1 όπως τις γράφεις στο πεδίο!
-                lx = parseFloat(parts[0]); 
-                ly = parseFloat(parts[1]); 
+                // ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ ΣΤΟ ΠΡΟΗΓΟΥΜΕΝΟ UPDATE! (Έφυγε το *10 και το μείον)
+                origLx = parseFloat(parts[0]); 
+                origLy = parseFloat(parts[1]); 
             } else {
-                // Auto Anchor: Υπολογισμός από το Bounding Box
-                lx = symbolBBox.x + symbolBBox.width / 2;
-                ly = symbolBBox.y + symbolBBox.height / 2;
-                if (dir === 'B') ly = symbolBBox.y + symbolBBox.height;
-                else if (dir === 'T') ly = symbolBBox.y;
-                else if (dir === 'L') lx = symbolBBox.x;
-                else if (dir === 'R') lx = symbolBBox.x + symbolBBox.width;
+                let unrotatedBBox = { x: -20, y: -20, width: 40, height: 40 };
+                if (combinedPathForMath.trim()) {
+                    const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    tempPath.setAttribute('d', combinedPathForMath);
+                    const svgC = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    svgC.appendChild(tempPath); document.body.appendChild(svgC);
+                    try { let bbox = svgC.getBBox(); if (bbox.width > 0) unrotatedBBox = bbox; } catch(e){}
+                    document.body.removeChild(svgC);
+                }
+                origLx = unrotatedBBox.x + unrotatedBBox.width / 2;
+                origLy = unrotatedBBox.y + unrotatedBBox.height / 2;
+                
+                let gap = 10;
+                if (initialDir === 'B') origLy = unrotatedBBox.y + unrotatedBBox.height + gap;
+                else if (initialDir === 'T') origLy = unrotatedBBox.y - gap;
+                else if (initialDir === 'L') origLx = unrotatedBBox.x - gap;
+                else if (initialDir === 'R') origLx = unrotatedBBox.x + unrotatedBBox.width + gap;
             }
 
-            // Εφαρμογή σταθερού Gap (10 pixels = 1 κουτάκι grid στον editor)
-            let gap = 10; 
-            if (dir === 'B') ly += gap;
-            else if (dir === 'T') ly -= gap;
-            else if (dir === 'L') lx -= gap;
-            else if (dir === 'R') lx += gap;
+            let ptLabel = trans(origLx, origLy);
+            let finalDir = transDir(initialDir);
+
+            let anchor = "middle"; let dy = "0.3em";
+            if (finalDir === 'B') { anchor = "middle"; dy = "0.8em"; }
+            else if (finalDir === 'T') { anchor = "middle"; dy = "-0.2em"; }
+            else if (finalDir === 'L') { anchor = "end"; dy = "0.3em"; }
+            else if (finalDir === 'R') { anchor = "start"; dy = "0.3em"; }
 
             if (labelText) {
-                let anchor = "middle";
-                let dy = "0.3em";
-                if (dir === 'B') { anchor = "middle"; dy = "0.8em"; }
-                else if (dir === 'T') { anchor = "middle"; dy = "-0.2em"; }
-                else if (dir === 'L') { anchor = "end"; dy = "0.3em"; }
-                else if (dir === 'R') { anchor = "start"; dy = "0.3em"; }
-
-                // Μείωση font-size στο 5.5 και stroke-width στο 1.5 για πιο κομψό αποτέλεσμα
-                html += `<text x="${lx}" y="${ly}" dy="${dy}" text-anchor="${anchor}" dominant-baseline="middle" font-family="Arial" font-size="5.5" fill="${labelColor}" font-weight="bold" style="paint-order: stroke; stroke: ${theme==='cadence'?'black':'white'}; stroke-width: 1.5px;">${labelText}</text>`;
-                combinedPathForMath += ` M ${lx-15} ${ly-10} L ${lx+15} ${ly+10}`;
+                textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" dy="${dy}" text-anchor="${anchor}" dominant-baseline="middle" font-family="Arial" font-size="5.5" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
             }
 
-            // Auto-Zoom ViewBox
-            let vbX = -50, vbY = -50, vbW = 100, vbH = 100;
-            if (combinedPathForMath.trim()) {
-                const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                tempPath.setAttribute('d', combinedPathForMath);
+            // 6. ΥΠΟΛΟΓΙΣΜΟΣ ΟΡΙΩΝ ΚΑΜΕΡΑΣ ΜΕΣΩ ΤΟΥ BROWSER
+            let finalHtml = `<g transform="${transformStr}">${geomHtml}</g>${textHtml}`;
+            let finalBBox = { x: -20, y: -20, width: 40, height: 40 };
+            
+            if (finalHtml.trim()) {
                 const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svgContainer.appendChild(tempPath);
+                svgContainer.innerHTML = finalHtml;
                 document.body.appendChild(svgContainer);
-                try { 
-                    let bbox = tempPath.getBBox(); 
-                    let pad = Math.max(bbox.width, bbox.height) * 0.35;
-                    vbX = bbox.x - pad; vbY = bbox.y - pad;
-                    vbW = bbox.width + (pad * 2); vbH = bbox.height + (pad * 2);
-                } catch(e) {}
+                try { let bbox = svgContainer.getBBox(); if (bbox.width > 0) finalBBox = bbox; } catch(e) {}
                 document.body.removeChild(svgContainer);
             }
 
-            return `<svg width="100%" height="160" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet" style="background:${theme==='cadence'?'#111':'#f4f6f7'}; border:1px solid #bdc3c7; border-radius:6px;">${html}</svg>`;
+            let padX = Math.max(finalBBox.width * 0.20, 15);
+            let padY = Math.max(finalBBox.height * 0.20, 15);
+            let vbX = finalBBox.x - padX; let vbY = finalBBox.y - padY;
+            let vbW = finalBBox.width + (padX * 2); let vbH = finalBBox.height + (padY * 2);
+
+            return `<svg width="100%" height="160" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet" style="background:${theme==='cadence'?'#111':'#f4f6f7'}; border:1px solid #bdc3c7; border-radius:6px;">
+                        ${finalHtml}
+                    </svg>`;
         }
 		
 		function updateTestPreview() {
@@ -441,58 +623,116 @@
             let argsList = getParsedArgs();
             if (argsList.length === 0) return Swal.fire("No arguments defined in Config!");
 
-            testModeActive = true; 
+            testValues = {}; 
             
             let previewStr = document.getElementById('mPreview') ? document.getElementById('mPreview').value.trim() : "";
+            if (previewStr) {
+                previewStr.split(',').forEach(pair => {
+                    let kv = pair.split('=');
+                    if(kv.length === 2) testValues[parseInt(kv[0].trim())] = kv[1].trim();
+                });
+            }
 
-            // 1. Δημιουργία του νέου UI με το Palette Checkbox
+            argDefs.forEach(def => {
+                if (testValues[def.idx] === undefined) testValues[def.idx] = def.defVal;
+            });
+
+            argsList.forEach(a => {
+                if (testValues[a.idx] === undefined) testValues[a.idx] = "";
+            });
+
+            testModeActive = true; 
+            let inputStyle = "width: 100%; height: 32px; font-size: 13px; margin: 0; padding: 4px 8px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; font-family: 'Segoe UI', sans-serif;";
+
             let htmlForm = `
                 <div style="margin-bottom: 10px; background: #ebf5fb; padding: 8px; border-radius: 6px; border: 1px solid #3498db; text-align: left;">
                     <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:bold; color:#2980b9; cursor:pointer; margin: 0;">
-                        <input type="checkbox" id="chkPalettePreview" style="width: 16px; height: 16px;">
-                        🎨 View as Palette Default
+                        <input type="checkbox" id="chkPalettePreview" style="width: 16px; height: 16px;" checked>
+                        🎨 Sync with Palette Defaults
                     </label>
                 </div>
-                <div id="preview-args-form" style="text-align: left; font-size: 14px; max-height: 200px; overflow-y: auto; padding-right: 10px; border-top: 1px solid #eee; padding-top: 10px; transition: opacity 0.2s;">
+                <div id="preview-args-form" style="text-align: left; font-size: 14px; max-height: 200px; overflow-y: auto; padding-right: 10px; border-top: 1px solid #eee; padding-top: 10px;">
             `;
             
             argsList.forEach(a => {
                 let desc = a.name.toLowerCase();
-                if (desc.includes('position')) return;
+                if (desc.includes('position') || desc.includes('grid') || desc.includes('show')) return; 
 
-                let currentVal = testValues[a.idx] || "";
-                htmlForm += `<div style="margin-bottom: 10px;">
-                                <label style="display:block; font-weight:bold; font-size:11px; color:#2c3e50; margin-bottom:2px;">ARG ${a.idx}: ${a.name}</label>`;
-                
-                if (a.name.includes('/')) {
-                    let options = a.name.split('/');
-                    htmlForm += `<select id="test-arg-${a.idx}" class="swal2-input" style="width:100%; height:32px; font-size:13px; margin:0; padding:0 10px;">`;
-                    htmlForm += `<option value="">-- select --</option>`;
-                    options.forEach(opt => {
-                        let cleanOpt = opt.trim();
-                        let selected = (currentVal === cleanOpt) ? 'selected' : '';
-                        htmlForm += `<option value="${cleanOpt}" ${selected}>${cleanOpt}</option>`;
-                    });
-                    htmlForm += `</select>`;
+                let customDef = argDefs.find(def => def.idx == a.idx);
+                let labelText = customDef ? customDef.label : `ARG ${a.idx}: ${a.name}`;
+                let currentVal = testValues[a.idx];
+
+                if (customDef && (customDef.type === 'rotflip' || customDef.type === 'rotation' || customDef.type === 'flip')) {
+                    labelText = customDef.type === 'rotflip' ? `ARG ${a.idx}: ROTATION & FLIP` : (customDef.type === 'rotation' ? `ARG ${a.idx}: ROTATION` : `ARG ${a.idx}: FLIP`);
+                }
+
+                htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;">
+                                <label style="display:block; font-weight:bold; font-size:11px; color:#2c3e50; margin-bottom:4px;">${labelText}</label>`;
+
+                if (customDef) {
+                    if (customDef.type === 'select') {
+                        let options = customDef.options.split(',').map(o => o.trim());
+                        htmlForm += `<select id="test-arg-${a.idx}" style="${inputStyle}">`;
+                        options.forEach(opt => {
+                            let selected = (currentVal === opt) ? 'selected' : '';
+                            htmlForm += `<option value="${opt}" ${selected}>${opt}</option>`;
+                        });
+                        htmlForm += `</select>`;
+                    } 
+                    else if (customDef.type === 'flags') {
+                        let allFlags = customDef.options.split(',').map(o => o.trim());
+                        let activeFlags = currentVal.split('-').map(o => o.trim());
+                        htmlForm += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
+                        allFlags.forEach(flag => {
+                            let checked = activeFlags.includes(flag) ? 'checked' : '';
+                            htmlForm += `<label style="font-size:11px; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="test-flag-${a.idx}" value="${flag}" ${checked} onchange="updateFlags(${a.idx})"> ${flag}</label>`;
+                        });
+                        htmlForm += `</div><input type="hidden" id="test-arg-${a.idx}" value="${currentVal}" style="display:none !important;">`;
+                    }
+                    else if (customDef.type === 'rotflip') {
+                        let [r, f] = (currentVal || "0,none").split(',');
+                        if (!f) f = "none";
+                        htmlForm += `
+                            <div style="display: flex; gap: 5px;">
+                                <input type="number" id="test-arg-${a.idx}-rot" style="flex:1; ${inputStyle}" value="${r}" oninput="updateCombinedRotFlip(${a.idx})">
+                                <select id="test-arg-${a.idx}-flip" style="flex:1; ${inputStyle}" onchange="updateCombinedRotFlip(${a.idx})">
+                                    <option value="none" ${f==='none'?'selected':''}>None</option>
+                                    <option value="h" ${f==='h'?'selected':''}>Flip H</option>
+                                    <option value="v" ${f==='v'?'selected':''}>Flip V</option>
+                                    <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="test-arg-${a.idx}" value="${currentVal || '0,none'}" style="display:none !important;">`;
+                    }
+                    else if (customDef.type === 'rotation') {
+                        htmlForm += `<input type="number" id="test-arg-${a.idx}" style="${inputStyle}" value="${currentVal || '0'}">`;
+                    }
+                    else if (customDef.type === 'flip') {
+                        let f = currentVal || 'none';
+                        htmlForm += `<select id="test-arg-${a.idx}" style="${inputStyle}">
+                            <option value="none" ${f==='none'?'selected':''}>None</option>
+                            <option value="h" ${f==='h'?'selected':''}>Flip H</option>
+                            <option value="v" ${f==='v'?'selected':''}>Flip V</option>
+                            <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
+                        </select>`;
+                    }
+                    else { 
+                        htmlForm += `<input type="text" id="test-arg-${a.idx}" style="${inputStyle}" value="${currentVal}">`;
+                    }
                 } else {
-                    htmlForm += `<input id="test-arg-${a.idx}" class="swal2-input" style="width:100%; height:32px; font-size:13px; margin:0; padding:0 10px;" value="${currentVal}" placeholder="Type value...">`;
+                    htmlForm += `<input type="text" id="test-arg-${a.idx}" style="${inputStyle}" value="${currentVal}">`;
                 }
                 htmlForm += `</div>`;
             });
             htmlForm += '</div>';
 
-            renderCanvas();
+            renderCanvas(); 
 
-            // 2. Εμφάνιση του Swal
             Swal.fire({
                 html: `
-                    <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-top: 0; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
-                        <span>⠿</span> Drag to move <span>⠿</span>
-                    </div>
+                    <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;"><span>⠿</span> Drag to move <span>⠿</span></div>
                     <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #2c3e50;">👁️ Component Preview</div>
-                    <div id="test-preview-container" style="margin-bottom: 15px;">
-                        ${generateTestPreviewSVG()}
-                    </div>
+                    <div id="test-preview-container" style="margin-bottom: 15px;">${generateTestPreviewSVG()}</div>
                     ${htmlForm}
                 `,
                 showCancelButton: true,
@@ -505,65 +745,34 @@
                     const handle = document.getElementById('swal-drag-handle');
                     
                     let isDragging = false, startX, startY, initialLeft, initialTop;
-
                     const onMouseMove = (e) => {
                         if (!isDragging) return;
                         popup.style.left = (initialLeft + (e.clientX - startX)) + 'px';
                         popup.style.top = (initialTop + (e.clientY - startY)) + 'px';
                     };
-
                     const onMouseUp = () => {
-                        isDragging = false;
-                        handle.style.cursor = 'grab';
+                        isDragging = false; handle.style.cursor = 'grab';
                         document.removeEventListener('mousemove', onMouseMove);
                         document.removeEventListener('mouseup', onMouseUp);
                     };
-
                     handle.addEventListener('mousedown', (e) => {
-                        isDragging = true;
-                        handle.style.cursor = 'grabbing';
-                        
+                        isDragging = true; handle.style.cursor = 'grabbing';
                         const rect = popup.getBoundingClientRect();
-                        popup.style.margin = '0';
-                        popup.style.position = 'fixed'; 
-                        popup.style.left = rect.left + 'px';
-                        popup.style.top = rect.top + 'px';
-                        popup.style.transform = 'none'; 
-                        
-                        startX = e.clientX;
-                        startY = e.clientY;
-                        initialLeft = rect.left;
-                        initialTop = rect.top;
-
+                        popup.style.margin = '0'; popup.style.position = 'fixed'; 
+                        popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; popup.style.transform = 'none'; 
+                        startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
                         document.addEventListener('mousemove', onMouseMove);
                         document.addEventListener('mouseup', onMouseUp);
                     });
-
-                    // --- ΛΟΓΙΚΗ ΓΙΑ ΤΟ PALETTE CHECKBOX ---
-                    const chkPalette = document.getElementById('chkPalettePreview');
-                    const formDiv = document.getElementById('preview-args-form');
-                    let savedManualValues = {...testValues}; // Κρατάμε μνήμη τι είχε γράψει ο χρήστης
-
-                    if (chkPalette) {
-                        chkPalette.addEventListener('change', (e) => {
-                            let isPaletteMode = e.target.checked;
-                            formDiv.style.opacity = isPaletteMode ? '0.4' : '1';
-                            formDiv.style.pointerEvents = isPaletteMode ? 'none' : 'auto';
-                            
-                            if (!isPaletteMode) testValues = {...savedManualValues};
-                            updateTestPreview(); // Χρήση της νέας συνάρτησης
-                        });
-                    }
-                    // --- ΛΟΓΙΚΗ ΓΙΑ ΤΑ ΧΕΙΡΟΚΙΝΗΤΑ INPUTS ---
+                    
                     argsList.forEach(a => {
                         let el = document.getElementById(`test-arg-${a.idx}`);
                         if (el) {
-                            let eventType = el.tagName === 'SELECT' ? 'change' : 'input';
-                            el.addEventListener(eventType, (e) => {
+                            el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', (e) => {
                                 testValues[a.idx] = e.target.value;
-                                savedManualValues[a.idx] = e.target.value; // Συγχρονισμός μνήμης
                                 renderCanvas();
                                 document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();
+                                document.getElementById('chkPalettePreview').checked = false;
                             });
                         }
                     });
@@ -571,11 +780,9 @@
             }).then((result) => {
                 if (result.isConfirmed) {
                     layers.forEach(l => { l.visible = evaluateLayerVisibility(l); });
-                    testModeActive = false; 
-                    renderLayerList(); 
+                    testModeActive = false; renderLayerList(); 
                 } else {
-                    testModeActive = false;
-                    renderCanvas();
+                    testModeActive = false; renderCanvas();
                 }
             });
         }
@@ -590,6 +797,7 @@
         let pins = []; // NEW: Stores coordinates!
         let pinCounter = 1;
 		let selectedShapeIndices = new Set(); // NEW: Tracks multi-selected shapes!
+		let selectedPinIds = new Set(); // ΝΕΟ: Μνήμη για τα επιλεγμένα Pins
 		let clipboardPaths = []; // NEW: Global clipboard for shapes
         
         const svg = document.getElementById('drawingSvg');
@@ -606,7 +814,7 @@
             if (currentTool === tool && (tool === 'erase' || tool === 'pin' || tool === 'extract')) tool = 'line'; 
             currentTool = tool;
             
-            document.querySelectorAll('#btn-line, #btn-rect, #btn-circle, #btn-erase, #btn-pin, #btn-extract').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('#btn-line, #btn-rect, #btn-circle, #btn-text, #btn-erase, #btn-pin, #btn-extract').forEach(btn => btn.classList.remove('active'));
             document.getElementById(`btn-${tool}`).classList.add('active');
             
             // Manage UI States
@@ -621,6 +829,7 @@
             
             document.getElementById('extractTools').style.display = (tool === 'extract') ? 'flex' : 'none';
             selectedShapeIndices.clear(); // Clear memory when changing tools
+			selectedPinIds.clear(); // Καθαρισμός επιλογής pins
             
             renderCanvas();
         }
@@ -630,6 +839,32 @@
             let argStr = document.getElementById('cArgs').value;
             let matches = [...argStr.matchAll(/\{([^}]+)\}/g)];
             return matches.map((m, i) => ({ idx: i + 1, name: m[1] }));
+        }
+
+        // --- NEW: ARGUMENT LIMITER (LATEX SUPPORTS MAX 9) ---
+        function validateArgs(inputEl) {
+            let argStr = inputEl.value;
+            let matches = [...argStr.matchAll(/\{([^}]+)\}/g)];
+            
+            const MAX_ARGS = 9; // Το απόλυτο όριο του LaTeX
+            
+            if (matches.length > MAX_ARGS) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Too many LaTeX macro arguments!',
+                    html: `LaTeX supports up to <b>${MAX_ARGS}</b> arguments per macro.<br>The extra ${matches.length - MAX_ARGS} arguments were automatically deleted.`,
+                    confirmButtonColor: '#e74c3c'
+                });
+                
+                // Κρατάμε μόνο τα πρώτα MAX_ARGS και φτιάχνουμε ξανά το string
+                let validArgsStr = matches.slice(0, MAX_ARGS).map(m => `{${m[1]}}`).join('');
+                inputEl.value = validArgsStr;
+            }
+
+            // Ενημερώνουμε όλο το UI (Layers, Dropdowns, Code) με τα νέα/κομμένα δεδομένα
+            renderLayerList();
+            renderArgDefList();
+            generateCode();
         }
 
         // --- RULE TEXT CONVERTERS ---
@@ -663,17 +898,137 @@
 
         function buildRuleText(rule) {
             if (rule && rule.type === 'base') return 'icon_base';
-            if (Array.isArray(rule)) {
-                if (rule.length === 0) return '1~=';
-                return rule.map(c => `${c.arg}${c.op}${c.val}`).join(' && ');
-            }
-            return rule || '1~='; // Επιστρέφει το String αν είναι σε Advanced mode
-        }
-
-        function buildRuleText(rule) {
-            if (rule && rule.type === 'base') return 'icon_base';
+            // ΝΕΟ: Αν ο κανόνας είναι ήδη string (Advanced Text Logic), επίστρεψέ τον ως έχει!
+            if (typeof rule === 'string' && rule.trim() !== '') return rule;
             if (!Array.isArray(rule) || rule.length === 0) return '1~=';
             return rule.map(c => `${c.arg}${c.op}${c.val}`).join(' && ');
+        }
+		
+		// --- Υποστηρικτική συνάρτηση για αλλαγή τύπου UI ---
+        window.handleTypeChange = function(index, newType) {
+            argDefs[index].type = newType;
+            if (newType === 'rotflip') { argDefs[index].label = 'Rotation & Flip'; argDefs[index].defVal = '0,none'; }
+            if (newType === 'rotation') { argDefs[index].label = 'Rotation'; argDefs[index].defVal = '0'; }
+            if (newType === 'flip') { argDefs[index].label = 'Flip'; argDefs[index].defVal = 'none'; }
+            renderArgDefList();
+            generateCode();
+        };
+
+        // --- ARGUMENT DEFINITIONS (arg_def) LOGIC ---
+        function renderArgDefList() {
+            const list = document.getElementById('argDefList');
+            list.innerHTML = '';
+            
+            if (argDefs.length === 0) {
+                list.innerHTML = '<div style="font-size:10px; color:#7f8c8d; text-align:center; padding:5px;">No dynamic properties defined.<br>Click "+ Add Prop" to create dropdowns/checkboxes.</div>';
+                return;
+            }
+
+            let argsList = getParsedArgs();
+
+            argDefs.forEach((arg, i) => {
+                let showOpts = (arg.type === 'select' || arg.type === 'flags') ? 'block' : 'none';
+                let isGeom = (arg.type === 'rotflip' || arg.type === 'rotation' || arg.type === 'flip');
+                let showLabelDef = isGeom ? 'none' : 'flex'; // Κρύβει τα Label & Default στα Geom Types!
+                
+                let argOptionsHtml = '';
+                argsList.forEach(a => {
+                    let desc = a.name.toLowerCase();
+                    let isSystem = desc.includes('position') || desc.includes('grid') || desc.includes('show') || desc === 'name' || desc === 'text';
+                    if (!isSystem || a.idx == arg.idx) {
+                        let selected = (a.idx == arg.idx) ? 'selected' : '';
+                        argOptionsHtml += `<option value="${a.idx}" ${selected}>Arg ${a.idx}: ${a.name}</option>`;
+                    }
+                });
+                
+                let html = `
+                <div style="background: #fff; border: 1px solid #bdc3c7; border-radius: 4px; padding: 6px; position: relative;">
+                    <button onclick="removeArgDef(${i})" style="position: absolute; top: 4px; right: 4px; background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 10px;" title="Remove">✖</button>
+                    
+                    <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                        <div style="width: 100px;"><label style="font-size:9px;">Argument ID</label>
+                            <select onchange="updateArgDef(${i}, 'idx', this.value)" style="padding: 2px; font-size:10px; height: 18px; width: 100%;">
+                                ${argOptionsHtml}
+                            </select>
+                        </div>
+                        <div style="flex: 1;"><label style="font-size:9px;">UI Type</label>
+                            <select onchange="handleTypeChange(${i}, this.value)" style="padding: 2px; font-size:10px; height: 18px; width: 100%;">
+                                <option value="text" ${arg.type==='text'?'selected':''}>Text Box</option>
+                                <option value="select" ${arg.type==='select'?'selected':''}>Dropdown</option>
+                                <option value="flags" ${arg.type==='flags'?'selected':''}>Checkboxes</option>
+                                <option value="rotflip" ${arg.type==='rotflip'?'selected':''}>🔄 Rot & Flip</option>
+                                <option value="rotation" ${arg.type==='rotation'?'selected':''}>🔄 Rotation Only</option>
+                                <option value="flip" ${arg.type==='flip'?'selected':''}>↔️ Flip Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="display: ${showLabelDef}; gap: 4px; margin-bottom: 4px;">
+                        <div style="flex: 2;"><label style="font-size:9px;">Label</label><input type="text" value="${arg.label}" onchange="updateArgDef(${i}, 'label', this.value)" placeholder="e.g. Channel Type" style="padding: 2px; font-size:10px;"></div>
+                        <div style="flex: 1;"><label style="font-size:9px;">Default</label><input type="text" value="${arg.defVal}" onchange="updateArgDef(${i}, 'defVal', this.value)" placeholder="e.g. n" style="padding: 2px; font-size:10px;"></div>
+                    </div>
+
+                    <div style="display: ${showOpts};">
+                        <label style="font-size:9px;">Options (comma separated)</label>
+                        <input type="text" value="${arg.options}" onchange="updateArgDef(${i}, 'options', this.value)" placeholder="e.g. n, p" style="padding: 2px; font-size:10px;">
+                    </div>
+                </div>`;
+                list.innerHTML += html;
+            });
+        }
+
+        function addArgDef() {
+            let argsList = getParsedArgs(); // Παίρνουμε όλα τα args από το input "{...}{...}"
+            
+            // Βρίσκουμε το πρώτο index που:
+            // 1. Δεν χρησιμοποιείται ήδη σε κάποιο argDef
+            // 2. ΔΕΝ είναι συστημικό (Position, Grid, Show)
+            // 3. ΔΕΝ είναι το "Name" (συνήθως το Arg 2), το οποίο θα είναι πάντα Textbox by default
+            let nextIdx = 1;
+            let found = false;
+
+            for (let i = 0; i < argsList.length; i++) {
+                let a = argsList[i];
+                let desc = a.name.toLowerCase();
+                
+                let isSystem = desc.includes('position') || desc.includes('grid') || desc.includes('show') || desc === 'name' || desc === 'text';
+                let isUsed = argDefs.find(def => def.idx === a.idx);
+
+                if (!isSystem && !isUsed) {
+                    nextIdx = a.idx;
+                    found = true;
+                    break;
+                }
+            }
+
+            // Fallback (αν όλα είναι πιασμένα ή συστημικά)
+            if (!found) {
+                while(argDefs.find(a => a.idx == nextIdx)) nextIdx++;
+            }
+
+            // Βρίσκουμε το όνομα του argument για να το βάλουμε ως default Label
+            let defaultLabel = `Property ${nextIdx}`;
+            let argObj = argsList.find(a => a.idx === nextIdx);
+            if (argObj && argObj.name) {
+                // Καθαρίζουμε το όνομα αν έχει '/' (π.χ. "n/p" -> "n/p")
+                defaultLabel = argObj.name;
+            }
+
+            argDefs.push({ idx: nextIdx, type: 'select', label: defaultLabel, defVal: '', options: '' });
+            renderArgDefList();
+            generateCode();
+        }
+
+        function removeArgDef(index) {
+            argDefs.splice(index, 1);
+            renderArgDefList();
+            generateCode();
+        }
+
+        function updateArgDef(index, field, value) {
+            argDefs[index][field] = value;
+            renderArgDefList();
+            generateCode();
         }
 
         // --- LAYER RENDERING ---
@@ -983,18 +1338,52 @@
 
         // --- IMPORTER ---
         function importSty() {
-            const code = document.getElementById('importCode').value;
-            if(!code.includes('\\newcommand')) return Swal.fire({ icon: 'error', title: 'Import Failed', text: 'Invalid code. Missing \\newcommand' });;
+            const fullCode = document.getElementById('importCode').value;
+            if(!fullCode.includes('\\newcommand')) return Swal.fire({ icon: 'error', title: 'Import Failed', text: 'Invalid code. Missing \\newcommand' });
             
-            // --- ΝΕΟ: Μηδενισμός της προσωρινής μνήμης του Tester ---
-            testValues = {}; 
-			
-			// --- ΝΕΟ: Μηδενισμός μνήμης ---
+            // --- Μηδενισμός μνήμης ---
             testValues = {}; 
             originalTikzBody = null;
             pins = [];
             pinCounter = 1;
+            argDefs = []; 
 
+            // --- ΝΕΟ: ΕΞΑΓΩΓΗ HEADER & FOOTER ΓΙΑ ΠΡΟΣΤΑΣΙΑ ΟΛΟΥ ΤΟΥ ΑΡΧΕΙΟΥ ---
+            let macroStart = fullCode.search(/\\newcommand\{\\[a-zA-Z0-9_]+\}\s*\[\d+\]\s*\{%/);
+            if (macroStart === -1) macroStart = fullCode.search(/\\newcommand\{\\[a-zA-Z0-9_]+\}/);
+            
+            let actualStart = macroStart;
+            let prefix = fullCode.substring(0, macroStart);
+            // Κρατάμε και το %% Title αν υπάρχει ακριβώς από πάνω
+            let titleMatchBlock = prefix.match(/%%\s*[^\n]+\s*$/);
+            if (titleMatchBlock) {
+                actualStart -= titleMatchBlock[0].length;
+            }
+
+            window.fileHeader = fullCode.substring(0, actualStart);
+
+            let actualEnd = fullCode.length;
+            let matchBody = fullCode.substring(macroStart).match(/\\newcommand\{\\[a-zA-Z0-9_]+\}\s*(?:\[\d+\])?\s*\{/);
+            if (matchBody) {
+                // Χειρουργική εύρεση του κλεισίματος της \newcommand μετρώντας αγκύλες {}
+                let openBraceIdx = macroStart + matchBody.index + matchBody[0].length - 1;
+                let bracketCount = 0;
+                for (let i = openBraceIdx; i < fullCode.length; i++) {
+                    if (fullCode[i] === '{') bracketCount++;
+                    else if (fullCode[i] === '}') bracketCount--;
+                    
+                    if (bracketCount === 0) {
+                        actualEnd = i + 1;
+                        break;
+                    }
+                }
+            }
+
+            // Απομονώνουμε ΜΟΝΟ τη συγκεκριμένη Macro για επεξεργασία!
+            let code = fullCode.substring(actualStart, actualEnd);
+            window.fileFooter = fullCode.substring(actualEnd);
+
+            // -- ΑΠΟ ΕΔΩ ΚΑΙ ΚΑΤΩ Ο IMPORTER ΔΙΑΒΑΖΕΙ ΜΟΝΟ ΤΟ 'code' --
             let titleMatch = code.match(/%%\s*(.+)/);
             if(titleMatch) document.getElementById('dName').value = titleMatch[1].trim();
             
@@ -1014,6 +1403,20 @@
             let mAnchor = code.match(/% label_anchor:\s*([^\n]+)/); if(mAnchor) document.getElementById('mAnchor').value = mAnchor[1].trim();
             let mScales = code.match(/% scales:\s*([^\n]+)/); if(mScales) document.getElementById('mScales').value = mScales[1].trim();
             let mFlip = code.match(/% flip:\s*([^\n]+)/); if(mFlip) document.getElementById('mFlip').value = mFlip[1].trim();
+            
+            // --- IMPORT DYNAMIC PROPERTIES ---
+            let argDefRegex = /% arg_def:\s*(\d+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]*)\s*(?:\|\s*(.*))?/g;
+            let argMatch;
+            while ((argMatch = argDefRegex.exec(code)) !== null) {
+                argDefs.push({
+                    idx: parseInt(argMatch[1].trim()),
+                    type: argMatch[2].trim(),
+                    label: argMatch[3].trim(),
+                    defVal: argMatch[4].trim(),
+                    options: argMatch[5] ? argMatch[5].trim() : ""
+                });
+            }
+            renderArgDefList();
             
             let mPreview = code.match(/% preview_args:\s*([^\n]+)/); 
             let previewInput = document.getElementById('mPreview');
@@ -1068,55 +1471,47 @@
             resetView(); 
             renderLayerList();
 
-            // --- ΝΕΟ: Αν ο Tester είναι ανοιχτός, κάνε refresh το preview άμεσα ---
             if (testModeActive) {
                 const container = document.getElementById('test-preview-container');
                 if (container) container.innerHTML = generateTestPreviewSVG();
             }
-			
-			// --- ΝΕΟ: ΔΙΑΒΑΣΜΑ PINS ΚΑΙ ΑΥΘΕΝΤΙΚΟΥ TIKZ BODY (SUPER ROBUST) ---
-            // 1. Βρίσκουμε από πού ξεκινάει ο καθαρός κώδικας TikZ
+            
+            // --- ΔΙΑΒΑΣΜΑ PINS ΚΑΙ TIKZ BODY ---
             let tikzStartMatch = code.match(/(\\IfSubStr|\\begin\{scope\})/);
             if (tikzStartMatch) {
                 let rawTikz = code.substring(tikzStartMatch.index);
-                rawTikz = rawTikz.replace(/\}\s*$/, ''); // Αφαιρούμε το τελευταίο '}'
-                
-                // Αφαιρούμε τα παλιά \coordinate από το σώμα για να μην διπλογραφτούν
+                rawTikz = rawTikz.replace(/\}\s*$/, ''); 
                 originalTikzBody = rawTikz.replace(/^[ \t]*\\coordinate.*?\n/gm, '');
             }
 
-            // 2. Εξυπνο και χαλαρό Regex για τα Pins (Αγνοεί κενά, αγκύλες, κλπ)
-            let coordRegex = /\\coordinate\s*(?:\[.*?\])?\s*\(([^\)]+)\)\s*at\s*\(([-+]?[\d\.]+)\s*,\s*([-+]?[\d\.]+)\)\s*;(?:[ \t]*%\s*\(([^)]*)\))?/g;
+            let coordRegex = /\\coordinate\s*(?:\[.*?\])?\s*\(([^\)]+)\)\s*at\s*\(([-+]?[\d\.]+)\s*,\s*([-+]?[\d\.]+)\)\s*;(?:[ \t]*%(.*))?/g;
             let cMatch;
-            let foundPins = 0;
-
-            console.log("🔍 Ξεκινάει η αναζήτηση Pins στον κώδικα...");
-
             while ((cMatch = coordRegex.exec(code)) !== null) {
-                let pId = cMatch[1].trim();
-                let tX = parseFloat(cMatch[2]);
-                let tY = parseFloat(cMatch[3]);
-                let pLbl = cMatch[4] ? cMatch[4].trim() : "";
+                let pId = cMatch[1].trim(); let tX = parseFloat(cMatch[2]); let tY = parseFloat(cMatch[3]);
+                let fullComment = cMatch[4] ? cMatch[4].trim() : "";
+                let pDesc = ""; let pLbl = ""; let pDir = "R"; let pLayerId = 'l_base';
 
-                console.log(`📍 Βρέθηκε Pin -> ID: ${pId}, X: ${tX}, Y: ${tY}, Label: ${pLbl}`);
+                if (fullComment) {
+                    let ifMatch = fullComment.match(/IF:(.+)$/);
+                    if (ifMatch) {
+                        let cond = ifMatch[1].trim();
+                        fullComment = fullComment.replace(ifMatch[0], '').trim();
+                        let matchedLayer = layers.find(l => buildRuleText(l.rule) === cond);
+                        if (matchedLayer) pLayerId = matchedLayer.id;
+                    }
+                    let dirMatch = fullComment.match(/\[([TBLR])\]/);
+                    if (dirMatch) { pDir = dirMatch[1]; fullComment = fullComment.replace(dirMatch[0], '').trim(); }
+                    let parenMatch = fullComment.match(/^(.*?)\s*\(([^)]+)\)$/);
+                    if (parenMatch) { pDesc = parenMatch[1].trim(); pLbl = parenMatch[2].trim(); } 
+                    else { pDesc = fullComment.trim(); }
+                }
 
-                // Αν είναι έγκυροι αριθμοί (και όχι γράμματα)
                 if (!isNaN(tX) && !isNaN(tY)) {
-                    // Μετατροπή από TikZ units πίσω σε Pixels
-                    pins.push({ id: pId, x: tX * 10, y: -tY * 10, label: pLbl });
-                    foundPins++;
-                } else {
-                    console.warn(`⚠️ Το Pin ${pId} έχει μη-αριθμητικές συντεταγμένες και αγνοήθηκε!`);
+                    pins.push({ id: pId, x: tX * 10, y: -tY * 10, desc: pDesc, label: pLbl, dir: pDir, layerId: pLayerId });
                 }
-                
-                // Ασφαλής αύξηση του counter
                 let numMatch = pId.match(/\d+/);
-                if (numMatch && parseInt(numMatch[0]) >= pinCounter) {
-                    pinCounter = parseInt(numMatch[0]) + 1;
-                }
+                if (numMatch && parseInt(numMatch[0]) >= pinCounter) pinCounter = parseInt(numMatch[0]) + 1;
             }
-            
-            console.log(`✅ Φορτώθηκαν επιτυχώς ${foundPins} Pins!`);
             renderCanvas();
         }
 
@@ -1175,56 +1570,71 @@
         svg.addEventListener('mousedown', (e) => {
             if(e.button !== 0) return;
             let pt = getCoords(e);
-            let target = e.target;
+            // Το closest διασφαλίζει ότι αν κάνεις κλικ στο κείμενο, θα πιάσει το <g> που το περιβάλλει!
+				let target = e.target.closest('.shape-path') || e.target;
             
-            // NEW: Pin Tool Logic (Swal version)
+            // NEW: Pin Tool Logic
             if(currentTool === 'pin') {
-                Swal.fire({
-                    title: 'Enter Pin Name',
-                    input: 'text',
-                    inputValue: `pin${pinCounter}`,
-                    showCancelButton: true,
-                    confirmButtonColor: '#e67e22'
-                }).then((result) => {
-                    if (result.isConfirmed && result.value) {
-                        pins.push({ id: result.value, x: pt.x, y: pt.y });
-                        pinCounter++;
-                        renderCanvas();
-                    }
-                });
+                // Αν πατήσαμε πάνω σε υπάρχον pin, δεν κάνουμε τίποτα (θα το αναλάβει το dblclick)
+                if (target.closest('[data-is-pin="true"]')) return;
+                
+                window.lastPinPt = pt;
+                openPinDialog();
                 return;
             }
 
-            // Εντοπισμός Σχήματος
-            let isShape = target.classList.contains('shape-path');
-            let shapeIdx = isShape ? parseInt(target.getAttribute('data-idx')) : -1;
-            let layerId = isShape ? target.getAttribute('data-layer') : null;
+            // Εντοπισμός Σχήματος & Pin
+            let shapeNode = target.closest('.shape-path');
+            let isShape = shapeNode !== null;
+            let shapeIdx = isShape ? parseInt(shapeNode.getAttribute('data-idx')) : -1;
+            let layerId = isShape ? shapeNode.getAttribute('data-layer') : null;
+            
+            let isPin = shapeNode ? shapeNode.getAttribute('data-is-pin') === 'true' : false;
+            let pinId = isPin ? shapeNode.getAttribute('data-pin-id') : null;
 
-            if (currentTool === 'erase' && isShape) {
-                let l = layers.find(x => x.id === layerId);
-                activeLayerId = layerId;
-                saveHistory(l);
-                let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
-                subPaths.splice(shapeIdx, 1);
-                l.pathStr = subPaths.join(' ');
-                renderLayerList();
-                return;
+            if (currentTool === 'erase') {
+                if (isPin) {
+                    pins = pins.filter(p => p.id !== pinId);
+                    renderCanvas();
+                    return;
+                }
+                if (isShape && layerId) {
+                    let l = layers.find(x => x.id === layerId);
+                    saveHistory(l);
+                    let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                    subPaths.splice(shapeIdx, 1);
+                    l.pathStr = subPaths.join(' ');
+                    renderLayerList();
+                    return;
+                }
             }
 
             if (currentTool === 'extract') {
-                if (isShape && layerId === activeLayerId) {
+                if ((isShape && layerId === activeLayerId) || isPin) {
                     // Start Dragging
-                    if (!selectedShapeIndices.has(shapeIdx)) {
-                        if (!e.shiftKey) selectedShapeIndices.clear();
-                        selectedShapeIndices.add(shapeIdx);
-                        renderCanvas();
-                    } else if (e.shiftKey) {
-                        selectedShapeIndices.delete(shapeIdx);
-                        renderCanvas();
-                        return;
+                    if (isPin) {
+                        if (!selectedPinIds.has(pinId)) {
+                            if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIds.clear(); }
+                            selectedPinIds.add(pinId);
+                            renderCanvas();
+                        } else if (e.shiftKey) {
+                            selectedPinIds.delete(pinId);
+                            renderCanvas();
+                            return;
+                        }
+                    } else {
+                        if (!selectedShapeIndices.has(shapeIdx)) {
+                            if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIds.clear(); }
+                            selectedShapeIndices.add(shapeIdx);
+                            renderCanvas();
+                        } else if (e.shiftKey) {
+                            selectedShapeIndices.delete(shapeIdx);
+                            renderCanvas();
+                            return;
+                        }
                     }
                     isDragging = true;
-                    document.querySelector('.canvas-container').classList.add('dragging-mode'); // <-- ΠΡΟΣΘΗΚΗ
+                    document.querySelector('.canvas-container').classList.add('dragging-mode');
                     dragStartPt = pt;
                     dragDelta = {dx: 0, dy: 0};
                 } else {
@@ -1235,9 +1645,56 @@
                     selBox.setAttribute('x', pt.x); selBox.setAttribute('y', pt.y);
                     selBox.setAttribute('width', 0); selBox.setAttribute('height', 0);
                     selBox.setAttribute('display', 'block');
-                    if (!e.shiftKey) selectedShapeIndices.clear();
+                    if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIds.clear(); }
                     renderCanvas();
                 }
+                return;
+            }
+			
+			// ΝΕΟ: Λογική Text Tool (Δεμένο με το Path M)
+            if (currentTool === 'text') {
+                Swal.fire({
+                    title: 'Εισαγωγή Κειμένου',
+                    html: `
+                        <input id="swal-text-val" class="swal2-input" placeholder="Κείμενο (π.χ. G)">
+                        <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
+                            <div style="flex:1;">
+                                <label style="font-size:11px; font-weight:bold;">Μέγεθος</label>
+                                <input id="swal-text-size" type="number" class="swal2-input" value="12" style="margin:0;">
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-size:11px; font-weight:bold;">Στυλ</label>
+                                <select id="swal-text-style" class="swal2-input" style="margin:0; height:35px; padding:0 10px;">
+                                    <option value="normal">Normal</option>
+                                    <option value="bold">Bold</option>
+                                    <option value="italic">Italic</option>
+                                </select>
+                            </div>
+                        </div>
+                    `,
+                    showCancelButton: true,
+                    confirmButtonColor: '#3498db',
+                    preConfirm: () => {
+                        return {
+                            text: document.getElementById('swal-text-val').value.trim(),
+                            size: document.getElementById('swal-text-size').value || 12,
+                            style: document.getElementById('swal-text-style').value
+                        }
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed && result.value.text) {
+                        let tStr = result.value.text.replace(/"/g, '&quot;'); 
+                        let l = layers.find(x => x.id === activeLayerId);
+                        saveHistory(l);
+                        
+                        // ΠΡΟΣΟΧΗ: Δεν αποθηκεύουμε πλέον X, Y στο σχόλιο! Μόνο Size, Style, Text.
+                        // Τα X, Y θα τα κλέβουμε δυναμικά από τα M (MoveTo) του path!
+                        let textNodeString = ` M ${pt.x} ${pt.y} L ${pt.x} ${pt.y} /*TEXT:${result.value.size},${result.value.style},${tStr}*/`;
+                        
+                        l.pathStr += (l.pathStr.length > 0 ? " " : "") + textNodeString;
+                        renderLayerList();
+                    }
+                });
                 return;
             }
 
@@ -1294,31 +1751,52 @@
                 let rx = parseFloat(selBox.getAttribute('x')), ry = parseFloat(selBox.getAttribute('y'));
                 let rw = parseFloat(selBox.getAttribute('width')), rh = parseFloat(selBox.getAttribute('height'));
                 
-                // Intersection Math (Βρίσκει ποια σχήματα ακουμπάνε το κουτί επιλογής)
+                // Intersection Math για Σχήματα
                 document.querySelectorAll(`.shape-path[data-layer="${activeLayerId}"]`).forEach(el => {
                     let bbox = el.getBBox();
                     let intersects = !(bbox.x > rx + rw || bbox.x + bbox.width < rx || bbox.y > ry + rh || bbox.y + bbox.height < ry);
                     if (intersects) selectedShapeIndices.add(parseInt(el.getAttribute('data-idx')));
                 });
+
+                // Intersection Math για Pins (ΝΕΟ)
+                document.querySelectorAll(`.shape-path[data-is-pin="true"]`).forEach(el => {
+                    let bbox = el.getBBox();
+                    let intersects = !(bbox.x > rx + rw || bbox.x + bbox.width < rx || bbox.y > ry + rh || bbox.y + bbox.height < ry);
+                    if (intersects) selectedPinIds.add(el.getAttribute('data-pin-id'));
+                });
+
                 renderCanvas();
                 return;
             }
 
             if (isDragging) {
                 isDragging = false;
-                document.querySelector('.canvas-container').classList.remove('dragging-mode'); // <-- ΠΡΟΣΘΗΚΗ
+                document.querySelector('.canvas-container').classList.remove('dragging-mode');
+                
                 if (dragDelta.dx !== 0 || dragDelta.dy !== 0) {
-                    let l = layers.find(x => x.id === activeLayerId);
-                    saveHistory(l);
-                    let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                    // 1. Μετακίνηση Σχημάτων
+                    if (selectedShapeIndices.size > 0) {
+                        let l = layers.find(x => x.id === activeLayerId);
+                        saveHistory(l);
+                        let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                        
+                        selectedShapeIndices.forEach(idx => {
+                            subPaths[idx] = translatePathString(subPaths[idx], dragDelta.dx, dragDelta.dy);
+                        });
+                        l.pathStr = subPaths.join(' ');
+                    }
+
+                    // 2. Μετακίνηση Pins (ΝΕΟ)
+                    if (selectedPinIds.size > 0) {
+                        pins.forEach(p => {
+                            if (selectedPinIds.has(p.id)) {
+                                p.x += dragDelta.dx;
+                                p.y += dragDelta.dy;
+                            }
+                        });
+                    }
                     
-                    // Εφαρμογή της μετατόπισης (dx, dy) στα επιλεγμένα paths
-                    selectedShapeIndices.forEach(idx => {
-                        subPaths[idx] = translatePathString(subPaths[idx], dragDelta.dx, dragDelta.dy);
-                    });
-                    
-                    l.pathStr = subPaths.join(' ');
-                    renderLayerList(); // Redraws perfectly snapped paths!
+                    renderLayerList(); // Ξαναζωγραφίζει και "κουμπώνει" (snap) τέλεια!
                 }
                 return;
             }
@@ -1502,6 +1980,56 @@
             lTarget.pathStr += (lTarget.pathStr && lSource.pathStr ? " " : "") + lSource.pathStr;
             deleteLayer(id); 
         }
+		
+		// Συνάρτηση για Edit υπάρχοντος κειμένου
+        window.editTextNode = (layerId, pathIdx, currentText, currentSize, currentStyle) => {
+            if (currentTool === 'erase' || currentTool === 'extract') return;
+            
+            Swal.fire({
+                title: 'Επεξεργασία Κειμένου',
+                html: `
+                    <input id="swal-edit-val" class="swal2-input" value="${currentText}">
+                    <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
+                        <div style="flex:1;">
+                            <label style="font-size:11px; font-weight:bold;">Μέγεθος</label>
+                            <input id="swal-edit-size" type="number" class="swal2-input" value="${currentSize}" style="margin:0;">
+                        </div>
+                        <div style="flex:1;">
+                            <label style="font-size:11px; font-weight:bold;">Στυλ</label>
+                            <select id="swal-edit-style" class="swal2-input" style="margin:0; height:35px; padding:0 10px;">
+                                <option value="normal" ${currentStyle==='normal'?'selected':''}>Normal</option>
+                                <option value="bold" ${currentStyle==='bold'?'selected':''}>Bold</option>
+                                <option value="italic" ${currentStyle==='italic'?'selected':''}>Italic</option>
+                            </select>
+                        </div>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonColor: '#27ae60',
+                preConfirm: () => {
+                    return {
+                        text: document.getElementById('swal-edit-val').value.trim(),
+                        size: document.getElementById('swal-edit-size').value || 12,
+                        style: document.getElementById('swal-edit-style').value
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value.text) {
+                    let l = layers.find(x => x.id === layerId);
+                    saveHistory(l);
+                    
+                    let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                    let oldStr = subPaths[pathIdx];
+                    
+                    // Ενημέρωση μόνο των 3 παραμέτρων (size, style, text)
+                    subPaths[pathIdx] = oldStr.replace(/\/\*TEXT:([^,]+),([^,]+),(.*)\*\//, 
+                        `/*TEXT:${result.value.size},${result.value.style},${result.value.text.replace(/"/g, '&quot;')}*/`);
+                        
+                    l.pathStr = subPaths.join(' ');
+                    renderLayerList();
+                }
+            });
+        };
 
         // --- UPGRADED RENDERER ---
         function renderCanvas() {
@@ -1547,18 +2075,97 @@
                             interactionClass = selectedShapeIndices.has(idx) ? 'selected-extract' : 'extractable';
                         }
                     }
-                    html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
+
+                    // --- ΕΛΕΓΧΟΣ ΓΙΑ ΕΝΣΩΜΑΤΩΜΕΝΟ ΚΕΙΜΕΝΟ ---
+                    // Διαβάζουμε το X,Y απευθείας από το M ... ... !
+                    let textMatch = sub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
+                    if (textMatch) {
+                        let tx = parseFloat(textMatch[1]);
+                        let ty = parseFloat(textMatch[2]);
+                        let tSize = parseFloat(textMatch[3]);
+                        let tStyle = textMatch[4];
+                        let tStr = textMatch[5];
+                        
+                        let fw = tStyle === 'bold' ? 'bold' : 'normal';
+                        let fs = tStyle === 'italic' ? 'italic' : 'normal';
+                        
+                        // Το text-anchor="middle" κάνει το κέντρο του κειμένου να είναι στο ποντίκι
+                        html += `<g class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" 
+                                    ondblclick="event.stopPropagation(); window.editTextNode('${l.id}', ${idx}, '${tStr.replace(/'/g, "\\'")}', ${tSize}, '${tStyle}')" 
+                                    style="cursor:${currentTool==='line'?'pointer':'inherit'};">
+                                    <text x="${tx}" y="${ty}" font-family="Arial" font-size="${tSize}" font-weight="${fw}" font-style="${fs}" fill="${stroke}" text-anchor="middle" dominant-baseline="central">${tStr}</text>
+                                 </g>`;
+                    } else {
+                        // Είναι κανονικό path!
+                        html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
+                    }
                 });
             });
-			// NEW: Render Pins
+			
+			// NEW: Render Pins (Με υποστήριξη κατεύθυνσης και Live Δυναμικού Κειμένου)
             pins.forEach(p => {
+                // Έλεγχος αν το Layer του Pin είναι ορατό!
+                let pLayer = layers.find(l => l.id === p.layerId);
+                let isVisible = pLayer ? (testModeActive ? evaluateLayerVisibility(pLayer) : pLayer.visible) : true;
+                if (!isVisible) return; // Κρύβεται!
+                
                 let isErasable = (currentTool === 'erase') ? 'erasable' : '';
+                let isExtractable = (currentTool === 'extract') ? (selectedPinIds.has(p.id) ? 'selected-extract' : 'extractable') : '';
+                let hideData = document.getElementById('chkHidePinData').checked;
+                
+                let displayText = p.id;
+                
+                // --- ΕΝΗΜΕΡΩΜΕΝΟ: Αντικατάσταση Δυναμικού Κειμένου ($4, -$4 κλπ) ---
+                if (p.id.includes('$')) {
+                    if (testModeActive) {
+                        // Αντικαθιστά κάθε $αριθμό με την τιμή του από το testValues
+                        displayText = p.id.replace(/\$(\d+)/g, (match, idxStr) => {
+                            let argIdx = parseInt(idxStr);
+                            let val = testValues[argIdx];
+                            
+                            if (val !== undefined && val.toString().trim() !== "") {
+                                return val; 
+                            } else {
+                                // Placeholder αν είναι κενό
+                                let argList = getParsedArgs();
+                                let argObj = argList.find(a => a.idx === argIdx);
+                                let argName = argObj ? argObj.name.split('/')[0].trim() : `Arg ${argIdx}`;
+                                return `[${argName}]`;
+                            }
+                        });
+                    }
+                } else if (!hideData) {
+                    // Κανονικό Pin (Description / Label)
+                    if (p.desc) displayText += ` % ${p.desc}`;
+                    if (p.label) displayText += ` (${p.label})`;
+                }
+                // -------------------------------------------------------------------
+
+                // Υπολογισμός θέσης label για τον Builder
+                let lx = p.x + 3, ly = p.y - 2, align = "start";
+                if (p.dir === 'L') { lx = p.x - 3; align = "end"; }
+                else if (p.dir === 'T') { lx = p.x; ly = p.y - 4; align = "middle"; }
+                else if (p.dir === 'B') { lx = p.x; ly = p.y + 6; align = "middle"; }
+
                 html += `
-                    <g onclick="deletePin('${p.id}')" class="shape-path ${isErasable}">
+                    <g ondblclick="event.stopPropagation(); window.editPin('${p.id}')" 
+                       class="shape-path ${isErasable} ${isExtractable}" 
+                       data-is-pin="true" data-pin-id="${p.id}" 
+                       style="cursor:pointer;">
                         <circle cx="${p.x}" cy="${p.y}" r="1.5" class="pin-marker" />
-                        <text x="${p.x - 3}" y="${p.y - 3}" class="pin-label">${p.id}</text>
+                        <text x="${lx}" y="${ly}" class="pin-label" style="text-anchor:${align}">${displayText}</text>
                     </g>`;
             });
+
+			// Βοηθητική συνάρτηση για το dblclick
+			window.editPin = (id) => {
+				const pin = pins.find(p => p.id === id);
+				if (pin) {
+                    setTool('line'); // Snap out of pin tool to prevent bugs
+                    openPinDialog(pin);
+                }
+			};
+			
             document.getElementById('renderedPaths').innerHTML = html;
             
             let aLayer = layers.find(x => x.id === activeLayerId);
@@ -1684,9 +2291,8 @@
             let dName = document.getElementById('dName').value.trim();
             let cArgs = document.getElementById('cArgs').value.trim();
             
-            // FIX 1: Count the number of { brackets } to determine exact argument count
             let argCount = (cArgs.match(/\{/g) || []).length;
-            if (argCount === 0) argCount = 1; // Fallback
+            if (argCount === 0) argCount = 1; 
             
             let lines = [
                 `%% ${dName}`,
@@ -1703,73 +2309,112 @@
                 lines.push(`% preview_args: ${prevArgsEl.value.trim()}`);
             }
             
-            // --- ΠΑΡΑΓΩΓΗ ΤΩΝ META-TAGS (ΓΙΝΕΤΑΙ ΠΑΝΤΑ, ΣΕ ΟΛΑ ΤΑ MODES) ---
-            lines.push(``);
-            layers.forEach(l => {
-                if (!l.pathStr.trim()) return;
-                let styleTag = formatStyleTag(l.styles);
-                let conditionTag = buildRuleText(l.rule);
-                
-                let cleanPath = l.pathStr.replace(/\s+/g, ' ').trim();
-                let descTag = l.description ? ` // ${l.description.trim()}` : "";
-                
-                if (l.type === 'base') lines.push(`% icon_base: ${styleTag}${cleanPath}${descTag}`);
-                else lines.push(`% add_icon: ${conditionTag} : ${styleTag}${cleanPath}${descTag}`);
-            });
-            
-            // --- ΕΞΑΓΩΓΗ PINS ΣΤΟ HEADER ---
-            if (pins.length > 0) {
-                pins.forEach(p => {
-                    let lbl = p.label ? p.label : "";
-                    lines.push(`% pin: ${p.id} ${p.x} ${p.y} ${lbl}`.trim());
+            if (argDefs.length > 0) {
+                lines.push(``);
+                argDefs.forEach(arg => {
+                    let optPart = (arg.type === 'select' || arg.type === 'flags') ? ` | ${arg.options}` : '';
+                    lines.push(`% arg_def: ${arg.idx} | ${arg.type} | ${arg.label} | ${arg.defVal}${optPart}`);
                 });
+                lines.push(``);
             }
+            
+            lines.push(``);
+            layers.forEach((l, idx) => {
+                let cleanPath = l.pathStr.replace(/\s+/g, ' ').trim();
+                let desc = l.description ? ` // ${l.description.trim()}` : "";
+                
+                if (cleanPath) {
+                    if (idx === 0) {
+                        let attrs = formatStyleTag(l.styles);
+                        lines.push(`% icon_base: ${attrs}${cleanPath}${desc}`);
+                    } else {
+                        let condStr = buildRuleText(l.rule) + " : ";
+                        let attrs = formatStyleTag(l.styles);
+                        lines.push(`% add_icon: ${condStr}${attrs}${cleanPath}${desc}`);
+                    }
+                }
+            });
 
-            // --- ΠΡΟΣΘΗΚΗ ΤΟΥ TIKZ BODY (ΜΟΝΟ ΑΝ ΕΙΝΑΙ ΣΕ FULL LATEX MODE) ---
             if (mode === 'latex') {
                 if (originalTikzBody) {
-                    // --- HYBRID MODE: Επιστροφή του Αυθεντικού Κώδικα ---
                     let newPinsStr = "";
                     if (pins.length > 0) {
-                        newPinsStr = "        % coordinate pins\n";
                         pins.forEach(p => {
                             let tikzX = (p.x / 10).toFixed(2);
                             let tikzY = (-p.y / 10).toFixed(2);
-                            let lbl = p.label ? ` % (${p.label})` : "";
-                            newPinsStr += `        \\coordinate (${p.id}) at (${tikzX}, ${tikzY});${lbl}\n`;
+                            let dirStr = p.dir ? ` [${p.dir}]` : " [R]"; 
+                            let condTag = ""; 
+                            
+                            let pLayer = layers.find(l => l.id === p.layerId);
+                            if (pLayer && pLayer.type !== 'base') {
+                                let ruleTxt = buildRuleText(pLayer.rule);
+                                if (ruleTxt !== '1~=' && ruleTxt !== 'icon_base') condTag = ` IF:${ruleTxt}`;
+                            }
+
+                            let comment = "";
+                            if (p.id.includes('$')) {
+                                comment = " %" + dirStr + condTag; 
+                            } else if (p.desc || p.label) {
+                                comment = " % " + (p.desc ? p.desc.trim() + " " : "") + (p.label ? `(${p.label.trim()})` : "") + dirStr + condTag;
+                            } else {
+                                comment = " %" + dirStr + condTag;
+                            }
+                            newPinsStr += `        \\coordinate (${p.id}) at (${tikzX}, ${tikzY});${comment}\n`;
                         });
                     }
 
-                    // Εισαγωγή των νέων pins ακριβώς πριν κλείσει το scope
                     let finalBody = originalTikzBody.replace('\\end{scope}', newPinsStr + '    \\end{scope}');
                     lines.push('    ' + finalBody.trim());
                     lines.push(`}`);
                 } else {
-                    // --- FALLBACK MODE: Πειραματική παραγωγή από SVG ---
                     lines.push(`   \\IfSubStr{#5}{h}{\\edef\\xscalevalue{-1}}{\\edef\\xscalevalue{1}}`);
                     lines.push(`   \\IfSubStr{#5}{v}{\\edef\\yscalevalue{-1}}{\\edef\\yscalevalue{1}}`);
                     lines.push(`   \\begin{scope}[shift={#1}, scale=\\jlcscale, rotate=#5, xscale=\\xscalevalue, yscale=\\yscalevalue]`);
                     lines.push(`        \\getzoomfactor`);
                     
                     layers.forEach(l => {
-                        if(l.pathStr.trim()) lines.push(`        ${svgToTikz(l.pathStr, l.styles)}`);
+                        if(l.pathStr.trim()) {
+                            let tikzPath = l.pathStr.replace(/\/\*TEXT:[^\*]+\*\//g, '').trim();
+                            if (tikzPath) lines.push(`        ${svgToTikz(tikzPath, l.styles)}`);
+                        }
                     });
 
                     if (pins.length > 0) {
                         lines.push(`        % coordinate pins`);
                         pins.forEach(p => {
-                            let tikzX = (p.x / 10).toFixed(2);
-                            let tikzY = (-p.y / 10).toFixed(2);
-                            let lbl = p.label ? ` % (${p.label})` : "";
-                            lines.push(`        \\coordinate (${p.id}) at (${tikzX}, ${tikzY});${lbl}`);
+                            let tikzX = (p.x / 10).toFixed(2); let tikzY = (-p.y / 10).toFixed(2);
+                            let dirStr = p.dir ? ` [${p.dir}]` : " [R]";
+                            let condStr = ""; 
+                            let pLayer = layers.find(l => l.id === p.layerId);
+                            if (pLayer && pLayer.type !== 'base') {
+                                let ruleTxt = buildRuleText(pLayer.rule);
+                                if (ruleTxt !== '1~=' && ruleTxt !== 'icon_base') condStr = ` IF:${ruleTxt}`;
+                            }
+                            let comment = "";
+                            if (p.id.includes('$')) comment = " %" + dirStr + condStr; 
+                            else if (p.desc || p.label) comment = " % " + (p.desc ? p.desc.trim() + " " : "") + (p.label ? `(${p.label.trim()})` : "") + dirStr + condStr;
+                            else comment = " %" + dirStr + condStr;
+                            
+                            lines.push(`        \\coordinate (${p.id}) at (${tikzX}, ${tikzY});${comment}`);
                         });
                     }
                     lines.push(`    \\end{scope}\n}`);
                 }
             }
             
-            // End of export logic
-            document.getElementById('outputSty').value = lines.join('\n');
+            let finalOutput = lines.join('\n');
+            
+            // --- ΝΕΟ: ΣΥΝΑΡΜΟΛΟΓΗΣΗ ΜΕ ΤΟ ΥΠΟΛΟΙΠΟ ΑΡΧΕΙΟ (ΜΟΝΟ ΣΤΟ LATEX MODE) ---
+            if (mode === 'latex') {
+                let header = window.fileHeader || "";
+                let footer = window.fileFooter || "";
+                if (header && !header.endsWith('\n')) header += '\n';
+                if (footer && !footer.startsWith('\n')) footer = '\n' + footer;
+                
+                finalOutput = header + finalOutput + footer;
+            }
+
+            document.getElementById('outputSty').value = finalOutput;
         }
 		
 		// --- GLOBAL KEYBOARD SHORTCUTS ---
@@ -1844,7 +2489,144 @@
                 Swal.fire({ icon: 'error', title: 'Error', text: 'Copy Failed.' });
             });
         }
+
+	function openPinDialog(existingPin = null) {
+		const isEdit = !!existingPin;
+		const title = isEdit ? 'Edit Pin Metadata' : 'New Pin Metadata';
 		
+		const initialId = isEdit ? existingPin.id : `pin${pinCounter}`;
+		const initialDesc = isEdit ? (existingPin.desc || "") : "";
+		const initialLabel = isEdit ? (existingPin.label || "") : "";
+		const initialDir = isEdit ? (existingPin.dir || "R") : "R";
+        const initialLayer = isEdit ? (existingPin.layerId || activeLayerId) : activeLayerId; // ΝΕΟ
+		const isTextMode = initialId.includes('$');
+
+        // ΝΕΟ: Δημιουργία των Options για τα Layers
+        const layerOpts = layers.map(l => {
+            let name = l.description ? l.description : (l.type === 'base' ? 'Base Layer' : `Overlay ${l.id.replace('l_','')}`);
+            return `<option value="${l.id}" ${l.id === initialLayer ? 'selected' : ''}>${name}</option>`;
+        }).join('');
+
+		Swal.fire({
+			title: `<span style="font-size:18px;">${title}</span>`,
+			html: `
+				<div style="text-align: left; font-size: 13px;">
+					<label style="display:flex; align-items:center; gap:8px; margin-bottom:15px; background:#f8f9fa; padding:10px; border-radius:6px; border:1px solid #dee2e6; cursor:pointer;">
+						<input type="checkbox" id="swal-pin-type" style="width:16px; height:16px;" ${isTextMode ? 'checked' : ''}>
+						<strong>Dynamic Text Mode</strong> (ID contains '$')
+					</label>
+					
+					<div style="margin-bottom:10px;">
+						<label style="font-weight:bold; color:#2c3e50;">Pin ID / Variable</label>
+						<input id="swal-pin-id" class="swal2-input" placeholder="e.g. pin1 or -$4" value="${initialId}">
+					</div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom:10px;">
+                        <div style="flex: 1;">
+                            <label style="font-weight:bold; color:#2c3e50;">Label Position</label>
+                            <select id="swal-pin-dir" class="swal2-input" style="height:35px; margin-top:5px;">
+                                <option value="R" ${initialDir === 'R' ? 'selected' : ''}>Right ➡️</option>
+                                <option value="L" ${initialDir === 'L' ? 'selected' : ''}>Left ⬅️</option>
+                                <option value="T" ${initialDir === 'T' ? 'selected' : ''}>Top ⬆️</option>
+                                <option value="B" ${initialDir === 'B' ? 'selected' : ''}>Bottom ⬇️</option>
+                            </select>
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-weight:bold; color:#8e44ad;">Attach to Layer</label>
+                            <select id="swal-pin-layer" class="swal2-input" style="height:35px; margin-top:5px; border-color: #9b59b6;">
+                                ${layerOpts}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="pin-extra-fields" style="display:${isTextMode ? 'none' : 'block'};">
+						<div style="margin-bottom:10px;">
+							<label style="font-weight:bold; color:#2c3e50;">Technical Description</label>
+							<input id="swal-pin-desc" class="swal2-input" placeholder="e.g. gate" value="${initialDesc}">
+						</div>
+						<div>
+							<label style="font-weight:bold; color:#2c3e50;">Visible Label</label>
+							<input id="swal-pin-label" class="swal2-input" placeholder="e.g. G" value="${initialLabel}">
+						</div>
+					</div>
+				</div>
+			`,
+			focusConfirm: false,
+			showCancelButton: true,
+			didOpen: () => {
+				const typeToggle = document.getElementById('swal-pin-type');
+				const extraFields = document.getElementById('pin-extra-fields');
+				const idInput = document.getElementById('swal-pin-id');
+				typeToggle.addEventListener('change', (e) => {
+					extraFields.style.display = e.target.checked ? 'none' : 'block';
+					if (e.target.checked && !idInput.value.includes('$')) idInput.value = '$4';
+				});
+			},
+			preConfirm: () => {
+				return {
+					id: document.getElementById('swal-pin-id').value.trim(),
+					desc: document.getElementById('swal-pin-desc').value.trim(),
+					label: document.getElementById('swal-pin-label').value.trim(),
+					dir: document.getElementById('swal-pin-dir').value, 
+					layerId: document.getElementById('swal-pin-layer').value,
+					isText: document.getElementById('swal-pin-type').checked
+				}
+			}
+		}).then((result) => {
+			if (result.isConfirmed) {
+				const data = result.value;
+				if (isEdit) {
+					existingPin.id = data.id;
+					existingPin.desc = data.isText ? "" : data.desc;
+					existingPin.label = data.isText ? "" : data.label;
+					existingPin.dir = data.dir; 
+					existingPin.layerId = data.layerId;
+				} else {
+					pins.push({ 
+						id: data.id, desc: data.isText ? "" : data.desc, 
+						label: data.isText ? "" : data.label, 
+						dir: data.dir, 
+						layerId: data.layerId,
+						x: window.lastPinPt.x, y: window.lastPinPt.y 
+					});
+					pinCounter++;
+				}
+				renderCanvas();
+			}
+		});
+	}
+	
+	function updateFlags(argIdx) {
+		let checkboxes = document.querySelectorAll(`.test-flag-${argIdx}`);
+		let selected = [];
+		checkboxes.forEach(cb => {
+			if (cb.checked) selected.push(cb.value);
+		});
+		let finalVal = selected.join('-');
+		document.getElementById(`test-arg-${argIdx}`).value = finalVal;
+		
+		// Ενημέρωση του preview
+		testValues[argIdx] = finalVal;
+		renderCanvas();
+		const container = document.getElementById('test-preview-container');
+		if (container) container.innerHTML = generateTestPreviewSVG();
+	}
+	
+	function updateCombinedRotFlip(argIdx) {
+		let r = document.getElementById(`test-arg-${argIdx}-rot`).value || "0";
+		let f = document.getElementById(`test-arg-${argIdx}-flip`).value;
+		let final = `${r},${f}`;
+		document.getElementById(`test-arg-${argIdx}`).value = final;
+		
+		// Ενημέρωση μνήμης και preview
+		testValues[argIdx] = final;
+		renderCanvas();
+		const container = document.getElementById('test-preview-container');
+		if (container) container.innerHTML = generateTestPreviewSVG();
+	}
+	
+	renderArgDefList();
+	
     </script>
 </body>
 </html>
