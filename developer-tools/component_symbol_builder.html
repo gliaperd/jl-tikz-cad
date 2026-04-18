@@ -80,9 +80,13 @@
         .canvas-container.dragging-mode, .canvas-container.dragging-mode * { cursor: grabbing !important; } /* Κλειστή παλάμη όταν σέρνεις */
 		
 		/* Pins */
-        .pin-marker { fill: #f1c40f; stroke: #d35400; stroke-width: 1; cursor: pointer; transition: 0.1s; }
-        .pin-marker:hover { fill: #e74c3c; stroke-width: 2.5; } /* Removed the buggy transform: scale! */
+        .pin-marker { fill: #f1c40f; stroke: #d35400; stroke-width: 0.4px; cursor: pointer; transition: 0.1s; }
+        .pin-marker:hover { fill: #e74c3c; stroke-width: 1px; } 
         .pin-label { font-family: monospace; font-size: 5px; fill: #d35400; pointer-events: none; font-weight: bold; user-select: none; stroke: none !important;}
+		
+        /* Dummy/Text Pins */
+        .dummy-pin { fill: rgba(155, 89, 182, 0.2) !important; stroke: #9b59b6 !important; stroke-width: 0.4px !important; stroke-dasharray: 0.8 1.2 !important; }
+        .dummy-pin:hover { fill: rgba(155, 89, 182, 0.6) !important; stroke-width: 1px !important; }
 		
 	
 		/* Διόρθωση για το πλάτος των inputs στα Swal */
@@ -279,8 +283,8 @@
                 
                 <div id="extractTools" style="display:none; gap: 5px; align-items: center; border-left: 1px solid #7f8c8d; padding-left: 10px; margin-left: 5px;">
                     <span style="font-size: 9px; font-weight: bold; color: #f1c40f;">SELECTED:</span>
-                    <button class="tool-btn" style="background:#27ae60; border-color:#2ecc71; padding: 3px 8px;" onclick="extractAction(false)">Move to New Layer</button>
-                    <button class="tool-btn" style="background:#2980b9; border-color:#3498db; padding: 3px 8px;" onclick="extractAction(true)">Copy to New Layer</button>
+                    <button class="tool-btn" style="background:#27ae60; border-color:#2ecc71; padding: 3px 8px;" onclick="extractAction(false)">Move to Layer...</button>
+					<button class="tool-btn" style="background:#2980b9; border-color:#3498db; padding: 3px 8px;" onclick="extractAction(true)">Copy to Layer...</button>
                     <button class="tool-btn" style="background:#c0392b; border-color:#e74c3c; padding: 3px 8px;" onclick="explodeSelected()">💥 Shatter</button>
                     <button class="tool-btn" style="background:#f39c12; border-color:#e67e22; padding: 3px 8px;" onclick="recombineSelected()">🧲 Recombine</button>
                     <button class="tool-btn" style="background:#8e44ad; border-color:#9b59b6; padding: 3px 8px;" onclick="rotateSelectedAction()">↻ Rotate</button>
@@ -519,12 +523,13 @@
                 let d = transDir(p.dir || 'R');
 
                 let lx = pt.x, ly = pt.y, align = "start";
-                if (d === 'R') { lx += 3; ly -= 2; align = "start"; }
-                else if (d === 'L') { lx -= 3; ly -= 2; align = "end"; }
-                else if (d === 'T') { ly -= 4; align = "middle"; }
-                else if (d === 'B') { ly += 6; align = "middle"; }
+                // Adjusted offsets slightly so the text centers cleanly on the invisible anchor
+                if (d === 'R') { lx += 1; align = "start"; }
+                else if (d === 'L') { lx -= 1; align = "end"; }
+                else if (d === 'T') { ly -= 2; align = "middle"; }
+                else if (d === 'B') { ly += 2; align = "middle"; }
 
-                textHtml += `<circle cx="${pt.x}" cy="${pt.y}" r="1.5" fill="#f1c40f" stroke="#d35400" stroke-width="1" />`;
+                // Removed the <circle> line entirely so fake pins are purely text in the preview!
                 textHtml += `<text x="${lx}" y="${ly}" font-family="Arial" font-size="5.5" fill="${baseColor}" font-weight="bold" text-anchor="${align}" opacity="${textOpacity}">${displayText}</text>`;
             });
 
@@ -548,7 +553,7 @@
                     tempPath.setAttribute('d', combinedPathForMath);
                     const svgC = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                     svgC.appendChild(tempPath); document.body.appendChild(svgC);
-                    try { let bbox = svgC.getBBox(); if (bbox.width > 0) unrotatedBBox = bbox; } catch(e){}
+                    try { let bbox = svgC.getBBox(); if (bbox.width > 0 || bbox.height > 0) unrotatedBBox = bbox; } catch(e){}
                     document.body.removeChild(svgC);
                 }
                 origLx = unrotatedBBox.x + unrotatedBBox.width / 2;
@@ -564,14 +569,18 @@
             let ptLabel = trans(origLx, origLy);
             let finalDir = transDir(initialDir);
 
-            let anchor = "middle"; let dy = "0.3em";
-            if (finalDir === 'B') { anchor = "middle"; dy = "0.8em"; }
-            else if (finalDir === 'T') { anchor = "middle"; dy = "-0.2em"; }
-            else if (finalDir === 'L') { anchor = "end"; dy = "0.3em"; }
-            else if (finalDir === 'R') { anchor = "start"; dy = "0.3em"; }
+            // Calculate screen visual angle
+            let visualAngle = -previewAngle;
+            let normalizedAngle = (visualAngle % 360 + 360) % 360;
+            let textRot = visualAngle;
+            
+            // CAD Readability Standard: Keep text Left-to-Right or Bottom-to-Top
+            if (normalizedAngle >= 90 && normalizedAngle < 270) {
+                textRot += 180;
+            }
 
             if (labelText) {
-                textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" dy="${dy}" text-anchor="${anchor}" dominant-baseline="middle" font-family="Arial" font-size="5.5" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
+                textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" text-anchor="middle" dominant-baseline="central" transform="rotate(${textRot}, ${ptLabel.x}, ${ptLabel.y})" font-family="Arial" font-size="5.5" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
             }
 
             // 6. ΥΠΟΛΟΓΙΣΜΟΣ ΟΡΙΩΝ ΚΑΜΕΡΑΣ ΜΕΣΩ ΤΟΥ BROWSER
@@ -582,7 +591,7 @@
                 const svgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svgContainer.innerHTML = finalHtml;
                 document.body.appendChild(svgContainer);
-                try { let bbox = svgContainer.getBBox(); if (bbox.width > 0) finalBBox = bbox; } catch(e) {}
+                try { let bbox = svgContainer.getBBox(); if (bbox.width > 0 || bbox.height > 0) finalBBox = bbox; } catch(e) {}
                 document.body.removeChild(svgContainer);
             }
 
@@ -694,8 +703,8 @@
                         if (!f) f = "none";
                         htmlForm += `
                             <div style="display: flex; gap: 5px;">
-                                <input type="number" id="test-arg-${a.idx}-rot" style="flex:1; ${inputStyle}" value="${r}" oninput="updateCombinedRotFlip(${a.idx})">
-                                <select id="test-arg-${a.idx}-flip" style="flex:1; ${inputStyle}" onchange="updateCombinedRotFlip(${a.idx})">
+                                <input type="number" id="test-arg-${a.idx}-rot" style="flex:1; ${inputStyle}" value="${r}" oninput="updateCombinedRotFlip(${a.idx}, 'rot')">
+                                <select id="test-arg-${a.idx}-flip" style="flex:1; ${inputStyle}" onchange="updateCombinedRotFlip(${a.idx}, 'flip')">
                                     <option value="none" ${f==='none'?'selected':''}>None</option>
                                     <option value="h" ${f==='h'?'selected':''}>Flip H</option>
                                     <option value="v" ${f==='v'?'selected':''}>Flip V</option>
@@ -709,7 +718,7 @@
                     }
                     else if (customDef.type === 'flip') {
                         let f = currentVal || 'none';
-                        htmlForm += `<select id="test-arg-${a.idx}" style="${inputStyle}">
+                        htmlForm += `<select id="test-arg-${a.idx}" style="${inputStyle}" onchange="updateSeparateFlip(${a.idx})">
                             <option value="none" ${f==='none'?'selected':''}>None</option>
                             <option value="h" ${f==='h'?'selected':''}>Flip H</option>
                             <option value="v" ${f==='v'?'selected':''}>Flip V</option>
@@ -797,7 +806,7 @@
         let pins = []; // NEW: Stores coordinates!
         let pinCounter = 1;
 		let selectedShapeIndices = new Set(); // NEW: Tracks multi-selected shapes!
-		let selectedPinIds = new Set(); // ΝΕΟ: Μνήμη για τα επιλεγμένα Pins
+		let selectedPinIndices = new Set();
 		let clipboardPaths = []; // NEW: Global clipboard for shapes
         
         const svg = document.getElementById('drawingSvg');
@@ -829,7 +838,7 @@
             
             document.getElementById('extractTools').style.display = (tool === 'extract') ? 'flex' : 'none';
             selectedShapeIndices.clear(); // Clear memory when changing tools
-			selectedPinIds.clear(); // Καθαρισμός επιλογής pins
+			selectedPinIndices.clear(); // Καθαρισμός επιλογής pins
             
             renderCanvas();
         }
@@ -1405,16 +1414,21 @@
             let mFlip = code.match(/% flip:\s*([^\n]+)/); if(mFlip) document.getElementById('mFlip').value = mFlip[1].trim();
             
             // --- IMPORT DYNAMIC PROPERTIES ---
-            let argDefRegex = /% arg_def:\s*(\d+)\s*\|\s*([^|]+)\s*\|\s*([^|]+)\s*\|\s*([^|]*)\s*(?:\|\s*(.*))?/g;
+            // Use .* to strictly grab only the current line, then split by pipe.
+            // This mathematically prevents it from ever bleeding into the next line!
+            let argDefRegex = /% arg_def:\s*(.*)/g;
             let argMatch;
             while ((argMatch = argDefRegex.exec(code)) !== null) {
-                argDefs.push({
-                    idx: parseInt(argMatch[1].trim()),
-                    type: argMatch[2].trim(),
-                    label: argMatch[3].trim(),
-                    defVal: argMatch[4].trim(),
-                    options: argMatch[5] ? argMatch[5].trim() : ""
-                });
+                let parts = argMatch[1].split('|');
+                if (parts.length >= 4) {
+                    argDefs.push({
+                        idx: parseInt(parts[0].trim()),
+                        type: parts[1].trim(),
+                        label: parts[2].trim(),
+                        defVal: parts[3].trim(),
+                        options: parts[4] ? parts[4].trim() : ""
+                    });
+                }
             }
             renderArgDefList();
             
@@ -1590,11 +1604,12 @@
             let layerId = isShape ? shapeNode.getAttribute('data-layer') : null;
             
             let isPin = shapeNode ? shapeNode.getAttribute('data-is-pin') === 'true' : false;
-            let pinId = isPin ? shapeNode.getAttribute('data-pin-id') : null;
+            // NEW: Get the Index instead of the ID
+            let pinIdx = isPin ? parseInt(shapeNode.getAttribute('data-pin-idx')) : -1;
 
             if (currentTool === 'erase') {
                 if (isPin) {
-                    pins = pins.filter(p => p.id !== pinId);
+                    pins.splice(pinIdx, 1); // NEW: Safely delete by array index
                     renderCanvas();
                     return;
                 }
@@ -1613,24 +1628,21 @@
                 if ((isShape && layerId === activeLayerId) || isPin) {
                     // Start Dragging
                     if (isPin) {
-                        if (!selectedPinIds.has(pinId)) {
-                            if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIds.clear(); }
-                            selectedPinIds.add(pinId);
+                        // NEW: Use selectedPinIndices
+                        if (!selectedPinIndices.has(pinIdx)) {
+                            if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIndices.clear(); }
+                            selectedPinIndices.add(pinIdx);
                             renderCanvas();
                         } else if (e.shiftKey) {
-                            selectedPinIds.delete(pinId);
+                            selectedPinIndices.delete(pinIdx);
                             renderCanvas();
                             return;
                         }
                     } else {
                         if (!selectedShapeIndices.has(shapeIdx)) {
-                            if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIds.clear(); }
+                            if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIndices.clear(); }
                             selectedShapeIndices.add(shapeIdx);
                             renderCanvas();
-                        } else if (e.shiftKey) {
-                            selectedShapeIndices.delete(shapeIdx);
-                            renderCanvas();
-                            return;
                         }
                     }
                     isDragging = true;
@@ -1645,7 +1657,7 @@
                     selBox.setAttribute('x', pt.x); selBox.setAttribute('y', pt.y);
                     selBox.setAttribute('width', 0); selBox.setAttribute('height', 0);
                     selBox.setAttribute('display', 'block');
-                    if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIds.clear(); }
+                    if (!e.shiftKey) { selectedShapeIndices.clear(); selectedPinIndices.clear(); }
                     renderCanvas();
                 }
                 return;
@@ -1762,7 +1774,7 @@
                 document.querySelectorAll(`.shape-path[data-is-pin="true"]`).forEach(el => {
                     let bbox = el.getBBox();
                     let intersects = !(bbox.x > rx + rw || bbox.x + bbox.width < rx || bbox.y > ry + rh || bbox.y + bbox.height < ry);
-                    if (intersects) selectedPinIds.add(el.getAttribute('data-pin-id'));
+                    if (intersects) selectedPinIndices.add(parseInt(el.getAttribute('data-pin-idx')));
                 });
 
                 renderCanvas();
@@ -1787,9 +1799,9 @@
                     }
 
                     // 2. Μετακίνηση Pins (ΝΕΟ)
-                    if (selectedPinIds.size > 0) {
-                        pins.forEach(p => {
-                            if (selectedPinIds.has(p.id)) {
+                    if (selectedPinIndices.size > 0) {
+                        pins.forEach((p, idx) => {
+                            if (selectedPinIndices.has(idx)) {
                                 p.x += dragDelta.dx;
                                 p.y += dragDelta.dy;
                             }
@@ -1814,28 +1826,104 @@
         });
 
         function extractAction(isCopy) {
-            if(selectedShapeIndices.size === 0) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select shapes first by clicking them!'});
+            if (selectedShapeIndices.size === 0 && selectedPinIndices.size === 0) {
+                return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select shapes or pins first by clicking them!'});
+            }
             
-            let l = layers.find(x => x.id === activeLayerId);
-            saveHistory(l);
+            let sourceLayer = layers.find(x => x.id === activeLayerId);
             
-            let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
-            let extractedPaths = [], remainingPaths = [];
-            
-            subPaths.forEach((p, i) => { 
-                if(selectedShapeIndices.has(i)) extractedPaths.push(p); 
-                else remainingPaths.push(p); 
+            // Build dropdown options for existing layers
+            let layerOptions = `<option value="new_layer" style="font-weight:bold; color:#2980b9;">✨ Create New Layer</option>`;
+            layers.forEach(l => {
+                let name = l.description ? l.description : (l.type === 'base' ? 'Base Layer' : `Overlay ${l.id.replace('l_','')}`);
+                layerOptions += `<option value="${l.id}">${name}</option>`;
             });
-            
-            if (!isCopy) l.pathStr = remainingPaths.join(' ');
-            
-            let newRule = (l.type === 'base') ? [] : JSON.parse(JSON.stringify(l.rule));
-            let newLayer = { id: `l_${layerCounter++}`, type: 'add', rule: newRule, pathStr: extractedPaths.join(' '), visible: true, styles: JSON.parse(JSON.stringify(l.styles)), history: [], redoHistory: [] };
-            
-            layers.push(newLayer);
-            activeLayerId = newLayer.id; // Auto-focus new layer
-            setTool('line'); // Snap out of extract mode
-            renderLayerList();
+
+            Swal.fire({
+                title: isCopy ? 'Copy to Layer' : 'Move to Layer',
+                html: `
+                    <div style="text-align: left; font-size: 14px;">
+                        <label style="font-weight: bold; color: #2c3e50;">Select Destination Layer:</label>
+                        <select id="swal-dest-layer" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin-top: 5px;">
+                            ${layerOptions}
+                        </select>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonColor: '#8e44ad',
+                confirmButtonText: isCopy ? 'Copy Items' : 'Move Items',
+                preConfirm: () => document.getElementById('swal-dest-layer').value
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    let destLayerId = result.value;
+                    let targetLayer;
+
+                    // --- 1. HANDLE PATHS (SHAPES) ---
+                    let extractedPaths = [];
+                    if (selectedShapeIndices.size > 0) {
+                        saveHistory(sourceLayer);
+                        let subPaths = sourceLayer.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                        let remainingPaths = [];
+                        
+                        subPaths.forEach((p, i) => { 
+                            if(selectedShapeIndices.has(i)) extractedPaths.push(p); 
+                            else remainingPaths.push(p); 
+                        });
+                        
+                        if (!isCopy) sourceLayer.pathStr = remainingPaths.join(' ');
+                    }
+
+                    // --- 2. DETERMINE OR CREATE DESTINATION LAYER ---
+                    if (destLayerId === 'new_layer') {
+                        let newRule = (sourceLayer.type === 'base') ? [] : JSON.parse(JSON.stringify(sourceLayer.rule));
+                        targetLayer = { 
+                            id: `l_${layerCounter++}`, type: 'add', rule: newRule, 
+                            pathStr: extractedPaths.join(' '), visible: true, 
+                            styles: JSON.parse(JSON.stringify(sourceLayer.styles)), 
+                            history: [], redoHistory: [] 
+                        };
+                        layers.push(targetLayer);
+                    } else {
+                        targetLayer = layers.find(l => l.id === destLayerId);
+                        if (extractedPaths.length > 0) {
+                            saveHistory(targetLayer);
+                            targetLayer.pathStr += (targetLayer.pathStr.trim() ? " " : "") + extractedPaths.join(' ');
+                        }
+                    }
+
+                    // --- 3. HANDLE PINS ---
+                    if (selectedPinIndices.size > 0) {
+                        let pinsToProcess = pins.filter((p, i) => selectedPinIndices.has(i));
+                        
+                        pinsToProcess.forEach(p => {
+                            if (isCopy) {
+                                let newPin = JSON.parse(JSON.stringify(p));
+                                newPin.layerId = targetLayer.id;
+                                newPin.x += 10; 
+                                newPin.y -= 10;
+                                
+                                // NEW: If it's a dynamic text pin ($), DO NOT rename it so it keeps its data link!
+                                if (!newPin.id.includes('$')) {
+                                    newPin.id = `pin${pinCounter++}`;
+                                }
+                                
+                                pins.push(newPin);
+                            } else {
+                                p.layerId = targetLayer.id;
+                            }
+                        });
+                    }
+
+                    // --- 4. CLEANUP & RENDER ---
+                    activeLayerId = targetLayer.id; 
+                    setTool('line'); 
+                    selectedShapeIndices.clear();
+                    selectedPinIndices.clear(); // NEW: Clear index tracking
+                    renderLayerList();
+                    
+                    Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: isCopy ? 'Copied!' : 'Moved!', showConfirmButton: false, timer: 1500 });
+                }
+            });
         }
 		
 		function explodeSelected() {
@@ -2102,15 +2190,15 @@
                 });
             });
 			
-			// NEW: Render Pins (Με υποστήριξη κατεύθυνσης και Live Δυναμικού Κειμένου)
-            pins.forEach(p => {
-                // Έλεγχος αν το Layer του Pin είναι ορατό!
+			// NEW: Added pinIdx to the loop
+            pins.forEach((p, pinIdx) => {
                 let pLayer = layers.find(l => l.id === p.layerId);
                 let isVisible = pLayer ? (testModeActive ? evaluateLayerVisibility(pLayer) : pLayer.visible) : true;
-                if (!isVisible) return; // Κρύβεται!
+                if (!isVisible) return; 
                 
                 let isErasable = (currentTool === 'erase') ? 'erasable' : '';
-                let isExtractable = (currentTool === 'extract') ? (selectedPinIds.has(p.id) ? 'selected-extract' : 'extractable') : '';
+                // NEW: Use selectedPinIndices
+                let isExtractable = (currentTool === 'extract') ? (selectedPinIndices.has(pinIdx) ? 'selected-extract' : 'extractable') : '';
                 let hideData = document.getElementById('chkHidePinData').checked;
                 
                 let displayText = p.id;
@@ -2141,30 +2229,38 @@
                 }
                 // -------------------------------------------------------------------
 
-                // Υπολογισμός θέσης label για τον Builder
+                // Calculate position for the label
                 let lx = p.x + 3, ly = p.y - 2, align = "start";
                 if (p.dir === 'L') { lx = p.x - 3; align = "end"; }
                 else if (p.dir === 'T') { lx = p.x; ly = p.y - 4; align = "middle"; }
                 else if (p.dir === 'B') { lx = p.x; ly = p.y + 6; align = "middle"; }
 
+                let isTextMode = p.id.includes('$');
+                
+                // Use the dedicated CSS class for text anchors to make them thinner and purple
+                let circleMarkup = isTextMode
+                    ? `<circle cx="${p.x}" cy="${p.y}" r="1.5" class="pin-marker dummy-pin" />`
+                    : `<circle cx="${p.x}" cy="${p.y}" r="1.5" class="pin-marker" />`;
+
+                // NEW: Injected pinIdx instead of p.id
                 html += `
-                    <g ondblclick="event.stopPropagation(); window.editPin('${p.id}')" 
+                    <g ondblclick="event.stopPropagation(); window.editPin(${pinIdx})" 
                        class="shape-path ${isErasable} ${isExtractable}" 
-                       data-is-pin="true" data-pin-id="${p.id}" 
+                       data-is-pin="true" data-pin-idx="${pinIdx}" 
                        style="cursor:pointer;">
-                        <circle cx="${p.x}" cy="${p.y}" r="1.5" class="pin-marker" />
+                        ${circleMarkup}
                         <text x="${lx}" y="${ly}" class="pin-label" style="text-anchor:${align}">${displayText}</text>
                     </g>`;
             });
 
-			// Βοηθητική συνάρτηση για το dblclick
-			window.editPin = (id) => {
-				const pin = pins.find(p => p.id === id);
-				if (pin) {
-                    setTool('line'); // Snap out of pin tool to prevent bugs
+            // NEW: Fetch by index instead of ID
+            window.editPin = (idx) => {
+                const pin = pins[idx];
+                if (pin) {
+                    setTool('line'); 
                     openPinDialog(pin);
                 }
-			};
+            };
 			
             document.getElementById('renderedPaths').innerHTML = html;
             
@@ -2612,18 +2708,75 @@
 		if (container) container.innerHTML = generateTestPreviewSVG();
 	}
 	
-	function updateCombinedRotFlip(argIdx) {
-		let r = document.getElementById(`test-arg-${argIdx}-rot`).value || "0";
-		let f = document.getElementById(`test-arg-${argIdx}-flip`).value;
-		let final = `${r},${f}`;
-		document.getElementById(`test-arg-${argIdx}`).value = final;
-		
-		// Ενημέρωση μνήμης και preview
-		testValues[argIdx] = final;
-		renderCanvas();
-		const container = document.getElementById('test-preview-container');
-		if (container) container.innerHTML = generateTestPreviewSVG();
-	}
+function updateCombinedRotFlip(argIdx, source = 'rot') {
+        let rotInput = document.getElementById(`test-arg-${argIdx}-rot`);
+        let flipSelect = document.getElementById(`test-arg-${argIdx}-flip`);
+        
+        let r = parseFloat(rotInput.value) || 0;
+        let f = flipSelect.value;
+
+        // Apply Global Flip logic if the change came from the flip dropdown
+        if (source === 'flip') {
+            let oldVal = testValues[argIdx] || "0,none";
+            let oldParts = oldVal.split(',');
+            let oldF = oldParts[1] ? oldParts[1].trim() : 'none';
+
+            let oldH = oldF === 'h' || oldF === 'hv' || oldF === 'vh';
+            let oldV = oldF === 'v' || oldF === 'hv' || oldF === 'vh';
+            let newH = f === 'h' || f === 'hv' || f === 'vh';
+            let newV = f === 'v' || f === 'hv' || f === 'vh';
+
+            // Invert angle based on which axis flipped
+            if (oldH !== newH) r = (360 - r) % 360;
+            if (oldV !== newV) r = (360 - r) % 360;
+
+            rotInput.value = r; // Immediately update UI
+        }
+
+        let final = `${r},${f}`;
+        document.getElementById(`test-arg-${argIdx}`).value = final;
+        
+        testValues[argIdx] = final;
+        renderCanvas();
+        const container = document.getElementById('test-preview-container');
+        if (container) container.innerHTML = generateTestPreviewSVG();
+    }
+
+    // Handles Global Flipping if the user set Rotation and Flip as two separate fields
+    function updateSeparateFlip(argIdx) {
+        let flipSelect = document.getElementById(`test-arg-${argIdx}`);
+        let f = flipSelect.value;
+
+        let oldF = testValues[argIdx] || 'none';
+        let oldH = oldF === 'h' || oldF === 'hv' || oldF === 'vh';
+        let oldV = oldF === 'v' || oldF === 'hv' || oldF === 'vh';
+        let newH = f === 'h' || f === 'hv' || f === 'vh';
+        let newV = f === 'v' || f === 'hv' || f === 'vh';
+
+        // Search for a disconnected rotation argument
+        let argsList = getParsedArgs();
+        let rotArg = argsList.find(a => {
+            let customDef = argDefs.find(def => def.idx == a.idx);
+            return customDef && customDef.type === 'rotation';
+        });
+
+        if (rotArg) {
+            let rotInput = document.getElementById(`test-arg-${rotArg.idx}`);
+            if (rotInput) {
+                let r = parseFloat(rotInput.value) || 0;
+                if (oldH !== newH) r = (360 - r) % 360;
+                if (oldV !== newV) r = (360 - r) % 360;
+                
+                rotInput.value = r; // Update UI
+                testValues[rotArg.idx] = r.toString(); // Update memory
+            }
+        }
+
+        testValues[argIdx] = f;
+        renderCanvas();
+        const container = document.getElementById('test-preview-container');
+        if (container) container.innerHTML = generateTestPreviewSVG();
+    }
 	
 	renderArgDefList();
 	

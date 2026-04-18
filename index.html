@@ -578,11 +578,20 @@
         let themeObj = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
         let txtColor = isFreeText ? themeObj.freeText : themeObj.componentLabel;
 
+        let rawAngle = el.get('angle') || 0;
+        let normalizedAngle = (rawAngle % 360 + 360) % 360;
+        let localRot = 0;
+        
+        // CAD Readability Standard: Keep text Left-to-Right or Bottom-to-Top
+        if (normalizedAngle >= 90 && normalizedAngle < 270) {
+            localRot = 180;
+        }
+
         if (isMath) {
             el.attr('label/display', 'none'); 
             let htmlStr = `
                 <div style="position: relative; width: 0px; height: 0px;">
-                    <div style="position: absolute; left: ${centerX}px; top: ${centerY}px; transform: translate(-50%, -50%); white-space: nowrap; font-size: ${fontSize}px; color: ${txtColor}; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">
+                    <div style="position: absolute; left: ${centerX}px; top: ${centerY}px; transform: translate(-50%, -50%) rotate(${localRot}deg); white-space: nowrap; font-size: ${fontSize}px; color: ${txtColor}; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">
                         ${renderedContent}
                     </div>
                 </div>`;
@@ -591,10 +600,20 @@
             el.attr('label/display', 'block'); 
             el.attr('label/text', displayText);
             el.attr('label/fill', txtColor);
-            el.attr('label/refX', '0%');
-            el.attr('label/refX2', centerX); 
-            el.attr('label/refY', '0%'); 
-            el.attr('label/refY2', centerY); 
+            
+            // Disconnect from JointJS auto-horizontal layout
+            el.attr('label/refX', null);
+            el.attr('label/refX2', null); 
+            el.attr('label/refY', null); 
+            el.attr('label/refY2', null); 
+            
+            // Set exact raw SVG coordinates instead
+            el.attr('label/x', centerX);
+            el.attr('label/y', centerY);
+            
+            // Apply the smart rotation
+            el.attr('label/transform', `rotate(${localRot}, ${centerX}, ${centerY})`);
+            
             el.attr('label/fontSize', fontSize);
             el.attr('label/opacity', isEmpty ? 0.3 : 1);
             el.set('mathHtmlMain', ''); 
@@ -1370,21 +1389,25 @@
         exportLatex(); saveState();
     }
 
-    function flipHorizontal() {
+	function flipHorizontal() {
         selectedElements.forEach(el => {
             let dbData = JL_DATABASE[el.get('latexMacro')];
             if(el.get('latexMacro') !== 'connectordot' && (!dbData || dbData.flippable !== false)) {
                 let oldPin = getVisualOrigin(el);
+                
+                // Toggle Flip and Invert Angle for Global Flip
                 el.set('flipH', !(el.get('flipH') || false));
+                el.rotate((360 - (el.get('angle') || 0)) % 360, true);
+                
                 applyRobustScale(el, el.get('customScale') || 1); 
                 let newPin = getVisualOrigin(el);
                 let p = el.position();
                 el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
                 
-                // --- NEW: Sync visual flip back to properties ---
+                // Sync visual flip back to properties
                 if (dbData && dbData.argDefs) {
                     let customArgs = el.get('customArgs') || [];
-                    let rot = (360 - (el.get('angle') || 0)) % 360;
+                    let rot = (el.get('angle') || 0); // Already inverted above
                     let flipH = el.get('flipH') ? 'h' : '';
                     let flipV = el.get('flipV') ? 'v' : '';
                     let flipStr = flipH && flipV ? 'hv' : (flipH || flipV || 'none');
@@ -1392,6 +1415,7 @@
                     dbData.argDefs.forEach(def => {
                         if (def.type === 'rotflip') customArgs[def.idx - 1] = `${rot},${flipStr}`;
                         else if (def.type === 'flip') customArgs[def.idx - 1] = `${flipStr}`;
+                        else if (def.type === 'rotation') customArgs[def.idx - 1] = `${rot}`;
                     });
                     el.set('customArgs', customArgs);
                 }
@@ -1405,11 +1429,31 @@
             let dbData = JL_DATABASE[el.get('latexMacro')];
             if(el.get('latexMacro') !== 'connectordot' && (!dbData || dbData.flippable !== false)) {
                 let oldPin = getVisualOrigin(el);
+                
+                // Toggle Flip and Invert Angle for Global Flip
                 el.set('flipV', !(el.get('flipV') || false));
+                el.rotate((360 - (el.get('angle') || 0)) % 360, true);
+                
                 applyRobustScale(el, el.get('customScale') || 1);
                 let newPin = getVisualOrigin(el);
                 let p = el.position();
                 el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
+                
+                // Sync visual flip back to properties
+                if (dbData && dbData.argDefs) {
+                    let customArgs = el.get('customArgs') || [];
+                    let rot = (el.get('angle') || 0); // Already inverted above
+                    let flipH = el.get('flipH') ? 'h' : '';
+                    let flipV = el.get('flipV') ? 'v' : '';
+                    let flipStr = flipH && flipV ? 'hv' : (flipH || flipV || 'none');
+                    
+                    dbData.argDefs.forEach(def => {
+                        if (def.type === 'rotflip') customArgs[def.idx - 1] = `${rot},${flipStr}`;
+                        else if (def.type === 'flip') customArgs[def.idx - 1] = `${flipStr}`;
+                        else if (def.type === 'rotation') customArgs[def.idx - 1] = `${rot}`;
+                    });
+                    el.set('customArgs', customArgs);
+                }
             }
         });
         forceExportLatex(); saveState();
@@ -2689,8 +2733,8 @@ ${indentedTikz}
                     if (!f) f = "none";
                     htmlForm += `
                         <div style="display: flex; gap: 5px;">
-                            <input type="number" id="swal-input-${i}-rot" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" value="${r}" oninput="syncRotFlip(${i})">
-                            <select id="swal-input-${i}-flip" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" onchange="syncRotFlip(${i})">
+                            <input type="number" id="swal-input-${i}-rot" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" value="${r}" oninput="syncRotFlip(${i}, 'rot')">
+                            <select id="swal-input-${i}-flip" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" onchange="syncRotFlip(${i}, 'flip')">
                                 <option value="none" ${f==='none'?'selected':''}>None</option>
                                 <option value="h" ${f==='h'?'selected':''}>Flip H</option>
                                 <option value="v" ${f==='v'?'selected':''}>Flip V</option>
@@ -2700,12 +2744,13 @@ ${indentedTikz}
                         <input type="hidden" id="swal-input-${i}" value="${val || '0,none'}">`;
                 }
                 else if (customDef.type === 'rotation') {
-                    htmlForm += `<input type="number" id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${val || '0'}">`;
+                    // Added a custom class "rot-input-field" so we can find it if flipped separately
+                    htmlForm += `<input type="number" id="swal-input-${i}" class="swal2-input rot-input-field" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${val || '0'}">`;
                 }
                 else if (customDef.type === 'flip') {
                     let f = val || 'none';
                     htmlForm += `
-                        <select id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;">
+                        <select id="swal-input-${i}" data-old-val="${f}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" onchange="syncSeparateFlip(${i}, this)">
                             <option value="none" ${f==='none'?'selected':''}>None</option>
                             <option value="h" ${f==='h'?'selected':''}>Flip H</option>
                             <option value="v" ${f==='v'?'selected':''}>Flip V</option>
@@ -3341,15 +3386,63 @@ ${indentedTikz}
         hiddenInput.dispatchEvent(new Event('change', { bubbles: true })); 
     }
 	
-	function syncRotFlip(argIdx) {
-		let r = document.getElementById(`swal-input-${argIdx}-rot`).value || "0";
-		let f = document.getElementById(`swal-input-${argIdx}-flip`).value;
-		let hidden = document.getElementById(`swal-input-${argIdx}`);
-		hidden.value = `${r},${f}`;
-		
-		// Ενεργοποίηση του Live Preview στον Editor
-		hidden.dispatchEvent(new Event('change', { bubbles: true }));
-	}
+	function syncRotFlip(argIdx, source = 'rot') {
+        let rotInput = document.getElementById(`swal-input-${argIdx}-rot`);
+        let flipSelect = document.getElementById(`swal-input-${argIdx}-flip`);
+        let hidden = document.getElementById(`swal-input-${argIdx}`);
+        
+        let r = parseFloat(rotInput.value) || 0;
+        let f = flipSelect.value;
+
+        // Apply Global Flip logic if the change came from the flip dropdown
+        if (source === 'flip') {
+            let oldVal = hidden.value || "0,none";
+            let oldParts = oldVal.split(',');
+            let oldF = oldParts[1] ? oldParts[1].trim() : 'none';
+
+            let oldH = oldF === 'h' || oldF === 'hv' || oldF === 'vh';
+            let oldV = oldF === 'v' || oldF === 'hv' || oldF === 'vh';
+            let newH = f === 'h' || f === 'hv' || f === 'vh';
+            let newV = f === 'v' || f === 'hv' || f === 'vh';
+
+            // Invert angle based on which axis flipped
+            if (oldH !== newH) r = (360 - r) % 360;
+            if (oldV !== newV) r = (360 - r) % 360;
+
+            rotInput.value = r; // Update UI
+        }
+
+        hidden.value = `${r},${f}`;
+        
+        // Ενεργοποίηση του Live Preview στον Editor
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Handles Global Flipping if the user separated Rotation and Flip into two different fields
+    function syncSeparateFlip(argIdx, selectEl) {
+        let f = selectEl.value;
+        let oldF = selectEl.getAttribute('data-old-val') || 'none';
+
+        let oldH = oldF === 'h' || oldF === 'hv' || oldF === 'vh';
+        let oldV = oldF === 'v' || oldF === 'hv' || oldF === 'vh';
+        let newH = f === 'h' || f === 'hv' || f === 'vh';
+        let newV = f === 'v' || f === 'hv' || f === 'vh';
+
+        // Search the DOM for a standalone rotation input
+        let rotInput = document.querySelector('.rot-input-field');
+        if (rotInput) {
+            let r = parseFloat(rotInput.value) || 0;
+            if (oldH !== newH) r = (360 - r) % 360;
+            if (oldV !== newV) r = (360 - r) % 360;
+            
+            rotInput.value = r; // Update UI
+            rotInput.dispatchEvent(new Event('input', { bubbles: true })); // Trigger live preview
+        }
+
+        // Update the custom memory attribute
+        selectEl.setAttribute('data-old-val', f);
+        selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+    }
 	
 </script>
 </body>
