@@ -141,6 +141,12 @@ const JL_DATABASE = {
                 "label": "state1/state2",
                 "defVal": "state1",
                 "options": "state1, state2"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
             }
         ],
         "iconBase": "M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 30 -10 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
@@ -239,6 +245,12 @@ const JL_DATABASE = {
                 "type": "text",
                 "label": "control_terminal",
                 "defVal": ""
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
             }
         ],
         "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -15 M 19 -15 L 21 -15 M 15 -15 L 25 -15 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
@@ -304,7 +316,7 @@ const JL_DATABASE = {
             {
                 "id": "$4",
                 "x": 20.0,
-                "y": -15.0,
+                "y": -17.5,
                 "label": "",
                 "dir": "T"
             }
@@ -330,18 +342,23 @@ const JL_DATABASE = {
         },
         "argDefs": [
             {
-                "idx": 4,
-                "type": "select",
+                "idx": 3,
+                "type": "text",
                 "label": "control value",
-                "defVal": "n",
-                "options": "n,p"
+                "defVal": ""
             },
             {
                 "idx": 4,
                 "type": "select",
-                "label": "n/p",
-                "defVal": "",
-                "options": ""
+                "label": "type",
+                "defVal": "n",
+                "options": "n, p"
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
             }
         ],
         "iconBase": "M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0",
@@ -519,14 +536,36 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 0.0,
-            "y": 15.0,
+            "auto": true,
             "dir": "B"
         },
         "flippable": false,
         "previewArgs": {
+            "3": "horizontal",
             "4": "standard"
         },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "type",
+                "defVal": "standard",
+                "options": "standard, controlled"
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
         "iconBase": "M -30 0 L -20 0 M 20 0 L 30 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0",
         "filled": false,
         "iconLayers": [
@@ -599,15 +638,38 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 0.0,
-            "y": 15.0,
+            "auto": true,
             "dir": "B"
         },
         "flippable": false,
         "previewArgs": {
-            "4": "standard"
+            "3": "horizontal",
+            "4": "standard",
+            "5": "0"
         },
-        "iconBase": "M -30 0 L -20 0  M 20 0 L 30 0  M -10 0 L 10 0  M 10 0 L 3 -5 L 10 0 L 3 5",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "standard/controlled",
+                "defVal": "standard",
+                "options": "standard, controlled"
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M -30 0 L -20 0 M 20 0 L 30 0 M -10 0 L 10 0 M 10 0 L 3 -5 L 10 0 L 3 5",
         "filled": false,
         "iconLayers": [
             {
@@ -680,21 +742,36 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 0.0,
-            "y": 10.0,
+            "auto": true,
             "dir": "B"
         },
         "flippable": false,
         "previewArgs": {
+            "3": "0",
             "4": "on"
         },
-        "iconBase": "M -15 -5 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6   M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9   M 20 20 L 20 8 L 11.5 8 L 20.5 8",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "on/off",
+                "defVal": "on",
+                "options": "on, off"
+            }
+        ],
+        "iconBase": "M -15 -5 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 8 L 11.5 8 L 20.5 8",
         "filled": false,
         "iconLayers": [
             {
                 "condition": "4==on",
                 "style": "stroke-width=2.5",
-                "path": "M 17 0 L 22 0    M -17 0 L -22 0    M 15 -13 L 20 -19    M 0 -20 L 0 -24    M -14.5 -13 L -19.5 -19"
+                "path": "M 17 0 L 22 0 M -17 0 L -22 0 M 15 -13 L 20 -19 M 0 -20 L 0 -24 M -14.5 -13 L -19.5 -19"
             }
         ],
         "argNames": [
@@ -752,14 +829,37 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 0.0,
-            "y": 15.0,
+            "auto": true,
             "dir": "B"
         },
         "flippable": false,
         "previewArgs": {
-            "4": "sine"
+            "3": "horizontal",
+            "4": "sine",
+            "5": "0"
         },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "waveform",
+                "defVal": "sine",
+                "options": "sine, square, triangle"
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
         "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0",
         "filled": false,
         "iconLayers": [
@@ -837,12 +937,38 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 0.0,
-            "y": 15.0,
+            "auto": true,
             "dir": "B"
         },
         "flippable": false,
-        "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0   M -30 0 L -20 0   M 20 0 L 30 0",
+        "previewArgs": {
+            "3": "horizontal",
+            "4": "25",
+            "5": "0"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical"
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "value",
+                "defVal": "25",
+                "options": "0, 25, 50, 75, 100"
+            }
+        ],
+        "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0",
         "filled": false,
         "iconLayers": [
             {
@@ -851,9 +977,29 @@ const JL_DATABASE = {
                 "path": "M -16 -3 A 17 17 0 0 1 16 -3"
             },
             {
-                "condition": "1~=",
-                "style": "stroke-width=2.5",
+                "condition": "4==50",
+                "style": "stroke-width=2.5, rounded=true",
                 "path": "M 0 10 L 0 -10"
+            },
+            {
+                "condition": "4==0",
+                "style": "stroke-width=2.5, rounded=true",
+                "path": "M -12.5 -2.5 L 0 9.5"
+            },
+            {
+                "condition": "4==100",
+                "style": "stroke-width=2.5, rounded=true",
+                "path": "M 12.5 -1.5 L 0.5 9.5"
+            },
+            {
+                "condition": "4==25",
+                "style": "stroke-width=2.5, rounded=true",
+                "path": "M -7.5 -8 L 0 9.5"
+            },
+            {
+                "condition": "4==75",
+                "style": "stroke-width=2.1, rounded=true",
+                "path": "M 7 -7 L 0 9.5"
             }
         ],
         "argNames": [
@@ -922,6 +1068,28 @@ const JL_DATABASE = {
         "previewArgs": {
             "4": "fixed"
         },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical, none"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "fixed/variable",
+                "defVal": "fixed",
+                "options": "fixed,variable"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
         "iconBase": "M 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0",
         "iconBaseStyle": "stroke-width=2.8",
         "filled": false,
@@ -929,7 +1097,7 @@ const JL_DATABASE = {
             {
                 "condition": "4==variable",
                 "style": "stroke-width=2.3, rounded=true",
-                "path": "M 48.33 -21.32 L 42.41 -17.44 L 48.33 -21.32 L 49.47 -14.13           M 28.5 16.5 L 47.5 -19.5"
+                "path": "M 48.33 -21.32 L 42.41 -17.44 L 48.33 -21.32 L 49.47 -14.13 M 28.5 16.5 L 47.5 -19.5"
             },
             {
                 "condition": "1~=",
@@ -1003,6 +1171,28 @@ const JL_DATABASE = {
         "previewArgs": {
             "4": "fixed"
         },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical, none"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "fixed/variable",
+                "defVal": "fixed",
+                "options": "fixed, variable"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
         "iconBase": "M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0",
         "iconBaseStyle": "stroke-width=2.7",
         "filled": false,
@@ -1010,7 +1200,7 @@ const JL_DATABASE = {
             {
                 "condition": "4==variable",
                 "style": "stroke-width=2.3, rounded=true",
-                "path": "M 25 10 L 53 -19    M 53 -19 L 46 -18 L 53 -19 L 51 -12"
+                "path": "M 25 10 L 53 -19 M 53 -19 L 46 -18 L 53 -19 L 51 -12"
             }
         ],
         "argNames": [
@@ -1071,8 +1261,7 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 20.0,
-            "y": 7.0,
+            "auto": true,
             "dir": "B"
         },
         "flippable": false,
@@ -1080,13 +1269,42 @@ const JL_DATABASE = {
             "3": "fixed",
             "4": "none"
         },
-        "iconBase": "M 0 0 L 16 0  M 24 0 L 40 0",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical, none"
+            },
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "fixed/variable",
+                "defVal": "fixed",
+                "options": "fixed, variable"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "sign",
+                "defVal": "none",
+                "options": "plus, minus, none"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M 0 0 L 16 0 M 24 0 L 40 0",
         "filled": false,
         "iconLayers": [
             {
                 "condition": "3~=variable",
                 "style": "stroke-width=1.3, rounded=true",
-                "path": "M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34      M 35 -15 L 8 8.5"
+                "path": "M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34 M 35 -15 L 8 8.5"
             },
             {
                 "condition": "4==plus",
@@ -1101,7 +1319,7 @@ const JL_DATABASE = {
             {
                 "condition": "1~=",
                 "style": "stroke-width=2.9",
-                "path": "M 16 -15 L 16 15  M 24 -15 L 24 15"
+                "path": "M 16 -15 L 16 15 M 24 -15 L 24 15"
             }
         ],
         "argNames": [
@@ -1163,17 +1381,51 @@ const JL_DATABASE = {
         ],
         "labelAnchor": {
             "x": 20.0,
-            "y": 5.0,
+            "y": 11.0,
             "dir": "B"
         },
         "flippable": false,
-        "iconBase": "M 0 0 L 16 0  M 16 -15 L 16 15  M 24 0 L 40 0",
+        "previewArgs": {
+            "3": "horizontal",
+            "4": "none",
+            "5": "0"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical, none"
+            },
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "fixed/variable",
+                "defVal": "fixed",
+                "options": "fixed, variable"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "plus sign",
+                "defVal": "plus",
+                "options": "plus, none"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 0 L 40 0",
         "filled": false,
         "iconLayers": [
             {
                 "condition": "3~=variable",
                 "style": "rounded=true",
-                "path": "M 8.5 13 L 28.5 -11  M 30 -12 L 24 -11 L 30 -12 L 28 -6"
+                "path": "M 8.5 13 L 28.5 -11 M 30 -12 L 24 -11 L 30 -12 L 28 -6"
             },
             {
                 "condition": "4==plus",

@@ -734,31 +734,49 @@
                 
                 argsList.forEach(a => {
                     let desc = a.name.toLowerCase();
-                    
                     if (desc === 'name' || desc === 'text') {
                         let defaultName = document.getElementById('dName').value || "M1";
                         testValues[a.idx] = pArgs[a.idx] !== undefined ? pArgs[a.idx] : defaultName;
                     } else {
                         let val = pArgs[a.idx] !== undefined ? pArgs[a.idx] : "";
-                        
-                        // FIX: Ensure geometry arguments always have a solid default state instead of a ghost empty string!
-                        let customDef = argDefs.find(def => def.idx == a.idx);
-                        if (customDef) {
-                            if (customDef.type === 'rotation' && !val) val = '0';
-                            else if (customDef.type === 'rotflip' && !val) val = '0,none';
-                            else if (customDef.type === 'flip' && !val) val = 'none';
-                        }
                         testValues[a.idx] = val;
                     }
                     
-                    let el = document.getElementById(`test-arg-${a.idx}`);
-                    if (el) {
-                        el.value = testValues[a.idx];
-                        if (desc === 'name' || desc === 'text') {
-                            el.disabled = true;
-                            el.style.backgroundColor = '#ecf0f1';
-                            el.style.color = '#7f8c8d';
-                        }
+                    let customDefs = argDefs.filter(def => def.idx == a.idx);
+                    
+                    if (customDefs.length > 0) {
+                        let valParts = customDefs.length > 1 ? (testValues[a.idx] || "").split(',').map(s=>s.trim()) : [testValues[a.idx]];
+                        
+                        customDefs.forEach((customDef, subIdx) => {
+                            let inputId = customDefs.length > 1 ? `test-arg-${a.idx}-sub-${subIdx}` : `test-arg-${a.idx}`;
+                            let activeVal = valParts[subIdx] !== undefined && valParts[subIdx] !== "" ? valParts[subIdx] : customDef.defVal;
+                            
+                            if (customDef.type === 'rotflip') {
+                                 let [r, f] = (activeVal || "0,none").split(',');
+                                 if (!f) f = "none";
+                                 let rotInput = document.getElementById(`${inputId}-rot`);
+                                 let flipSelect = document.getElementById(`${inputId}-flip`);
+                                 if (rotInput) rotInput.value = r;
+                                 if (flipSelect) flipSelect.value = f;
+                            } else if (customDef.type === 'flags') {
+                                 let activeFlags = (activeVal || "").split('-').map(o => o.trim());
+                                 let checkboxes = document.querySelectorAll(`.${inputId}-flag`);
+                                 checkboxes.forEach(cb => { cb.checked = activeFlags.includes(cb.value); });
+                            } else {
+                                 let el = document.getElementById(inputId);
+                                 if (el) el.value = activeVal;
+                            }
+                        });
+                    } else {
+                         let el = document.getElementById(`test-arg-${a.idx}`);
+                         if (el) {
+                             el.value = testValues[a.idx];
+                             if (desc === 'name' || desc === 'text') {
+                                 el.disabled = true;
+                                 el.style.backgroundColor = '#ecf0f1';
+                                 el.style.color = '#7f8c8d';
+                             }
+                         }
                     }
                 });
                 
@@ -981,80 +999,89 @@
                 let desc = a.name.toLowerCase();
                 if (desc.includes('position') || desc.includes('grid') || desc.includes('show')) return; 
 
-                let customDef = argDefs.find(def => def.idx == a.idx);
-                let labelText = customDef ? customDef.label : `ARG ${a.idx}: ${a.name}`;
-                let currentVal = testValues[a.idx];
+                let currentVal = testValues[a.idx] || "";
+                let customDefs = argDefs.filter(def => def.idx == a.idx);
 
-                if (customDef && (customDef.type === 'rotflip' || customDef.type === 'rotation' || customDef.type === 'flip')) {
-                    labelText = customDef.type === 'rotflip' ? `ARG ${a.idx}: ROTATION & FLIP` : (customDef.type === 'rotation' ? `ARG ${a.idx}: ROTATION` : `ARG ${a.idx}: FLIP`);
-                }
+                if (customDefs.length > 0) {
+                    let valParts = customDefs.length > 1 ? currentVal.split(',').map(s => s.trim()) : [currentVal];
 
-                htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;">
-                                <label style="display:block; font-weight:bold; font-size:11px; color:#2c3e50; margin-bottom:4px;">${labelText}</label>`;
+                    customDefs.forEach((customDef, subIdx) => {
+                        let activeVal = valParts[subIdx] !== undefined && valParts[subIdx] !== "" ? valParts[subIdx] : customDef.defVal;
+                        let labelText = customDef.label;
+                        let inputId = customDefs.length > 1 ? `test-arg-${a.idx}-sub-${subIdx}` : `test-arg-${a.idx}`;
 
-                if (customDef) {
-                    if (customDef.type === 'select') {
-                        let options = customDef.options.split(',').map(o => o.trim());
-                        htmlForm += `<select id="test-arg-${a.idx}" style="${inputStyle}">`;
-                        options.forEach(opt => {
-                            let selected = (currentVal === opt) ? 'selected' : '';
-                            htmlForm += `<option value="${opt}" ${selected}>${opt}</option>`;
-                        });
-                        htmlForm += `</select>`;
-                    } 
-                    else if (customDef.type === 'flags') {
-                        let allFlags = customDef.options.split(',').map(o => o.trim());
-                        let activeFlags = currentVal.split('-').map(o => o.trim());
-                        htmlForm += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
-                        allFlags.forEach(flag => {
-                            let checked = activeFlags.includes(flag) ? 'checked' : '';
-                            htmlForm += `<label style="font-size:11px; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="test-flag-${a.idx}" value="${flag}" ${checked} onchange="updateFlags(${a.idx})"> ${flag}</label>`;
-                        });
-                        htmlForm += `</div><input type="hidden" id="test-arg-${a.idx}" value="${currentVal}" style="display:none !important;">`;
-                    }
-                    else if (customDef.type === 'rotflip') {
-                        // FIX: Force memory population if empty!
-                        if (!currentVal) { currentVal = '0,none'; testValues[a.idx] = currentVal; }
-                        
-                        let [r, f] = currentVal.split(',');
-                        if (!f) f = "none";
-                        htmlForm += `
-                            <div style="display: flex; gap: 5px;">
-                                <input type="number" id="test-arg-${a.idx}-rot" style="flex:1; ${inputStyle}" value="${r}" oninput="updateCombinedRotFlip(${a.idx}, 'rot')">
-                                <select id="test-arg-${a.idx}-flip" style="flex:1; ${inputStyle}" onchange="updateCombinedRotFlip(${a.idx}, 'flip')">
-                                    <option value="none" ${f==='none'?'selected':''}>None</option>
-                                    <option value="h" ${f==='h'?'selected':''}>Flip H</option>
-                                    <option value="v" ${f==='v'?'selected':''}>Flip V</option>
-                                    <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
-                                </select>
-                            </div>
-                            <input type="hidden" id="test-arg-${a.idx}" value="${currentVal}" style="display:none !important;">`;
-                    }
-                    else if (customDef.type === 'rotation') {
-                        // FIX: Force memory population if empty!
-                        if (!currentVal) { currentVal = '0'; testValues[a.idx] = currentVal; }
-                        
-                        htmlForm += `<input type="number" id="test-arg-${a.idx}" style="${inputStyle}" value="${currentVal}">`;
-                    }
-                    else if (customDef.type === 'flip') {
-                        // FIX: Force memory population if empty!
-                        if (!currentVal) { currentVal = 'none'; testValues[a.idx] = currentVal; }
-                        let f = currentVal;
-                        
-                        htmlForm += `<select id="test-arg-${a.idx}" style="${inputStyle}" onchange="updateSeparateFlip(${a.idx})">
-                            <option value="none" ${f==='none'?'selected':''}>None</option>
-                            <option value="h" ${f==='h'?'selected':''}>Flip H</option>
-                            <option value="v" ${f==='v'?'selected':''}>Flip V</option>
-                            <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
-                        </select>`;
-                    }
-                    else { 
-                        htmlForm += `<input type="text" id="test-arg-${a.idx}" style="${inputStyle}" value="${currentVal}">`;
-                    }
+                        if (customDef.type === 'rotflip' || customDef.type === 'rotation' || customDef.type === 'flip') {
+                            labelText = customDef.type === 'rotflip' ? `ARG ${a.idx}: ROTATION & FLIP` : (customDef.type === 'rotation' ? `ARG ${a.idx}: ROTATION` : `ARG ${a.idx}: FLIP`);
+                        } else if (customDefs.length > 1) {
+                            labelText = `ARG ${a.idx}: ${labelText}`;
+                        } else {
+                            labelText = `ARG ${a.idx}: ${labelText}`;
+                        }
+
+                        htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;">
+                                        <label style="display:block; font-weight:bold; font-size:11px; color:#2c3e50; margin-bottom:4px;">${labelText}</label>`;
+
+                        if (customDef.type === 'select') {
+                            let options = customDef.options.split(',').map(o => o.trim());
+                            htmlForm += `<select id="${inputId}" style="${inputStyle}">`;
+                            options.forEach(opt => {
+                                let selected = (activeVal === opt) ? 'selected' : '';
+                                htmlForm += `<option value="${opt}" ${selected}>${opt}</option>`;
+                            });
+                            htmlForm += `</select>`;
+                        } 
+                        else if (customDef.type === 'flags') {
+                            let allFlags = customDef.options.split(',').map(o => o.trim());
+                            let activeFlags = activeVal.split('-').map(o => o.trim());
+                            htmlForm += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
+                            allFlags.forEach(flag => {
+                                let checked = activeFlags.includes(flag) ? 'checked' : '';
+                                htmlForm += `<label style="font-size:11px; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="${inputId}-flag" value="${flag}" ${checked} onchange="updateFlags('${inputId}')"> ${flag}</label>`;
+                            });
+                            htmlForm += `</div><input type="hidden" id="${inputId}" value="${activeVal}" style="display:none !important;">`;
+                        }
+                        else if (customDef.type === 'rotflip') {
+                            if (!activeVal) { activeVal = '0,none'; if(customDefs.length === 1) testValues[a.idx] = activeVal; }
+                            let [r, f] = activeVal.split(',');
+                            if (!f) f = "none";
+                            htmlForm += `
+                                <div style="display: flex; gap: 5px;">
+                                    <input type="number" id="${inputId}-rot" style="flex:1; ${inputStyle}" value="${r}" oninput="updateCombinedRotFlip('${inputId}', 'rot')">
+                                    <select id="${inputId}-flip" style="flex:1; ${inputStyle}" onchange="updateCombinedRotFlip('${inputId}', 'flip')">
+                                        <option value="none" ${f==='none'?'selected':''}>None</option>
+                                        <option value="h" ${f==='h'?'selected':''}>Flip H</option>
+                                        <option value="v" ${f==='v'?'selected':''}>Flip V</option>
+                                        <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
+                                    </select>
+                                </div>
+                                <input type="hidden" id="${inputId}" value="${activeVal}" style="display:none !important;">`;
+                        }
+                        else if (customDef.type === 'rotation') {
+                            if (!activeVal) { activeVal = '0'; if(customDefs.length === 1) testValues[a.idx] = activeVal; }
+                            htmlForm += `<input type="number" id="${inputId}" style="${inputStyle}" value="${activeVal}">`;
+                        }
+                        else if (customDef.type === 'flip') {
+                            if (!activeVal) { activeVal = 'none'; if(customDefs.length === 1) testValues[a.idx] = activeVal; }
+                            let f = activeVal;
+                            htmlForm += `<select id="${inputId}" style="${inputStyle}" onchange="updateSeparateFlip('${inputId}')">
+                                <option value="none" ${f==='none'?'selected':''}>None</option>
+                                <option value="h" ${f==='h'?'selected':''}>Flip H</option>
+                                <option value="v" ${f==='v'?'selected':''}>Flip V</option>
+                                <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
+                            </select>`;
+                        }
+                        else { 
+                            htmlForm += `<input type="text" id="${inputId}" style="${inputStyle}" value="${activeVal}">`;
+                        }
+                        htmlForm += `</div>`;
+                    });
                 } else {
-                    htmlForm += `<input type="text" id="test-arg-${a.idx}" style="${inputStyle}" value="${currentVal}">`;
+                    let inputId = `test-arg-${a.idx}`;
+                    htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;">
+                                    <label style="display:block; font-weight:bold; font-size:11px; color:#2c3e50; margin-bottom:4px;">ARG ${a.idx}: ${a.name}</label>
+                                    <input type="text" id="${inputId}" style="${inputStyle}" value="${currentVal}">
+                                 </div>`;
                 }
-                htmlForm += `</div>`;
             });
             htmlForm += '</div>';
 
@@ -1111,14 +1138,35 @@
                     });
                     
                     argsList.forEach(a => {
-                        let el = document.getElementById(`test-arg-${a.idx}`);
-                        if (el) {
-                            el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', (e) => {
-                                testValues[a.idx] = e.target.value;
-                                window.markPreviewDirty();
-                                renderCanvas();
-                                document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();
-                            });
+                        let customDefs = argDefs.filter(def => def.idx == a.idx);
+                        
+                        const attachListener = (inputId) => {
+                            let el = document.getElementById(inputId);
+                            if (el) {
+                                el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', (e) => {
+                                    if (customDefs.length > 1) {
+                                        let subVals = [];
+                                        for (let j = 0; j < customDefs.length; j++) {
+                                            let subEl = document.getElementById(`test-arg-${a.idx}-sub-${j}`);
+                                            if (subEl) subVals.push(subEl.value);
+                                        }
+                                        testValues[a.idx] = subVals.filter(v => v !== "").join(', ');
+                                    } else {
+                                        testValues[a.idx] = e.target.value;
+                                    }
+                                    window.markPreviewDirty();
+                                    renderCanvas();
+                                    document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();
+                                });
+                            }
+                        };
+
+                        if (customDefs.length > 1) {
+                            for (let j = 0; j < customDefs.length; j++) {
+                                attachListener(`test-arg-${a.idx}-sub-${j}`);
+                            }
+                        } else {
+                            attachListener(`test-arg-${a.idx}`);
                         }
                     });
 					
@@ -3609,93 +3657,97 @@
 		});
 	}
 	
-	function updateFlags(argIdx) {
-		let checkboxes = document.querySelectorAll(`.test-flag-${argIdx}`);
+	function extractBaseIdx(inputId) {
+        let match = inputId.match(/test-arg-(\d+)/);
+        return match ? parseInt(match[1]) : null;
+    }
+    
+    function commitTestValue(inputId, val) {
+        let baseIdx = extractBaseIdx(inputId);
+        if (!baseIdx) return;
+
+        let el = document.getElementById(inputId);
+        if (el) el.value = val;
+
+        let customDefs = argDefs.filter(def => def.idx == baseIdx);
+        if (customDefs.length > 1) {
+            let subVals = [];
+            for (let j = 0; j < customDefs.length; j++) {
+                let subEl = document.getElementById(`test-arg-${baseIdx}-sub-${j}`);
+                if (subEl) subVals.push(subEl.value);
+            }
+            testValues[baseIdx] = subVals.filter(v => v !== "").join(', ');
+        } else {
+            testValues[baseIdx] = val;
+        }
+
+        window.markPreviewDirty();
+        renderCanvas();
+        const container = document.getElementById('test-preview-container');
+        if (container) container.innerHTML = generateTestPreviewSVG();
+    }
+
+	function updateFlags(inputId) {
+		let checkboxes = document.querySelectorAll(`.${inputId}-flag`);
 		let selected = [];
-		checkboxes.forEach(cb => {
-			if (cb.checked) selected.push(cb.value);
-		});
-		let finalVal = selected.join('-');
-		document.getElementById(`test-arg-${argIdx}`).value = finalVal;
-		
-		// Ενημέρωση του preview
-		testValues[argIdx] = finalVal;
-		window.markPreviewDirty();
-		renderCanvas();
-		const container = document.getElementById('test-preview-container');
-		if (container) container.innerHTML = generateTestPreviewSVG();
+		checkboxes.forEach(cb => { if (cb.checked) selected.push(cb.value); });
+		commitTestValue(inputId, selected.join('-'));
 	}
 	
-	function updateCombinedRotFlip(argIdx, source = 'rot') {
-        let rotInput = document.getElementById(`test-arg-${argIdx}-rot`);
-        let flipSelect = document.getElementById(`test-arg-${argIdx}-flip`);
-        
+	function updateCombinedRotFlip(inputId, source = 'rot') {
+        let rotInput = document.getElementById(`${inputId}-rot`);
+        let flipSelect = document.getElementById(`${inputId}-flip`);
         let r = parseFloat(rotInput.value) || 0;
         let f = flipSelect.value;
 
-        // Apply Global Flip logic if the change came from the flip dropdown
         if (source === 'flip') {
-            let oldVal = testValues[argIdx] || "0,none";
-            let oldParts = oldVal.split(',');
-            let oldF = oldParts[1] ? oldParts[1].trim() : 'none';
+            let oldVal = document.getElementById(inputId)?.value || "0,none";
+            let oldF = oldVal.split(',')[1]?.trim() || 'none';
 
             let oldH = oldF === 'h' || oldF === 'hv' || oldF === 'vh';
             let oldV = oldF === 'v' || oldF === 'hv' || oldF === 'vh';
             let newH = f === 'h' || f === 'hv' || f === 'vh';
             let newV = f === 'v' || f === 'hv' || f === 'vh';
 
-            // Invert angle based on which axis flipped
             if (oldH !== newH) r = (360 - r) % 360;
             if (oldV !== newV) r = (360 - r) % 360;
-
-            rotInput.value = r; // Immediately update UI
+            rotInput.value = r; 
         }
-
-        let final = `${r},${f}`;
-        document.getElementById(`test-arg-${argIdx}`).value = final;
-        
-        testValues[argIdx] = final;
-		window.markPreviewDirty();
-        renderCanvas();
-        const container = document.getElementById('test-preview-container');
-        if (container) container.innerHTML = generateTestPreviewSVG();
+        commitTestValue(inputId, `${r},${f}`);
     }
 
-    // Handles Global Flipping if the user set Rotation and Flip as two separate fields
-    function updateSeparateFlip(argIdx) {
-        let flipSelect = document.getElementById(`test-arg-${argIdx}`);
+    function updateSeparateFlip(inputId) {
+        let flipSelect = document.getElementById(inputId);
         let f = flipSelect.value;
+        let baseIdx = extractBaseIdx(inputId);
 
-        let oldF = testValues[argIdx] || 'none';
+        let oldF = document.getElementById(inputId)?.value || 'none';
         let oldH = oldF === 'h' || oldF === 'hv' || oldF === 'vh';
         let oldV = oldF === 'v' || oldF === 'hv' || oldF === 'vh';
         let newH = f === 'h' || f === 'hv' || f === 'vh';
         let newV = f === 'v' || f === 'hv' || f === 'vh';
 
-        // Search for a disconnected rotation argument
         let argsList = getParsedArgs();
         let rotArg = argsList.find(a => {
-            let customDef = argDefs.find(def => def.idx == a.idx);
-            return customDef && customDef.type === 'rotation';
+            let defs = argDefs.filter(d => d.idx == a.idx);
+            return defs.some(d => d.type === 'rotation');
         });
 
         if (rotArg) {
-            let rotInput = document.getElementById(`test-arg-${rotArg.idx}`);
+            let rotDefs = argDefs.filter(d => d.idx == rotArg.idx);
+            let rotSubIdx = rotDefs.findIndex(d => d.type === 'rotation');
+            let rotInputId = rotDefs.length > 1 ? `test-arg-${rotArg.idx}-sub-${rotSubIdx}` : `test-arg-${rotArg.idx}`;
+            
+            let rotInput = document.getElementById(rotInputId);
             if (rotInput) {
                 let r = parseFloat(rotInput.value) || 0;
                 if (oldH !== newH) r = (360 - r) % 360;
                 if (oldV !== newV) r = (360 - r) % 360;
-                
-                rotInput.value = r; // Update UI
-                testValues[rotArg.idx] = r.toString(); // Update memory
+                rotInput.value = r; 
+                commitTestValue(rotInputId, r.toString());
             }
         }
-
-        testValues[argIdx] = f;
-		window.markPreviewDirty();
-        renderCanvas();
-        const container = document.getElementById('test-preview-container');
-        if (container) container.innerHTML = generateTestPreviewSVG();
+        commitTestValue(inputId, f);
     }
 	
 	renderArgDefList();

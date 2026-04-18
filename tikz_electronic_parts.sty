@@ -643,15 +643,20 @@
 % enabled
 % category: Sources
 % scales: 0.5, 1, 2, 4
-% label_anchor: 0 15 B
+% label_anchor: B
 % flip: disabled
-% preview_args: 4=sine
+% preview_args: 3=horizontal, 4=sine, 5=0
+
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 4 | select | waveform | sine | sine, square, triangle
+% arg_def: 5 | rotation | Rotation | 0
+
 
 % icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 // circle + terminals
 % add_icon: 4==sine : [stroke-width=2.5] M -15 0 Q -7.5 -20 0 0 Q 7.5 20 15 0 // sine
 % add_icon: 4==square : [stroke-width=2.5] M -15 0 L -12 0 L -12 -11 L -4 -11 L -4 11 L 4 11 L 4 -11 L 12 -11 L 12 0 L 15 0 // square
 % add_icon: 4==triangle : [stroke-width=2.5] M -14 7 L -8 -11 L 0 11 L 8 -11 L 15 7 // triangle
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw circle
 					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,0) circle (2);
@@ -685,9 +690,9 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (-3, 0); % left terminal
-				\coordinate (pin2) at (3, 0); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (-3.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (3.00, 0.00); % right terminal  [R]
+    \end{scope}
 		% draw waveform
 			\begin{scope}[shift={#1}, scale=\jlcscale] % no rotation for waveform
 					\ifstrequal{#4}{sine}
@@ -719,14 +724,23 @@
 % enabled
 % category: Basic Components
 % scales: 1, 2, 4
-% label_anchor: 0 15 B
+% label_anchor: B
 % flip: disabled
+% preview_args: 3=horizontal, 4=25, 5=0
 
-% icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0   M -30 0 L -20 0   M 20 0 L 30 0
-% add_icon: 1~= : [stroke-width=2.5] M -16 -3 A 17 17 0 0 1 16 -3
-% add_icon: 1~= : [stroke-width=2.5] M 0 10 L 0 -10
-		% draw interior
-			\begin{scope}[shift={#1}, scale=\jlcscale] % no rotation for interior
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 5 | rotation | Rotation | 0
+% arg_def: 4 | select | value | 25 | 0, 25, 50, 75, 100
+
+
+% icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M -30 0 L -20 0 M 20 0 L 30 0 // terminals + case
+% add_icon: 1~= : [stroke-width=2.5] M -16 -3 A 17 17 0 0 1 16 -3 // scale
+% add_icon: 4==50 : [stroke-width=2.5, rounded=true] M 0 10 L 0 -10 // arrow - 50
+% add_icon: 4==0 : [stroke-width=2.5, rounded=true] M -12.5 -2.5 L 0 9.5 // arrow - 0
+% add_icon: 4==100 : [stroke-width=2.5, rounded=true] M 12.5 -1.5 L 0.5 9.5 // arrow - 100
+% add_icon: 4==25 : [stroke-width=2.5, rounded=true] M -7.5 -8 L 0 9.5 // arrow - 25
+% add_icon: 4==75 : [stroke-width=2.1, rounded=true] M 7 -7 L 0 9.5 // arrow -75
+    \begin{scope}[shift={#1}, scale=\jlcscale] % no rotation for interior
 				%draw shade
 					\shade[left color=gray!40!white, draw=none] (0.5,-0.5)   (0,0) circle (2);
 				% draw circle
@@ -739,7 +753,9 @@
 					\node[draw=none, anchor=north] at  (-1.6,0.3) {\tiny{0}};
 				% draw pointer					
 					\draw[->,line width=\linewidthscalefactor * \zoomfactor * 1pt] (0,-1) -- (165-1.5*#4:1.5) ;
-			\end{scope}
+			        \coordinate (pin1) at (-3.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (3.00, 0.00); % right terminal  [R]
+    \end{scope}
 		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw terminals
@@ -772,8 +788,6 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (-3, 0); % left terminal
-				\coordinate (pin2) at (3, 0); % right terminal
 		\end{scope}
 }
 
@@ -786,10 +800,15 @@
 % flip: disabled
 % preview_args: 4=fixed
 
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 4 | select | fixed/variable | fixed | fixed,variable
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+
 % icon_base: [stroke-width=2.8] M 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 // zig-zag
-% add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 48.33 -21.32 L 42.41 -17.44 L 48.33 -21.32 L 49.47 -14.13           M 28.5 16.5 L 47.5 -19.5 // arrow
+% add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 48.33 -21.32 L 42.41 -17.44 L 48.33 -21.32 L 49.47 -14.13 M 28.5 16.5 L 47.5 -19.5 // arrow
 % add_icon: 1~= : M 0 0 L 11.5 0 M 80 0 L 68.5 0 // terminals
-		\IfSubStr{#5}{h}
+    \IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
 			}
@@ -855,9 +874,9 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal
-				\coordinate (pin2) at (8, 0); % right terminal
-		\end{scope}
+            \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (8.00, 0.00); % right terminal  [R]
+    \end{scope}
 }
 
 %% Inductor
@@ -869,9 +888,14 @@
 % flip: disabled
 % preview_args: 4=fixed
 
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 4 | select | fixed/variable | fixed | fixed, variable
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+
 % icon_base: [stroke-width=2.7] M 0 0 L 10 0 A 7.5 7.5 0 0 1 25 0 A 7.5 7.5 0 0 1 40 0 A 7.5 7.5 0 0 1 55 0 A 7.5 7.5 0 0 1 70 0 L 80 0 // coil
-% add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 25 10 L 53 -19    M 53 -19 L 46 -18 L 53 -19 L 51 -12 // arrow
-		\IfSubStr{#5}{h}
+% add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 25 10 L 53 -19 M 53 -19 L 46 -18 L 53 -19 L 51 -12 // arrow
+    \IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
 			}
@@ -939,9 +963,9 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal
-				\coordinate (pin2) at (8, 0); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (8.00, 0.00); % right terminal  [R]
+    \end{scope}
 }
 
 %% Capacitor
@@ -949,16 +973,22 @@
 % enabled
 % category: Passives
 % scales: 1, 2, 4
-% label_anchor: 20 7 B
+% label_anchor: B
 % flip: disabled
 % preview_args: 3=fixed, 4=none
 
-% icon_base: M 0 0 L 16 0  M 24 0 L 40 0
-% add_icon: 3~=variable : [stroke-width=1.3, rounded=true] M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34      M 35 -15 L 8 8.5 // arrow
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | fixed/variable | fixed | fixed, variable
+% arg_def: 4 | select | sign | none | plus, minus, none
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+
+% icon_base: M 0 0 L 16 0 M 24 0 L 40 0
+% add_icon: 3~=variable : [stroke-width=1.3, rounded=true] M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34 M 35 -15 L 8 8.5 // arrow
 % add_icon: 4==plus : [stroke-width=0.9] M 12 -12 L 12 -8 M 10 -10 L 14 -10 // plus sign
 % add_icon: 4==minus : [stroke-width=0.9] M 10 -10 L 14 -10 // minus sign
-% add_icon: 1~= : [stroke-width=2.9] M 16 -15 L 16 15  M 24 -15 L 24 15 // plates
-		\IfSubStr{#5}{h}
+% add_icon: 1~= : [stroke-width=2.9] M 16 -15 L 16 15 M 24 -15 L 24 15 // plates
+    \IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
 			}
@@ -1069,9 +1099,9 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal
-				\coordinate (pin2) at (4, 0); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
+    \end{scope}
 }
 
 %% DC Voltage Source
@@ -1079,14 +1109,21 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% label_anchor: 20 5 B
+% label_anchor: 20 11 B
 % flip: disabled
+% preview_args: 3=horizontal, 4=none, 5=0,none
 
-% icon_base: M 0 0 L 16 0  M 16 -15 L 16 15  M 24 0 L 40 0 // terminals + positive
-% add_icon: 3~=variable : [rounded=true] M 8.5 13 L 28.5 -11  M 30 -12 L 24 -11 L 30 -12 L 28 -6 // arrow
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | fixed/variable | fixed | fixed, variable
+% arg_def: 4 | select | plus sign | plus | plus, none
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+
+% icon_base: M 0 0 L 16 0 M 16 -15 L 16 15 M 24 0 L 40 0 // terminals + positive
+% add_icon: 3~=variable : [rounded=true] M 8.5 13 L 28.5 -11 M 30 -12 L 24 -11 L 30 -12 L 28 -6 // arrow
 % add_icon: 4==plus : [stroke-width=1.1, rounded=true] M 12 -12 L 12 -8 M 10 -10 L 14 -10 // plus sign
 % add_icon: 1~= : [stroke-width=2.8] M 24 -7 L 24 7 // negative
-		\IfSubStr{#5}{h}
+    \IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
 			}
@@ -1182,9 +1219,9 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal
-				\coordinate (pin2) at (4, 0); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
+    \end{scope}
 }
 
 %% DC battery

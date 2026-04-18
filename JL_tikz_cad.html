@@ -2642,7 +2642,7 @@ ${indentedTikz}
         return { angle, flipH, flipV };
     }
 	
-	// --- 10. PROPERTY EDITOR (DOUBLE CLICK) WITH DRAG, PREVIEW & REVERT ---
+// --- 10. PROPERTY EDITOR (DOUBLE CLICK) WITH DRAG, PREVIEW & REVERT ---
     paper.on('cell:pointerdblclick', function(cellView) {
         let el = cellView.model;
         if (el.isLink() || el.get('latexMacro') === 'connectordot') return;
@@ -2705,71 +2705,82 @@ ${indentedTikz}
                 continue;
             }
 
-            htmlForm += `<div style="margin-bottom: 12px; background: #fdfdfd; border: 1px solid #ecf0f1; padding: 8px; border-radius: 6px;">`;
+            let customDefs = data.argDefs ? data.argDefs.filter(d => d.idx === (i + 1)) : [];
 
-            let customDef = data.argDefs ? data.argDefs.find(d => d.idx === (i + 1)) : null;
-            let labelText = customDef ? customDef.label : argDef.name;
-            htmlForm += `<label style="display:block; margin-bottom: 6px; font-weight: 700; color: #2c3e50; font-size: 11px; letter-spacing: 0.5px;">${labelText}</label>`;
+            if (customDefs.length > 0) {
+                // If there are multiple controls for this argument, split the saved comma-separated string!
+                let valParts = customDefs.length > 1 ? val.split(',').map(s => s.trim()) : [val];
 
-            if (customDef) {
-                let activeVal = val !== "" ? val : customDef.defVal;
-
-                if (customDef.type === 'select') {
-                    let options = customDef.options.split(',').map(o => o.trim());
-                    htmlForm += `<select id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; font-size:13px; margin:0; padding:2px 8px;">`;
-                    options.forEach(opt => {
-                        let selected = (activeVal === opt) ? 'selected' : '';
-                        htmlForm += `<option value="${opt}" ${selected}>${opt}</option>`;
-                    });
-                    htmlForm += `</select>`;
-                } 
-                else if (customDef.type === 'flags') {
-                    let allFlags = customDef.options.split(',').map(o => o.trim());
-                    let activeFlags = activeVal.split('-').map(o => o.trim());
+                customDefs.forEach((customDef, subIdx) => {
+                    let activeVal = valParts[subIdx] !== undefined && valParts[subIdx] !== "" ? valParts[subIdx] : customDef.defVal;
+                    let labelText = customDef.label;
                     
-                    htmlForm += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
-                    allFlags.forEach(flag => {
-                        let checked = activeFlags.includes(flag) ? 'checked' : '';
-                        htmlForm += `<label style="font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="flag-group-${i}" value="${flag}" ${checked} onchange="updateEditorFlags(${i})"> ${flag}</label>`;
-                    });
-                    htmlForm += `</div><input type="hidden" id="swal-input-${i}" value="${activeVal}">`;
-                }
-                else if (customDef.type === 'rotflip') {
-                    let [r, f] = (val || "0,none").split(',');
-                    if (!f) f = "none";
-                    htmlForm += `
-                        <div style="display: flex; gap: 5px;">
-                            <input type="number" id="swal-input-${i}-rot" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" value="${r}" oninput="syncRotFlip(${i}, 'rot')">
-                            <select id="swal-input-${i}-flip" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" onchange="syncRotFlip(${i}, 'flip')">
+                    // Create unique IDs for sub-components (e.g. swal-input-2-sub-0, swal-input-2-sub-1)
+                    let inputId = customDefs.length > 1 ? `swal-input-${i}-sub-${subIdx}` : `swal-input-${i}`;
+
+                    htmlForm += `<div style="margin-bottom: 12px; background: #fdfdfd; border: 1px solid #ecf0f1; padding: 8px; border-radius: 6px;">`;
+                    htmlForm += `<label style="display:block; margin-bottom: 6px; font-weight: 700; color: #2c3e50; font-size: 11px; letter-spacing: 0.5px;">${labelText}</label>`;
+
+                    if (customDef.type === 'select') {
+                        let options = customDef.options.split(',').map(o => o.trim());
+                        htmlForm += `<select id="${inputId}" class="swal2-input" style="width:100%; height:32px; font-size:13px; margin:0; padding:2px 8px;">`;
+                        options.forEach(opt => {
+                            let selected = (activeVal === opt) ? 'selected' : '';
+                            htmlForm += `<option value="${opt}" ${selected}>${opt}</option>`;
+                        });
+                        htmlForm += `</select>`;
+                    } 
+                    else if (customDef.type === 'flags') {
+                        let allFlags = customDef.options.split(',').map(o => o.trim());
+                        let activeFlags = activeVal.split('-').map(o => o.trim());
+                        htmlForm += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
+                        allFlags.forEach(flag => {
+                            let checked = activeFlags.includes(flag) ? 'checked' : '';
+                            htmlForm += `<label style="font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="${inputId}-flag" value="${flag}" ${checked} onchange="updateEditorFlags('${inputId}')"> ${flag}</label>`;
+                        });
+                        htmlForm += `</div><input type="hidden" id="${inputId}" value="${activeVal}">`;
+                    }
+                    else if (customDef.type === 'rotflip') {
+                        let [r, f] = (activeVal || "0,none").split(',');
+                        if (!f) f = "none";
+                        htmlForm += `
+                            <div style="display: flex; gap: 5px;">
+                                <input type="number" id="${inputId}-rot" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" value="${r}" oninput="syncRotFlip('${inputId}', 'rot')">
+                                <select id="${inputId}-flip" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" onchange="syncRotFlip('${inputId}', 'flip')">
+                                    <option value="none" ${f==='none'?'selected':''}>None</option>
+                                    <option value="h" ${f==='h'?'selected':''}>Flip H</option>
+                                    <option value="v" ${f==='v'?'selected':''}>Flip V</option>
+                                    <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="${inputId}" value="${activeVal || '0,none'}">`;
+                    }
+                    else if (customDef.type === 'rotation') {
+                        htmlForm += `<input type="number" id="${inputId}" class="swal2-input rot-input-field" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${activeVal || '0'}">`;
+                    }
+                    else if (customDef.type === 'flip') {
+                        let f = activeVal || 'none';
+                        htmlForm += `
+                            <select id="${inputId}" data-old-val="${f}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" onchange="syncSeparateFlip('${inputId}', this)">
                                 <option value="none" ${f==='none'?'selected':''}>None</option>
                                 <option value="h" ${f==='h'?'selected':''}>Flip H</option>
                                 <option value="v" ${f==='v'?'selected':''}>Flip V</option>
                                 <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
-                            </select>
-                        </div>
-                        <input type="hidden" id="swal-input-${i}" value="${val || '0,none'}">`;
-                }
-                else if (customDef.type === 'rotation') {
-                    // Added a custom class "rot-input-field" so we can find it if flipped separately
-                    htmlForm += `<input type="number" id="swal-input-${i}" class="swal2-input rot-input-field" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${val || '0'}">`;
-                }
-                else if (customDef.type === 'flip') {
-                    let f = val || 'none';
-                    htmlForm += `
-                        <select id="swal-input-${i}" data-old-val="${f}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" onchange="syncSeparateFlip(${i}, this)">
-                            <option value="none" ${f==='none'?'selected':''}>None</option>
-                            <option value="h" ${f==='h'?'selected':''}>Flip H</option>
-                            <option value="v" ${f==='v'?'selected':''}>Flip V</option>
-                            <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
-                        </select>`;
-                }
-                else { 
-                    htmlForm += `<input id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${activeVal}">`;
-                }
+                            </select>`;
+                    }
+                    else { 
+                        htmlForm += `<input id="${inputId}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${activeVal}">`;
+                    }
+                    htmlForm += `</div>`;
+                });
             } else {
+                htmlForm += `<div style="margin-bottom: 12px; background: #fdfdfd; border: 1px solid #ecf0f1; padding: 8px; border-radius: 6px;">`;
+                htmlForm += `<label style="display:block; margin-bottom: 6px; font-weight: 700; color: #2c3e50; font-size: 11px; letter-spacing: 0.5px;">${argDef.name}</label>`;
+                
+                let inputId = `swal-input-${i}`;
                 if (argDef.name.includes('/')) {
                     let options = argDef.name.split('/'); 
-                    htmlForm += `<select id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;">`;
+                    htmlForm += `<select id="${inputId}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;">`;
                     options.forEach(opt => {
                         let cleanOpt = opt.trim();
                         let selected = (val === cleanOpt || (!val && cleanOpt === options[0].trim())) ? 'selected' : '';
@@ -2777,12 +2788,11 @@ ${indentedTikz}
                     });
                     htmlForm += `</select>`;
                 } else {
-                    htmlForm += `<input id="swal-input-${i}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${val}">`;
+                    htmlForm += `<input id="${inputId}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${val}">`;
                 }
+                htmlForm += `</div>`;
             }
-            htmlForm += `</div>`;
         }
-        
         htmlForm += '</div>';
 
         Swal.fire({
@@ -2822,8 +2832,22 @@ ${indentedTikz}
                     let previewArgs = [];
                     for (let i = 0; i < data.argsCount; i++) {
                         let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
-                        if (desc.includes('position')) previewArgs.push(""); 
-                        else previewArgs.push(document.getElementById(`swal-input-${i}`).value);
+                        if (desc.includes('position')) {
+                            previewArgs.push(""); 
+                        } else {
+                            let customDefs = data.argDefs ? data.argDefs.filter(d => d.idx === (i + 1)) : [];
+                            if (customDefs.length > 1) {
+                                let subVals = [];
+                                for (let j = 0; j < customDefs.length; j++) {
+                                    let el = document.getElementById(`swal-input-${i}-sub-${j}`);
+                                    if (el) subVals.push(el.value);
+                                }
+                                previewArgs.push(subVals.filter(v => v !== "").join(', '));
+                            } else {
+                                let el = document.getElementById(`swal-input-${i}`);
+                                previewArgs.push(el ? el.value : "");
+                            }
+                        }
                     }
 
                     let geom = parseGeomArgs(data, previewArgs);
@@ -2877,8 +2901,22 @@ ${indentedTikz}
                 };
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
-                    if (desc.includes('position')) results.args.push(""); 
-                    else results.args.push(document.getElementById(`swal-input-${i}`).value);
+                    if (desc.includes('position')) {
+                        results.args.push(""); 
+                    } else {
+                        let customDefs = data.argDefs ? data.argDefs.filter(d => d.idx === (i + 1)) : [];
+                        if (customDefs.length > 1) {
+                            let subVals = [];
+                            for (let j = 0; j < customDefs.length; j++) {
+                                let el = document.getElementById(`swal-input-${i}-sub-${j}`);
+                                if (el) subVals.push(el.value);
+                            }
+                            results.args.push(subVals.filter(v => v !== "").join(', '));
+                        } else {
+                            let el = document.getElementById(`swal-input-${i}`);
+                            results.args.push(el ? el.value : "");
+                        }
+                    }
                 }
                 return results;
             }
@@ -3379,28 +3417,28 @@ ${indentedTikz}
         }
     });
 	
-	function updateEditorFlags(argIdx) {
-        let checkboxes = document.querySelectorAll(`.flag-group-${argIdx}`);
+	function updateEditorFlags(inputId) {
+        let checkboxes = document.querySelectorAll(`.${inputId}-flag`);
         let selected = [];
         checkboxes.forEach(cb => {
             if (cb.checked) selected.push(cb.value);
         });
-        let hiddenInput = document.getElementById(`swal-input-${argIdx}`);
-        hiddenInput.value = selected.join('-');
-        
-        // ΝΕΟ: Στέλνει "σήμα" στο popup ότι κάτι άλλαξε, για να τρέξει το Live Preview!
-        hiddenInput.dispatchEvent(new Event('change', { bubbles: true })); 
+        let hiddenInput = document.getElementById(inputId);
+        if (hiddenInput) {
+            hiddenInput.value = selected.join('-');
+            hiddenInput.dispatchEvent(new Event('change', { bubbles: true })); 
+        }
     }
 	
-	function syncRotFlip(argIdx, source = 'rot') {
-        let rotInput = document.getElementById(`swal-input-${argIdx}-rot`);
-        let flipSelect = document.getElementById(`swal-input-${argIdx}-flip`);
-        let hidden = document.getElementById(`swal-input-${argIdx}`);
+	function syncRotFlip(inputId, source = 'rot') {
+        let rotInput = document.getElementById(`${inputId}-rot`);
+        let flipSelect = document.getElementById(`${inputId}-flip`);
+        let hidden = document.getElementById(inputId);
+        if (!rotInput || !flipSelect || !hidden) return;
         
         let r = parseFloat(rotInput.value) || 0;
         let f = flipSelect.value;
 
-        // Apply Global Flip logic if the change came from the flip dropdown
         if (source === 'flip') {
             let oldVal = hidden.value || "0,none";
             let oldParts = oldVal.split(',');
@@ -3411,21 +3449,17 @@ ${indentedTikz}
             let newH = f === 'h' || f === 'hv' || f === 'vh';
             let newV = f === 'v' || f === 'hv' || f === 'vh';
 
-            // Invert angle based on which axis flipped
             if (oldH !== newH) r = (360 - r) % 360;
             if (oldV !== newV) r = (360 - r) % 360;
 
-            rotInput.value = r; // Update UI
+            rotInput.value = r; 
         }
 
         hidden.value = `${r},${f}`;
-        
-        // Ενεργοποίηση του Live Preview στον Editor
         hidden.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // Handles Global Flipping if the user separated Rotation and Flip into two different fields
-    function syncSeparateFlip(argIdx, selectEl) {
+    function syncSeparateFlip(inputId, selectEl) {
         let f = selectEl.value;
         let oldF = selectEl.getAttribute('data-old-val') || 'none';
 
@@ -3434,18 +3468,16 @@ ${indentedTikz}
         let newH = f === 'h' || f === 'hv' || f === 'vh';
         let newV = f === 'v' || f === 'hv' || f === 'vh';
 
-        // Search the DOM for a standalone rotation input
         let rotInput = document.querySelector('.rot-input-field');
         if (rotInput) {
             let r = parseFloat(rotInput.value) || 0;
             if (oldH !== newH) r = (360 - r) % 360;
             if (oldV !== newV) r = (360 - r) % 360;
             
-            rotInput.value = r; // Update UI
-            rotInput.dispatchEvent(new Event('input', { bubbles: true })); // Trigger live preview
+            rotInput.value = r; 
+            rotInput.dispatchEvent(new Event('input', { bubbles: true })); 
         }
 
-        // Update the custom memory attribute
         selectEl.setAttribute('data-old-val', f);
         selectEl.dispatchEvent(new Event('change', { bubbles: true }));
     }
