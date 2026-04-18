@@ -431,10 +431,9 @@
         let result = rawLabel.replace(/\$(\d+)/g, (match, argNum) => {
             let idx = parseInt(argNum) - 1;
             let val = argsArray[idx];
-            // Αν είναι άδειο, δείξε Placeholder αντί για κενό
+            // THE FIX: Just return an empty string so the display:none logic can gracefully hide it!
             if (val === undefined || val === null || val.toString().trim() === "") {
-                let name = (argNames && argNames[idx]) ? argNames[idx].name.split('/')[0] : match;
-                return `[${name.trim()}]`;
+                return "";
             }
             return val.toString().trim();
         });
@@ -533,8 +532,9 @@
                 else if (currentDir === 'L') { rawX = vLeftRaw; rawY = (vTopRaw + vBotRaw) / 2; }
                 else if (currentDir === 'R') { rawX = vRightRaw; rawY = (vTopRaw + vBotRaw) / 2; }
                 
-                ax = rawX * scale;
-                ay = rawY * scale;
+                // THE FIX: Add the offset shift back to the final coordinates!
+                ax = (rawX * scale) + shiftX; 
+                ay = (rawY * scale) + shiftY; 
             } else {
                 let rawX = data.labelAnchor.x * PPU_MULT;
                 let rawY = data.labelAnchor.y * PPU_MULT;
@@ -610,6 +610,9 @@
             // Set exact raw SVG coordinates instead
             el.attr('label/x', centerX);
             el.attr('label/y', centerY);
+            
+            // THE FIX: Force the vertical center of the text to align with the coordinate, matching the Builder perfectly!
+            el.attr('label/dominant-baseline', 'central');
             
             // Apply the smart rotation
             el.attr('label/transform', `rotate(${localRot}, ${centerX}, ${centerY})`);
@@ -1693,8 +1696,11 @@
             const uniquePins = [];
             const seenIds = new Set();
             data.pins.forEach(p => {
-                if (!seenIds.has(p.id)) { 
-                    seenIds.add(p.id); 
+                // DO NOT deduplicate dynamic text labels! Let them all exist.
+                let isDynamicText = p.id && p.id.includes('$'); 
+                
+                if (isDynamicText || !seenIds.has(p.id)) { 
+                    if (!isDynamicText) seenIds.add(p.id); 
                     uniquePins.push(p); 
                 } else {
                     const existing = uniquePins.find(up => up.id === p.id);

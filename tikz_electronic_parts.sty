@@ -88,6 +88,7 @@
 
 % arg_def: 3 | select | closed/open | open | closed, open
 % arg_def: 4 | text | state tag | 
+% arg_def: 5 | rotation | Rotation | 0
 
 
 % icon_base: [fill=solid] M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0 // base
@@ -127,7 +128,8 @@
 					}
             \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
         \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
-        \coordinate ($4) at (2.00, 0.50); % [T] IF:3==closed
+        \coordinate ($4) at (1.95, 0.55); % [T] IF:3==closed
+        \coordinate ($4) at (1.70, 1.10); % [T] IF:3==open
     \end{scope}
 }
 
@@ -141,6 +143,7 @@
 % preview_args: 3=state1
 
 % arg_def: 3 | select | state1/state2 | state1 | state1, state2
+% arg_def: 4 | rotation | Rotation | 0
 
 
 % icon_base: [fill=solid] M 0 0 L 10 0 M 0 -20 L 10 -20 M 30 -10 L 40 -10 M 11 0 A 1 1 0 1 0 9 0 A 1 1 0 1 0 11 0 Z M 11 -20 A 1 1 0 1 0 9 -20 A 1 1 0 1 0 11 -20 Z M 30 -10 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // terminals
@@ -178,7 +181,7 @@
 					}
 					{
 					}
-		        \coordinate (pin1) at (0.00, 0.00); % bottom left terminal  [R]
+            \coordinate (pin1) at (0.00, 0.00); % bottom left terminal  [R]
         \coordinate (pin2) at (0.00, 2.00); % top left terminal  [R]
         \coordinate (pin3) at (4.00, 1.00); % right terminal  [R]
     \end{scope}
@@ -195,6 +198,7 @@
 
 % arg_def: 3 | select | closed/open | open | closed, open
 % arg_def: 4 | text | control_terminal | 
+% arg_def: 5 | rotation | Rotation | 0
 
 
 % icon_base: [fill=solid] M 0 0 L 10 0 M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 20 -13 L 20 -15 M 19 -15 L 21 -15 M 15 -15 L 25 -15 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // base
@@ -245,9 +249,9 @@
 					}
 					{
 					}
-		        \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+            \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
         \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
-        \coordinate ($4) at (2.00, 1.50); % [T]
+        \coordinate ($4) at (2.00, 1.75); % [T]
     \end{scope}
 }
 
@@ -260,8 +264,9 @@
 % flip: disabled
 % preview_args: 4=n
 
-% arg_def: 4 | select | control value | n | n,p
-% arg_def: 4 | select | n/p |  | 
+% arg_def: 3 | text | control value | 
+% arg_def: 4 | select | type | n | n, p
+% arg_def: 5 | rotation | Rotation | 0
 
 
 % icon_base: [fill=solid] M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // Base terminals and angled bridge
@@ -375,7 +380,7 @@
 						}
 						{
 						}
-		        \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+            \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
         \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
         \coordinate ($3) at (2.00, 2.50); % [T]
     \end{scope}
@@ -449,14 +454,19 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% label_anchor: 0 15 B
+% label_anchor: B
 % flip: disabled
-% preview_args: 4=standard
+% preview_args: 3=horizontal, 4=standard
+
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 4 | select | type | standard | standard, controlled
+% arg_def: 5 | rotation | Rotation | 0
+
 
 % icon_base: M -30 0 L -20 0 M 20 0 L 30 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0 // Leads and internal +/- polarity
-% add_icon: 4==standard   : [stroke-width=2.5] M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 // Thicker circular shell
+% add_icon: 4==standard : [stroke-width=2.5] M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 // Thicker circular shell
 % add_icon: 4==controlled : [stroke-width=2.5] M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0 // Thicker diamond shell
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% Draw body
 				\ifstrequal{#4}{controlled}
@@ -504,9 +514,9 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (-3, 0); % positive terminal
-				\coordinate (pin2) at (3, 0);  % negative terminal
-		\end{scope}
+            \coordinate (pin1) at (-3.00, 0.00); % positive terminal  [R]
+        \coordinate (pin2) at (3.00, 0.00); % negative terminal  [R]
+    \end{scope}
 }
 
 %% Current Source (Independent/Controlled)
@@ -514,14 +524,19 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% label_anchor: 0 15 B
+% label_anchor: B
 % flip: disabled
-% preview_args: 4=standard
+% preview_args: 3=horizontal, 4=standard, 5=0
 
-% icon_base: M -30 0 L -20 0  M 20 0 L 30 0  M -10 0 L 10 0  M 10 0 L 3 -5 L 10 0 L 3 5
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 4 | select | standard/controlled | standard | standard, controlled
+% arg_def: 5 | rotation | Rotation | 0
+
+
+% icon_base: M -30 0 L -20 0 M 20 0 L 30 0 M -10 0 L 10 0 M 10 0 L 3 -5 L 10 0 L 3 5
 % add_icon: 4==standard : [stroke-width=2.5] M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0
 % add_icon: 4==controlled : [stroke-width=2.5] M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% Draw body
 				\ifstrequal{#4}{controlled}
@@ -565,9 +580,9 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (-3, 0); % terminal 1
-				\coordinate (pin2) at (3, 0); % terminal 2
-		\end{scope}
+            \coordinate (pin1) at (-3.00, 0.00); % terminal 1  [R]
+        \coordinate (pin2) at (3.00, 0.00); % terminal 2  [R]
+    \end{scope}
 }
 
 %% Lamp
@@ -575,13 +590,17 @@
 % enabled
 % category: Indicators
 % scales: 0.5, 1, 2, 4
-% label_anchor: 0 10 B
+% label_anchor: B
 % flip: disabled
-% preview_args: 4=on
+% preview_args: 3=0, 4=on
 
-% icon_base: M -15 -5 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6   M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9   M 20 20 L 20 8 L 11.5 8 L 20.5 8 // body
-% add_icon: 4==on : [stroke-width=2.5] M 17 0 L 22 0    M -17 0 L -22 0    M 15 -13 L 20 -19    M 0 -20 L 0 -24    M -14.5 -13 L -19.5 -19 // rays
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | select | on/off | on | on, off
+
+
+% icon_base: M -15 -5 a 15 15 0 1 0 30 6 a 15 15 0 1 0 -30 -6 M -20 20 L -20 9 L -12 9 L -7 -6 L -10 -6 L -6 5 L -8 5 L -2 -6 L -4 -6 L 0 5 L -2 5 L 4 -6 L 2 -6 L 6 5 L 4 5 L 9 -6 L 7 -6 L 12 9 M 20 20 L 20 8 L 11.5 8 L 20.5 8 // body
+% add_icon: 4==on : [stroke-width=2.5] M 17 0 L 22 0 M -17 0 L -22 0 M 15 -13 L 20 -19 M 0 -20 L 0 -24 M -14.5 -13 L -19.5 -19 // rays
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				% draw light and rays
 					\IfSubStr{#4}{on}
@@ -614,9 +633,9 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (-2, -2); % left terminal
-				\coordinate (pin2) at (2, -2); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (-2.00, -2.00); % left terminal  [R]
+        \coordinate (pin2) at (2.00, -2.00); % right terminal  [R]
+    \end{scope}
 }
 
 %% Function Generator

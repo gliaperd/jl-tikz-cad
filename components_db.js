@@ -30,6 +30,12 @@ const JL_DATABASE = {
                 "type": "text",
                 "label": "state tag",
                 "defVal": ""
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
             }
         ],
         "iconBase": "M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0",
@@ -94,11 +100,19 @@ const JL_DATABASE = {
             },
             {
                 "id": "$4",
-                "x": 20.0,
-                "y": -5.0,
+                "x": 19.5,
+                "y": -5.5,
                 "label": "",
                 "dir": "T",
                 "condition": "3==closed"
+            },
+            {
+                "id": "$4",
+                "x": 17.0,
+                "y": -11.0,
+                "label": "",
+                "dir": "T",
+                "condition": "3==open"
             }
         ]
     },

@@ -206,7 +206,7 @@
                 </div>
                 
                 <label style="margin-top: 8px; display: block;">Arguments (Updates Layer Menus!)</label>
-                <input type="text" id="cArgs" value="{position}{name}{customArg1}{customArg2}{customArg3}{customArg4}{grid}{show (0,0)}" onchange="validateArgs(this)" title="Hit Enter or click away to update menus">
+                <textarea id="cArgs" onchange="validateArgs(this)" title="Click away to update menus" style="height: 50px; resize: vertical; line-height: 1.4; word-wrap: break-word;">{position}{name}{customArg1}{customArg2}{customArg3}{customArg4}{grid}{show (0,0)}</textarea>
 
                 <details class="help-box" style="margin-top: 8px; margin-bottom: 8px;">
                     <summary>📘 Syntax Cheat Sheet</summary>
@@ -276,9 +276,24 @@
                 <button class="tool-btn" onclick="setTool('erase')" id="btn-erase" style="border-color: #e74c3c;">🧽 Erase</button>
                 <button class="tool-btn" onclick="setTool('extract')" id="btn-extract" style="border-color: #9b59b6; background: #8e44ad;">✂️ Select/Split</button>
                 <button class="tool-btn" onclick="setTool('pin')" id="btn-pin" style="background: #e67e22; border-color: #d35400;">📌 Pin</button>
+				
+				<div style="border-left: 1px solid #7f8c8d; margin-left: 5px; padding-left: 10px; display: flex; align-items: center; gap: 5px;">
+                    <select id="selStamp" style="padding: 3px; font-size: 11px; border-radius: 4px; width: 110px;">
+                        <option value="" disabled selected>📦 Insert Shape...</option>
+                        <option value="M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z">AND Gate Body</option>
+                        <option value="M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z">OR Gate Body</option>
+                        <option value="M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z">XOR Gate Body</option>
+                        <option value="M 15 0 L 15 -40 L 40 -20 Z">Triangle / Buffer</option>
+                        <option value="M 0 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0">Inversion Bubble</option>
+                    </select>
+                    <button class="tool-btn" onclick="insertStamp()" style="padding: 3px 8px; font-size: 11px; background: #16a085; border-color: #1abc9c;">➕ Add</button>
+                </div>
                 
                 <label style="color: white; margin-left: 10px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                     <input type="checkbox" id="chkHidePinData" onchange="renderCanvas()"> Hide Pin Data
+                </label>
+				<label style="font-size: 11px; margin-left: 10px; display: flex; align-items: center; gap: 4px; cursor: pointer; color: #ecf0f1; font-weight: bold;">
+                    <input type="checkbox" id="chkShowCoords" onchange="renderCanvas()"> 🔢 Show Coords
                 </label>
                 
                 <div id="extractTools" style="display:none; gap: 5px; align-items: center; border-left: 1px solid #7f8c8d; padding-left: 10px; margin-left: 5px;">
@@ -288,6 +303,7 @@
                     <button class="tool-btn" style="background:#c0392b; border-color:#e74c3c; padding: 3px 8px;" onclick="explodeSelected()">💥 Shatter</button>
                     <button class="tool-btn" style="background:#f39c12; border-color:#e67e22; padding: 3px 8px;" onclick="recombineSelected()">🧲 Recombine</button>
                     <button class="tool-btn" style="background:#8e44ad; border-color:#9b59b6; padding: 3px 8px;" onclick="rotateSelectedAction()">↻ Rotate</button>
+					<button class="tool-btn" style="background:#d35400; border-color:#e67e22; padding: 3px 8px;" onclick="scaleSelectedAction()">⤢ Scale</button>
                 </div>
                 
                 <div class="style-group">
@@ -366,6 +382,18 @@
     <script>
 	
 		let argDefs = []; // Θα αποθηκεύει αντικείμενα { idx, type, label, defVal, options }
+		
+		// --- NEW: Helper to highlight text in the expert editor ---
+        window.highlightPathText = (startIdx, endIdx) => {
+            // A 50ms delay ensures this runs AFTER the browser's native click/blur events finish!
+            setTimeout(() => {
+                let ta = document.getElementById('swal-edit-path');
+                if (ta) {
+                    ta.focus();
+                    ta.setSelectionRange(startIdx, endIdx);
+                }
+            }, 50);
+        };
 	
         // --- UI ACCORDION LOGIC ---
         function toggleSection(sectionId, headerEl) {
@@ -501,6 +529,17 @@
                 });
             });
 
+            // --- NEW: Calculate CAD Readability Angle Globally ---
+            let visualAngle = -previewAngle;
+            let normalizedAngle = (visualAngle % 360 + 360) % 360;
+            let textRot = visualAngle;
+            
+            // CAD Readability Standard: Keep text Left-to-Right or Bottom-to-Top
+            if (normalizedAngle >= 90 && normalizedAngle < 270) {
+                textRot += 180;
+            }
+            // -----------------------------------------------------
+
             // 4. ΔΥΝΑΜΙΚΑ PINS & LABELS
             pins.forEach(p => {
                 let pLayer = layers.find(l => l.id === p.layerId);
@@ -519,31 +558,44 @@
                     return `[${argName}]`;
                 });
 
-                let pt = trans(p.x, p.y);
-                let d = transDir(p.dir || 'R');
+                let dir = p.dir || 'R';
+                let ox = p.x, oy = p.y;
+                
+                // Mathematically offset the text coordinate before transforming
+                if (dir === 'R') ox += 3;
+                else if (dir === 'L') ox -= 3;
+                else if (dir === 'T') oy -= 3;
+                else if (dir === 'B') oy += 3;
 
-                let lx = pt.x, ly = pt.y, align = "start";
-                // Adjusted offsets slightly so the text centers cleanly on the invisible anchor
-                if (d === 'R') { lx += 1; align = "start"; }
-                else if (d === 'L') { lx -= 1; align = "end"; }
-                else if (d === 'T') { ly -= 2; align = "middle"; }
-                else if (d === 'B') { ly += 2; align = "middle"; }
+                let ptText = trans(ox, oy);
 
-                // Removed the <circle> line entirely so fake pins are purely text in the preview!
-                textHtml += `<text x="${lx}" y="${ly}" font-family="Arial" font-size="5.5" fill="${baseColor}" font-weight="bold" text-anchor="${align}" opacity="${textOpacity}">${displayText}</text>`;
+                // --- NEW: Dynamic CAD Alignment for Pins ---
+                let pinAlign = "middle";
+                if (dir === 'L') pinAlign = "end";
+                else if (dir === 'R') pinAlign = "start";
+
+                // If CAD Readability flipped the text upright, we MUST swap start/end 
+                // so the text continues to draw away from the symbol!
+                if (normalizedAngle >= 90 && normalizedAngle < 270) {
+                    if (pinAlign === "start") pinAlign = "end";
+                    else if (pinAlign === "end") pinAlign = "start";
+                }
+
+                textHtml += `<text x="${ptText.x}" y="${ptText.y}" transform="rotate(${textRot}, ${ptText.x}, ${ptText.y})" font-family="Arial" font-size="5.5" fill="${baseColor}" font-weight="bold" text-anchor="${pinAlign}" dominant-baseline="central" opacity="${textOpacity}">${displayText}</text>`;
             });
 
             // 5. ΚΕΝΤΡΙΚΟ LABEL (Name του εξαρτήματος)
             let nameArg = argsList.find(a => a.name.toLowerCase() === 'name' || a.name.toLowerCase() === 'text');
             let labelText = nameArg ? (testValues[nameArg.idx] || document.getElementById('dName').value || "M1") : "";
-            let anchorStr = document.getElementById('mAnchor').value.trim();
+            
+            let testAnchorEl = document.getElementById('test-meta-anchor');
+            let anchorStr = testAnchorEl ? testAnchorEl.value.trim() : document.getElementById('mAnchor').value.trim();
 
             let origLx, origLy;
             let parts = anchorStr.split(/\s+/);
             let initialDir = (parts.length > 0) ? parts[parts.length - 1].toUpperCase() : "B";
             
             if (parts.length >= 3) {
-                // ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ ΣΤΟ ΠΡΟΗΓΟΥΜΕΝΟ UPDATE! (Έφυγε το *10 και το μείον)
                 origLx = parseFloat(parts[0]); 
                 origLy = parseFloat(parts[1]); 
             } else {
@@ -556,31 +608,36 @@
                     try { let bbox = svgC.getBBox(); if (bbox.width > 0 || bbox.height > 0) unrotatedBBox = bbox; } catch(e){}
                     document.body.removeChild(svgC);
                 }
+                
                 origLx = unrotatedBBox.x + unrotatedBBox.width / 2;
                 origLy = unrotatedBBox.y + unrotatedBBox.height / 2;
                 
-                let gap = 10;
-                if (initialDir === 'B') origLy = unrotatedBBox.y + unrotatedBBox.height + gap;
-                else if (initialDir === 'T') origLy = unrotatedBBox.y - gap;
-                else if (initialDir === 'L') origLx = unrotatedBBox.x - gap;
-                else if (initialDir === 'R') origLx = unrotatedBBox.x + unrotatedBBox.width + gap;
+                if (initialDir === 'B') origLy = unrotatedBBox.y + unrotatedBBox.height;
+                else if (initialDir === 'T') origLy = unrotatedBBox.y;
+                else if (initialDir === 'L') origLx = unrotatedBBox.x;
+                else if (initialDir === 'R') origLx = unrotatedBBox.x + unrotatedBBox.width;
             }
 
-            let ptLabel = trans(origLx, origLy);
-            let finalDir = transDir(initialDir);
+            let gap = 10;
+            if (initialDir === 'B') origLy += gap;
+            else if (initialDir === 'T') origLy -= gap;
+            else if (initialDir === 'L') origLx -= gap;
+            else if (initialDir === 'R') origLx += gap;
 
-            // Calculate screen visual angle
-            let visualAngle = -previewAngle;
-            let normalizedAngle = (visualAngle % 360 + 360) % 360;
-            let textRot = visualAngle;
-            
-            // CAD Readability Standard: Keep text Left-to-Right or Bottom-to-Top
+            let ptLabel = trans(origLx, origLy);
+
+            // --- NEW: Dynamic CAD Alignment for Component Name ---
+            let lblAlign = "middle";
+            if (initialDir === 'L') lblAlign = "end";
+            else if (initialDir === 'R') lblAlign = "start";
+
             if (normalizedAngle >= 90 && normalizedAngle < 270) {
-                textRot += 180;
+                if (lblAlign === "start") lblAlign = "end";
+                else if (lblAlign === "end") lblAlign = "start";
             }
 
             if (labelText) {
-                textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" text-anchor="middle" dominant-baseline="central" transform="rotate(${textRot}, ${ptLabel.x}, ${ptLabel.y})" font-family="Arial" font-size="5.5" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
+                textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" text-anchor="${lblAlign}" dominant-baseline="central" transform="rotate(${textRot}, ${ptLabel.x}, ${ptLabel.y})" font-family="Arial" font-size="5.5" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
             }
 
             // 6. ΥΠΟΛΟΓΙΣΜΟΣ ΟΡΙΩΝ ΚΑΜΕΡΑΣ ΜΕΣΩ ΤΟΥ BROWSER
@@ -600,17 +657,73 @@
             let vbX = finalBBox.x - padX; let vbY = finalBBox.y - padY;
             let vbW = finalBBox.width + (padX * 2); let vbH = finalBBox.height + (padY * 2);
 
-            return `<svg width="100%" height="160" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet" style="background:${theme==='cadence'?'#111':'#f4f6f7'}; border:1px solid #bdc3c7; border-radius:6px;">
+            // --- NEW: DEFAULT BADGE OVERLAY ---
+            let badgeHtml = "";
+            let chkPalette = document.getElementById('chkPalettePreview');
+            
+            // FIX 1: If the DOM checkbox isn't ready yet, rely on our global dirty flag!
+            let isDefaultVisible = chkPalette ? chkPalette.checked : (!window.isPreviewDirty);
+            
+            if (isDefaultVisible) {
+                badgeHtml = `
+                    <g transform="translate(${vbX + 4}, ${vbY + 4})">
+                        <rect x="0" y="0" width="38" height="10" fill="#3498db" rx="2" ry="2" opacity="0.85"/>
+                        <text x="19" y="5" font-family="Arial" font-size="5" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="central" letter-spacing="0.5">DEFAULT</text>
+                    </g>`;
+            }
+
+            // The SVG is now clean, responsive, and exact to its cage!
+            return `<svg width="100%" height="100%" viewBox="${vbX} ${vbY} ${vbW} ${vbH}" preserveAspectRatio="xMidYMid meet" style="display: block;">
                         ${finalHtml}
                     </svg>`;
         }
 		
-		function updateTestPreview() {
+		window.markPreviewDirty = function() {
+            window.isPreviewDirty = true;
+            
+            let chk = document.getElementById('chkPalettePreview');
+            if (chk && chk.checked) chk.checked = false;
+            
+            let btnWrapper = document.getElementById('btn-set-default-wrapper');
+            if (btnWrapper) btnWrapper.style.display = 'block';
+
+            // Hide HTML Badge
+            let badge = document.getElementById('html-default-badge');
+            if (badge) badge.style.display = 'none';
+            
+            let argsList = getParsedArgs();
+            let nameArg = argsList.find(arg => arg.name.toLowerCase() === 'name' || arg.name.toLowerCase() === 'text');
+            if (nameArg) {
+                let nameInput = document.getElementById(`test-arg-${nameArg.idx}`);
+                if (nameInput) {
+                    nameInput.disabled = false;
+                    nameInput.style.backgroundColor = '#fff';
+                    nameInput.style.color = '#000';
+                }
+            }
+        };
+
+        function updateTestPreview() {
             const chkPalette = document.getElementById('chkPalettePreview');
             const previewStr = document.getElementById('mPreview').value.trim();
             const argsList = getParsedArgs();
+            const btnWrapper = document.getElementById('btn-set-default-wrapper');
 
             if (chkPalette && chkPalette.checked) {
+                window.isPreviewDirty = false;
+                if (btnWrapper) btnWrapper.style.display = 'none';
+                
+                // Show HTML Badge
+                let badge = document.getElementById('html-default-badge');
+                if (badge) badge.style.display = 'block';
+                
+                // ... (rest of updateTestPreview remains exactly the same)
+				
+				// Sync the Anchor back to default
+                let metaAnchorEl = document.getElementById('mAnchor');
+                let testAnchorEl = document.getElementById('test-meta-anchor');
+                if (metaAnchorEl && testAnchorEl) testAnchorEl.value = metaAnchorEl.value;
+
                 let pArgs = {};
                 if (previewStr) {
                     previewStr.split(',').forEach(pair => {
@@ -618,17 +731,134 @@
                         if(kv.length === 2) pArgs[parseInt(kv[0].trim())] = kv[1].trim();
                     });
                 }
+                
                 argsList.forEach(a => {
-                    testValues[a.idx] = pArgs[a.idx] !== undefined ? pArgs[a.idx] : "";
+                    let desc = a.name.toLowerCase();
+                    
+                    if (desc === 'name' || desc === 'text') {
+                        let defaultName = document.getElementById('dName').value || "M1";
+                        testValues[a.idx] = pArgs[a.idx] !== undefined ? pArgs[a.idx] : defaultName;
+                    } else {
+                        let val = pArgs[a.idx] !== undefined ? pArgs[a.idx] : "";
+                        
+                        // FIX: Ensure geometry arguments always have a solid default state instead of a ghost empty string!
+                        let customDef = argDefs.find(def => def.idx == a.idx);
+                        if (customDef) {
+                            if (customDef.type === 'rotation' && !val) val = '0';
+                            else if (customDef.type === 'rotflip' && !val) val = '0,none';
+                            else if (customDef.type === 'flip' && !val) val = 'none';
+                        }
+                        testValues[a.idx] = val;
+                    }
+                    
+                    let el = document.getElementById(`test-arg-${a.idx}`);
+                    if (el) {
+                        el.value = testValues[a.idx];
+                        if (desc === 'name' || desc === 'text') {
+                            el.disabled = true;
+                            el.style.backgroundColor = '#ecf0f1';
+                            el.style.color = '#7f8c8d';
+                        }
+                    }
                 });
+                
+                argsList.forEach(a => {
+                    let customDef = argDefs.find(def => def.idx == a.idx);
+                    if (customDef && customDef.type === 'rotflip') {
+                         let [r, f] = (testValues[a.idx] || "0,none").split(',');
+                         if (!f) f = "none";
+                         let rotInput = document.getElementById(`test-arg-${a.idx}-rot`);
+                         let flipSelect = document.getElementById(`test-arg-${a.idx}-flip`);
+                         if (rotInput) rotInput.value = r;
+                         if (flipSelect) flipSelect.value = f;
+                    } else if (customDef && customDef.type === 'flags') {
+                         let activeFlags = (testValues[a.idx] || "").split('-').map(o => o.trim());
+                         let checkboxes = document.querySelectorAll(`.test-flag-${a.idx}`);
+                         checkboxes.forEach(cb => { cb.checked = activeFlags.includes(cb.value); });
+                    }
+                });
+            } else {
+                window.markPreviewDirty();
             }
             
             renderCanvas();
             const container = document.getElementById('test-preview-container');
             if (container) container.innerHTML = generateTestPreviewSVG();
         }
+
+        window.setAsDefaultForm = function() {
+			// Save the Anchor to Meta Properties
+            let testAnchorEl = document.getElementById('test-meta-anchor');
+            if (testAnchorEl) {
+                let metaAnchorEl = document.getElementById('mAnchor');
+                if (metaAnchorEl) {
+                    metaAnchorEl.value = testAnchorEl.value.trim();
+                    metaAnchorEl.style.backgroundColor = '#dff9fb';
+                    setTimeout(() => metaAnchorEl.style.backgroundColor = '', 1000);
+                }
+            }
+			
+            let argsList = getParsedArgs();
+            let defaultPairs = [];
+
+            argsList.forEach(a => {
+                let desc = a.name.toLowerCase();
+                let isSystem = desc.includes('position') || desc.includes('grid') || desc.includes('show') || desc === 'name' || desc === 'text';
+                
+                if (!isSystem) {
+                    let val = testValues[a.idx];
+                    if (val !== undefined && val !== null && val.toString().trim() !== "") {
+                        // FIX: Removed the skip list for "0" and "0,none". If it's defined, save it!
+                        defaultPairs.push(`${a.idx}=${val}`);
+                    }
+                }
+            });
+
+            let previewStr = defaultPairs.join(', ');
+            
+            let previewInput = document.getElementById('mPreview');
+            if (previewInput) {
+                previewInput.value = previewStr;
+                previewInput.style.backgroundColor = '#dff9fb';
+                setTimeout(() => previewInput.style.backgroundColor = '', 1000);
+            }
+            
+            generateCode();
+            let chk = document.getElementById('chkPalettePreview');
+            if (chk) chk.checked = true;
+            updateTestPreview(); 
+
+            let toast = document.getElementById('preview-save-toast');
+            if (toast) {
+                toast.style.opacity = '1';
+                setTimeout(() => toast.style.opacity = '0', 2000);
+            }
+        };
 		
 		function openLogicTester() {
+            window.isPreviewDirty = false; // Reset the flag when opening!
+            
+            // --- NEW: Magnifier Zoom Engine ---
+            window.isPreviewZoomed = false; 
+            window.togglePreviewZoom = function() {
+                window.isPreviewZoomed = !window.isPreviewZoomed;
+                let container = document.getElementById('test-preview-container');
+                let btn = document.getElementById('btn-preview-zoom');
+                
+                if (container) {
+                    let newHeight = window.isPreviewZoomed ? '240px' : '120px';
+                    container.style.height = newHeight;
+                    container.style.minHeight = newHeight;
+                    container.style.maxHeight = newHeight;
+                }
+                if (btn) {
+                    btn.style.background = window.isPreviewZoomed ? '#3498db' : '#ecf0f1';
+                    btn.style.borderColor = window.isPreviewZoomed ? '#2980b9' : '#bdc3c7';
+                    btn.style.boxShadow = window.isPreviewZoomed ? 'inset 0 1px 3px rgba(0,0,0,0.2)' : 'none';
+                }
+            };
+            // ----------------------------------
+            
             let argsList = getParsedArgs();
             if (argsList.length === 0) return Swal.fire("No arguments defined in Config!");
 
@@ -653,14 +883,98 @@
             testModeActive = true; 
             let inputStyle = "width: 100%; height: 32px; font-size: 13px; margin: 0; padding: 4px 8px; border: 1px solid #bdc3c7; border-radius: 4px; box-sizing: border-box; font-family: 'Segoe UI', sans-serif;";
 
+            // Parse the current anchor to set up the UI states
+            let currentAnchor = document.getElementById('mAnchor').value.trim();
+            let aParts = currentAnchor.split(/\s+/);
+            let aDir = "B", aX = 0, aY = 0, aCustom = false;
+            
+            if (aParts.length >= 3) {
+                aX = parseFloat(aParts[0]) || 0;
+                aY = parseFloat(aParts[1]) || 0;
+                aDir = aParts[2].toUpperCase();
+                aCustom = true;
+            } else if (aParts.length > 0) {
+                aDir = aParts[aParts.length - 1].toUpperCase();
+            }
+            if (!['T','B','L','R'].includes(aDir)) aDir = 'B';
+
             let htmlForm = `
-                <div style="margin-bottom: 10px; background: #ebf5fb; padding: 8px; border-radius: 6px; border: 1px solid #3498db; text-align: left;">
-                    <label style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:bold; color:#2980b9; cursor:pointer; margin: 0;">
-                        <input type="checkbox" id="chkPalettePreview" style="width: 16px; height: 16px;" checked>
-                        🎨 Sync with Palette Defaults
-                    </label>
+                <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:bold; color:#2c3e50; cursor:pointer; margin: 0; background: #ebf5fb; padding: 6px 10px; border-radius: 6px; border: 1px solid #3498db;">
+                            <input type="checkbox" id="chkPalettePreview" style="width: 16px; height: 16px;" checked onchange="updateTestPreview()">
+                            👁️ Show default form
+                        </label>
+                        <span id="preview-save-toast" style="color: #27ae60; font-size: 11px; font-weight: bold; opacity: 0; transition: opacity 0.3s;">✅ Saved!</span>
+                    </div>
+                    <div id="btn-set-default-wrapper" style="display: none;">
+                        <button onclick="window.setAsDefaultForm()" class="tool-btn" style="background:#27ae60; border-color:#2ecc71; padding: 4px 10px; font-size: 11px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">💾 Set as default</button>
+                    </div>
                 </div>
-                <div id="preview-args-form" style="text-align: left; font-size: 14px; max-height: 200px; overflow-y: auto; padding-right: 10px; border-top: 1px solid #eee; padding-top: 10px;">
+                <div id="preview-args-form" style="text-align: left; font-size: 14px; max-height: 350px; overflow-y: auto; overflow-x: hidden; padding-right: 10px; border-top: 1px solid #eee; padding-top: 10px; box-sizing: border-box;">
+                    
+                    <div style="margin-bottom: 12px; border-bottom: 1px solid #f0f0f0; padding-bottom: 8px;">
+                        <style>
+                            .dir-btn { background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 3px; cursor: pointer; font-size: 10px; padding: 0; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: #7f8c8d; }
+                            .dir-btn:hover { background: #d5dbdb; }
+                            .dir-btn.active { background: #8e44ad; color: white; border-color: #732d91; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2); }
+                            
+                            .nudge-btn { background: #fff; border: 1px solid #bdc3c7; border-radius: 3px; cursor: pointer; font-size: 10px; padding: 0; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; transition: 0.2s; color: #3498db; }
+                            .nudge-btn:hover:not(:disabled) { background: #ebf5fb; border-color: #3498db; }
+                            .nudge-btn:disabled { opacity: 0.4; cursor: not-allowed; background: #fdfdfd; }
+                        </style>
+                        <label style="display:block; font-weight:bold; font-size:11px; color:#8e44ad; margin-bottom:4px;">
+                            META: Label Anchor
+                        </label>
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; background: #faf8fc; border: 1px solid #9b59b6; padding: 12px 20px; border-radius: 4px; box-sizing: border-box;">
+                            
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                <span style="font-size: 9px; font-weight: bold; color: #7f8c8d; letter-spacing: 1px;">POSITION</span>
+                                <div style="display:grid; grid-template-columns: 22px 22px 22px; grid-template-rows: 22px 22px 22px; gap: 2px;">
+                                    <div style="grid-column: 2; grid-row: 1;"><button type="button" class="dir-btn ${aDir==='T'?'active':''}" data-dir="T" title="Top">▲</button></div>
+                                    <div style="grid-column: 1; grid-row: 2;"><button type="button" class="dir-btn ${aDir==='L'?'active':''}" data-dir="L" title="Left">◄</button></div>
+                                    <div style="grid-column: 2; grid-row: 2; display:flex; align-items:center; justify-content:center;">
+                                        <div style="width:12px; height:12px; background:#bdc3c7; border-radius:2px; border: 1px solid #95a5a6;"></div>
+                                    </div>
+                                    <div style="grid-column: 3; grid-row: 2;"><button type="button" class="dir-btn ${aDir==='R'?'active':''}" data-dir="R" title="Right">►</button></div>
+                                    <div style="grid-column: 2; grid-row: 3;"><button type="button" class="dir-btn ${aDir==='B'?'active':''}" data-dir="B" title="Bottom">▼</button></div>
+                                </div>
+                            </div>
+                            
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; border-left: 1px solid #e0e6ed; border-right: 1px solid #e0e6ed; padding: 0 30px;">
+                                <span style="font-size: 9px; font-weight: bold; color: #7f8c8d; letter-spacing: 1px;">OFFSET</span>
+                                <div style="display: flex; align-items: center; gap: 15px;">
+                                    <div style="display:grid; grid-template-columns: 22px 22px 22px; grid-template-rows: 22px 22px 22px; gap: 2px;">
+                                        <div style="grid-column: 2; grid-row: 1;"><button type="button" class="nudge-btn" data-nudge="U" ${aCustom?'':'disabled'} title="Nudge Up">▲</button></div>
+                                        <div style="grid-column: 1; grid-row: 2;"><button type="button" class="nudge-btn" data-nudge="L" ${aCustom?'':'disabled'} title="Nudge Left">◄</button></div>
+                                        <div style="grid-column: 2; grid-row: 2; display:flex; align-items:center; justify-content:center;">
+                                            <input type="checkbox" id="test-anchor-custom" ${aCustom?'checked':''} style="margin:0; width:14px; height:14px; cursor:pointer;" title="Enable Custom Offset">
+                                        </div>
+                                        <div style="grid-column: 3; grid-row: 2;"><button type="button" class="nudge-btn" data-nudge="R" ${aCustom?'':'disabled'} title="Nudge Right">►</button></div>
+                                        <div style="grid-column: 2; grid-row: 3;"><button type="button" class="nudge-btn" data-nudge="D" ${aCustom?'':'disabled'} title="Nudge Down">▼</button></div>
+                                    </div>
+                                    
+                                    <div style="display: flex; flex-direction: column; gap: 6px; background: #fff; padding: 6px 8px; border: 1px solid #bdc3c7; border-radius: 4px;">
+                                        <div style="display:flex; gap:4px; align-items:center;">
+                                            <span style="font-size:11px; font-weight:bold; color:#7f8c8d; white-space:nowrap;">X:</span>
+                                            <input type="number" id="test-anchor-x" style="width:45px; height:20px; margin:0; padding:0 2px; font-size:12px; border:none; outline:none; background:transparent;" value="${aX}" ${aCustom?'':'disabled'}>
+                                        </div>
+                                        <div style="height:1px; background:#ecf0f1; width:100%;"></div>
+                                        <div style="display:flex; gap:4px; align-items:center;">
+                                            <span style="font-size:11px; font-weight:bold; color:#7f8c8d; white-space:nowrap;">Y:</span>
+                                            <input type="number" id="test-anchor-y" style="width:45px; height:20px; margin:0; padding:0 2px; font-size:12px; border:none; outline:none; background:transparent;" value="${aY}" ${aCustom?'':'disabled'}>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; justify-content: center;">
+                                <button type="button" id="btn-apply-anchor" class="tool-btn" style="background:#8e44ad; border-color:#732d91; padding: 8px 16px; font-size: 12px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.15);">Apply</button>
+                            </div>
+                        </div>
+                        <input type="hidden" id="test-meta-anchor" value="${currentAnchor}">
+                    </div>
             `;
             
             argsList.forEach(a => {
@@ -699,7 +1013,10 @@
                         htmlForm += `</div><input type="hidden" id="test-arg-${a.idx}" value="${currentVal}" style="display:none !important;">`;
                     }
                     else if (customDef.type === 'rotflip') {
-                        let [r, f] = (currentVal || "0,none").split(',');
+                        // FIX: Force memory population if empty!
+                        if (!currentVal) { currentVal = '0,none'; testValues[a.idx] = currentVal; }
+                        
+                        let [r, f] = currentVal.split(',');
                         if (!f) f = "none";
                         htmlForm += `
                             <div style="display: flex; gap: 5px;">
@@ -711,13 +1028,19 @@
                                     <option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
                                 </select>
                             </div>
-                            <input type="hidden" id="test-arg-${a.idx}" value="${currentVal || '0,none'}" style="display:none !important;">`;
+                            <input type="hidden" id="test-arg-${a.idx}" value="${currentVal}" style="display:none !important;">`;
                     }
                     else if (customDef.type === 'rotation') {
-                        htmlForm += `<input type="number" id="test-arg-${a.idx}" style="${inputStyle}" value="${currentVal || '0'}">`;
+                        // FIX: Force memory population if empty!
+                        if (!currentVal) { currentVal = '0'; testValues[a.idx] = currentVal; }
+                        
+                        htmlForm += `<input type="number" id="test-arg-${a.idx}" style="${inputStyle}" value="${currentVal}">`;
                     }
                     else if (customDef.type === 'flip') {
-                        let f = currentVal || 'none';
+                        // FIX: Force memory population if empty!
+                        if (!currentVal) { currentVal = 'none'; testValues[a.idx] = currentVal; }
+                        let f = currentVal;
+                        
                         htmlForm += `<select id="test-arg-${a.idx}" style="${inputStyle}" onchange="updateSeparateFlip(${a.idx})">
                             <option value="none" ${f==='none'?'selected':''}>None</option>
                             <option value="h" ${f==='h'?'selected':''}>Flip H</option>
@@ -738,17 +1061,30 @@
             renderCanvas(); 
 
             Swal.fire({
-                html: `
-                    <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;"><span>⠿</span> Drag to move <span>⠿</span></div>
-                    <div style="font-size: 16px; font-weight: 600; margin-bottom: 10px; color: #2c3e50;">👁️ Component Preview</div>
-                    <div id="test-preview-container" style="margin-bottom: 15px;">${generateTestPreviewSVG()}</div>
-                    ${htmlForm}
-                `,
-                showCancelButton: true,
-                confirmButtonText: 'Keep Current State',
-                cancelButtonText: 'Exit Preview',
-                confirmButtonColor: '#27ae60',
-                backdrop: false, 
+            html: `
+                <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-top: 0; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
+                    <span>⠿</span> Drag to move <span>⠿</span>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div style="font-size: 18px; font-weight: 600; user-select: none; color: #2c3e50;">Live Preview: ${document.getElementById('dName').value || 'Component'}</div>
+                    <button type="button" id="btn-preview-zoom" onclick="window.togglePreviewZoom()" style="background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px; cursor: pointer; font-size: 14px; padding: 3px 8px; transition: 0.2s;" title="Toggle 2x Zoom">🔍</button>
+                </div>
+                
+                <div style="position: relative;">
+                    <div id="html-default-badge" style="position: absolute; top: 6px; right: 6px; background: #3498db; color: white; font-size: 9px; font-weight: bold; padding: 3px 6px; border-radius: 4px; letter-spacing: 0.5px; z-index: 10; display: ${window.isPreviewDirty ? 'none' : 'block'}; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">DEFAULT</div>
+                    
+                    <div id="test-preview-container" style="transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); margin-bottom: 15px; height: 120px; min-height: 120px; max-height: 120px; width: 100%; border: 1px solid #bdc3c7; border-radius: 6px; overflow: hidden; background: ${document.getElementById('selTheme').value === 'cadence' ? '#111' : '#f4f6f7'}; box-sizing: border-box; display: flex; align-items: center; justify-content: center;">
+                        ${generateTestPreviewSVG()}
+                    </div>
+                </div>
+                
+                ${htmlForm}
+            `,
+				showCancelButton: false,               // FIX 4: Removed the Cancel Button
+				confirmButtonText: 'Close Preview',    // FIX 4: Renamed the Confirm Button
+				confirmButtonColor: '#34495e',
+				backdrop: false, 
                 didOpen: () => {
                     const popup = Swal.getPopup();
                     const handle = document.getElementById('swal-drag-handle');
@@ -779,12 +1115,127 @@
                         if (el) {
                             el.addEventListener(el.tagName === 'SELECT' ? 'change' : 'input', (e) => {
                                 testValues[a.idx] = e.target.value;
+                                window.markPreviewDirty();
                                 renderCanvas();
                                 document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();
-                                document.getElementById('chkPalettePreview').checked = false;
                             });
                         }
                     });
+					
+					// --- NEW: Live Label Anchor Control Engine ---
+                    const chkCustomAnchor = document.getElementById('test-anchor-custom');
+                    const inpAnchorX = document.getElementById('test-anchor-x');
+                    const inpAnchorY = document.getElementById('test-anchor-y');
+                    const btnApplyAnchor = document.getElementById('btn-apply-anchor');
+                    const hidAnchor = document.getElementById('test-meta-anchor');
+
+                    // SAFE STATE: Hold the active direction in local memory to avoid DOM ghosting!
+                    let activeDir = hidAnchor.value.split(/\s+/).pop().toUpperCase();
+                    if (!['T','B','L','R'].includes(activeDir)) activeDir = 'B';
+
+                    const updateLiveAnchorPreview = () => {
+                        let isCustom = chkCustomAnchor.checked;
+                        let x = inpAnchorX.value || 0;
+                        let y = inpAnchorY.value || 0;
+
+                        // Use the safe local variable instead of querying the DOM
+                        let finalAnchorStr = isCustom ? `${x} ${y} ${activeDir}` : activeDir;
+                        hidAnchor.value = finalAnchorStr;
+                        
+                        window.markPreviewDirty();
+                        renderCanvas();
+                        document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();
+                    };
+
+                    // Arrow Buttons
+                    document.querySelectorAll('.dir-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active'));
+                            e.currentTarget.classList.add('active'); 
+                            
+                            // Update local memory
+                            activeDir = e.currentTarget.getAttribute('data-dir');
+                            updateLiveAnchorPreview();
+                        });
+                    });
+
+                    // Checkbox
+                    if (chkCustomAnchor) {
+                        chkCustomAnchor.addEventListener('change', (e) => {
+                            inpAnchorX.disabled = !e.target.checked;
+                            inpAnchorY.disabled = !e.target.checked;
+                            updateLiveAnchorPreview();
+                        });
+                    }
+					
+					// Checkbox
+                    if (chkCustomAnchor) {
+                        chkCustomAnchor.addEventListener('change', (e) => {
+                            let isChecked = e.target.checked;
+                            inpAnchorX.disabled = !isChecked;
+                            inpAnchorY.disabled = !isChecked;
+                            // Enable/Disable the Nudge buttons
+                            document.querySelectorAll('.swal2-popup .nudge-btn').forEach(b => b.disabled = !isChecked);
+                            updateLiveAnchorPreview();
+                        });
+                    }
+
+                    // --- NEW: Nudge Buttons (U, D, L, R) ---
+                    document.querySelectorAll('.swal2-popup .nudge-btn').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            // If they click an arrow, auto-enable the offset feature!
+                            if (!chkCustomAnchor.checked) {
+                                chkCustomAnchor.checked = true;
+                                chkCustomAnchor.dispatchEvent(new Event('change'));
+                            }
+                            
+                            let nudge = e.currentTarget.getAttribute('data-nudge');
+                            let x = parseInt(inpAnchorX.value) || 0;
+                            let y = parseInt(inpAnchorY.value) || 0;
+                            
+                            // Bonus UX: Holding Shift makes it jump by 5 pixels!
+                            let step = e.shiftKey ? 5 : 1; 
+
+                            if (nudge === 'U') y -= step;      // Up means negative Y in SVG
+                            else if (nudge === 'D') y += step; // Down means positive Y
+                            else if (nudge === 'L') x -= step;
+                            else if (nudge === 'R') x += step;
+
+                            inpAnchorX.value = x;
+                            inpAnchorY.value = y;
+                            updateLiveAnchorPreview();
+                        });
+                    });
+
+                    // Number Spinners
+                    if (inpAnchorX) inpAnchorX.addEventListener('input', updateLiveAnchorPreview);
+                    if (inpAnchorY) inpAnchorY.addEventListener('input', updateLiveAnchorPreview);
+
+                    // Apply Button
+                    if (btnApplyAnchor) {
+                        btnApplyAnchor.addEventListener('click', () => {
+                            let metaAnchorEl = document.getElementById('mAnchor');
+                            if (metaAnchorEl) {
+                                metaAnchorEl.value = hidAnchor.value;
+                                metaAnchorEl.style.transition = 'background 0.3s';
+                                metaAnchorEl.style.backgroundColor = '#f5eef8';
+                                setTimeout(() => metaAnchorEl.style.backgroundColor = '#fff', 800);
+                            }
+
+                            generateCode();
+                            
+                            // Visual Flash Feedback
+                            let origTxt = btnApplyAnchor.innerText;
+                            btnApplyAnchor.innerText = "Applied!";
+                            btnApplyAnchor.style.backgroundColor = "#27ae60";
+                            btnApplyAnchor.style.borderColor = "#2ecc71";
+                            setTimeout(() => { 
+                                btnApplyAnchor.innerText = origTxt; 
+                                btnApplyAnchor.style.backgroundColor = "#8e44ad"; 
+                                btnApplyAnchor.style.borderColor = "#732d91"; 
+                            }, 1000);
+                        });
+                    }
                 }
             }).then((result) => {
                 if (result.isConfirmed) {
@@ -1180,6 +1631,25 @@
         function updateLayerDescription(id, val) { let l = layers.find(x => x.id === id); l.description = val; generateCode(); }
         // BONUS FIX: Προστέθηκε η συνάρτηση για χειροκίνητη αλλαγή του SVG Path
         function updateLayerPath(id, val) { let l = layers.find(x => x.id === id); l.pathStr = val; generateCode(); renderCanvas(); }
+		
+		function insertStamp() {
+            let stampPath = document.getElementById('selStamp').value;
+            if (!stampPath) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select a shape from the dropdown first!'});
+            
+            let l = layers.find(x => x.id === activeLayerId);
+            saveHistory(l);
+            
+            // Drop it onto the active layer
+            l.pathStr += (l.pathStr.trim() ? " " : "") + stampPath;
+            
+            // Re-render
+            renderLayerList();
+            
+            Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: 'Shape Stamped!', showConfirmButton: false, timer: 1500 });
+            
+            // Auto-switch to the Select tool so they can immediately drag/rotate it
+            setTool('extract');
+        }
 
         // --- LAYER CONTROLS ---
         function setActiveLayer(id) { 
@@ -1553,26 +2023,139 @@
         }
 		
 
-        // --- TRANSLATION ALGORITHM ---
+        // --- UPGRADED TRANSLATION ALGORITHM (Supports Curves & Arcs) ---
         function translatePathString(pathStr, dx, dy) {
-            return pathStr.replace(/([ML])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/g, (match, cmd, x, y) => {
-                return `${cmd} ${parseFloat(x) + dx} ${parseFloat(y) + dy}`;
-            });
+            return pathStr.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+                
+                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+                if (!nums) return match;
+                nums = nums.map(Number);
+
+                let isAbs = (cmd === cmd.toUpperCase());
+
+                // We only translate Absolute commands. Relative commands move inherently when their starting M moves.
+                if (isAbs) {
+                    if (cmd === 'M' || cmd === 'L') {
+                        for (let i = 0; i < nums.length; i += 2) { nums[i] += dx; nums[i+1] += dy; }
+                    } else if (cmd === 'C') {
+                        for (let i = 0; i < nums.length; i += 6) {
+                            nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy; nums[i+4] += dx; nums[i+5] += dy;
+                        }
+                    } else if (cmd === 'Q') {
+                        for (let i = 0; i < nums.length; i += 4) {
+                            nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy;
+                        }
+                    } else if (cmd === 'A') {
+                        for (let i = 0; i < nums.length; i += 7) {
+                            nums[i+5] += dx; nums[i+6] += dy; // Only endpoints translate, radii stay the same
+                        }
+                    }
+                }
+                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+            }).trim();
         }
 
-        // NEW: ROTATION ALGORITHM (Περιστρέφει τέλεια τις συντεταγμένες γύρω από ένα κέντρο cx, cy)
+        // --- UPGRADED ROTATION ALGORITHM (Supports Curves & Arcs) ---
         function rotatePathString(pathStr, angleDeg, cx, cy) {
             let rad = angleDeg * Math.PI / 180;
-            let cos = Math.cos(rad);
-            let sin = Math.sin(rad);
-            return pathStr.replace(/([ML])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/g, (match, cmd, xStr, yStr) => {
-                let x = parseFloat(xStr) - cx;
-                let y = parseFloat(yStr) - cy;
-                let nx = x * cos - y * sin;
-                let ny = x * sin + y * cos;
-                // Χρησιμοποιούμε toFixed(2) για να μην γεμίσει ο κώδικας δεκαδικά (πχ 1.000000001)
-                return `${cmd} ${(nx + cx).toFixed(2)} ${(ny + cy).toFixed(2)}`;
-            });
+            let cos = Math.cos(rad), sin = Math.sin(rad);
+
+            function rot(x, y) {
+                let nx = (x - cx) * cos - (y - cy) * sin;
+                let ny = (x - cx) * sin + (y - cy) * cos;
+                return [nx + cx, ny + cy];
+            }
+            
+            function rotRel(x, y) { // Relative coordinates rotate without origin offset
+                return [x * cos - y * sin, x * sin + y * cos];
+            }
+
+            return pathStr.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+                
+                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+                if (!nums) return match;
+                nums = nums.map(Number);
+
+                let isAbs = (cmd === cmd.toUpperCase());
+
+                if (cmd === 'M' || cmd === 'L') {
+                    for (let i = 0; i < nums.length; i += 2) { 
+                        let [nx, ny] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+                        nums[i] = nx; nums[i+1] = ny;
+                    }
+                } else if (cmd === 'C') {
+                    for (let i = 0; i < nums.length; i += 6) {
+                        let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+                        let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
+                        let [nx3, ny3] = isAbs ? rot(nums[i+4], nums[i+5]) : rotRel(nums[i+4], nums[i+5]);
+                        nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2; nums[i+4]=nx3; nums[i+5]=ny3;
+                    }
+                } else if (cmd === 'Q') {
+                    for (let i = 0; i < nums.length; i += 4) {
+                        let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+                        let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
+                        nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2;
+                    }
+                } else if (cmd === 'A') {
+                    for (let i = 0; i < nums.length; i += 7) {
+                        let [nx, ny] = isAbs ? rot(nums[i+5], nums[i+6]) : rotRel(nums[i+5], nums[i+6]);
+                        nums[i+5] = nx; nums[i+6] = ny;
+                        nums[i+2] = (nums[i+2] + angleDeg) % 360; // Rotate the arc's internal X-axis
+                    }
+                }
+                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+            }).replace(/\s+/g, ' ').trim();
+        }
+		
+		
+		// --- UPGRADED SCALING ALGORITHM (Supports Curves & Arcs) ---
+        function scalePathString(pathStr, scaleFactor, cx, cy) {
+            function scaleAbs(val, center) { return center + (val - center) * scaleFactor; }
+            function scaleRel(val) { return val * scaleFactor; }
+
+            return pathStr.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+                
+                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+                if (!nums) return match;
+                nums = nums.map(Number);
+
+                let isAbs = (cmd === cmd.toUpperCase());
+
+                if (cmd === 'M' || cmd === 'L') {
+                    for (let i = 0; i < nums.length; i += 2) { 
+                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+                    }
+                } else if (cmd === 'C') {
+                    for (let i = 0; i < nums.length; i += 6) {
+                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+                        nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
+                        nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
+                        nums[i+4] = isAbs ? scaleAbs(nums[i+4], cx) : scaleRel(nums[i+4]);
+                        nums[i+5] = isAbs ? scaleAbs(nums[i+5], cy) : scaleRel(nums[i+5]);
+                    }
+                } else if (cmd === 'Q') {
+                    for (let i = 0; i < nums.length; i += 4) {
+                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+                        nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
+                        nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
+                    }
+                } else if (cmd === 'A') {
+                    for (let i = 0; i < nums.length; i += 7) {
+                        nums[i] = Math.abs(nums[i] * scaleFactor);     // rx (Arc X radius)
+                        nums[i+1] = Math.abs(nums[i+1] * scaleFactor); // ry (Arc Y radius)
+                        // i+2 is rotation, i+3 is large-arc-flag, i+4 is sweep-flag (Do not scale these)
+                        nums[i+5] = isAbs ? scaleAbs(nums[i+5], cx) : scaleRel(nums[i+5]);
+                        nums[i+6] = isAbs ? scaleAbs(nums[i+6], cy) : scaleRel(nums[i+6]);
+                    }
+                }
+                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+            }).replace(/\s+/g, ' ').trim();
         }
 		
 		
@@ -1604,8 +2187,40 @@
             let layerId = isShape ? shapeNode.getAttribute('data-layer') : null;
             
             let isPin = shapeNode ? shapeNode.getAttribute('data-is-pin') === 'true' : false;
-            // NEW: Get the Index instead of the ID
             let pinIdx = isPin ? parseInt(shapeNode.getAttribute('data-pin-idx')) : -1;
+
+            // --- CUSTOM DOUBLE-CLICK ENGINE (Bypasses DOM Rebuilds!) ---
+            let now = new Date().getTime();
+            if (window.lastClickTime && (now - window.lastClickTime < 300)) {
+                if (isPin && window.lastClickPinIdx === pinIdx && pinIdx !== -1) {
+                    window.editPin(pinIdx);
+                    window.lastClickTime = 0; // reset
+                    isDragging = false; document.querySelector('.canvas-container').classList.remove('dragging-mode');
+                    return; // Stop further mousedown logic
+                } else if (isShape && window.lastClickShapeIdx === shapeIdx && shapeIdx !== -1) {
+                    // Check if it's text or a normal shape
+                    let l = layers.find(x => x.id === layerId);
+                    let subPath = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '')[shapeIdx];
+                    let textMatch = subPath.match(/\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
+                    
+                    if (textMatch) {
+                        window.editTextNode(layerId, shapeIdx, textMatch[3], parseFloat(textMatch[1]), textMatch[2]);
+                    } else {
+                        window.editShapePath(layerId, shapeIdx);
+                    }
+                    window.lastClickTime = 0; // reset
+                    
+                    // FIX: Clean up dragging state caused by the 1st click
+                    isDragging = false; 
+                    document.querySelector('.canvas-container').classList.remove('dragging-mode');
+                    
+                    return; // Stop further mousedown logic
+                }
+            }
+            window.lastClickTime = now;
+            window.lastClickPinIdx = isPin ? pinIdx : -1;
+            window.lastClickShapeIdx = isShape ? shapeIdx : -1;
+            // ------------------------------------------------------------
 
             if (currentTool === 'erase') {
                 if (isPin) {
@@ -1816,8 +2431,15 @@
             // Normal Drawing Finalize
             if (!isDrawing) return;
             isDrawing = false;
-            let finalPath = previewEl.getAttribute('d'); previewEl.setAttribute('d', '');
-            if (finalPath) { 
+            let finalPath = previewEl.getAttribute('d'); 
+            previewEl.setAttribute('d', '');
+            
+            // NEW: Prevent stationary clicks from saving microscopic junk and rebuilding the DOM!
+            let endPt = getCoords(e);
+            let dragDistance = Math.abs(endPt.x - startPt.x) + Math.abs(endPt.y - startPt.y);
+
+            // Only save and render if they actually dragged the mouse to draw something
+            if (finalPath && dragDistance > 2) { 
                 let l = layers.find(x => x.id === activeLayerId); 
                 saveHistory(l); 
                 l.pathStr += (l.pathStr.length > 0 ? " " : "") + finalPath; 
@@ -2047,6 +2669,55 @@
                 }
             });
         }
+		
+		function scaleSelectedAction() {
+            if (selectedShapeIndices.size === 0) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select shapes to scale!'});
+            
+            Swal.fire({
+                title: 'Scale Shapes',
+                text: 'Enter a scale multiplier (e.g., 1.5 for 150%, 0.5 for 50%):',
+                input: 'number',
+                inputValue: 1.5,
+                inputAttributes: { step: '0.1', min: '0.1' },
+                showCancelButton: true,
+                confirmButtonText: 'Scale',
+                confirmButtonColor: '#d35400'
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    let scaleFactor = parseFloat(result.value);
+                    if (isNaN(scaleFactor) || scaleFactor <= 0) return Swal.fire('Error', 'Invalid scale factor.', 'error');
+
+                    let l = layers.find(x => x.id === activeLayerId);
+                    saveHistory(l);
+                    
+                    let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+
+                    // Calculate Bounding Box Center of selected shapes
+                    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+                    subPaths.forEach((p, i) => {
+                        if (selectedShapeIndices.has(i)) {
+                            let coords = [...p.matchAll(/([MLCcQqAa])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/g)];
+                            coords.forEach(m => {
+                                // For Arcs, m[2] and m[3] aren't always X/Y, but parsing them strictly to find rough bounds works well enough for center approximation.
+                                let x = parseFloat(m[2]), y = parseFloat(m[3]);
+                                if (x < minX) minX = x; if (x > maxX) maxX = x;
+                                if (y < minY) minY = y; if (y > maxY) maxY = y;
+                            });
+                        }
+                    });
+                    let cx = (minX + maxX) / 2;
+                    let cy = (minY + maxY) / 2;
+
+                    // Apply scaling
+                    selectedShapeIndices.forEach(idx => {
+                        subPaths[idx] = scalePathString(subPaths[idx], scaleFactor, cx, cy);
+                    });
+                    
+                    l.pathStr = subPaths.join(' ');
+                    renderLayerList();
+                }
+            });
+        }
 
         // --- LAYER MANIPULATION TOOLS ---
         function changeLayerType(id, newType) {
@@ -2071,7 +2742,7 @@
 		
 		// Συνάρτηση για Edit υπάρχοντος κειμένου
         window.editTextNode = (layerId, pathIdx, currentText, currentSize, currentStyle) => {
-            if (currentTool === 'erase' || currentTool === 'extract') return;
+            if (currentTool === 'erase') return; // Allow double-clicking in Select mode!
             
             Swal.fire({
                 title: 'Επεξεργασία Κειμένου',
@@ -2118,6 +2789,109 @@
                 }
             });
         };
+		
+		// --- ΕΠΕΞΕΡΓΑΣΙΑ RAW SVG PATH (Εxpert Mode με LIVE PREVIEW & INTERACTIVE NODES) ---
+        window.editShapePath = (layerId, pathIdx) => {
+            if (currentTool === 'erase') return; // Allow double-clicking in Select mode!
+            
+            let l = layers.find(x => x.id === layerId);
+            if (!l) return;
+            
+            let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+            let currentPath = subPaths[pathIdx]; // Do NOT trim here, so text indices map 1:1
+            
+            let originalFullPathStr = l.pathStr; 
+            
+            // Set global tracking so the canvas knows to draw the nodes!
+            window.editingPathLayer = layerId;
+            window.editingPathIdx = pathIdx;
+            
+            Swal.fire({
+                title: 'Edit Raw SVG Path',
+                html: `
+                    <div id="swal-drag-handle-path" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
+                        <span>⠿</span> Drag to move <span>⠿</span>
+                    </div>
+                    <div style="text-align: left; font-size: 12px; color: #7f8c8d; margin-bottom: 8px;">
+                        Expert Mode: Canvas updates live! Use M, L, C, Q, A, Z.<br>
+                        <b style="color:#e74c3c;">💡 Click the red nodes on the canvas to highlight the code!</b>
+                    </div>
+                    <textarea id="swal-edit-path" class="swal2-textarea" spellcheck="false" style="width: 100%; height: 120px; font-family: monospace; font-size: 13px; margin: 0; padding: 10px; box-sizing: border-box;">${currentPath}</textarea>
+                    <div id="path-error-msg" style="color: #e74c3c; font-size: 11px; margin-top: 5px; min-height: 15px;"></div>
+                `,
+                showCancelButton: true,
+                confirmButtonColor: '#8e44ad',
+                confirmButtonText: 'Save Path',
+                backdrop: false, 
+                didOpen: () => {
+                    const popup = Swal.getPopup();
+                    const handle = document.getElementById('swal-drag-handle-path');
+                    const textarea = document.getElementById('swal-edit-path');
+                    const errorMsg = document.getElementById('path-error-msg');
+                    
+                    let isDragging = false, startX, startY, initialLeft, initialTop;
+                    const onMouseMove = (e) => { if(!isDragging) return; popup.style.left=(initialLeft+e.clientX-startX)+'px'; popup.style.top=(initialTop+e.clientY-startY)+'px'; };
+                    const onMouseUp = () => { isDragging = false; handle.style.cursor = 'grab'; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+                    
+                    handle.addEventListener('mousedown', (e) => {
+                        isDragging=true; handle.style.cursor='grabbing';
+                        const rect=popup.getBoundingClientRect(); popup.style.margin='0'; popup.style.position='fixed'; 
+                        popup.style.left=rect.left+'px'; popup.style.top=rect.top+'px'; popup.style.transform='none'; 
+                        startX=e.clientX; startY=e.clientY; initialLeft=rect.left; initialTop=rect.top;
+                        document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
+                    });
+
+                    textarea.addEventListener('input', (e) => {
+                        let val = e.target.value; 
+                        
+                        if (!val.trim().toUpperCase().startsWith('M')) {
+                            errorMsg.innerText = "Syntax Error: Path must start with an M (MoveTo) command.";
+                            textarea.style.borderColor = "#e74c3c";
+                            textarea.style.backgroundColor = "#fad390";
+                        } else {
+                            errorMsg.innerText = "";
+                            textarea.style.borderColor = "#bdc3c7";
+                            textarea.style.backgroundColor = "#fff";
+                            
+                            subPaths[pathIdx] = val; // Direct injection preserves exact spacing
+                            l.pathStr = subPaths.join('');
+                            renderCanvas();
+                        }
+                    });
+                    
+                    // Render immediately to show the nodes when popup opens!
+                    renderCanvas();
+                },
+                willClose: () => {
+                    window.editingPathLayer = null;
+                    window.editingPathIdx = null;
+                },
+                preConfirm: () => {
+                    let val = document.getElementById('swal-edit-path').value.trim();
+                    if (!val.toUpperCase().startsWith('M')) {
+                        Swal.showValidationMessage('Path must start with an M (MoveTo) command.');
+                        return false;
+                    }
+                    return val;
+                }
+            }).then((result) => {
+                window.editingPathLayer = null;
+                window.editingPathIdx = null;
+                if (result.isConfirmed && result.value) {
+                    l.pathStr = originalFullPathStr;
+                    saveHistory(l);
+                    
+                    subPaths[pathIdx] = result.value.replace(/\s+/g, ' '); 
+                    l.pathStr = subPaths.join('');
+                    
+                    renderLayerList(); 
+                    Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: 'Path Saved!', showConfirmButton: false, timer: 1500 });
+                } else if (result.isDismissed) {
+                    l.pathStr = originalFullPathStr;
+                    renderCanvas();
+                }
+            });
+        };
 
         // --- UPGRADED RENDERER ---
         function renderCanvas() {
@@ -2141,6 +2915,26 @@
             // ------------------------------------
 
             let html = "";
+			
+			// --- RENDER AXIS COORDINATES ---
+            let showCoords = document.getElementById('chkShowCoords');
+            if (showCoords && showCoords.checked) {
+                // Font size dropped to 1.5, opacity lowered slightly for a cleaner look
+                html += `<g pointer-events="none" font-family="monospace" font-size="1.5" fill="#95a5a6" opacity="0.6">`;
+                
+                for (let i = -300; i <= 300; i += 10) {
+                    if (i === 0) {
+                        html += `<text x="0.5" y="-0.5" font-weight="bold" fill="#e74c3c">0,0</text>`; 
+                    } else {
+                        // Spacing tightened up to match the smaller text size
+                        html += `<text x="${i + 0.5}" y="-0.5">${i}</text>`; 
+                        html += `<text x="0.5" y="${i + 0.5}">${i}</text>`; 
+                    }
+                }
+                html += `</g>`;
+            }
+            // ------------------------------------
+			
             layers.forEach(l => {
                 let shouldShow = testModeActive ? evaluateLayerVisibility(l) : l.visible;
                 if (!shouldShow || !l.pathStr.trim()) return;
@@ -2185,7 +2979,85 @@
                                  </g>`;
                     } else {
                         // Είναι κανονικό path!
-                        html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
+                        html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" 
+                                    ondblclick="event.stopPropagation(); window.editShapePath('${l.id}', ${idx})" 
+                                    style="cursor:${currentTool==='line'?'pointer':'inherit'};" />`;
+                    }
+
+                    // --- NEW: OVERLAY EDIT NODES IF THIS IS THE ACTIVE EXPERT PATH ---
+                    if (window.editingPathLayer === l.id && window.editingPathIdx === idx) {
+                        let ta = document.getElementById('swal-edit-path');
+                        let pathStrToAnalyze = ta ? ta.value : sub;
+                        
+                        let regex = /([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g;
+                        let match;
+                        let cx = 0, cy = 0;
+                        let startX = 0, startY = 0;
+                        
+                        while ((match = regex.exec(pathStrToAnalyze)) !== null) {
+                            let cmd = match[1];
+                            let args = match[2];
+                            let startIdx = match.index;
+                            let endIdx = match.index + match[0].length;
+                            
+                            // --- NEW: Pinpoint the exact X, Y coordinates for the highlight! ---
+                            let nodeStartIdx = startIdx;
+                            let nodeEndIdx = endIdx;
+                            let numMatches = [...args.matchAll(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g)];
+                            
+                            if (numMatches.length >= 2) {
+                                let lastNum = numMatches[numMatches.length - 1];
+                                let secondLast = numMatches[numMatches.length - 2];
+                                // Offset the index by the start of the match + the command letter
+                                nodeStartIdx = startIdx + cmd.length + secondLast.index;
+                                nodeEndIdx = startIdx + cmd.length + lastNum.index + lastNum[0].length;
+                            }
+                            // -------------------------------------------------------------------
+                            
+                            let nums = numMatches.map(m => Number(m[0]));
+                            
+                            let ex = cx, ey = cy;
+                            let isAbs = (cmd === cmd.toUpperCase());
+                            
+                            if (cmd.toUpperCase() === 'M' || cmd.toUpperCase() === 'L') {
+                                if (nums.length >= 2) {
+                                    ex = isAbs ? nums[nums.length-2] : cx + nums[nums.length-2];
+                                    ey = isAbs ? nums[nums.length-1] : cy + nums[nums.length-1];
+                                }
+                            } else if (cmd.toUpperCase() === 'C') {
+                                if (nums.length >= 6) {
+                                    ex = isAbs ? nums[nums.length-2] : cx + nums[nums.length-2];
+                                    ey = isAbs ? nums[nums.length-1] : cy + nums[nums.length-1];
+                                }
+                            } else if (cmd.toUpperCase() === 'Q') {
+                                if (nums.length >= 4) {
+                                    ex = isAbs ? nums[nums.length-2] : cx + nums[nums.length-2];
+                                    ey = isAbs ? nums[nums.length-1] : cy + nums[nums.length-1];
+                                }
+                            } else if (cmd.toUpperCase() === 'A') {
+                                if (nums.length >= 7) {
+                                    ex = isAbs ? nums[nums.length-2] : cx + nums[nums.length-2];
+                                    ey = isAbs ? nums[nums.length-1] : cy + nums[nums.length-1];
+                                }
+                            }
+                            
+                            if (cmd.toUpperCase() === 'M') { startX = ex; startY = ey; }
+                            if (cmd.toUpperCase() === 'Z') { ex = startX; ey = startY; }
+                            
+                            cx = ex; cy = ey;
+                            
+                            // Draw the node marker and coordinate text (Injecting the surgical indices)
+                            if (cmd.toUpperCase() !== 'Z') {
+                                html += `
+                                    <g style="pointer-events:all; cursor:crosshair;" 
+                                       onmousedown="window.highlightPathText(${nodeStartIdx}, ${nodeEndIdx}); event.stopPropagation();"
+                                       ondblclick="window.highlightPathText(${nodeStartIdx}, ${nodeEndIdx}); event.stopPropagation();">
+                                        <circle cx="${cx}" cy="${cy}" r="5" fill="transparent" stroke="none" />
+                                        <circle cx="${cx}" cy="${cy}" r="1.5" fill="#e74c3c" stroke="#ffffff" stroke-width="0.5" pointer-events="none" />
+                                        <text x="${cx + 2.5}" y="${cy - 2.5}" font-family="monospace" font-size="4.5" fill="#e74c3c" font-weight="bold" pointer-events="none">${cx.toFixed(1)}, ${cy.toFixed(1)}</text>
+                                    </g>`;
+                            }
+                        }
                     }
                 });
             });
@@ -2385,7 +3257,9 @@
             let mode = document.getElementById('exportMode').value;
             let cName = document.getElementById('cName').value.trim();
             let dName = document.getElementById('dName').value.trim();
-            let cArgs = document.getElementById('cArgs').value.trim();
+            
+            // THE FIX: Safely strip out any accidental newlines the user typed in the textarea!
+            let cArgs = document.getElementById('cArgs').value.replace(/\s*\n\s*/g, '').trim();
             
             let argCount = (cArgs.match(/\{/g) || []).length;
             if (argCount === 0) argCount = 1; 
@@ -2472,6 +3346,31 @@
                         if(l.pathStr.trim()) {
                             let tikzPath = l.pathStr.replace(/\/\*TEXT:[^\*]+\*\//g, '').trim();
                             if (tikzPath) lines.push(`        ${svgToTikz(tikzPath, l.styles)}`);
+                            
+                            // --- NEW: Export Static Text Tool nodes to TikZ! ---
+                            let textRegex = /M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//g;
+                            let tMatch;
+                            while ((tMatch = textRegex.exec(l.pathStr)) !== null) {
+                                let tx = (parseFloat(tMatch[1]) / 10).toFixed(2);
+                                let ty = (-parseFloat(tMatch[2]) / 10).toFixed(2);
+                                let tStyle = tMatch[4];
+                                let tStr = tMatch[5];
+                                
+                                let formatStart = "", formatEnd = "";
+                                if (tStyle === 'bold') { formatStart = "\\textbf{"; formatEnd = "}"; }
+                                else if (tStyle === 'italic') { formatStart = "\\textit{"; formatEnd = "}"; }
+                                
+                                let prefix = "", suffix = "";
+                                if (l.type !== 'base') {
+                                    let ruleTxt = buildRuleText(l.rule);
+                                    if (ruleTxt.includes('==') && !ruleTxt.includes('&&')) {
+                                        let parts = ruleTxt.split('==');
+                                        prefix = `\\ifstrequal{#${parts[0].trim()}}{${parts[1].trim()}}{`;
+                                        suffix = `}{}`;
+                                    }
+                                }
+                                lines.push(`        ${prefix}\\node[draw=none, align=center] at (${tx}, ${ty}) {${formatStart}${tStr}${formatEnd}};${suffix}`);
+                            }
                         }
                     });
 
@@ -2481,17 +3380,35 @@
                             let tikzX = (p.x / 10).toFixed(2); let tikzY = (-p.y / 10).toFixed(2);
                             let dirStr = p.dir ? ` [${p.dir}]` : " [R]";
                             let condStr = ""; 
+                            let prefix = ""; let suffix = ""; 
+                            
                             let pLayer = layers.find(l => l.id === p.layerId);
                             if (pLayer && pLayer.type !== 'base') {
                                 let ruleTxt = buildRuleText(pLayer.rule);
-                                if (ruleTxt !== '1~=' && ruleTxt !== 'icon_base') condStr = ` IF:${ruleTxt}`;
+                                if (ruleTxt !== '1~=' && ruleTxt !== 'icon_base') {
+                                    condStr = ` IF:${ruleTxt}`;
+                                    if (ruleTxt.includes('==') && !ruleTxt.includes('&&')) {
+                                        let parts = ruleTxt.split('==');
+                                        prefix = `\\ifstrequal{#${parts[0].trim()}}{${parts[1].trim()}}{`;
+                                        suffix = `}{}`;
+                                    }
+                                }
                             }
                             let comment = "";
                             if (p.id.includes('$')) comment = " %" + dirStr + condStr; 
                             else if (p.desc || p.label) comment = " % " + (p.desc ? p.desc.trim() + " " : "") + (p.label ? `(${p.label.trim()})` : "") + dirStr + condStr;
                             else comment = " %" + dirStr + condStr;
                             
-                            lines.push(`        \\coordinate (${p.id}) at (${tikzX}, ${tikzY});${comment}`);
+                            lines.push(`        ${prefix}\\coordinate (${p.id}) at (${tikzX}, ${tikzY});${suffix}${comment}`);
+                            
+                            // --- NEW: Auto-generate visible LaTeX nodes for dynamic text pins! ---
+                            if (p.id.includes('$')) {
+                                let argMatch = p.id.match(/\d+/);
+                                let argNum = argMatch ? argMatch[0] : "";
+                                if (argNum) {
+                                    lines.push(`        ${prefix}\\node[draw=none, align=center] at (${p.id}) {\\textbf{#${argNum}}};${suffix}`);
+                                }
+                            }
                         });
                     }
                     lines.push(`    \\end{scope}\n}`);
@@ -2703,12 +3620,13 @@
 		
 		// Ενημέρωση του preview
 		testValues[argIdx] = finalVal;
+		window.markPreviewDirty();
 		renderCanvas();
 		const container = document.getElementById('test-preview-container');
 		if (container) container.innerHTML = generateTestPreviewSVG();
 	}
 	
-function updateCombinedRotFlip(argIdx, source = 'rot') {
+	function updateCombinedRotFlip(argIdx, source = 'rot') {
         let rotInput = document.getElementById(`test-arg-${argIdx}-rot`);
         let flipSelect = document.getElementById(`test-arg-${argIdx}-flip`);
         
@@ -2737,6 +3655,7 @@ function updateCombinedRotFlip(argIdx, source = 'rot') {
         document.getElementById(`test-arg-${argIdx}`).value = final;
         
         testValues[argIdx] = final;
+		window.markPreviewDirty();
         renderCanvas();
         const container = document.getElementById('test-preview-container');
         if (container) container.innerHTML = generateTestPreviewSVG();
@@ -2773,6 +3692,7 @@ function updateCombinedRotFlip(argIdx, source = 'rot') {
         }
 
         testValues[argIdx] = f;
+		window.markPreviewDirty();
         renderCanvas();
         const container = document.getElementById('test-preview-container');
         if (container) container.innerHTML = generateTestPreviewSVG();

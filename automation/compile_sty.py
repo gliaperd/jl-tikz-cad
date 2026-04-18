@@ -125,18 +125,37 @@ def svg_to_tikz(path_str, style_tag=""):
 
     return f"\\draw [line width=\\linewidthscalefactor * \\zoomfactor * {sw}pt{dashed}{fill_str}{rounded_str}] {tikz.strip()};"
 
+def extract_text_nodes(path_str):
+    nodes_tikz = ""
+    matches = re.finditer(r'M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?/\*TEXT:([^,]+),([^,]+),(.*?)\*/', path_str)
+    for m in matches:
+        x = float(m.group(1)) / 10.0
+        y = -float(m.group(2)) / 10.0
+        style = m.group(4)
+        text_str = m.group(5)
+        
+        fmt_start = "\\textbf{" if style == 'bold' else ("\\textit{" if style == 'italic' else "")
+        fmt_end = "}" if fmt_start else ""
+        
+        nodes_tikz += f"\\node[draw=none, align=center] at ({x:.2f}, {y:.2f}) {{{fmt_start}{text_str}{fmt_end}}};\n        "
+    return nodes_tikz.rstrip()
 
 def compile_macro(macro_text):
-    base_match = re.search(r'%\s*(?:icon_base|icon):\s*([^\n]+)', macro_text)
+    # THE FIX: Separate the [style] tag from the raw SVG path so it doesn't crash the math parser!
+    base_match = re.search(r'%\s*(?:icon_base|icon):\s*(\[.*?\])?(.*)', macro_text)
     if not base_match:
         return macro_text, macro_text
     
-    base_path = base_match.group(1).split('//')[0].strip()
+    base_style = base_match.group(1).strip() if base_match.group(1) else ""
+    base_path = base_match.group(2).split('//')[0].strip()
     adds = re.findall(r'%\s*add_icon:\s*([^:]+):\s*(\[.*?\])?(.*)', macro_text)
 
     comp_debug = "\n        % --- AUTO-COMPILED FROM SVG METADATA ---\n"
-    comp_debug += f"        {svg_to_tikz(base_path)}\n"
-    comp_clean = f"\n        {svg_to_tikz(base_path)}\n"
+    comp_debug += f"        {svg_to_tikz(base_path, base_style)}\n"
+    if extract_text_nodes(base_path): comp_debug += f"        {extract_text_nodes(base_path)}\n"
+    
+    comp_clean = f"\n        {svg_to_tikz(base_path, base_style)}\n"
+    if extract_text_nodes(base_path): comp_clean += f"        {extract_text_nodes(base_path)}\n"
     
     for cond, style, path in adds:
         cond = cond.strip()
@@ -174,7 +193,10 @@ def compile_macro(macro_text):
         conds = [c.strip() for c in cond.split('&&') if c.strip()]
         
         result_block_debug = f"        {svg_to_tikz(path, style)}\n"
+        if extract_text_nodes(path): result_block_debug += f"        {extract_text_nodes(path)}\n"
+        
         result_block_clean = f"        {svg_to_tikz(path, style)}\n"
+        if extract_text_nodes(path): result_block_clean += f"        {extract_text_nodes(path)}\n"
         
         # Build nested IFs backwards!
         for c in reversed(conds):
@@ -217,14 +239,34 @@ def compile_macro(macro_text):
         debug_tail = re.sub(legacy_regex, clean_debug, tail)
         clean_tail = re.sub(legacy_regex, clean_final, tail)
         
-        # Clean up text comments and excess whitespace in the clean output
-        clean_tail = re.sub(r'^[ \t]*%[ \t]*[a-zA-Z0-9_ \-]+\n', '', clean_tail, flags=re.MULTILINE)
+        clean_tail = re.sub(r'^[ \t]*%(?!%)[ \t]*[a-zA-Z0-9_ \-]+\n', '', clean_tail, flags=re.MULTILINE)
         clean_tail = re.sub(r'\n\s*\n', '\n', clean_tail)
 
         debug_macro = head + comp_debug + debug_tail
         clean_macro = head + comp_clean + clean_tail
         
         return debug_macro, clean_macro
+    else:
+        # --- THE FIX: BRAND NEW COMPONENT FALLBACK ---
+        # If the user deleted the \begin{scope} block, generate a fresh one!
+        last_brace_idx = macro_text.rfind('}')
+        if last_brace_idx != -1:
+            head = macro_text[:last_brace_idx]
+            
+            # THE FIX: Capture the \n and %% Next Title that live after the final brace!
+            tail_remainder = macro_text[last_brace_idx+1:] 
+            
+            # Generate the default LaTeX wrapper logic
+            scope_header = "\n    \\IfSubStr{#5}{h}{\\edef\\xscalevalue{-1}}{\\edef\\xscalevalue{1}}\n"
+            scope_header += "    \\IfSubStr{#5}{v}{\\edef\\yscalevalue{-1}}{\\edef\\yscalevalue{1}}\n"
+            scope_header += "    \\begin{scope}[shift={#1}, scale=\\jlcscale, rotate=#5, xscale=\\xscalevalue, yscale=\\yscalevalue]\n"
+            scope_header += "        \\getzoomfactor\n"
+            
+            # Append the tail_remainder back onto the end!
+            debug_macro = head + scope_header + comp_debug + "\n    \\end{scope}\n}" + tail_remainder
+            clean_macro = head + scope_header + comp_clean + "\n    \\end{scope}\n}" + tail_remainder
+            
+            return debug_macro, clean_macro
 
     return macro_text, macro_text
 
@@ -270,4 +312,11 @@ def process_library(input_file):
     print(f"-> Wrote '{clean_file}' (fully stripped and minimized)")
 
 if __name__ == "__main__":
-    process_library('tikz_electronic_parts.sty')
+    import sys
+    # Accept the filename from the command line, or fallback to the default
+    if len(sys.argv) > 1:
+        input_file = sys.argv[1]
+    else:
+        input_file = 'tikz_electronic_parts.sty'
+        
+    process_library(input_file)
