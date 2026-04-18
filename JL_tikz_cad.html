@@ -737,18 +737,52 @@
 
         el.attr('iconGroup/transform', `translate(${w/2},${h/2}) scale(${sx},${sy}) translate(${-w/2},${-h/2}) translate(${shiftX},${shiftY}) scale(${PPU_MULT * scale})`);
 
+        // --- THE FIX: Parse dynamic styles for the Base Path ---
+        let baseStrokeWidth = 1.8;
+        let baseStrokeColor = theme.componentIcon;
+        let baseDashed = 'none';
+        let baseLineCap = 'butt';
+        let baseLineJoin = 'miter';
+
+        if (dbData.iconBaseStyle) {
+            if (dbData.iconBaseStyle.includes('stroke-width=')) baseStrokeWidth = parseFloat(dbData.iconBaseStyle.match(/stroke-width=([\d\.]+)/)[1]);
+            if (dbData.iconBaseStyle.includes('stroke=')) baseStrokeColor = dbData.iconBaseStyle.match(/stroke=([^,\]]+)/)[1].trim();
+            if (dbData.iconBaseStyle.includes('stroke-dasharray')) baseDashed = '4,4';
+            if (dbData.iconBaseStyle.includes('rounded=true')) { baseLineCap = 'round'; baseLineJoin = 'round'; }
+        }
+
         el.attr('iconFill/d', basePath);
         el.attr('iconFill/fill', dbData.filled ? theme.componentIcon : 'none');
         el.attr('iconStroke/d', basePath);
-        el.attr('iconStroke/stroke', theme.componentIcon);
-        el.attr('iconStroke/stroke-width', 1.8);
+        el.attr('iconStroke/stroke', el.get('latexMacro') === 'freetext' ? 'transparent' : baseStrokeColor);
+        el.attr('iconStroke/stroke-width', baseStrokeWidth);
+        el.attr('iconStroke/stroke-dasharray', baseDashed);
+        el.attr('iconStroke/stroke-linecap', baseLineCap);
+        el.attr('iconStroke/stroke-linejoin', baseLineJoin);
 
+        // --- THE FIX: Parse dynamic styles for the Overlay Layers ---
         matchedLayers.forEach((layer, i) => {
             let sel = `overlay_${i}`;
+            let layerStrokeWidth = 1.8;
+            let layerStrokeColor = theme.componentIcon;
+            let layerDashed = 'none';
+            let layerLineCap = 'butt';
+            let layerLineJoin = 'miter';
+
+            if (layer.style) {
+                if (layer.style.includes('stroke-width=')) layerStrokeWidth = parseFloat(layer.style.match(/stroke-width=([\d\.]+)/)[1]);
+                if (layer.style.includes('stroke=')) layerStrokeColor = layer.style.match(/stroke=([^,\]]+)/)[1].trim();
+                if (layer.style.includes('stroke-dasharray')) layerDashed = '4,4';
+                if (layer.style.includes('rounded=true')) { layerLineCap = 'round'; layerLineJoin = 'round'; }
+            }
+
             el.attr(`${sel}/d`, layer.path);
-            el.attr(`${sel}/stroke`, theme.componentIcon);
-            el.attr(`${sel}/stroke-width`, 1.8);
-            el.attr(`${sel}/fill`, layer.style && layer.style.includes('fill=solid') ? theme.componentIcon : 'none');
+            el.attr(`${sel}/stroke`, layerStrokeColor);
+            el.attr(`${sel}/stroke-width`, layerStrokeWidth);
+            el.attr(`${sel}/stroke-dasharray`, layerDashed);
+            el.attr(`${sel}/stroke-linecap`, layerLineCap);
+            el.attr(`${sel}/stroke-linejoin`, layerLineJoin);
+            el.attr(`${sel}/fill`, layer.style && layer.style.includes('fill=solid') ? layerStrokeColor : 'none');
         });
 
         staticTexts.forEach(t => {
