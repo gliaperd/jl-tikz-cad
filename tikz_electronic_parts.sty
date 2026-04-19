@@ -1229,14 +1229,20 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% label_anchor: 0.5 7 B
+% label_anchor: B
 % flip: disabled
+
+% arg_def: 3 | select | horizontal/vertical/none | horizontal | horizontal, vertical, none (LaTeX only)
+% arg_def: 3 | select | fixed/variable | fixed | fixed, variable
+% arg_def: 4 | select | plus sign | none | plus, none
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
 
 % icon_base: M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0 // base
 % add_icon: 3~=variable : [stroke-width=1.6, rounded=true] M 20 -17 L 14 -16 L 20 -17 L 18 -11 M 19.5 -16.5 L -17 14 // arrow
 % add_icon: 4==plus : [stroke-width=0.8] M -14 -12 L -14 -8 M -16 -10 L -12 -10 // plus sign
-% add_icon: 1~= : [stroke-width=3.2, rounded=true] M 0 -7 L 0 7       M 20 -7 L 20 7 // negative poles
-		\IfSubStr{#5}{h}
+% add_icon: 1~= : [stroke-width=3.2, rounded=true] M 0 -7 L 0 7 M 20 -7 L 20 7 // negative poles
+    \IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
 			}
@@ -1334,9 +1340,9 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (-3, 0); % left terminal
-				\coordinate (pin2) at (4, 0); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (-3.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
+    \end{scope}
 }
 
 %% Bipolar Transistor
@@ -1344,18 +1350,22 @@
 % enabled
 % category: Active Components
 % scales: 1, 2, 4
-% label_anchor: -16 -10 L
+% label_anchor: 10 33 L
 % flip: disabled
 % preview_args: 3=n, 4=case
 
-% icon_base: M -40 0 L -10 0     M -10 -5 L 10 -25 L 10 -40     M -10 5 L 10 25 L 10 40     M -10 -5 L 10 -25 L 10 -40     M -10 5 L 10 25 L 10 40 // base
+% arg_def: 3 | select | n/p | n | n, p
+% arg_def: 4 | flags | terminals/case | case | terminals, case
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+
+% icon_base: M -40 0 L -10 0 M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 // base
 % add_icon: 1~= : [stroke-width=3.5, rounded=true] M -10 -15 L -10 15 // transistor base line
 % add_icon: 3==n : [rounded=true] M 1.5 21.5 L 8.5 23 L 7 17 L 8 23 // arrow out
 % add_icon: 3==p : [rounded=true] M -1 8 L -8 6.5 L -6.5 12.5 L -7.5 6.5 // arrow in
 % add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 // case
-		\StrBefore{#5}{,}[\rotationvalue]
-		\StrBehind{#5}{,}[\flipvalue]
-		\IfSubStr{\flipvalue}{h}
+% add_icon: 4~=terminals : M 18 -30.50 L 18 -30.50 9 NaN mal,C*/ M 30 25 L 30 25 21 NaN mal,E*/ M -31 5.50 L -31 5.50 /*TEXT:9,normal,B*/ M 15 -30 L 15 -30 /*TEXT:9,normal,C*/ M 15 27.50 L 15 27.50 /*TEXT:9,normal,E*/ // terminal symbols
+    \IfSubStr{\flipvalue}{h}
 			{
 				\edef\xscalevalue{-1}
 			}
@@ -1417,10 +1427,10 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (-4, 0); % left terminal (base)
-				\coordinate (pin2) at (1, 4); % top terminal (collector)
-				\coordinate (pin3) at (1, -4); % bottom terminal (emitter)
-		\end{scope}
+            \coordinate (pin1) at (-4.00, 0.00); % left terminal (base) [R]
+        \coordinate (pin2) at (1.00, 4.00); % top terminal (collector) [R]
+        \coordinate (pin3) at (1.00, -4.00); % bottom terminal (emitter) [R]
+    \end{scope}
 }
 
 %% MOS Transistor
@@ -1432,8 +1442,10 @@
 % flip: enabled
 % preview_args: 3=n, 4=case-arrow
 
-% arg_def: 3 | select | nMOS/pMOS | n | n,p
-% arg_def: 4 | flags |  | case-arrow | terminals, case, dot, arrow
+% arg_def: 3 | select | n/p | n | n,p
+% arg_def: 4 | flags | terminal names / case |  | terminals, case
+% arg_def: 4 | select | dot/arrow notation | arrow | dot, arrow
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
 
 
 % icon_base: M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M -40 0 L -18 0 // base layer
@@ -1441,9 +1453,10 @@
 % add_icon: 3==n : M -10 0 L -40 0 // n gate segment
 % add_icon: 3==n && 4~=arrow : [rounded=true] M 10 15 L 6 12 L 10 15 L 6 18 // n arrow
 % add_icon: 3==p && 4~=arrow : [rounded=true] M -2 15 L 2 12 L -2 15 L 2 18 // p arrow
-% add_icon: 3==p : M -15 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // p dot
+% add_icon: 3==p && 4~=dot : M -15 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // p dot
 % add_icon: 3==p && 4~=arrow : M -20 0 L -10 0 // p gate segment arrow
 % add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 // case
+% add_icon: 4~=terminals : M -31 6 L -31 6 /*TEXT:10,normal,G*/ M 15 -30 L 15 -30 /*TEXT:10,normal,D*/ M 15.50 27 L 15.50 27 /*TEXT:10,normal,S*/ // terminal names
     \IfSubStr{\flipvalue}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -1526,9 +1539,9 @@
 						}
 						{
 						}
-		\coordinate (pin1) at (-4.00, 0.00); % left terminal (gate)
-        \coordinate (pin2) at (1.00, 4.00); % top terminal (drain)
-        \coordinate (pin3) at (1.00, -4.00); % bottom terminal (source)
+            \coordinate (pin1) at (-4.00, 0.00); % left terminal (gate) [R]
+        \coordinate (pin2) at (1.00, 4.00); % top terminal (drain) [R]
+        \coordinate (pin3) at (1.00, -4.00); % bottom terminal (source) [R]
     \end{scope}
 }
 

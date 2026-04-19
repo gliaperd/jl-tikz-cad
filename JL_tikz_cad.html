@@ -532,28 +532,42 @@
                 else if (currentDir === 'L') { rawX = vLeftRaw; rawY = (vTopRaw + vBotRaw) / 2; }
                 else if (currentDir === 'R') { rawX = vRightRaw; rawY = (vTopRaw + vBotRaw) / 2; }
                 
-                // THE FIX: Add the offset shift back to the final coordinates!
                 ax = (rawX * scale) + shiftX; 
                 ay = (rawY * scale) + shiftY; 
+
+                // --- AUTO-ANCHOR FIX: Mirror around the physical Bounding Box ---
+                if (flipH) {
+                    let bw = (el.get('baseWidth') || (el.size().width / scale)) * scale;
+                    ax = bw - ax;
+                    if (currentDir === 'L') currentDir = 'R';
+                    else if (currentDir === 'R') currentDir = 'L';
+                }
+                if (flipV) {
+                    let bh = (el.get('baseHeight') || (el.size().height / scale)) * scale;
+                    ay = bh - ay;
+                    if (currentDir === 'T') currentDir = 'B';
+                    else if (currentDir === 'B') currentDir = 'T';
+                }
+
             } else {
                 let rawX = data.labelAnchor.x * PPU_MULT;
                 let rawY = data.labelAnchor.y * PPU_MULT;
+                
+                // --- CUSTOM ANCHOR FIX: Mirror around the mathematical (0,0) Origin! ---
+                if (flipH) {
+                    rawX = -rawX;
+                    if (currentDir === 'L') currentDir = 'R';
+                    else if (currentDir === 'R') currentDir = 'L';
+                }
+                if (flipV) {
+                    rawY = -rawY;
+                    if (currentDir === 'T') currentDir = 'B';
+                    else if (currentDir === 'B') currentDir = 'T';
+                }
+
                 // Η ΛΥΣΗ: Πολλαπλασιάζουμε ΠΡΩΤΑ, προσθέτουμε ΜΕΤΑ
                 ax = (rawX * scale) + shiftX;
                 ay = (rawY * scale) + shiftY;
-            }
-
-            if (flipH) {
-                let bw = (el.get('baseWidth') || (el.size().width / scale)) * scale;
-                ax = bw - ax;
-                if (currentDir === 'L') currentDir = 'R';
-                else if (currentDir === 'R') currentDir = 'L';
-            }
-            if (flipV) {
-                let bh = (el.get('baseHeight') || (el.size().height / scale)) * scale;
-                ay = bh - ay;
-                if (currentDir === 'T') currentDir = 'B';
-                else if (currentDir === 'B') currentDir = 'T';
             }
 
             let gap = 40;
@@ -587,11 +601,42 @@
             localRot = 180;
         }
 
+        // --- NEW: Dynamic CAD Alignment (Matches Symbol Builder) ---
+        let lblAlign = "middle";
+        let htmlTransformX = "-50%";
+        
+        if (data && data.labelAnchor) {
+            // Read the active flip states
+            let flipH = el.get('flipH') || false;
+            let flipV = el.get('flipV') || false;
+            let effectiveDir = data.labelAnchor.dir;
+
+            // Reverse the anchor direction if flipped
+            if (flipH) {
+                if (effectiveDir === 'L') effectiveDir = 'R';
+                else if (effectiveDir === 'R') effectiveDir = 'L';
+            }
+            if (flipV) {
+                if (effectiveDir === 'T') effectiveDir = 'B';
+                else if (effectiveDir === 'B') effectiveDir = 'T';
+            }
+
+            // Apply the flipped alignment
+            if (effectiveDir === 'L') { lblAlign = "end"; htmlTransformX = "-100%"; }
+            else if (effectiveDir === 'R') { lblAlign = "start"; htmlTransformX = "0%"; }
+            
+            // If CAD Readability flipped the text upright, swap start/end 
+            if (normalizedAngle >= 90 && normalizedAngle < 270) {
+                if (lblAlign === "start") { lblAlign = "end"; htmlTransformX = "-100%"; }
+                else if (lblAlign === "end") { lblAlign = "start"; htmlTransformX = "0%"; }
+            }
+        }
+
         if (isMath) {
             el.attr('label/display', 'none'); 
             let htmlStr = `
                 <div style="position: relative; width: 0px; height: 0px;">
-                    <div style="position: absolute; left: ${centerX}px; top: ${centerY}px; transform: translate(-50%, -50%) rotate(${localRot}deg); white-space: nowrap; font-size: ${fontSize}px; color: ${txtColor}; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">
+                    <div style="position: absolute; left: ${centerX}px; top: ${centerY}px; transform: translate(${htmlTransformX}, -50%) rotate(${localRot}deg); white-space: nowrap; font-size: ${fontSize}px; color: ${txtColor}; opacity: ${isEmpty ? 0.3 : 1}; pointer-events: none;">
                         ${renderedContent}
                     </div>
                 </div>`;
@@ -611,8 +656,9 @@
             el.attr('label/x', centerX);
             el.attr('label/y', centerY);
             
-            // THE FIX: Force the vertical center of the text to align with the coordinate, matching the Builder perfectly!
+            // Force exact baseline and dynamic alignment
             el.attr('label/dominant-baseline', 'central');
+            el.attr('label/text-anchor', lblAlign);
             
             // Apply the smart rotation
             el.attr('label/transform', `rotate(${localRot}, ${centerX}, ${centerY})`);
@@ -709,7 +755,7 @@
         let matchedLayers = [];
         if (dbData.iconLayers) {
             dbData.iconLayers.forEach(layer => {
-                if (evaluatePinCondition(layer.condition, argsArray)) matchedLayers.push(layer);
+                if (evaluatePinCondition(layer.condition, argsArray)) matchedLayers.push({ ...layer });
             });
         }
 
@@ -786,14 +832,16 @@
         });
 
         staticTexts.forEach(t => {
-            el.attr(`${t.id}/text`, t.str);
-            el.attr(`${t.id}/transform`, `translate(${t.x}, ${t.y}) scale(${sx}, ${sy})`);
-            el.attr(`${t.id}/x`, 0); 
-            el.attr(`${t.id}/y`, 0);
-            el.attr(`${t.id}/font-size`, t.size);
-            el.attr(`${t.id}/fill`, theme.componentIcon);
-            el.attr(`${t.id}/text-anchor`, 'middle'); el.attr(`${t.id}/dominant-baseline`, 'central');
-        });
+			el.attr(`${t.id}/text`, t.str);
+			el.attr(`${t.id}/transform`, `translate(${t.x}, ${t.y}) scale(${sx}, ${sy})`);
+			el.attr(`${t.id}/x`, 0); 
+			el.attr(`${t.id}/y`, 0);
+			el.attr(`${t.id}/font-size`, t.size);
+			el.attr(`${t.id}/font-weight`, t.style === 'bold' ? 'bold' : 'normal');
+			el.attr(`${t.id}/font-style`, t.style === 'italic' ? 'italic' : 'normal');
+			el.attr(`${t.id}/fill`, theme.componentIcon);
+			el.attr(`${t.id}/text-anchor`, 'middle'); el.attr(`${t.id}/dominant-baseline`, 'central');
+		});
 
         let pinsHtml = '';
         el.getPorts().forEach(port => {
@@ -973,23 +1021,21 @@
 	
 // === ΑΠΟΛΥΤΟΣ ΜΑΓΝΗΤΗΣ 40px ΓΙΑ ΤΑ ΠΑΝΤΑ ===
 
-	// Εξαρτήματα: Καρφώνουμε το Μαθηματικό (0,0) στο Grid, ΌΧΙ το BBox!
+    // Εξαρτήματα: Καρφώνουμε το Μαθηματικό (0,0) στο Grid, ΌΧΙ το BBox!
     graph.on('change:position', function(cell, newPos, opt) {
         if (cell.isLink() || opt.snapping || opt.groupMove) return; 
 
+        let snap = isAltDown ? 10 : 40; // Precision snap when Alt is held
+
         let snX, snY;
         if (cell.get('latexMacro') === 'connectordot') {
-            snX = Math.round((newPos.x + 20) / 40) * 40 - 20;
-            snY = Math.round((newPos.y + 20) / 40) * 40 - 20;
+            snX = Math.round((newPos.x + 20) / snap) * snap - 20;
+            snY = Math.round((newPos.y + 20) / snap) * snap - 20;
         } else {
-            // NEW: Use the Geometry Engine to find the true, rotated (0,0) pin
             let visOrigin = getVisualOrigin(cell, newPos);
+            let snappedVisX = Math.round(visOrigin.x / snap) * snap;
+            let snappedVisY = Math.round(visOrigin.y / snap) * snap;
             
-            // Snap that specific pin to the grid
-            let snappedVisX = Math.round(visOrigin.x / 40) * 40;
-            let snappedVisY = Math.round(visOrigin.y / 40) * 40;
-            
-            // Apply the correction offset to the main bounding box
             snX = newPos.x + (snappedVisX - visOrigin.x);
             snY = newPos.y + (snappedVisY - visOrigin.y);
         }
@@ -1002,7 +1048,8 @@
 
     graph.on('change:vertices', function(link, newVertices, opt) {
         if (opt.snapping || !newVertices || newVertices.length === 0) return;
-        let snapped = newVertices.map(v => ({ x: Math.round(v.x / 40) * 40, y: Math.round(v.y / 40) * 40 }));
+        let snap = isAltDown ? 10 : 40; // Precision snap
+        let snapped = newVertices.map(v => ({ x: Math.round(v.x / snap) * snap, y: Math.round(v.y / snap) * snap }));
         if (JSON.stringify(newVertices) !== JSON.stringify(snapped)) {
             link.vertices(snapped, { snapping: true });
             exportLatex();
@@ -1011,13 +1058,14 @@
 
     graph.on('change:source change:target', function(link, newVal, opt) {
          if (opt.snapping) return;
+         let snap = isAltDown ? 10 : 40; // Precision snap
          let changed = false, s = link.source(), t = link.target();
          if (s && s.x !== undefined && !s.id) {
-             let nx = Math.round(s.x / 40) * 40, ny = Math.round(s.y / 40) * 40;
+             let nx = Math.round(s.x / snap) * snap, ny = Math.round(s.y / snap) * snap;
              if (nx !== s.x || ny !== s.y) { s = { x: nx, y: ny }; changed = true; }
          }
          if (t && t.x !== undefined && !t.id) {
-             let nx = Math.round(t.x / 40) * 40, ny = Math.round(t.y / 40) * 40;
+             let nx = Math.round(t.x / snap) * snap, ny = Math.round(t.y / snap) * snap;
              if (nx !== t.x || ny !== t.y) { t = { x: nx, y: ny }; changed = true; }
          }
          if (changed) {
@@ -1502,7 +1550,10 @@
 
     function deleteSelected() { [...selectedElements, ...selectedLinks].forEach(c => c.remove()); clearSelection(); exportLatex(); saveState();}
 
+    let isAltDown = false;
+    
     $(document).on('keydown', function(e) {
+        isAltDown = e.altKey;
         if(e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return; 
         
         if (e.ctrlKey && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); undo(); }
@@ -1510,6 +1561,21 @@
         else if (e.ctrlKey && (e.key === 'c' || e.key === 'C')) copySelected();
         else if (e.ctrlKey && (e.key === 'v' || e.key === 'V')) pasteCopied();
         else if (e.key === 'Delete' || e.key === 'Backspace') deleteSelected();
+        else if (e.key === 'Escape') {
+            e.preventDefault();
+            // 1. If they are in the middle of drawing a wire, cancel and destroy it
+            if (typeof drawing !== 'undefined' && drawing && wire) {
+                wire.remove();
+                drawing = false;
+                wire = null;
+            }
+            // 2. Switch back to the Select (Pan) tool
+            $('#tool-pan').click();
+        }
+    });
+
+    $(document).on('keyup', function(e) {
+        isAltDown = e.altKey;
     });
 
 
@@ -1555,8 +1621,12 @@
                 const data = JL_DATABASE[k];
                 const d = document.createElement('div');
                 d.className = 'comp-item';
-				d.title = data.name;
-				d.setAttribute('data-search', data.name.toLowerCase());
+                
+                // --- NEW: Use Full Name if available, fallback to short macro name ---
+                const prettyName = data.displayName || data.name;
+                
+                d.title = prettyName; // <--- Tooltip is now the Full Name!
+                d.setAttribute('data-search', prettyName.toLowerCase()); // Search uses the Full Name!
                 
                 let iconSvg = '';
                 
@@ -1666,8 +1736,7 @@
                             ${iconSvg}
                         </div>
                         <span style="font-weight: 500; font-size: 13px; color: #2c3e50; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            ${data.name}
-                        </span>
+                            ${prettyName} </span>
                     </div>
                 `;
                 
@@ -1734,8 +1803,8 @@
                 let isDynamicText = p.id && p.id.includes('$'); 
                 
                 if (isDynamicText || !seenIds.has(p.id)) { 
-                    if (!isDynamicText) seenIds.add(p.id); 
-                    uniquePins.push(p); 
+					if (!isDynamicText) seenIds.add(p.id); 
+					uniquePins.push({ ...p });
                 } else {
                     const existing = uniquePins.find(up => up.id === p.id);
                     if (existing && !existing.label && p.label) existing.label = p.label;
@@ -1942,14 +2011,14 @@
     $('#tool-draw').click(function() { $('#draw-glasspane').show(); $('.tool-btn').removeClass('active'); $(this).addClass('active'); });
     $('#tool-pan').click(function() { $('#draw-glasspane').hide(); $('.tool-btn').removeClass('active'); $(this).addClass('active'); });
 
-	let drawing = false, wire = null;
+    let drawing = false, wire = null;
     $('#draw-glasspane').on('mousedown', function(e) {
         drawing = true;
         let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let s = { x: Math.round(p.x/40)*40, y: Math.round(p.y/40)*40 }; 
-		const theme = THEME_COLORS[currentThemeName];
+        let snap = e.altKey ? 10 : 40; // 10px precision if Alt is held
+        let s = { x: Math.round(p.x/snap)*snap, y: Math.round(p.y/snap)*snap }; 
+        const theme = THEME_COLORS[currentThemeName];
         
-        // --- FIXED: Use theme.wire instead of hardcoded '#333' ---
         wire = new joint.shapes.standard.Link({ 
             source: s, 
             target: s, 
@@ -1957,19 +2026,28 @@
         });
         wire.addTo(graph);
     });
+    
     $(document).on('mousemove', function(e) {
         if (!drawing) return;
         let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let tx = Math.round(p.x/40)*40, ty = Math.round(p.y/40)*40;     // 40!
+        let snap = e.altKey ? 10 : 40;
+        let tx = Math.round(p.x/snap)*snap, ty = Math.round(p.y/snap)*snap;
         let s = wire.source();
-        if (Math.abs(tx - s.x) > Math.abs(ty - s.y)) wire.target({ x: tx, y: s.y });
-        else wire.target({ x: s.x, y: ty });
+        
+        if (e.altKey) {
+            // Free angle (diagonal routing) when Alt is held
+            wire.target({ x: tx, y: ty }, { snapping: true });
+        } else {
+            // Standard CAD Orthogonal routing
+            if (Math.abs(tx - s.x) > Math.abs(ty - s.y)) wire.target({ x: tx, y: s.y }, { snapping: true });
+            else wire.target({ x: s.x, y: ty }, { snapping: true });
+        }
     }).on('mouseup', function() { 
         if (drawing) { 
             drawing = false; 
-            if (wire) wire.toBack(); // <--- Sends the wire underneath all components!
+            if (wire) wire.toBack(); 
             exportLatex();
-			saveState();			
+            saveState();            
         } 
     });
 
@@ -2859,9 +2937,12 @@ ${indentedTikz}
                 });
 
                 const applyLivePreview = () => {
-                    let previewScale = parseFloat(document.getElementById('swal-input-scale').value);
-                    let previewLblX = parseInt(document.getElementById('swal-input-lblx').value) || 0;
-                    let previewLblY = parseInt(document.getElementById('swal-input-lbly').value) || 0;
+                    const popup = Swal.getPopup();
+                    if (!popup) return;
+                    
+                    let previewScale = parseFloat(popup.querySelector('#swal-input-scale').value);
+                    let previewLblX = parseInt(popup.querySelector('#swal-input-lblx').value) || 0;
+                    let previewLblY = parseInt(popup.querySelector('#swal-input-lbly').value) || 0;
                     
                     let previewArgs = [];
                     for (let i = 0; i < data.argsCount; i++) {
@@ -2873,12 +2954,12 @@ ${indentedTikz}
                             if (customDefs.length > 1) {
                                 let subVals = [];
                                 for (let j = 0; j < customDefs.length; j++) {
-                                    let el = document.getElementById(`swal-input-${i}-sub-${j}`);
+                                    let el = popup.querySelector(`#swal-input-${i}-sub-${j}`);
                                     if (el) subVals.push(el.value);
                                 }
                                 previewArgs.push(subVals.filter(v => v !== "").join(', '));
                             } else {
-                                let el = document.getElementById(`swal-input-${i}`);
+                                let el = popup.querySelector(`#swal-input-${i}`);
                                 previewArgs.push(el ? el.value : "");
                             }
                         }
@@ -2908,7 +2989,6 @@ ${indentedTikz}
                         
                         let newPin = getVisualOrigin(el);
                         let p = el.position();
-                        // ΤΟ ΜΥΣΤΙΚΟ: Απενεργοποιεί το snap!
                         el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
                     }
 
@@ -2927,11 +3007,12 @@ ${indentedTikz}
                 popup.addEventListener('change', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') applyLivePreview(); });
             },
             preConfirm: () => {
+                const popup = Swal.getPopup();
                 let results = { 
                     args: [], 
-                    scale: parseFloat(document.getElementById('swal-input-scale').value),
-                    lblX: parseInt(document.getElementById('swal-input-lblx').value) || 0,
-                    lblY: parseInt(document.getElementById('swal-input-lbly').value) || 0
+                    scale: parseFloat(popup.querySelector('#swal-input-scale').value),
+                    lblX: parseInt(popup.querySelector('#swal-input-lblx').value) || 0,
+                    lblY: parseInt(popup.querySelector('#swal-input-lbly').value) || 0
                 };
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
@@ -2942,12 +3023,12 @@ ${indentedTikz}
                         if (customDefs.length > 1) {
                             let subVals = [];
                             for (let j = 0; j < customDefs.length; j++) {
-                                let el = document.getElementById(`swal-input-${i}-sub-${j}`);
+                                let el = popup.querySelector(`#swal-input-${i}-sub-${j}`);
                                 if (el) subVals.push(el.value);
                             }
                             results.args.push(subVals.filter(v => v !== "").join(', '));
                         } else {
-                            let el = document.getElementById(`swal-input-${i}`);
+                            let el = popup.querySelector(`#swal-input-${i}`);
                             results.args.push(el ? el.value : "");
                         }
                     }
@@ -3407,7 +3488,7 @@ ${indentedTikz}
                         if (!(defaultArgs[parseInt(argIdx) - 1] || "").includes(val.trim())) isMatch = false;
                     }
                 });
-                if (isMatch) layers.push(layer);
+                if (isMatch) layers.push({ ...layer });
             });
         }
         return { base, layers };
@@ -3452,12 +3533,14 @@ ${indentedTikz}
     });
 	
 	function updateEditorFlags(inputId) {
-        let checkboxes = document.querySelectorAll(`.${inputId}-flag`);
+        const popup = Swal.getPopup();
+        if (!popup) return;
+        let checkboxes = popup.querySelectorAll(`.${inputId}-flag`);
         let selected = [];
         checkboxes.forEach(cb => {
             if (cb.checked) selected.push(cb.value);
         });
-        let hiddenInput = document.getElementById(inputId);
+        let hiddenInput = popup.querySelector(`#${inputId}`);
         if (hiddenInput) {
             hiddenInput.value = selected.join('-');
             hiddenInput.dispatchEvent(new Event('change', { bubbles: true })); 
@@ -3465,9 +3548,11 @@ ${indentedTikz}
     }
 	
 	function syncRotFlip(inputId, source = 'rot') {
-        let rotInput = document.getElementById(`${inputId}-rot`);
-        let flipSelect = document.getElementById(`${inputId}-flip`);
-        let hidden = document.getElementById(inputId);
+        const popup = Swal.getPopup();
+        if (!popup) return;
+        let rotInput = popup.querySelector(`#${inputId}-rot`);
+        let flipSelect = popup.querySelector(`#${inputId}-flip`);
+        let hidden = popup.querySelector(`#${inputId}`);
         if (!rotInput || !flipSelect || !hidden) return;
         
         let r = parseFloat(rotInput.value) || 0;
@@ -3494,6 +3579,8 @@ ${indentedTikz}
     }
 
     function syncSeparateFlip(inputId, selectEl) {
+        const popup = Swal.getPopup();
+        if (!popup) return;
         let f = selectEl.value;
         let oldF = selectEl.getAttribute('data-old-val') || 'none';
 
@@ -3502,7 +3589,7 @@ ${indentedTikz}
         let newH = f === 'h' || f === 'hv' || f === 'vh';
         let newV = f === 'v' || f === 'hv' || f === 'vh';
 
-        let rotInput = document.querySelector('.rot-input-field');
+        let rotInput = popup.querySelector('.rot-input-field');
         if (rotInput) {
             let r = parseFloat(rotInput.value) || 0;
             if (oldH !== newH) r = (360 - r) % 360;

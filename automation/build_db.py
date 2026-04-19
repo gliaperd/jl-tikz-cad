@@ -13,19 +13,24 @@ def generate_db(sty_file):
         print(f"Error: {e}")
         return
 
-    commands = re.finditer(r'\\newcommand\{\\([a-zA-Z0-9]+)\}\s*\[(\d+)\](?:\[.*?\])?\s*\{(.*?)(?=\\newcommand|\Z)', content, re.DOTALL)
+    # NEW REGEX: Stops the body from "eating" the next component's title!
+    commands = re.finditer(r'(?:%%\s*([^\n]+)\n)?\s*\\newcommand\{\\([a-zA-Z0-9_]+)\}\s*\[(\d+)\](?:\[.*?\])?\s*\{(.*?)(?=\s*%%[^\n]+\n\s*\\newcommand|\s*\\newcommand|\Z)', content, re.DOTALL)
 
     for match in commands:
-        name = match.group(1)
-        arg_count = int(match.group(2))
-        body = match.group(3)
+        display_name_raw = match.group(1)
+        name = match.group(2)
+        arg_count = int(match.group(3))
+        body = match.group(4)
+        
+        # Fallback to the short macro name if no %% Title exists
+        display_name = display_name_raw.strip() if display_name_raw else name
         
         # Strip out // comments from every line
         body_lines = [line.split('//')[0].strip() for line in body.strip().split('\n')]
         
         # --- 1. ΑΘΟΡΥΒΟ DISABLE (% disabled!) ---
         if any(line.lower() == '% disabled!' for line in body_lines):
-            continue # Το αγνοούμε εντελώς, δεν μπαίνει καν στα στατιστικά!
+            continue 
             
         total_found += 1
         
@@ -36,6 +41,7 @@ def generate_db(sty_file):
         
         comp_data = {
             "name": name,
+            "displayName": display_name, # <--- NEW: Save the full name!
             "argsCount": arg_count,
             "enabled": "true"
         }

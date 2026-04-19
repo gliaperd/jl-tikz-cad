@@ -234,7 +234,23 @@
                 </div>
             </div>
 
-            <h2 class="section-header collapsed" onclick="toggleSection('sec-dynamic', this)" style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+            <style>
+                /* Makes the Dynamic Properties header float when scrolling */
+                #dynamic-sticky-header {
+                    position: sticky;
+                    top: 0;
+                    background: #ffffff;
+                    z-index: 100;
+                    margin-top: 5px;
+                    padding: 8px 4px;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 6px -5px rgba(0,0,0,0.2);
+                }
+                #dynamic-sticky-header:hover {
+                    background: #ebf5fb;
+                }
+            </style>
+            <h2 id="dynamic-sticky-header" class="section-header collapsed" onclick="toggleSection('sec-dynamic', this)" style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> 🎛️ Dynamic Properties</span>
                 <div class="header-controls">
                     <button class="tool-btn" onclick="event.stopPropagation(); addArgDef()" style="padding: 2px 6px; font-size: 9px; background: #3498db; border-color: #2980b9;" title="Add new property">+</button>
@@ -245,7 +261,23 @@
                 </div>
             </div>
 
-            <h2 class="section-header collapsed" onclick="toggleSection('sec-layers', this)" style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center;">
+            <style>
+                /* Makes the Layers header float when scrolling */
+                #layers-sticky-header {
+                    position: sticky;
+                    top: 0;
+                    background: #ffffff;
+                    z-index: 100;
+                    margin-top: 0;
+                    padding: 8px 4px;
+                    border-radius: 4px;
+                    box-shadow: 0 4px 6px -5px rgba(0,0,0,0.2);
+                }
+                #layers-sticky-header:hover {
+                    background: #ebf5fb;
+                }
+            </style>
+            <h2 id="layers-sticky-header" class="section-header collapsed" onclick="toggleSection('sec-layers', this)" style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> 📚 Layers</span>
                 <div class="header-controls" style="display: flex; gap: 5px;" onclick="event.stopPropagation()">
                     <button id="btnSolo" class="tool-btn" style="padding: 2px 8px; font-size: 10px; background: #e67e22; border-color: #d35400;" onclick="soloActiveLayer()" title="Solo / Un-solo Active Layer">👁️ Solo</button>
@@ -569,19 +601,32 @@
 
                 let ptText = trans(ox, oy);
 
-                // --- NEW: Dynamic CAD Alignment for Pins ---
-                let pinAlign = "middle";
-                if (dir === 'L') pinAlign = "end";
-                else if (dir === 'R') pinAlign = "start";
+                // --- NEW: Dynamic CAD Alignment for Component Name ---
+				let effectiveDir = initialDir;
+				
+				// Reverse the anchor direction if flipped in the preview
+				if (previewFlipH) {
+					if (effectiveDir === 'L') effectiveDir = 'R';
+					else if (effectiveDir === 'R') effectiveDir = 'L';
+				}
+				if (previewFlipV) {
+					if (effectiveDir === 'T') effectiveDir = 'B';
+					else if (effectiveDir === 'B') effectiveDir = 'T';
+				}
 
-                // If CAD Readability flipped the text upright, we MUST swap start/end 
-                // so the text continues to draw away from the symbol!
-                if (normalizedAngle >= 90 && normalizedAngle < 270) {
-                    if (pinAlign === "start") pinAlign = "end";
-                    else if (pinAlign === "end") pinAlign = "start";
-                }
+				let lblAlign = "middle";
+				if (effectiveDir === 'L') lblAlign = "end";
+				else if (effectiveDir === 'R') lblAlign = "start";
 
-                textHtml += `<text x="${ptText.x}" y="${ptText.y}" transform="rotate(${textRot}, ${ptText.x}, ${ptText.y})" font-family="Arial" font-size="5.5" fill="${baseColor}" font-weight="bold" text-anchor="${pinAlign}" dominant-baseline="central" opacity="${textOpacity}">${displayText}</text>`;
+				// If CAD Readability flipped the text upright, swap start/end
+				if (normalizedAngle >= 90 && normalizedAngle < 270) {
+					if (lblAlign === "start") lblAlign = "end";
+					else if (lblAlign === "end") lblAlign = "start";
+				}
+
+				if (labelText) {
+					textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" text-anchor="${lblAlign}" dominant-baseline="central" transform="rotate(${textRot}, ${ptLabel.x}, ${ptLabel.y})" font-family="Arial" font-size="12" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
+				}
             });
 
             // 5. ΚΕΝΤΡΙΚΟ LABEL (Name του εξαρτήματος)
@@ -593,12 +638,26 @@
 
             let origLx, origLy;
             let parts = anchorStr.split(/\s+/);
-            let initialDir = (parts.length > 0) ? parts[parts.length - 1].toUpperCase() : "B";
+            let effectiveDir = (parts.length > 0) ? parts[parts.length - 1].toUpperCase() : "B";
             
             if (parts.length >= 3) {
+                // --- CUSTOM ANCHOR: Base mathematical coordinates ---
                 origLx = parseFloat(parts[0]); 
                 origLy = parseFloat(parts[1]); 
+
+                // Mirror custom anchors around (0,0) explicitly
+                if (previewFlipH) {
+                    origLx = -origLx;
+                    if (effectiveDir === 'L') effectiveDir = 'R';
+                    else if (effectiveDir === 'R') effectiveDir = 'L';
+                }
+                if (previewFlipV) {
+                    origLy = -origLy;
+                    if (effectiveDir === 'T') effectiveDir = 'B';
+                    else if (effectiveDir === 'B') effectiveDir = 'T';
+                }
             } else {
+                // --- AUTO ANCHOR: Find Bounding Box bounds ---
                 let unrotatedBBox = { x: -20, y: -20, width: 40, height: 40 };
                 if (combinedPathForMath.trim()) {
                     const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -612,24 +671,42 @@
                 origLx = unrotatedBBox.x + unrotatedBBox.width / 2;
                 origLy = unrotatedBBox.y + unrotatedBBox.height / 2;
                 
-                if (initialDir === 'B') origLy = unrotatedBBox.y + unrotatedBBox.height;
-                else if (initialDir === 'T') origLy = unrotatedBBox.y;
-                else if (initialDir === 'L') origLx = unrotatedBBox.x;
-                else if (initialDir === 'R') origLx = unrotatedBBox.x + unrotatedBBox.width;
+                if (effectiveDir === 'B') origLy = unrotatedBBox.y + unrotatedBBox.height;
+                else if (effectiveDir === 'T') origLy = unrotatedBBox.y;
+                else if (effectiveDir === 'L') origLx = unrotatedBBox.x;
+                else if (effectiveDir === 'R') origLx = unrotatedBBox.x + unrotatedBBox.width;
+
+                // Mirror Auto anchors around (0,0) explicitly so they track the flipped BBox
+                if (previewFlipH) {
+                    origLx = -origLx;
+                    if (effectiveDir === 'L') effectiveDir = 'R';
+                    else if (effectiveDir === 'R') effectiveDir = 'L';
+                }
+                if (previewFlipV) {
+                    origLy = -origLy;
+                    if (effectiveDir === 'T') effectiveDir = 'B';
+                    else if (effectiveDir === 'B') effectiveDir = 'T';
+                }
             }
 
+            // Apply gap in the post-flipped coordinate space (Matches CAD Editor!)
             let gap = 10;
-            if (initialDir === 'B') origLy += gap;
-            else if (initialDir === 'T') origLy -= gap;
-            else if (initialDir === 'L') origLx -= gap;
-            else if (initialDir === 'R') origLx += gap;
+            if (effectiveDir === 'B') origLy += gap;
+            else if (effectiveDir === 'T') origLy -= gap;
+            else if (effectiveDir === 'L') origLx -= gap;
+            else if (effectiveDir === 'R') origLx += gap;
 
-            let ptLabel = trans(origLx, origLy);
+            // Apply rotation ONLY (Because flips were handled explicitly above)
+            let radLabel = -previewAngle * Math.PI / 180;
+            let ptLabel = {
+                x: origLx * Math.cos(radLabel) - origLy * Math.sin(radLabel),
+                y: origLx * Math.sin(radLabel) + origLy * Math.cos(radLabel)
+            };
 
-            // --- NEW: Dynamic CAD Alignment for Component Name ---
+            // Dynamic CAD Alignment
             let lblAlign = "middle";
-            if (initialDir === 'L') lblAlign = "end";
-            else if (initialDir === 'R') lblAlign = "start";
+            if (effectiveDir === 'L') lblAlign = "end";
+            else if (effectiveDir === 'R') lblAlign = "start";
 
             if (normalizedAngle >= 90 && normalizedAngle < 270) {
                 if (lblAlign === "start") lblAlign = "end";
@@ -637,7 +714,7 @@
             }
 
             if (labelText) {
-                textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" text-anchor="${lblAlign}" dominant-baseline="central" transform="rotate(${textRot}, ${ptLabel.x}, ${ptLabel.y})" font-family="Arial" font-size="5.5" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
+                textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" text-anchor="${lblAlign}" dominant-baseline="central" transform="rotate(${textRot}, ${ptLabel.x}, ${ptLabel.y})" font-family="Arial" font-size="12" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
             }
 
             // 6. ΥΠΟΛΟΓΙΣΜΟΣ ΟΡΙΩΝ ΚΑΜΕΡΑΣ ΜΕΣΩ ΤΟΥ BROWSER
@@ -1112,6 +1189,28 @@
 				confirmButtonText: 'Close Preview',    // FIX 4: Renamed the Confirm Button
 				confirmButtonColor: '#34495e',
 				backdrop: false, 
+				// --- NEW: Intercept the Close action to check for unsaved anchor changes ---
+                preConfirm: () => {
+                    const testAnchorEl = document.getElementById('test-meta-anchor');
+                    const metaAnchorEl = document.getElementById('mAnchor');
+                    
+                    if (testAnchorEl && metaAnchorEl) {
+                        let currentTestAnchor = testAnchorEl.value.trim();
+                        let savedAnchor = metaAnchorEl.value.trim();
+                        
+                        const confirmBtn = Swal.getConfirmButton();
+                        // If they don't match, and the user hasn't ignored the warning yet
+                        if (currentTestAnchor !== savedAnchor && !confirmBtn.dataset.ignoreWarning) {
+                            Swal.showValidationMessage('⚠️ You have unapplied Label Anchor changes! Click "Apply" to save them, or click "Close Preview" again to discard them.');
+                            
+                            // Flag that we've shown the warning, so a second click will bypass it
+                            confirmBtn.dataset.ignoreWarning = 'true';
+                            return false; // Prevent popup from closing
+                        }
+                    }
+                    return true; // Allow closing
+                },
+				// ------------------------------------------------------
                 didOpen: () => {
                     const popup = Swal.getPopup();
                     const handle = document.getElementById('swal-drag-handle');
@@ -1195,54 +1294,50 @@
                         document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();
                     };
 
-                    // Arrow Buttons
+                    // --- UPGRADED: Arrow Buttons (Directions) ---
                     document.querySelectorAll('.dir-btn').forEach(btn => {
                         btn.addEventListener('click', (e) => {
                             document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active'));
                             e.currentTarget.classList.add('active'); 
                             
-                            // Update local memory
                             activeDir = e.currentTarget.getAttribute('data-dir');
                             updateLiveAnchorPreview();
+                            
+                            // Reset any unsaved warnings if they keep editing
+                            Swal.resetValidationMessage();
+                            if(Swal.getConfirmButton()) Swal.getConfirmButton().dataset.ignoreWarning = '';
                         });
                     });
 
                     // Checkbox
                     if (chkCustomAnchor) {
                         chkCustomAnchor.addEventListener('change', (e) => {
-                            inpAnchorX.disabled = !e.target.checked;
-                            inpAnchorY.disabled = !e.target.checked;
-                            updateLiveAnchorPreview();
-                        });
-                    }
-					
-					// Checkbox
-                    if (chkCustomAnchor) {
-                        chkCustomAnchor.addEventListener('change', (e) => {
                             let isChecked = e.target.checked;
                             inpAnchorX.disabled = !isChecked;
                             inpAnchorY.disabled = !isChecked;
-                            // Enable/Disable the Nudge buttons
                             document.querySelectorAll('.swal2-popup .nudge-btn').forEach(b => b.disabled = !isChecked);
                             updateLiveAnchorPreview();
                         });
                     }
 
-                    // --- NEW: Nudge Buttons (U, D, L, R) ---
+                    // --- UPGRADED: Continuous Nudge Buttons (U, D, L, R) ---
                     document.querySelectorAll('.swal2-popup .nudge-btn').forEach(btn => {
-                        btn.addEventListener('click', (e) => {
-                            // If they click an arrow, auto-enable the offset feature!
+                        let nudgeInterval;
+                        let initialTimeout;
+
+                        const performNudge = (e) => {
+                            if (btn.disabled) return;
                             if (!chkCustomAnchor.checked) {
                                 chkCustomAnchor.checked = true;
                                 chkCustomAnchor.dispatchEvent(new Event('change'));
                             }
                             
-                            let nudge = e.currentTarget.getAttribute('data-nudge');
+                            let nudge = btn.getAttribute('data-nudge');
                             let x = parseInt(inpAnchorX.value) || 0;
                             let y = parseInt(inpAnchorY.value) || 0;
                             
-                            // Bonus UX: Holding Shift makes it jump by 5 pixels!
-                            let step = e.shiftKey ? 5 : 1; 
+                            // Holding Shift makes it jump by 5 pixels
+                            let step = (e && e.shiftKey) ? 5 : 1; 
 
                             if (nudge === 'U') y -= step;      // Up means negative Y in SVG
                             else if (nudge === 'D') y += step; // Down means positive Y
@@ -1252,12 +1347,36 @@
                             inpAnchorX.value = x;
                             inpAnchorY.value = y;
                             updateLiveAnchorPreview();
+                            
+                            // Reset any unsaved warnings if they keep editing
+                            Swal.resetValidationMessage();
+                            if(Swal.getConfirmButton()) Swal.getConfirmButton().dataset.ignoreWarning = '';
+                        };
+
+                        const stopNudge = () => {
+                            clearTimeout(initialTimeout);
+                            clearInterval(nudgeInterval);
+                        };
+
+                        btn.addEventListener('mousedown', (e) => {
+                            if (btn.disabled) return;
+                            performNudge(e); // Trigger first step instantly
+                            initialTimeout = setTimeout(() => {
+                                nudgeInterval = setInterval(() => performNudge(e), 50); // Fast repeat after short delay
+                            }, 300);
                         });
+
+                        btn.addEventListener('mouseup', stopNudge);
+                        btn.addEventListener('mouseleave', stopNudge);
                     });
 
                     // Number Spinners
-                    if (inpAnchorX) inpAnchorX.addEventListener('input', updateLiveAnchorPreview);
-                    if (inpAnchorY) inpAnchorY.addEventListener('input', updateLiveAnchorPreview);
+                    const resetWarning = () => {
+                        Swal.resetValidationMessage();
+                        if(Swal.getConfirmButton()) Swal.getConfirmButton().dataset.ignoreWarning = '';
+                    };
+                    if (inpAnchorX) inpAnchorX.addEventListener('input', () => { updateLiveAnchorPreview(); resetWarning(); });
+                    if (inpAnchorY) inpAnchorY.addEventListener('input', () => { updateLiveAnchorPreview(); resetWarning(); });
 
                     // Apply Button
                     if (btnApplyAnchor) {
@@ -1271,6 +1390,10 @@
                             }
 
                             generateCode();
+                            
+                            // --- NEW: Clear the warning now that we've saved ---
+                            Swal.resetValidationMessage();
+                            if(Swal.getConfirmButton()) Swal.getConfirmButton().dataset.ignoreWarning = '';
                             
                             // Visual Flash Feedback
                             let origTxt = btnApplyAnchor.innerText;
@@ -2071,140 +2194,156 @@
         }
 		
 
-        // --- UPGRADED TRANSLATION ALGORITHM (Supports Curves & Arcs) ---
-        function translatePathString(pathStr, dx, dy) {
-            return pathStr.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
-                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
-                
-                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
-                if (!nums) return match;
-                nums = nums.map(Number);
+        // --- UPGRADED TRANSLATION ALGORITHM (Supports Curves & Arcs & Text) ---
+		function translatePathString(pathStr, dx, dy) {
+			let textMatch = pathStr.match(/\/\*TEXT:.*?\*\//);
+			let textBlock = textMatch ? " " + textMatch[0] : "";
+			let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//, "");
 
-                let isAbs = (cmd === cmd.toUpperCase());
+			let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+				if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+				
+				let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+				if (!nums) return match;
+				nums = nums.map(Number);
 
-                // We only translate Absolute commands. Relative commands move inherently when their starting M moves.
-                if (isAbs) {
-                    if (cmd === 'M' || cmd === 'L') {
-                        for (let i = 0; i < nums.length; i += 2) { nums[i] += dx; nums[i+1] += dy; }
-                    } else if (cmd === 'C') {
-                        for (let i = 0; i < nums.length; i += 6) {
-                            nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy; nums[i+4] += dx; nums[i+5] += dy;
-                        }
-                    } else if (cmd === 'Q') {
-                        for (let i = 0; i < nums.length; i += 4) {
-                            nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy;
-                        }
-                    } else if (cmd === 'A') {
-                        for (let i = 0; i < nums.length; i += 7) {
-                            nums[i+5] += dx; nums[i+6] += dy; // Only endpoints translate, radii stay the same
-                        }
-                    }
-                }
-                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
-            }).trim();
-        }
+				let isAbs = (cmd === cmd.toUpperCase());
 
-        // --- UPGRADED ROTATION ALGORITHM (Supports Curves & Arcs) ---
-        function rotatePathString(pathStr, angleDeg, cx, cy) {
-            let rad = angleDeg * Math.PI / 180;
-            let cos = Math.cos(rad), sin = Math.sin(rad);
+				if (isAbs) {
+					if (cmd === 'M' || cmd === 'L') {
+						for (let i = 0; i < nums.length; i += 2) { nums[i] += dx; nums[i+1] += dy; }
+					} else if (cmd === 'C') {
+						for (let i = 0; i < nums.length; i += 6) {
+							nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy; nums[i+4] += dx; nums[i+5] += dy;
+						}
+					} else if (cmd === 'Q') {
+						for (let i = 0; i < nums.length; i += 4) {
+							nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy;
+						}
+					} else if (cmd === 'A') {
+						for (let i = 0; i < nums.length; i += 7) {
+							nums[i+5] += dx; nums[i+6] += dy; 
+						}
+					}
+				}
+				return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+			}).trim();
+			
+			return newPath + textBlock;
+		}
 
-            function rot(x, y) {
-                let nx = (x - cx) * cos - (y - cy) * sin;
-                let ny = (x - cx) * sin + (y - cy) * cos;
-                return [nx + cx, ny + cy];
-            }
-            
-            function rotRel(x, y) { // Relative coordinates rotate without origin offset
-                return [x * cos - y * sin, x * sin + y * cos];
-            }
+        // --- UPGRADED ROTATION ALGORITHM (Supports Curves & Arcs & Text) ---
+		function rotatePathString(pathStr, angleDeg, cx, cy) {
+			let textMatch = pathStr.match(/\/\*TEXT:.*?\*\//);
+			let textBlock = textMatch ? " " + textMatch[0] : "";
+			let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//, "");
 
-            return pathStr.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
-                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
-                
-                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
-                if (!nums) return match;
-                nums = nums.map(Number);
+			let rad = angleDeg * Math.PI / 180;
+			let cos = Math.cos(rad), sin = Math.sin(rad);
 
-                let isAbs = (cmd === cmd.toUpperCase());
+			function rot(x, y) {
+				let nx = (x - cx) * cos - (y - cy) * sin;
+				let ny = (x - cx) * sin + (y - cy) * cos;
+				return [nx + cx, ny + cy];
+			}
+			
+			function rotRel(x, y) { 
+				return [x * cos - y * sin, x * sin + y * cos];
+			}
 
-                if (cmd === 'M' || cmd === 'L') {
-                    for (let i = 0; i < nums.length; i += 2) { 
-                        let [nx, ny] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
-                        nums[i] = nx; nums[i+1] = ny;
-                    }
-                } else if (cmd === 'C') {
-                    for (let i = 0; i < nums.length; i += 6) {
-                        let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
-                        let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
-                        let [nx3, ny3] = isAbs ? rot(nums[i+4], nums[i+5]) : rotRel(nums[i+4], nums[i+5]);
-                        nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2; nums[i+4]=nx3; nums[i+5]=ny3;
-                    }
-                } else if (cmd === 'Q') {
-                    for (let i = 0; i < nums.length; i += 4) {
-                        let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
-                        let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
-                        nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2;
-                    }
-                } else if (cmd === 'A') {
-                    for (let i = 0; i < nums.length; i += 7) {
-                        let [nx, ny] = isAbs ? rot(nums[i+5], nums[i+6]) : rotRel(nums[i+5], nums[i+6]);
-                        nums[i+5] = nx; nums[i+6] = ny;
-                        nums[i+2] = (nums[i+2] + angleDeg) % 360; // Rotate the arc's internal X-axis
-                    }
-                }
-                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
-            }).replace(/\s+/g, ' ').trim();
-        }
+			let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+				if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+				
+				let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+				if (!nums) return match;
+				nums = nums.map(Number);
+
+				let isAbs = (cmd === cmd.toUpperCase());
+
+				if (cmd === 'M' || cmd === 'L') {
+					for (let i = 0; i < nums.length; i += 2) { 
+						let [nx, ny] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+						nums[i] = nx; nums[i+1] = ny;
+					}
+				} else if (cmd === 'C') {
+					for (let i = 0; i < nums.length; i += 6) {
+						let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+						let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
+						let [nx3, ny3] = isAbs ? rot(nums[i+4], nums[i+5]) : rotRel(nums[i+4], nums[i+5]);
+						nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2; nums[i+4]=nx3; nums[i+5]=ny3;
+					}
+				} else if (cmd === 'Q') {
+					for (let i = 0; i < nums.length; i += 4) {
+						let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+						let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
+						nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2;
+					}
+				} else if (cmd === 'A') {
+					for (let i = 0; i < nums.length; i += 7) {
+						let [nx, ny] = isAbs ? rot(nums[i+5], nums[i+6]) : rotRel(nums[i+5], nums[i+6]);
+						nums[i+5] = nx; nums[i+6] = ny;
+						nums[i+2] = (nums[i+2] + angleDeg) % 360; 
+					}
+				}
+				return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+			}).replace(/\s+/g, ' ').trim();
+			
+			return newPath + textBlock;
+		}
 		
 		
-		// --- UPGRADED SCALING ALGORITHM (Supports Curves & Arcs) ---
-        function scalePathString(pathStr, scaleFactor, cx, cy) {
-            function scaleAbs(val, center) { return center + (val - center) * scaleFactor; }
-            function scaleRel(val) { return val * scaleFactor; }
+		// --- UPGRADED SCALING ALGORITHM (Supports Curves & Arcs & Text) ---
+		function scalePathString(pathStr, scaleFactor, cx, cy) {
+			let textMatch = pathStr.match(/\/\*TEXT:.*?\*\//);
+			let textBlock = textMatch ? " " + textMatch[0] : "";
+			let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//, "");
 
-            return pathStr.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
-                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
-                
-                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
-                if (!nums) return match;
-                nums = nums.map(Number);
+			function scaleAbs(val, center) { return center + (val - center) * scaleFactor; }
+			function scaleRel(val) { return val * scaleFactor; }
 
-                let isAbs = (cmd === cmd.toUpperCase());
+			let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+				if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+				
+				let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+				if (!nums) return match;
+				nums = nums.map(Number);
 
-                if (cmd === 'M' || cmd === 'L') {
-                    for (let i = 0; i < nums.length; i += 2) { 
-                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
-                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
-                    }
-                } else if (cmd === 'C') {
-                    for (let i = 0; i < nums.length; i += 6) {
-                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
-                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
-                        nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
-                        nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
-                        nums[i+4] = isAbs ? scaleAbs(nums[i+4], cx) : scaleRel(nums[i+4]);
-                        nums[i+5] = isAbs ? scaleAbs(nums[i+5], cy) : scaleRel(nums[i+5]);
-                    }
-                } else if (cmd === 'Q') {
-                    for (let i = 0; i < nums.length; i += 4) {
-                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
-                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
-                        nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
-                        nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
-                    }
-                } else if (cmd === 'A') {
-                    for (let i = 0; i < nums.length; i += 7) {
-                        nums[i] = Math.abs(nums[i] * scaleFactor);     // rx (Arc X radius)
-                        nums[i+1] = Math.abs(nums[i+1] * scaleFactor); // ry (Arc Y radius)
-                        // i+2 is rotation, i+3 is large-arc-flag, i+4 is sweep-flag (Do not scale these)
-                        nums[i+5] = isAbs ? scaleAbs(nums[i+5], cx) : scaleRel(nums[i+5]);
-                        nums[i+6] = isAbs ? scaleAbs(nums[i+6], cy) : scaleRel(nums[i+6]);
-                    }
-                }
-                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
-            }).replace(/\s+/g, ' ').trim();
-        }
+				let isAbs = (cmd === cmd.toUpperCase());
+
+				if (cmd === 'M' || cmd === 'L') {
+					for (let i = 0; i < nums.length; i += 2) { 
+						nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+						nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+					}
+				} else if (cmd === 'C') {
+					for (let i = 0; i < nums.length; i += 6) {
+						nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+						nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+						nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
+						nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
+						nums[i+4] = isAbs ? scaleAbs(nums[i+4], cx) : scaleRel(nums[i+4]);
+						nums[i+5] = isAbs ? scaleAbs(nums[i+5], cy) : scaleRel(nums[i+5]);
+					}
+				} else if (cmd === 'Q') {
+					for (let i = 0; i < nums.length; i += 4) {
+						nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+						nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+						nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
+						nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
+					}
+				} else if (cmd === 'A') {
+					for (let i = 0; i < nums.length; i += 7) {
+						nums[i] = Math.abs(nums[i] * scaleFactor);     
+						nums[i+1] = Math.abs(nums[i+1] * scaleFactor); 
+						nums[i+5] = isAbs ? scaleAbs(nums[i+5], cx) : scaleRel(nums[i+5]);
+						nums[i+6] = isAbs ? scaleAbs(nums[i+6], cy) : scaleRel(nums[i+6]);
+					}
+				}
+				return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+			}).replace(/\s+/g, ' ').trim();
+			
+			return newPath + textBlock;
+		}
 		
 		
 

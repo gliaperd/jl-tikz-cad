@@ -1,6 +1,7 @@
 const JL_DATABASE = {
     "mechanicalswitch": {
         "name": "mechanicalswitch",
+        "displayName": "Mechanical Switch",
         "argsCount": 7,
         "enabled": "true",
         "category": "Switches",
@@ -118,6 +119,7 @@ const JL_DATABASE = {
     },
     "mechanicalswitchthreeport": {
         "name": "mechanicalswitchthreeport",
+        "displayName": "Three-Port Mechanical Switch",
         "argsCount": 6,
         "enabled": "true",
         "category": "Switches",
@@ -216,6 +218,7 @@ const JL_DATABASE = {
     },
     "controlledswitch": {
         "name": "controlledswitch",
+        "displayName": "Controlled Switch",
         "argsCount": 7,
         "enabled": "true",
         "category": "Switches",
@@ -324,6 +327,7 @@ const JL_DATABASE = {
     },
     "controlledswitchbox": {
         "name": "controlledswitchbox",
+        "displayName": "Controlled Switch - Box",
         "argsCount": 7,
         "enabled": "true",
         "category": "Switches",
@@ -452,6 +456,7 @@ const JL_DATABASE = {
     },
     "groundterminal": {
         "name": "groundterminal",
+        "displayName": "Ground Terminal",
         "argsCount": 5,
         "enabled": "true",
         "category": "Terminals",
@@ -527,6 +532,7 @@ const JL_DATABASE = {
     },
     "voltagesource": {
         "name": "voltagesource",
+        "displayName": "Voltage Source (Independent/Controlled)",
         "argsCount": 7,
         "enabled": "true",
         "category": "Sources",
@@ -629,6 +635,7 @@ const JL_DATABASE = {
     },
     "currentsource": {
         "name": "currentsource",
+        "displayName": "Current Source (Independent/Controlled)",
         "argsCount": 7,
         "enabled": "true",
         "category": "Sources",
@@ -732,6 +739,7 @@ const JL_DATABASE = {
     },
     "lamp": {
         "name": "lamp",
+        "displayName": "Lamp",
         "argsCount": 6,
         "enabled": "true",
         "category": "Indicators",
@@ -819,6 +827,7 @@ const JL_DATABASE = {
     },
     "functiongenerator": {
         "name": "functiongenerator",
+        "displayName": "Function Generator",
         "argsCount": 7,
         "enabled": "true",
         "category": "Sources",
@@ -928,6 +937,7 @@ const JL_DATABASE = {
     },
     "multimeter": {
         "name": "multimeter",
+        "displayName": "Multimeter",
         "argsCount": 7,
         "enabled": "true",
         "category": "Basic Components",
@@ -1051,6 +1061,7 @@ const JL_DATABASE = {
     },
     "resistor": {
         "name": "resistor",
+        "displayName": "Resistor",
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
@@ -1154,6 +1165,7 @@ const JL_DATABASE = {
     },
     "inductor": {
         "name": "inductor",
+        "displayName": "Inductor",
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
@@ -1252,6 +1264,7 @@ const JL_DATABASE = {
     },
     "capacitor": {
         "name": "capacitor",
+        "displayName": "Capacitor",
         "argsCount": 7,
         "enabled": "true",
         "category": "Passives",
@@ -1371,6 +1384,7 @@ const JL_DATABASE = {
     },
     "dcvoltagesource": {
         "name": "dcvoltagesource",
+        "displayName": "DC Voltage Source",
         "argsCount": 7,
         "enabled": "true",
         "category": "Sources",
@@ -1487,6 +1501,7 @@ const JL_DATABASE = {
     },
     "dcbattery": {
         "name": "dcbattery",
+        "displayName": "DC battery",
         "argsCount": 7,
         "enabled": "true",
         "category": "Sources",
@@ -1496,11 +1511,39 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 0.5,
-            "y": 7.0,
+            "auto": true,
             "dir": "B"
         },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical/none",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical, none (LaTeX only)"
+            },
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "fixed/variable",
+                "defVal": "fixed",
+                "options": "fixed, variable"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "plus sign",
+                "defVal": "none",
+                "options": "plus, none"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
         "iconBase": "M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0",
         "filled": false,
         "iconLayers": [
@@ -1517,7 +1560,7 @@ const JL_DATABASE = {
             {
                 "condition": "1~=",
                 "style": "stroke-width=3.2, rounded=true",
-                "path": "M 0 -7 L 0 7       M 20 -7 L 20 7"
+                "path": "M 0 -7 L 0 7 M 20 -7 L 20 7"
             }
         ],
         "argNames": [
@@ -1569,6 +1612,7 @@ const JL_DATABASE = {
     },
     "bipolartransistor": {
         "name": "bipolartransistor",
+        "displayName": "Bipolar Transistor",
         "argsCount": 7,
         "enabled": "true",
         "category": "Active Components",
@@ -1578,8 +1622,8 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": -16.0,
-            "y": -10.0,
+            "x": 10.0,
+            "y": 33.0,
             "dir": "L"
         },
         "flippable": false,
@@ -1587,7 +1631,29 @@ const JL_DATABASE = {
             "3": "n",
             "4": "case"
         },
-        "iconBase": "M -40 0 L -10 0     M -10 -5 L 10 -25 L 10 -40     M -10 5 L 10 25 L 10 40     M -10 -5 L 10 -25 L 10 -40     M -10 5 L 10 25 L 10 40",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "n/p",
+                "defVal": "n",
+                "options": "n, p"
+            },
+            {
+                "idx": 4,
+                "type": "flags",
+                "label": "terminals/case",
+                "defVal": "case",
+                "options": "terminals, case"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M -40 0 L -10 0 M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40 M -10 -5 L 10 -25 L 10 -40 M -10 5 L 10 25 L 10 40",
         "filled": false,
         "iconLayers": [
             {
@@ -1609,6 +1675,11 @@ const JL_DATABASE = {
                 "condition": "4~=case",
                 "style": "",
                 "path": "M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0"
+            },
+            {
+                "condition": "4~=terminals",
+                "style": "",
+                "path": "M 18 -30.50 L 18 -30.50 9 NaN mal,C*/ M 30 25 L 30 25 21 NaN mal,E*/ M -31 5.50 L -31 5.50 /*TEXT:9,normal,B*/ M 15 -30 L 15 -30 /*TEXT:9,normal,C*/ M 15 27.50 L 15 27.50 /*TEXT:9,normal,E*/"
             }
         ],
         "argNames": [
@@ -1667,6 +1738,7 @@ const JL_DATABASE = {
     },
     "mostransistor": {
         "name": "mostransistor",
+        "displayName": "MOS Transistor",
         "argsCount": 7,
         "enabled": "true",
         "category": "Active Components",
@@ -1689,16 +1761,29 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "nMOS/pMOS",
+                "label": "n/p",
                 "defVal": "n",
                 "options": "n,p"
             },
             {
                 "idx": 4,
                 "type": "flags",
-                "label": "",
-                "defVal": "case-arrow",
-                "options": "terminals, case, dot, arrow"
+                "label": "terminal names / case",
+                "defVal": "",
+                "options": "terminals, case"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "dot/arrow notation",
+                "defVal": "arrow",
+                "options": "dot, arrow"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
             }
         ],
         "iconBase": "M -2 -20 L -2 20 M -2 0 M -2 -15 L 10 -15 L 10 -40 M -2 15 L 10 15 L 10 40 M -40 0 L -18 0",
@@ -1725,7 +1810,7 @@ const JL_DATABASE = {
                 "path": "M -2 15 L 2 12 L -2 15 L 2 18"
             },
             {
-                "condition": "3==p",
+                "condition": "3==p && 4~=dot",
                 "style": "",
                 "path": "M -15 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
             },
@@ -1738,6 +1823,11 @@ const JL_DATABASE = {
                 "condition": "4~=case",
                 "style": "",
                 "path": "M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0"
+            },
+            {
+                "condition": "4~=terminals",
+                "style": "",
+                "path": "M -31 6 L -31 6 /*TEXT:10,normal,G*/ M 15 -30 L 15 -30 /*TEXT:10,normal,D*/ M 15.50 27 L 15.50 27 /*TEXT:10,normal,S*/"
             }
         ],
         "argNames": [
@@ -1796,6 +1886,7 @@ const JL_DATABASE = {
     },
     "passgate": {
         "name": "passgate",
+        "displayName": "Transmission Gate",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -1883,6 +1974,7 @@ const JL_DATABASE = {
     },
     "opamplifier": {
         "name": "opamplifier",
+        "displayName": "OPAMP",
         "argsCount": 7,
         "enabled": "true",
         "category": "Active Components",
@@ -1986,6 +2078,7 @@ const JL_DATABASE = {
     },
     "diode": {
         "name": "diode",
+        "displayName": "Diode",
         "argsCount": 6,
         "enabled": "true",
         "category": "Diodes",
@@ -2036,6 +2129,7 @@ const JL_DATABASE = {
     },
     "zenerdiode": {
         "name": "zenerdiode",
+        "displayName": "Zener Diode",
         "argsCount": 6,
         "enabled": "true",
         "category": "Diodes",
@@ -2086,6 +2180,7 @@ const JL_DATABASE = {
     },
     "leddiode": {
         "name": "leddiode",
+        "displayName": "LED",
         "argsCount": 6,
         "enabled": "true",
         "category": "Diodes",
@@ -2136,6 +2231,7 @@ const JL_DATABASE = {
     },
     "photodiode": {
         "name": "photodiode",
+        "displayName": "Photodiode",
         "argsCount": 6,
         "enabled": "true",
         "category": "Diodes",
@@ -2186,6 +2282,7 @@ const JL_DATABASE = {
     },
     "supplyterminal": {
         "name": "supplyterminal",
+        "displayName": "Supply Terminal",
         "argsCount": 5,
         "enabled": "true",
         "category": "Terminals",
@@ -2225,6 +2322,7 @@ const JL_DATABASE = {
     },
     "ioport": {
         "name": "ioport",
+        "displayName": "Input/Output Port",
         "argsCount": 6,
         "enabled": "true",
         "category": "Terminals",
@@ -2289,6 +2387,7 @@ const JL_DATABASE = {
     },
     "andthree": {
         "name": "andthree",
+        "displayName": "AND-3",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2358,6 +2457,7 @@ const JL_DATABASE = {
     },
     "nandthree": {
         "name": "nandthree",
+        "displayName": "NAND-3",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2422,6 +2522,7 @@ const JL_DATABASE = {
     },
     "andtwo": {
         "name": "andtwo",
+        "displayName": "AND-2",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2479,6 +2580,7 @@ const JL_DATABASE = {
     },
     "nandtwo": {
         "name": "nandtwo",
+        "displayName": "NAND-2",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2536,6 +2638,7 @@ const JL_DATABASE = {
     },
     "orthree": {
         "name": "orthree",
+        "displayName": "OR-3",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2600,6 +2703,7 @@ const JL_DATABASE = {
     },
     "northree": {
         "name": "northree",
+        "displayName": "NOR-3",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2664,6 +2768,7 @@ const JL_DATABASE = {
     },
     "ortwo": {
         "name": "ortwo",
+        "displayName": "OR-2",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2721,6 +2826,7 @@ const JL_DATABASE = {
     },
     "nortwo": {
         "name": "nortwo",
+        "displayName": "NOR-2",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2778,6 +2884,7 @@ const JL_DATABASE = {
     },
     "xortwo": {
         "name": "xortwo",
+        "displayName": "XOR-2",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2835,6 +2942,7 @@ const JL_DATABASE = {
     },
     "xnortwo": {
         "name": "xnortwo",
+        "displayName": "XNOR-2",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2892,6 +3000,7 @@ const JL_DATABASE = {
     },
     "inverter": {
         "name": "inverter",
+        "displayName": "NOT",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2942,6 +3051,7 @@ const JL_DATABASE = {
     },
     "invertersmall": {
         "name": "invertersmall",
+        "displayName": "NOT small",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -2992,6 +3102,7 @@ const JL_DATABASE = {
     },
     "buffer": {
         "name": "buffer",
+        "displayName": "BUFFER",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3042,6 +3153,7 @@ const JL_DATABASE = {
     },
     "jkflipflop": {
         "name": "jkflipflop",
+        "displayName": "J-K Flip Flop",
         "argsCount": 7,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3131,6 +3243,7 @@ const JL_DATABASE = {
     },
     "srlatch": {
         "name": "srlatch",
+        "displayName": "S-R Latch",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3202,6 +3315,7 @@ const JL_DATABASE = {
     },
     "srflipflop": {
         "name": "srflipflop",
+        "displayName": "S-R Flip Flop",
         "argsCount": 7,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3291,6 +3405,7 @@ const JL_DATABASE = {
     },
     "dflipflop": {
         "name": "dflipflop",
+        "displayName": "D Flip Flop",
         "argsCount": 7,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3373,6 +3488,7 @@ const JL_DATABASE = {
     },
     "dlatch": {
         "name": "dlatch",
+        "displayName": "D Latch",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3437,6 +3553,7 @@ const JL_DATABASE = {
     },
     "tflipflop": {
         "name": "tflipflop",
+        "displayName": "T Flip Flop",
         "argsCount": 7,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3519,6 +3636,7 @@ const JL_DATABASE = {
     },
     "sevensegmentdisplay": {
         "name": "sevensegmentdisplay",
+        "displayName": "Seven-segment display",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3604,6 +3722,7 @@ const JL_DATABASE = {
     },
     "fulladder": {
         "name": "fulladder",
+        "displayName": "FULL ADDER (one digit numbers)",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3689,6 +3808,7 @@ const JL_DATABASE = {
     },
     "fullsubtractor": {
         "name": "fullsubtractor",
+        "displayName": "FULL SUBTRACTOR (one digit numbers)",
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
@@ -3774,6 +3894,7 @@ const JL_DATABASE = {
     },
     "connectordot": {
         "name": "connectordot",
+        "displayName": "Connector Dot",
         "argsCount": 1,
         "enabled": "true",
         "argNames": [
@@ -3794,6 +3915,7 @@ const JL_DATABASE = {
     },
     "freetext": {
         "name": "freetext",
+        "displayName": "Free Text",
         "argsCount": 6,
         "enabled": "true",
         "icon": "M -10 -10 L 10 -10 M 0 -10 L 0 10",
