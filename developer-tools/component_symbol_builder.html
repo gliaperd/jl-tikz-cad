@@ -101,7 +101,6 @@
         .section-header:hover { background: #ebf5fb; }
         .section-header .toggle-icon { font-size: 10px; color: #7f8c8d; transition: transform 0.2s; display: inline-block; margin-right: 4px;}
         .section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
-        .section-content { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s ease-out; opacity: 1; max-height: 1200px; /* Αρκετά μεγάλο για να χωράει τα πάντα */ }
         .section-content.collapsed { max-height: 0; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: none; }
 		
 		/* Κρύβει τα κουμπιά ελέγχου μέσα στο header όταν η ενότητα είναι collapsed */
@@ -167,7 +166,7 @@
         .section-header .toggle-icon { font-size: 10px; color: #7f8c8d; transition: transform 0.2s; display: inline-block; margin-right: 4px;}
         .section-header.collapsed .toggle-icon { transform: rotate(-90deg); }
         
-        .section-content { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s ease-out; opacity: 1; max-height: 2500px; }
+        .section-content { overflow: hidden; transition: max-height 0.3s ease-out, opacity 0.2s ease-out; opacity: 1; max-height: 25000px; }
         .section-content.collapsed { max-height: 0 !important; opacity: 0; pointer-events: none; margin: 0; padding: 0; border: none; }
         
         /* Εξασφαλίζουμε ότι ο Importer δεν θα κρυφτεί ποτέ */
@@ -2203,7 +2202,15 @@
             if (tikzStartMatch) {
                 let rawTikz = code.substring(tikzStartMatch.index);
                 rawTikz = rawTikz.replace(/\}\s*$/, ''); 
-                originalTikzBody = rawTikz.replace(/^[ \t]*\\coordinate.*?\n/gm, '');
+                
+                // --- FIX: Aggressively strip all coordinates and auto-generated nodes, even if wrapped in \ifstrequal ---
+                // This prevents phantom pins from accumulating in memory after multiple exports/imports!
+                originalTikzBody = rawTikz.split('\n').filter(line => {
+                    if (line.includes('\\coordinate')) return false;
+                    if (line.includes('\\node[draw=none, align=center] at ($')) return false;
+                    if (line.trim() === '% coordinate pins') return false;
+                    return true;
+                }).join('\n') + '\n';
             }
 
             let coordRegex = /\\coordinate\s*(?:\[.*?\])?\s*\(([^\)]+)\)\s*at\s*\(([-+]?[\d\.]+)\s*,\s*([-+]?[\d\.]+)\)\s*;(?:[ \t]*%(.*))?/g;

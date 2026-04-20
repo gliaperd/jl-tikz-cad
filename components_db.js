@@ -4170,8 +4170,40 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 60 -80 L 70 -80 M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "T"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "flags",
+                "label": "enable",
+                "defVal": "",
+                "options": "enable"
+            }
+        ],
+        "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,S*/ M 15 -20 L 15 -20 /*TEXT:10,normal,R*/ M 55 -80 L 55 -80 /*TEXT:10,normal,Q*/ M 55 -20 L 55 -20 /*TEXT:10,normal,Q*/ M 52 -26 L 57.50 -26",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "4==enable",
+                "style": "",
+                "path": "M 0 -50 L 10 -50 M 20 -50 L 20 -50 /*TEXT:10,normal,EN*/"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -4204,7 +4236,8 @@ const JL_DATABASE = {
                 "x": 0.0,
                 "y": -50.0,
                 "label": "E",
-                "dir": "R"
+                "dir": "R",
+                "condition": "4==enable"
             },
             {
                 "id": "pin1",
@@ -4242,8 +4275,62 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "T"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "reset",
+                "defVal": "noreset",
+                "options": "reset, resetn, noreset"
+            },
+            {
+                "idx": 5,
+                "type": "flags",
+                "label": "positive/negative trigger",
+                "defVal": "positive",
+                "options": "positive"
+            }
+        ],
+        "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,S*/ M 15 -20 L 15 -20 /*TEXT:10,normal,R*/ M 28 -50.50 L 28 -50.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "4==reset",
+                "style": "",
+                "path": "M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/"
+            },
+            {
+                "condition": "5==positive",
+                "style": "",
+                "path": "M 0 -50 L 10 -50"
+            },
+            {
+                "condition": "5!=positive",
+                "style": "",
+                "path": "M 6.50 -50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -50 L 3 -50"
+            },
+            {
+                "condition": "4==resetn",
+                "style": "",
+                "path": "M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ M 35 3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 35 10 L 35 6.50"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -4280,14 +4367,8 @@ const JL_DATABASE = {
                 "x": 35.0,
                 "y": 10.0,
                 "label": "clr",
-                "dir": "R"
-            },
-            {
-                "id": "pin4",
-                "x": 35.0,
-                "y": 10.0,
-                "label": "clr",
-                "dir": "R"
+                "dir": "R",
+                "condition": "4==reset"
             },
             {
                 "id": "pin1",
@@ -4323,6 +4404,14 @@ const JL_DATABASE = {
                 "y": -20.0,
                 "label": "Qn",
                 "dir": "R"
+            },
+            {
+                "id": "pin7",
+                "x": 35.0,
+                "y": 10.0,
+                "label": "clr",
+                "dir": "R",
+                "condition": "4==resetn"
             }
         ]
     },
@@ -4332,8 +4421,62 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "T"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "reset",
+                "defVal": "noreset",
+                "options": "reset, resetn, noreset"
+            },
+            {
+                "idx": 5,
+                "type": "flags",
+                "label": "positive/negative trigger",
+                "defVal": "positive",
+                "options": "positive"
+            }
+        ],
+        "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,D*/ M 28 -20.50 L 28 -20.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "4==reset",
+                "style": "",
+                "path": "M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/"
+            },
+            {
+                "condition": "5==positive",
+                "style": "",
+                "path": "M 0 -20 L 10 -20"
+            },
+            {
+                "condition": "5!=positive",
+                "style": "",
+                "path": "M 6.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -20 L 3 -20"
+            },
+            {
+                "condition": "4==resetn",
+                "style": "",
+                "path": "M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ M 35 3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 35 10 L 35 6.50"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -4370,14 +4513,8 @@ const JL_DATABASE = {
                 "x": 35.0,
                 "y": 10.0,
                 "label": "clr",
-                "dir": "R"
-            },
-            {
-                "id": "pin3",
-                "x": 35.0,
-                "y": 10.0,
-                "label": "clr",
-                "dir": "R"
+                "dir": "R",
+                "condition": "4==reset"
             },
             {
                 "id": "pin1",
@@ -4415,8 +4552,40 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 10 0 L 60 0 L 60 -70 L 10 -70 Z M 0 -50 L 10 -50 M 0 -20 L 10 -20 M 60 -50 L 70 -50 M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "T"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "flags",
+                "label": "enable",
+                "defVal": "",
+                "options": "enable"
+            }
+        ],
+        "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,D*/ M 55 -80 L 55 -80 /*TEXT:10,normal,Q*/ M 55 -20 L 55 -20 /*TEXT:10,normal,Q*/ M 52 -26 L 57.50 -26",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "4==enable",
+                "style": "",
+                "path": "M 0 -20 L 10 -20 M 20 -20 L 20 -20 /*TEXT:10,normal,EN*/"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -4445,28 +4614,21 @@ const JL_DATABASE = {
         ],
         "pins": [
             {
-                "id": "pin2",
-                "x": 0.0,
-                "y": -20.0,
-                "label": "E",
-                "dir": "R"
-            },
-            {
                 "id": "pin1",
                 "x": 0.0,
-                "y": -50.0,
+                "y": -80.0,
                 "label": "D",
                 "dir": "R"
             },
             {
-                "id": "pin3",
+                "id": "pin4",
                 "x": 70.0,
-                "y": -50.0,
-                "label": "Q",
+                "y": -80.0,
+                "label": "Qn",
                 "dir": "R"
             },
             {
-                "id": "pin4",
+                "id": "pin5",
                 "x": 70.0,
                 "y": -20.0,
                 "label": "Qn",
@@ -4480,8 +4642,62 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "T"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "reset",
+                "defVal": "noreset",
+                "options": "reset, resetn, noreset"
+            },
+            {
+                "idx": 5,
+                "type": "flags",
+                "label": "positive/negative trigger",
+                "defVal": "positive",
+                "options": "positive"
+            }
+        ],
+        "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,T*/ M 28 -20.50 L 28 -20.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "4==reset",
+                "style": "",
+                "path": "M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/"
+            },
+            {
+                "condition": "5==positive",
+                "style": "",
+                "path": "M 0 -20 L 10 -20"
+            },
+            {
+                "condition": "5!=positive",
+                "style": "",
+                "path": "M 6.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -20 L 3 -20"
+            },
+            {
+                "condition": "4==resetn",
+                "style": "",
+                "path": "M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ M 35 3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 35 10 L 35 6.50"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -4563,8 +4779,130 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 0 L 80 0 L 80 -100 L 0 -100 Z M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z M 10 0 L 10 10 M 20 0 L 20 10 M 30 0 L 30 10 M 40 0 L 40 10 M 50 0 L 50 10 M 60 0 L 60 10 M 70 0 L 70 10",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "T"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "displayed number",
+                "defVal": "8",
+                "options": "0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 0 L 80 0 L 80 -100 L 0 -100 Z M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z M 10 0 L 10 10 M 20 0 L 20 10 M 30 0 L 30 10 M 40 0 L 40 10 M 50 0 L 50 10 M 60 0 L 60 10 M 70 0 L 70 10",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "3==0",
+                "style": "stroke=#ff0000, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==1",
+                "style": "stroke=#ff0000, fill=solid",
+                "path": "M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==2",
+                "style": "stroke=#fa0000, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z"
+            },
+            {
+                "condition": "3==3",
+                "style": "stroke=#ff0000, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==4",
+                "style": "stroke=#ff0000, fill=solid",
+                "path": "M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==5",
+                "style": "stroke=#f50000, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==6",
+                "style": "stroke=#fa0000, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==7",
+                "style": "stroke=#fa0000, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==8",
+                "style": "stroke=#ff0000, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==9",
+                "style": "stroke=#fa0000, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==0",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z"
+            },
+            {
+                "condition": "3==1",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z"
+            },
+            {
+                "condition": "3==2",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z"
+            },
+            {
+                "condition": "3==3",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z"
+            },
+            {
+                "condition": "3==4",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z"
+            },
+            {
+                "condition": "3==5",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z"
+            },
+            {
+                "condition": "3==6",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z"
+            },
+            {
+                "condition": "3==7",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z"
+            },
+            {
+                "condition": "3==9",
+                "style": "stroke=#bababa, fill=solid",
+                "path": "M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",

@@ -3244,9 +3244,17 @@
 \newcommand{\srlatch}[6]{%{position}{name}{rotation}{enable}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 60 -80 L 70 -80 M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: T
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | flags | enable |  | enable
+
+
+% icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,S*/ M 15 -20 L 15 -20 /*TEXT:10,normal,R*/ M 55 -80 L 55 -80 /*TEXT:10,normal,Q*/ M 55 -20 L 55 -20 /*TEXT:10,normal,Q*/ M 52 -26 L 57.50 -26 // base
+% add_icon: 4==enable : M 0 -50 L 10 -50 M 20 -50 L 20 -50 /*TEXT:10,normal,EN*/ // enable
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=magenta!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -3257,7 +3265,6 @@
 					{
 						\node[draw=none, anchor=west] at (1,5) {E};
 						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,5)  -- (1,5);
-						\coordinate (pin2) at (0, 5); % middle left terminal (E)
 					}
 					{
 					}
@@ -3279,20 +3286,33 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 8); % top left terminal (S)
-				\coordinate (pin3) at (0, 2); % bottom left terminal (R)
-				\coordinate (pin4) at (7, 8); % top right terminal (Q)	
-				\coordinate (pin5) at (7, 2); % bottom right terminal (Qn)	
-		\end{scope}
+		        \coordinate (pin2) at (0.00, 5.00); % middle left terminal (E) [R] IF:4==enable
+        \coordinate (pin1) at (0.00, 8.00); % top left terminal (S) [R]
+        \coordinate (pin3) at (0.00, 2.00); % bottom left terminal (R) [R]
+        \coordinate (pin4) at (7.00, 8.00); % top right terminal (Q) [R]
+        \coordinate (pin5) at (7.00, 2.00); % bottom right terminal (Qn) [R]
+    \end{scope}
 }
 
 %% S-R Flip Flop
 \newcommand{\srflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
+% scales: 1, 2, 4
+% label_anchor: T
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | select | reset | noreset | reset, resetn, noreset
+% arg_def: 5 | flags | positive/negative trigger | positive | positive
+
+
+% icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,S*/ M 15 -20 L 15 -20 /*TEXT:10,normal,R*/ M 28 -50.50 L 28 -50.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50 // base
+% add_icon: 4==reset : M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ // clr
+% add_icon: 5==positive : M 0 -50 L 10 -50 // clk
+% add_icon: 5!=positive : M 6.50 -50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -50 L 3 -50 // clkn
+% add_icon: 4==resetn : M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ M 35 3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 35 10 L 35 6.50 // clrn
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=cyan!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -3312,7 +3332,6 @@
 					{
 						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
 						\node[draw=none, align=center] at (3.5,0.7) {clr};
-						\coordinate (pin4) at (3.5, -1); % bottom terminal (clr)
 					}
 					{
 						\ifstrequal{#4}{resetn}
@@ -3321,7 +3340,6 @@
 								\node[draw=none, align=center] at (3.5,0.7) {clr};
 								\filldraw[white]  (3.5,-0.3) circle(0.25);
 								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,-0.3) circle(0.25);
-								\coordinate (pin4) at (3.5, -1); % bottom terminal (clr)
 							}
 							{
 							}
@@ -3345,21 +3363,35 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 8); % top left terminal (S)
-				\coordinate (pin2) at (0, 5); % middle left terminal (CLK)
-				\coordinate (pin3) at (0, 2); % bottom left terminal (R)
-				\coordinate (pin5) at (7, 8); % top right terminal (Q)	
-				\coordinate (pin6) at (7, 2); % bottom right terminal (Qn)	
-		\end{scope}
+		        \coordinate (pin4) at (3.50, -1.00); % bottom terminal (clr) [R] IF:4==reset
+        \coordinate (pin1) at (0.00, 8.00); % top left terminal (S) [R]
+        \coordinate (pin2) at (0.00, 5.00); % middle left terminal (CLK) [R]
+        \coordinate (pin3) at (0.00, 2.00); % bottom left terminal (R) [R]
+        \coordinate (pin5) at (7.00, 8.00); % top right terminal (Q) [R]
+        \coordinate (pin6) at (7.00, 2.00); % bottom right terminal (Qn) [R]
+        \coordinate (pin7) at (3.50, -1.00); % bottom terminal (clr) [R] IF:4==resetn
+    \end{scope}
 }
 
 %% D Flip Flop
 \newcommand{\dflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
+% scales: 1, 2, 4
+% label_anchor: T
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | select | reset | noreset | reset, resetn, noreset
+% arg_def: 5 | flags | positive/negative trigger | positive | positive
+
+
+% icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,D*/ M 28 -20.50 L 28 -20.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50 // base
+% add_icon: 4==reset : M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ // clr
+% add_icon: 5==positive : M 0 -20 L 10 -20 // clk
+% add_icon: 5!=positive : M 6.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -20 L 3 -20 // clkn
+% add_icon: 4==resetn : M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ M 35 3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 35 10 L 35 6.50 // clrn
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=gray!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -3377,7 +3409,6 @@
 					{
 						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
 						\node[draw=none, align=center] at (3.5,0.7) {clr};
-						\coordinate (pin3) at (3.5, -1); % bottom terminal (clr)
 					}
 					{
 						\ifstrequal{#4}{resetn}
@@ -3386,7 +3417,6 @@
 								\node[draw=none, align=center] at (3.5,0.7) {clr};
 								\filldraw[white]  (3.5,-0.3) circle(0.25);
 								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,-0.3) circle(0.25);
-								\coordinate (pin3) at (3.5, -1); % bottom terminal (clr)
 							}
 							{
 							}
@@ -3410,20 +3440,29 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 8); % top left terminal (D)
-				\coordinate (pin2) at (0, 2); % bottom left terminal (CLK)
-				\coordinate (pin4) at (7, 8); % top right terminal (Q)	
-				\coordinate (pin5) at (7, 2); % bottom right terminal (Qn)	
-		\end{scope}
+		        \coordinate (pin3) at (3.50, -1.00); % bottom terminal (clr) [R] IF:4==reset
+        \coordinate (pin1) at (0.00, 8.00); % top left terminal (D) [R]
+        \coordinate (pin2) at (0.00, 2.00); % bottom left terminal (CLK) [R]
+        \coordinate (pin4) at (7.00, 8.00); % top right terminal (Q) [R]
+        \coordinate (pin5) at (7.00, 2.00); % bottom right terminal (Qn) [R]
+    \end{scope}
 }
 
 %% D Latch
 \newcommand{\dlatch}[6]{%{position}{name}{rotation}{enable}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 10 0 L 60 0 L 60 -70 L 10 -70 Z M 0 -50 L 10 -50 M 0 -20 L 10 -20 M 60 -50 L 70 -50 M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: T
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | flags | enable |  | enable
+
+
+% icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,D*/ M 55 -80 L 55 -80 /*TEXT:10,normal,Q*/ M 55 -20 L 55 -20 /*TEXT:10,normal,Q*/ M 52 -26 L 57.50 -26 // base
+% add_icon: 4==enable : M 0 -20 L 10 -20 M 20 -20 L 20 -20 /*TEXT:10,normal,EN*/ // enable
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=orange!20!white, draw=none] (1,0) rectangle (6,7);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,5)  -- (1,5);
@@ -3433,7 +3472,6 @@
 					{
 						\node[draw=none, align=center] at (1.5,2) {$E$};
 						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
-						\coordinate (pin2) at (0, 2); % bottom left terminal (E)
 					}
 					{
 					}
@@ -3455,19 +3493,31 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 5); % top left terminal (D)				
-				\coordinate (pin3) at (7, 5); % top right terminal (Q)	
-				\coordinate (pin4) at (7, 2); % bottom right terminal (Qn)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 8.00); % top left terminal (D) [R]
+        \coordinate (pin4) at (7.00, 8.00); % bottom right terminal (Qn) [R]
+        \coordinate (pin5) at (7.00, 2.00); % bottom right terminal (Qn) [R]
+    \end{scope}
 }
 
 %% T Flip Flop
 \newcommand{\tflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
+% scales: 1, 2, 4
+% label_anchor: T
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | select | reset | noreset | reset, resetn, noreset
+% arg_def: 5 | flags | positive/negative trigger | positive | positive
+
+
+% icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,T*/ M 28 -20.50 L 28 -20.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50 // base
+% add_icon: 4==reset : M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ // clr
+% add_icon: 5==positive : M 0 -20 L 10 -20 // clk
+% add_icon: 5!=positive : M 6.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -20 L 3 -20 // clkn
+% add_icon: 4==resetn : M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ M 35 3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 35 10 L 35 6.50 // clrn
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=brown!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -3485,7 +3535,6 @@
 					{
 						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
 						\node[draw=none, align=center] at (3.5,0.7) {clr};
-						\coordinate (pin3) at (3.5, -1); % bottom terminal (clr)
 					}
 					{
 						\ifstrequal{#4}{resetn}
@@ -3494,7 +3543,6 @@
 								\node[draw=none, align=center] at (3.5,0.7) {clr};
 								\filldraw[white]  (3.5,-0.3) circle(0.25);
 								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,-0.3) circle(0.25);
-								\coordinate (pin3) at (3.5, -1); % bottom terminal (clr)
 							}
 							{
 							}
@@ -3518,11 +3566,13 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 8); % top left terminal (T)
-				\coordinate (pin2) at (0, 2); % bottom left terminal (CLK)
-				\coordinate (pin4) at (7, 8); % top right terminal (Q)	
-				\coordinate (pin5) at (7, 2); % bottom right terminal (Qn)	
-		\end{scope}
+		        \coordinate (pin3) at (3.50, -1.00); % bottom terminal (clr) [R]
+        \coordinate (pin3) at (3.50, -1.00); % bottom terminal (clr) [R]
+        \coordinate (pin1) at (0.00, 8.00); % top left terminal (T) [R]
+        \coordinate (pin2) at (0.00, 2.00); % bottom left terminal (CLK) [R]
+        \coordinate (pin4) at (7.00, 8.00); % top right terminal (Q) [R]
+        \coordinate (pin5) at (7.00, 2.00); % bottom right terminal (Qn) [R]
+    \end{scope}
 }
 
 %% Multiplexer with n inputs
@@ -3848,9 +3898,35 @@
 \newcommand{\sevensegmentdisplay}[6]{%{position}{name}{displayed number}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 0 L 80 0 L 80 -100 L 0 -100 Z M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z M 10 0 L 10 10 M 20 0 L 20 10 M 30 0 L 30 10 M 40 0 L 40 10 M 50 0 L 50 10 M 60 0 L 60 10 M 70 0 L 70 10
+% scales: 1, 2, 4
+% label_anchor: T
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+
+% arg_def: 3 | select | displayed number | 8 | 0, 1, 2, 3, 4, 5, 6, 7, 8, 9
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 0 0 L 80 0 L 80 -100 L 0 -100 Z M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z M 10 0 L 10 10 M 20 0 L 20 10 M 30 0 L 30 10 M 40 0 L 40 10 M 50 0 L 50 10 M 60 0 L 60 10 M 70 0 L 70 10 // base
+% add_icon: 3==0 : [stroke=#ff0000, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 0
+% add_icon: 3==1 : [stroke=#ff0000, fill=solid] M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 1
+% add_icon: 3==2 : [stroke=#fa0000, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 2
+% add_icon: 3==3 : [stroke=#ff0000, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 3
+% add_icon: 3==4 : [stroke=#ff0000, fill=solid] M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 4
+% add_icon: 3==5 : [stroke=#f50000, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 5
+% add_icon: 3==6 : [stroke=#fa0000, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 6
+% add_icon: 3==7 : [stroke=#fa0000, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 7
+% add_icon: 3==8 : [stroke=#ff0000, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 8
+% add_icon: 3==9 : [stroke=#fa0000, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 9
+% add_icon: 3==0 : [stroke=#bababa, fill=solid] M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z // 0-off
+% add_icon: 3==1 : [stroke=#bababa, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 1-off
+% add_icon: 3==2 : [stroke=#bababa, fill=solid] M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 55 -50 L 65 -50 L 65 -20 L 55 -20 Z // 2-off
+% add_icon: 3==3 : [stroke=#bababa, fill=solid] M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 3-off
+% add_icon: 3==4 : [stroke=#bababa, fill=solid] M 25 -85 L 55 -85 L 55 -75 L 25 -75 Z M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 4-off
+% add_icon: 3==5 : [stroke=#bababa, fill=solid] M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 5-off
+% add_icon: 3==6 : [stroke=#bababa, fill=solid] M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z // 6-off
+% add_icon: 3==7 : [stroke=#bababa, fill=solid] M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 7-off
+% add_icon: 3==9 : [stroke=#bababa, fill=solid] M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 9-off
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
 				\getzoomfactor
 				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,0) rectangle (8,10); % draw box
 				\node[draw=none, align=center] at (4,10.5) {#2}; % draw name
@@ -4020,14 +4096,14 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (1,-1);
-				\coordinate (pin2) at (2,-1);
-				\coordinate (pin3) at (3,-1);
-				\coordinate (pin4) at (4,-1);
-				\coordinate (pin5) at (5,-1);
-				\coordinate (pin6) at (6,-1);
-				\coordinate (pin7) at (7,-1);
-		\end{scope}
+            \coordinate (pin1) at (1.00, -1.00); % [R]
+        \coordinate (pin2) at (2.00, -1.00); % [R]
+        \coordinate (pin3) at (3.00, -1.00); % [R]
+        \coordinate (pin4) at (4.00, -1.00); % [R]
+        \coordinate (pin5) at (5.00, -1.00); % [R]
+        \coordinate (pin6) at (6.00, -1.00); % [R]
+        \coordinate (pin7) at (7.00, -1.00); % [R]
+    \end{scope}
 }
 
 %% FULL ADDER (one digit numbers)
