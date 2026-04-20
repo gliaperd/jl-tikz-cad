@@ -632,7 +632,22 @@
             }
         }
 
-        if (isMath) {
+        if (normalizedAngle >= 90 && normalizedAngle < 270) {
+            localRot = 180;
+        }
+
+        // --- NEW: Check for user override, fallback to database default ---
+        let hideLabel = el.get('customHideLabel');
+        if (hideLabel === undefined) {
+            hideLabel = data && data.hideLabel === true;
+        }
+
+        if (hideLabel) {
+            // Suppress the auto-label entirely! (Dynamic text pins will still render via assembleIcon)
+            el.attr('label/display', 'none');
+            el.set('mathHtmlMain', '');
+        } else if (isMath) {
+            // Standard KaTeX HTML label
             el.attr('label/display', 'none'); 
             let htmlStr = `
                 <div style="position: relative; width: 0px; height: 0px;">
@@ -642,25 +657,21 @@
                 </div>`;
             el.set('mathHtmlMain', htmlStr); 
         } else {
+            // Standard SVG text label
             el.attr('label/display', 'block'); 
             el.attr('label/text', displayText);
             el.attr('label/fill', txtColor);
             
-            // Disconnect from JointJS auto-horizontal layout
             el.attr('label/refX', null);
             el.attr('label/refX2', null); 
             el.attr('label/refY', null); 
             el.attr('label/refY2', null); 
             
-            // Set exact raw SVG coordinates instead
             el.attr('label/x', centerX);
             el.attr('label/y', centerY);
             
-            // Force exact baseline and dynamic alignment
             el.attr('label/dominant-baseline', 'central');
             el.attr('label/text-anchor', lblAlign);
-            
-            // Apply the smart rotation
             el.attr('label/transform', `rotate(${localRot}, ${centerX}, ${centerY})`);
             
             el.attr('label/fontSize', fontSize);
@@ -1949,15 +1960,27 @@
 
             element.prop('ports', { groups: { 'absolute': { position: { name: 'absolute' } } } });
             element.addPorts(ports);
-            // --- NEW: Build Default Arguments for Drop ---
+           // --- NEW: Build Default Arguments for Drop ---
             let initialArgs = [];
             for (let i = 0; i < (data.argsCount || 7); i++) {
                 let argDef = data.argNames && data.argNames[i] ? data.argNames[i].name : '';
+                let defaultVal = '';
+                
+                // Fallback: Pick the first option if it's a slash-separated name
                 if (argDef.includes('/')) {
-                    initialArgs.push(argDef.split('/')[0].trim()); // Pick the first option by default
-                } else {
-                    initialArgs.push('');
+                    defaultVal = argDef.split('/')[0].trim();
                 }
+
+                // THE FIX: Override with the robust argDefs properties!
+                if (data.argDefs) {
+                    let customDefs = data.argDefs.filter(d => d.idx === (i + 1));
+                    if (customDefs.length > 1) {
+                        defaultVal = customDefs.map(d => d.defVal || "").join(', ');
+                    } else if (customDefs.length === 1) {
+                        defaultVal = customDefs[0].defVal || "";
+                    }
+                }
+                initialArgs.push(defaultVal);
             }
             
             // Apply the smart preview overrides so it drops exactly like it looks in the palette!
@@ -2770,7 +2793,8 @@ ${indentedTikz}
             lblY: el.get('labelOffsetY') || 0,
             angle: el.get('angle') || 0,
             flipH: el.get('flipH') || false,
-            flipV: el.get('flipV') || false
+            flipV: el.get('flipV') || false,
+            hideLbl: el.get('customHideLabel')
         };
 
         let currentArgs = el.get('customArgs') || [];
@@ -2905,6 +2929,17 @@ ${indentedTikz}
                 htmlForm += `</div>`;
             }
         }
+        
+        let currentHideLabel = el.get('customHideLabel');
+        if (currentHideLabel === undefined) currentHideLabel = data.hideLabel === true;
+        
+        htmlForm += `<div style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 12px; margin-bottom: 5px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:bold; color:#2c3e50;">
+                            <input type="checkbox" id="swal-input-hidelabel" ${currentHideLabel ? 'checked' : ''} style="width:16px; height:16px; margin:0;">
+                            Hide Component Auto-Label
+                        </label>
+                    </div>`;
+
         htmlForm += '</div>';
 
         Swal.fire({
@@ -2943,6 +2978,7 @@ ${indentedTikz}
                     let previewScale = parseFloat(popup.querySelector('#swal-input-scale').value);
                     let previewLblX = parseInt(popup.querySelector('#swal-input-lblx').value) || 0;
                     let previewLblY = parseInt(popup.querySelector('#swal-input-lbly').value) || 0;
+                    let previewHideLbl = popup.querySelector('#swal-input-hidelabel').checked;
                     
                     let previewArgs = [];
                     for (let i = 0; i < data.argsCount; i++) {
@@ -2969,6 +3005,7 @@ ${indentedTikz}
 
                     el.set('labelOffsetX', previewLblX);
                     el.set('labelOffsetY', previewLblY);
+                    el.set('customHideLabel', previewHideLbl);
                     el.set('customArgs', previewArgs);
                     
                     assembleIcon(el, previewArgs);
@@ -3012,7 +3049,8 @@ ${indentedTikz}
                     args: [], 
                     scale: parseFloat(popup.querySelector('#swal-input-scale').value),
                     lblX: parseInt(popup.querySelector('#swal-input-lblx').value) || 0,
-                    lblY: parseInt(popup.querySelector('#swal-input-lbly').value) || 0
+                    lblY: parseInt(popup.querySelector('#swal-input-lbly').value) || 0,
+                    hideLbl: popup.querySelector('#swal-input-hidelabel').checked
                 };
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
@@ -3043,6 +3081,7 @@ ${indentedTikz}
                 
                 el.set('labelOffsetX', result.value.lblX);
                 el.set('labelOffsetY', result.value.lblY);
+                el.set('customHideLabel', result.value.hideLbl);
                 el.set('customArgs', newArgs);
 
                 assembleIcon(el, newArgs);
@@ -3076,6 +3115,7 @@ ${indentedTikz}
             } else if (result.isDismissed) {
                 el.set('labelOffsetX', originalState.lblX);
                 el.set('labelOffsetY', originalState.lblY);
+                el.set('customHideLabel', originalState.hideLbl);
                 el.set('customArgs', originalState.args);
 
                 let needsGeomUpdate = (originalState.angle !== (el.get('angle')||0)) || 
@@ -3136,23 +3176,21 @@ ${indentedTikz}
     }
 	
 	function evaluatePinCondition(condStr, argsArray) {
-        if (!condStr) return true; // Αν δεν έχει συνθήκη, είναι Always On
-        let conditions = condStr.split('&');
-        let isMatch = true;
-        conditions.forEach(cond => {
-            cond = cond.trim();
-            if (cond.includes('==')) {
-                let [argIdx, val] = cond.split('==');
-                if ((argsArray[parseInt(argIdx) - 1] || "").trim() !== val.trim()) isMatch = false;
-            } else if (cond.includes('!=')) {
-                let [argIdx, val] = cond.split('!=');
-                if ((argsArray[parseInt(argIdx) - 1] || "").trim() === val.trim()) isMatch = false;
-            } else if (cond.includes('~=')) {
-                let [argIdx, val] = cond.split('~=');
-                if (!(argsArray[parseInt(argIdx) - 1] || "").includes(val.trim())) isMatch = false;
-            }
-        });
-        return isMatch;
+        if (!condStr || condStr.trim() === '' || condStr === '1~=') return true;
+
+        try {
+            let parsedStr = condStr.replace(/(\d+)\s*(==|!=|~=)\s*([^&|()\s]*)/g, function(match, arg, op, val) {
+                let argVal = (argsArray[parseInt(arg) - 1] || "").toString().trim();
+                if (op === '==') return `("${argVal}" === "${val}")`;
+                if (op === '!=') return `("${argVal}" !== "${val}")`;
+                if (op === '~=') return `("${argVal}".includes("${val}"))`;
+                return 'false';
+            });
+            return eval(parsedStr);
+        } catch (e) {
+            console.warn("Logic parsing error:", condStr);
+            return false;
+        }
     }
 
     function syncFromLatex() {
@@ -3459,12 +3497,30 @@ ${indentedTikz}
         let base = data.iconBase || data.icon || '';
         let layers = [];
         
+        // --- FIX 1: Pull accurate defaults from argDefs (Matches Canvas logic) ---
         let defaultArgs = [];
         for (let i = 0; i < (data.argsCount || 7); i++) {
             let argDef = data.argNames && data.argNames[i] ? data.argNames[i].name : '';
-            defaultArgs.push(argDef.includes('/') ? argDef.split('/')[0].trim() : '');
+            let defaultVal = '';
+            
+            // Fallback: Pick the first option if it's a slash-separated name
+            if (argDef.includes('/')) {
+                defaultVal = argDef.split('/')[0].trim();
+            }
+
+            // Override with the robust argDefs properties
+            if (data.argDefs) {
+                let customDefs = data.argDefs.filter(d => d.idx === (i + 1));
+                if (customDefs.length > 1) {
+                    defaultVal = customDefs.map(d => d.defVal || "").join(', ');
+                } else if (customDefs.length === 1) {
+                    defaultVal = customDefs[0].defVal || "";
+                }
+            }
+            defaultArgs.push(defaultVal);
         }
 
+        // Apply the smart preview overrides
         if (data.previewArgs) {
             Object.keys(data.previewArgs).forEach(idx => { defaultArgs[parseInt(idx) - 1] = data.previewArgs[idx]; });
         }
@@ -3474,21 +3530,12 @@ ${indentedTikz}
             base = data.icons[defaultVariant] ? data.icons[defaultVariant] : Object.values(data.icons)[0] || base;
         }
 
+        // --- FIX 2: Use the bulletproof evaluator we built earlier ---
         if (data.iconLayers) {
             data.iconLayers.forEach(layer => {
-                let conditions = layer.condition.split('&');
-                let isMatch = true;
-                conditions.forEach(cond => {
-                    cond = cond.trim();
-                    if (cond.includes('==')) {
-                        let [argIdx, val] = cond.split('==');
-                        if ((defaultArgs[parseInt(argIdx) - 1] || "").trim() !== val.trim()) isMatch = false;
-                    } else if (cond.includes('~=')) {
-                        let [argIdx, val] = cond.split('~=');
-                        if (!(defaultArgs[parseInt(argIdx) - 1] || "").includes(val.trim())) isMatch = false;
-                    }
-                });
-                if (isMatch) layers.push({ ...layer });
+                if (evaluatePinCondition(layer.condition, defaultArgs)) {
+                    layers.push({ ...layer });
+                }
             });
         }
         return { base, layers };

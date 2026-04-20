@@ -200,9 +200,14 @@
                 <span style="display: flex; align-items: center; gap: 4px;"><span class="toggle-icon">▼</span> ⚙️ Basic Config</span>
             </h2>
             <div id="sec-config" class="section-content collapsed">
-                <div style="display: flex; gap: 5px; margin-top: 5px;">
-                    <div style="flex: 1;"><label>Macro Name</label><input type="text" id="cName" value="newcomponent" oninput="generateCode()"></div>
-                    <div style="flex: 1;"><label>Display Name</label><input type="text" id="dName" value="New Component" oninput="generateCode()"></div>
+                <div style="margin-top: 5px;">
+                    <label>Display Name</label>
+                    <input type="text" id="dName" value="New Component" oninput="generateCode()" style="width: 100%;">
+                </div>
+                
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <div style="flex: 2;"><label>Macro Name</label><input type="text" id="cName" value="newcomponent" oninput="generateCode()"></div>
+                    <div style="flex: 1;"><label>Opt. Arg. Default</label><input type="text" id="cOptDef" value="" placeholder="e.g. 000" oninput="generateCode()" title="Optional first argument default (LaTeX)"></div>
                 </div>
                 
                 <label style="margin-top: 8px; display: block;">Arguments (Updates Layer Menus!)</label>
@@ -227,6 +232,12 @@
                     <div><label>Label Anchor</label><input type="text" id="mAnchor" value="B" oninput="generateCode(); if(testModeActive) document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();"></div>
                     <div><label>Scales</label><input type="text" id="mScales" value="1, 2, 4" oninput="generateCode()"></div>
                     <div><label>Flip</label><input type="text" id="mFlip" value="disabled" oninput="generateCode()"></div>
+                    <div style="display: flex; align-items: center; padding-top: 14px;">
+                        <label style="cursor: pointer; display: flex; align-items: center; gap: 5px; color: #2c3e50; text-transform: none; font-weight: bold;" title="Hide the central label and rely on dynamic pins ($) instead.">
+                            <input type="checkbox" id="mHideLabel" onchange="generateCode(); if(testModeActive) { window.markPreviewDirty(); renderCanvas(); document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG(); }">
+                            Hide Auto-Label
+                        </label>
+                    </div>
                     <div style="grid-column: span 2;"><label>Palette Defaults (Preview Args)</label><input type="text" id="mPreview" value="" placeholder="e.g. 3=p, 4=dot" oninput="generateCode(); if(testModeActive && document.getElementById('chkPalettePreview')?.checked) updateTestPreview();" title="Defines which overlays appear in the Circuit Editor Palette"></div>
                 </div>
                 <div style="display: flex; gap: 15px; margin-top: 4px; margin-bottom: 8px;">
@@ -324,18 +335,13 @@
                 <label style="color: white; margin-left: 10px; font-size: 11px; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                     <input type="checkbox" id="chkHidePinData" onchange="renderCanvas()"> Hide Pin Data
                 </label>
-				<label style="font-size: 11px; margin-left: 10px; display: flex; align-items: center; gap: 4px; cursor: pointer; color: #ecf0f1; font-weight: bold;">
+                
+                <label style="font-size: 11px; margin-left: 10px; display: flex; align-items: center; gap: 4px; cursor: pointer; color: #ecf0f1; font-weight: bold;">
                     <input type="checkbox" id="chkShowCoords" onchange="renderCanvas()"> 🔢 Show Coords
                 </label>
                 
-                <div id="extractTools" style="display:none; gap: 5px; align-items: center; border-left: 1px solid #7f8c8d; padding-left: 10px; margin-left: 5px;">
-                    <span style="font-size: 9px; font-weight: bold; color: #f1c40f;">SELECTED:</span>
-                    <button class="tool-btn" style="background:#27ae60; border-color:#2ecc71; padding: 3px 8px;" onclick="extractAction(false)">Move to Layer...</button>
-					<button class="tool-btn" style="background:#2980b9; border-color:#3498db; padding: 3px 8px;" onclick="extractAction(true)">Copy to Layer...</button>
-                    <button class="tool-btn" style="background:#c0392b; border-color:#e74c3c; padding: 3px 8px;" onclick="explodeSelected()">💥 Shatter</button>
-                    <button class="tool-btn" style="background:#f39c12; border-color:#e67e22; padding: 3px 8px;" onclick="recombineSelected()">🧲 Recombine</button>
-                    <button class="tool-btn" style="background:#8e44ad; border-color:#9b59b6; padding: 3px 8px;" onclick="rotateSelectedAction()">↻ Rotate</button>
-					<button class="tool-btn" style="background:#d35400; border-color:#e67e22; padding: 3px 8px;" onclick="scaleSelectedAction()">⤢ Scale</button>
+                <div style="border-left: 1px solid #7f8c8d; padding-left: 10px; margin-left: 5px;">
+                    <button id="btn-shape-tools" class="tool-btn" style="display:none; background:#f39c12; border-color:#e67e22; font-weight: bold;" onclick="toggleShapeTools()">🛠️ Edit Selected ▼</button>
                 </div>
                 
                 <div class="style-group">
@@ -363,6 +369,20 @@
                         <option value="cadence">🟢 Cadence Theme</option>
                     </select>
                 </div>
+            </div> 
+			<div id="shape-tools-panel" style="display:none; background: #dcdde1; padding: 10px; border: 1px solid #bdc3c7; border-top: none; border-radius: 0 0 6px 6px; flex-wrap: wrap; gap: 8px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                <button class="tool-btn" style="background:#27ae60; border-color:#2ecc71;" onclick="extractAction(false)">Move to Layer...</button>
+                <button class="tool-btn" style="background:#2980b9; border-color:#3498db;" onclick="extractAction(true)">Copy to Layer...</button>
+                <button class="tool-btn" style="background:#c0392b; border-color:#e74c3c;" onclick="explodeSelected()">💥 Shatter Shape</button>
+                <button class="tool-btn" style="background:#f39c12; border-color:#e67e22;" onclick="recombineSelected()">🧲 Recombine Shapes</button>
+                <button class="tool-btn" style="background:#8e44ad; border-color:#9b59b6;" onclick="rotateSelectedAction()">↻ Rotate</button>
+                <button class="tool-btn" style="background:#d35400; border-color:#e67e22;" onclick="scaleSelectedAction()">⤢ Scale</button>
+                
+                <div style="width: 1px; background: #bdc3c7; margin: 0 5px;"></div> <button class="tool-btn" style="background:#16a085; border-color:#1abc9c;" onclick="flipSelectedAction(true, false)">↔ Flip Horizontal (Local)</button>
+                <button class="tool-btn" style="background:#16a085; border-color:#1abc9c;" onclick="flipSelectedAction(false, true)">↕ Flip Vertical (Local)</button>
+                
+                <div style="width: 1px; background: #bdc3c7; margin: 0 5px;"></div> <button class="tool-btn" style="background:#1abc9c; border-color:#16a085;" onclick="mirrorSelectedAction(true, false)">🪞 Mirror across Y-axis (X=0)</button>
+                <button class="tool-btn" style="background:#1abc9c; border-color:#16a085;" onclick="mirrorSelectedAction(false, true)">🪞 Mirror across X-axis (Y=0)</button>
             </div>
 
             <div class="canvas-container" style="flex: 1; min-height: 200px;">
@@ -600,33 +620,22 @@
                 else if (dir === 'B') oy += 3;
 
                 let ptText = trans(ox, oy);
+                
+                let pinAlign = "start";
+                if (dir === 'L') pinAlign = "end";
+                else if (dir === 'T' || dir === 'B') pinAlign = "middle";
+                
+                // Flip pin text alignment based on global rotation/flips for readability
+                if (previewFlipH) {
+                    if (pinAlign === "start") pinAlign = "end";
+                    else if (pinAlign === "end") pinAlign = "start";
+                }
+                if (normalizedAngle >= 90 && normalizedAngle < 270) {
+                    if (pinAlign === "start") pinAlign = "end";
+                    else if (pinAlign === "end") pinAlign = "start";
+                }
 
-                // --- NEW: Dynamic CAD Alignment for Component Name ---
-				let effectiveDir = initialDir;
-				
-				// Reverse the anchor direction if flipped in the preview
-				if (previewFlipH) {
-					if (effectiveDir === 'L') effectiveDir = 'R';
-					else if (effectiveDir === 'R') effectiveDir = 'L';
-				}
-				if (previewFlipV) {
-					if (effectiveDir === 'T') effectiveDir = 'B';
-					else if (effectiveDir === 'B') effectiveDir = 'T';
-				}
-
-				let lblAlign = "middle";
-				if (effectiveDir === 'L') lblAlign = "end";
-				else if (effectiveDir === 'R') lblAlign = "start";
-
-				// If CAD Readability flipped the text upright, swap start/end
-				if (normalizedAngle >= 90 && normalizedAngle < 270) {
-					if (lblAlign === "start") lblAlign = "end";
-					else if (lblAlign === "end") lblAlign = "start";
-				}
-
-				if (labelText) {
-					textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" text-anchor="${lblAlign}" dominant-baseline="central" transform="rotate(${textRot}, ${ptLabel.x}, ${ptLabel.y})" font-family="Arial" font-size="12" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
-				}
+                textHtml += `<text x="${ptText.x}" y="${ptText.y}" transform="rotate(${textRot}, ${ptText.x}, ${ptText.y})" font-family="Arial" font-size="11" fill="${baseColor}" font-weight="bold" text-anchor="${pinAlign}" dominant-baseline="central" opacity="${textOpacity}">${displayText}</text>`;
             });
 
             // 5. ΚΕΝΤΡΙΚΟ LABEL (Name του εξαρτήματος)
@@ -713,7 +722,10 @@
                 else if (lblAlign === "end") lblAlign = "start";
             }
 
-            if (labelText) {
+            // --- NEW: Respect Hide Label Property ---
+            let hideLabel = document.getElementById('mHideLabel').checked;
+
+            if (labelText && !hideLabel) {
                 textHtml += `<text x="${ptLabel.x}" y="${ptLabel.y}" text-anchor="${lblAlign}" dominant-baseline="central" transform="rotate(${textRot}, ${ptLabel.x}, ${ptLabel.y})" font-family="Arial" font-size="12" fill="${labelColor}" font-weight="bold">${labelText}</text>`;
             }
 
@@ -782,7 +794,7 @@
 
         function updateTestPreview() {
             const chkPalette = document.getElementById('chkPalettePreview');
-            const previewStr = document.getElementById('mPreview').value.trim();
+            const previewStr = document.getElementById('mPreview') ? document.getElementById('mPreview').value.trim() : "";
             const argsList = getParsedArgs();
             const btnWrapper = document.getElementById('btn-set-default-wrapper');
 
@@ -794,9 +806,7 @@
                 let badge = document.getElementById('html-default-badge');
                 if (badge) badge.style.display = 'block';
                 
-                // ... (rest of updateTestPreview remains exactly the same)
-				
-				// Sync the Anchor back to default
+                // Sync the Anchor back to default
                 let metaAnchorEl = document.getElementById('mAnchor');
                 let testAnchorEl = document.getElementById('test-meta-anchor');
                 if (metaAnchorEl && testAnchorEl) testAnchorEl.value = metaAnchorEl.value;
@@ -811,16 +821,25 @@
                 
                 argsList.forEach(a => {
                     let desc = a.name.toLowerCase();
+                    let customDefs = argDefs.filter(def => def.idx == a.idx);
+
+                    // 1. REBUILD BACKGROUND MEMORY (testValues) ACCURATELY
                     if (desc === 'name' || desc === 'text') {
                         let defaultName = document.getElementById('dName').value || "M1";
                         testValues[a.idx] = pArgs[a.idx] !== undefined ? pArgs[a.idx] : defaultName;
                     } else {
-                        let val = pArgs[a.idx] !== undefined ? pArgs[a.idx] : "";
-                        testValues[a.idx] = val;
+                        if (pArgs[a.idx] !== undefined) {
+                            testValues[a.idx] = pArgs[a.idx];
+                        } else if (customDefs.length > 0) {
+                            // Safely extract the default values from the arg_def configurations
+                            let defVals = customDefs.map(d => d.defVal || "");
+                            testValues[a.idx] = customDefs.length > 1 ? defVals.join(', ') : defVals[0];
+                        } else {
+                            testValues[a.idx] = "";
+                        }
                     }
                     
-                    let customDefs = argDefs.filter(def => def.idx == a.idx);
-                    
+                    // 2. REBUILD THE VISUAL DOM TO MATCH THE MEMORY
                     if (customDefs.length > 0) {
                         let valParts = customDefs.length > 1 ? (testValues[a.idx] || "").split(',').map(s=>s.trim()) : [testValues[a.idx]];
                         
@@ -845,31 +864,15 @@
                             }
                         });
                     } else {
-                         let el = document.getElementById(`test-arg-${a.idx}`);
-                         if (el) {
-                             el.value = testValues[a.idx];
-                             if (desc === 'name' || desc === 'text') {
-                                 el.disabled = true;
-                                 el.style.backgroundColor = '#ecf0f1';
-                                 el.style.color = '#7f8c8d';
-                             }
-                         }
-                    }
-                });
-                
-                argsList.forEach(a => {
-                    let customDef = argDefs.find(def => def.idx == a.idx);
-                    if (customDef && customDef.type === 'rotflip') {
-                         let [r, f] = (testValues[a.idx] || "0,none").split(',');
-                         if (!f) f = "none";
-                         let rotInput = document.getElementById(`test-arg-${a.idx}-rot`);
-                         let flipSelect = document.getElementById(`test-arg-${a.idx}-flip`);
-                         if (rotInput) rotInput.value = r;
-                         if (flipSelect) flipSelect.value = f;
-                    } else if (customDef && customDef.type === 'flags') {
-                         let activeFlags = (testValues[a.idx] || "").split('-').map(o => o.trim());
-                         let checkboxes = document.querySelectorAll(`.test-flag-${a.idx}`);
-                         checkboxes.forEach(cb => { cb.checked = activeFlags.includes(cb.value); });
+                        let el = document.getElementById(`test-arg-${a.idx}`);
+                        if (el) {
+                            el.value = testValues[a.idx];
+                            if (desc === 'name' || desc === 'text') {
+                                el.disabled = true;
+                                el.style.backgroundColor = '#ecf0f1';
+                                el.style.color = '#7f8c8d';
+                            }
+                        }
                     }
                 });
             } else {
@@ -1000,6 +1003,12 @@
                             <input type="checkbox" id="chkPalettePreview" style="width: 16px; height: 16px;" checked onchange="updateTestPreview()">
                             👁️ Show default form
                         </label>
+                        
+                        <label style="display:flex; align-items:center; gap:8px; font-size:12px; font-weight:bold; color:#2c3e50; cursor:pointer; margin: 0; background: #fdfdfd; padding: 6px 10px; border-radius: 6px; border: 1px solid #bdc3c7;" title="Toggle the central label visibility">
+                            <input type="checkbox" id="test-hide-label" style="width: 16px; height: 16px;" ${document.getElementById('mHideLabel').checked ? 'checked' : ''}>
+                            🚫 Hide Auto-Label
+                        </label>
+
                         <span id="preview-save-toast" style="color: #27ae60; font-size: 11px; font-weight: bold; opacity: 0; transition: opacity 0.3s;">✅ Saved!</span>
                     </div>
                     <div id="btn-set-default-wrapper" style="display: none;">
@@ -1269,6 +1278,25 @@
                         }
                     });
 					
+					// --- NEW: Live Toggle & Sync for Hide Auto-Label ---
+                    const chkTestHideLabel = document.getElementById('test-hide-label');
+                    if (chkTestHideLabel) {
+                        chkTestHideLabel.addEventListener('change', (e) => {
+                            let mainHideLabel = document.getElementById('mHideLabel');
+                            if (mainHideLabel) {
+                                // 1. Update the main UI checkbox in the background
+                                mainHideLabel.checked = e.target.checked;
+                                // 2. Trigger the code generator to save it
+                                generateCode(); 
+                            }
+                            
+                            // 3. Immediately update the live preview
+                            window.markPreviewDirty();
+                            renderCanvas();
+                            document.getElementById('test-preview-container').innerHTML = generateTestPreviewSVG();
+                        });
+                    }
+					
 					// --- NEW: Live Label Anchor Control Engine ---
                     const chkCustomAnchor = document.getElementById('test-anchor-custom');
                     const inpAnchorX = document.getElementById('test-anchor-x');
@@ -1458,24 +1486,37 @@
             if (tool === 'erase') canvas.classList.add('erase-mode');
             else if (tool === 'extract') canvas.classList.add('extract-mode');
             
-            document.getElementById('extractTools').style.display = (tool === 'extract') ? 'flex' : 'none';
+            // --- NEW: Handle Toolbar & Panel Visibility ---
+            document.getElementById('btn-shape-tools').style.display = (tool === 'extract') ? 'block' : 'none';
+            if (tool !== 'extract') document.getElementById('shape-tools-panel').style.display = 'none';
+            
             selectedShapeIndices.clear(); // Clear memory when changing tools
 			selectedPinIndices.clear(); // Καθαρισμός επιλογής pins
             
             renderCanvas();
         }
+		
+		function toggleShapeTools() {
+            let panel = document.getElementById('shape-tools-panel');
+            panel.style.display = (panel.style.display === 'none' || panel.style.display === '') ? 'flex' : 'none';
+        }
 
         // --- ARGUMENT PARSER ---
         function getParsedArgs() {
             let argStr = document.getElementById('cArgs').value;
-            let matches = [...argStr.matchAll(/\{([^}]+)\}/g)];
-            return matches.map((m, i) => ({ idx: i + 1, name: m[1] }));
+            // NEW: Matches BOTH [optional] and {mandatory} brackets
+            let matches = [...argStr.matchAll(/\[([^\]]+)\]|\{([^}]+)\}/g)];
+            return matches.map((m, i) => ({ 
+                idx: i + 1, 
+                name: m[1] || m[2], 
+                optional: !!m[1] 
+            }));
         }
 
-        // --- NEW: ARGUMENT LIMITER (LATEX SUPPORTS MAX 9) ---
+        // --- ARGUMENT LIMITER (LATEX SUPPORTS MAX 9) ---
         function validateArgs(inputEl) {
             let argStr = inputEl.value;
-            let matches = [...argStr.matchAll(/\{([^}]+)\}/g)];
+            let matches = [...argStr.matchAll(/(\[[^\]]+\]|\{[^}]+\})/g)];
             
             const MAX_ARGS = 9; // Το απόλυτο όριο του LaTeX
             
@@ -1487,12 +1528,10 @@
                     confirmButtonColor: '#e74c3c'
                 });
                 
-                // Κρατάμε μόνο τα πρώτα MAX_ARGS και φτιάχνουμε ξανά το string
-                let validArgsStr = matches.slice(0, MAX_ARGS).map(m => `{${m[1]}}`).join('');
+                let validArgsStr = matches.slice(0, MAX_ARGS).map(m => m[1]).join('');
                 inputEl.value = validArgsStr;
             }
 
-            // Ενημερώνουμε όλο το UI (Layers, Dropdowns, Code) με τα νέα/κομμένα δεδομένα
             renderLayerList();
             renderArgDefList();
             generateCode();
@@ -1833,6 +1872,10 @@
             let wasInSoloMode = (visibleLayersCount === 1 && layers.length > 1);
 
             activeLayerId = id; // Αλλάζουμε το active layer
+            
+            // --- FIX: CLEAR SELECTION MEMORY WHEN CHANGING LAYERS ---
+            selectedShapeIndices.clear();
+            selectedPinIndices.clear();
 
             // Αν ήμασταν σε Solo, μεταφέρουμε το Solo στο νέο layer!
             if (wasInSoloMode) {
@@ -1939,7 +1982,19 @@
             }
         }
         
-        function deleteLayer(id) { layers = layers.filter(x => x.id !== id); if(activeLayerId === id) activeLayerId = 'l_base'; renderLayerList(); }
+        function deleteLayer(id) { 
+            layers = layers.filter(x => x.id !== id); 
+            if(activeLayerId === id) activeLayerId = layers.length > 0 ? layers[0].id : 'l_base'; 
+            
+            // Safety: Ensure there is always a base layer
+            if (layers.length > 0 && !layers.some(l => l.type === 'base')) {
+                layers[0].type = 'base';
+                layers[0].rule = { type: 'base' };
+            }
+            
+            renderLayerList(); 
+            generateCode(); 
+        }
         
         function addLayer() { 
             layers.push({ id: `l_${layerCounter++}`, type: 'add', rule: [], pathStr: '', visible: true, styles: { sw: "1.8", stroke: "", dashed: false, solid: false, rounded: false }, history: [], redoHistory: [] }); 
@@ -2037,12 +2092,21 @@
             let titleMatch = code.match(/%%\s*(.+)/);
             if(titleMatch) document.getElementById('dName').value = titleMatch[1].trim();
             
-            let cmdMatch = code.match(/\\newcommand\{\\([a-zA-Z0-9_]+)\}\s*\[\d+\]\s*\{%\s*([^\n]+)/);
+            // NEW: Safely handles optional [default] before the {
+            let cmdMatch = code.match(/\\newcommand\{\\([a-zA-Z0-9_]+)\}\s*\[\d+\](?:\[(.*?)\])?\s*\{%\s*([^\n]+)/);
             if(cmdMatch) { 
                 document.getElementById('cName').value = cmdMatch[1].trim(); 
-                let argsContent = cmdMatch[2].trim();
-                if(argsContent.startsWith('{')) document.getElementById('cArgs').value = argsContent;
-                else document.getElementById('cArgs').value = '{' + argsContent; 
+                
+                // Read the optional default [000]
+                if (cmdMatch[2]) document.getElementById('cOptDef').value = cmdMatch[2].trim();
+                else document.getElementById('cOptDef').value = "";
+                
+                let argsContent = cmdMatch[3].trim();
+                if(argsContent.startsWith('{') || argsContent.startsWith('[')) {
+                    document.getElementById('cArgs').value = argsContent;
+                } else {
+                    document.getElementById('cArgs').value = '{' + argsContent; 
+                }
             } else {
                 Swal.fire({ icon: 'error', title: 'Parse Error', text: 'Could not parse \\newcommand line. Check syntax.' });
                 return;
@@ -2053,6 +2117,9 @@
             let mAnchor = code.match(/% label_anchor:\s*([^\n]+)/); if(mAnchor) document.getElementById('mAnchor').value = mAnchor[1].trim();
             let mScales = code.match(/% scales:\s*([^\n]+)/); if(mScales) document.getElementById('mScales').value = mScales[1].trim();
             let mFlip = code.match(/% flip:\s*([^\n]+)/); if(mFlip) document.getElementById('mFlip').value = mFlip[1].trim();
+            // --- NEW: Import hide_label ---
+            let mHideLabel = code.match(/% hide_label:\s*([^\n]+)/); 
+            document.getElementById('mHideLabel').checked = (mHideLabel && mHideLabel[1].trim().toLowerCase() === 'true');
             
             // --- IMPORT DYNAMIC PROPERTIES ---
             // Use .* to strictly grab only the current line, then split by pipe.
@@ -2344,6 +2411,67 @@
 			
 			return newPath + textBlock;
 		}
+		
+		// --- UPGRADED FLIPPING ALGORITHM (Supports Curves, Arcs & Text) ---
+        function flipPathString(pathStr, flipH, flipV, cx, cy) {
+            let textMatch = pathStr.match(/\/\*TEXT:.*?\*\//);
+            let textBlock = textMatch ? " " + textMatch[0] : "";
+            let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//, "");
+
+            let sx = flipH ? -1 : 1;
+            let sy = flipV ? -1 : 1;
+
+            function flipAbsX(x) { return flipH ? cx - (x - cx) : x; }
+            function flipAbsY(y) { return flipV ? cy - (y - cy) : y; }
+            function flipRelX(x) { return x * sx; }
+            function flipRelY(y) { return y * sy; }
+
+            let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+
+                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+                if (!nums) return match;
+                nums = nums.map(Number);
+
+                let isAbs = (cmd === cmd.toUpperCase());
+
+                if (cmd === 'M' || cmd === 'L') {
+                    for (let i = 0; i < nums.length; i += 2) {
+                        nums[i] = isAbs ? flipAbsX(nums[i]) : flipRelX(nums[i]);
+                        nums[i+1] = isAbs ? flipAbsY(nums[i+1]) : flipRelY(nums[i+1]);
+                    }
+                } else if (cmd === 'C') {
+                    for (let i = 0; i < nums.length; i += 6) {
+                        nums[i] = isAbs ? flipAbsX(nums[i]) : flipRelX(nums[i]);
+                        nums[i+1] = isAbs ? flipAbsY(nums[i+1]) : flipRelY(nums[i+1]);
+                        nums[i+2] = isAbs ? flipAbsX(nums[i+2]) : flipRelX(nums[i+2]);
+                        nums[i+3] = isAbs ? flipAbsY(nums[i+3]) : flipRelY(nums[i+3]);
+                        nums[i+4] = isAbs ? flipAbsX(nums[i+4]) : flipRelX(nums[i+4]);
+                        nums[i+5] = isAbs ? flipAbsY(nums[i+5]) : flipRelY(nums[i+5]);
+                    }
+                } else if (cmd === 'Q') {
+                    for (let i = 0; i < nums.length; i += 4) {
+                        nums[i] = isAbs ? flipAbsX(nums[i]) : flipRelX(nums[i]);
+                        nums[i+1] = isAbs ? flipAbsY(nums[i+1]) : flipRelY(nums[i+1]);
+                        nums[i+2] = isAbs ? flipAbsX(nums[i+2]) : flipRelX(nums[i+2]);
+                        nums[i+3] = isAbs ? flipAbsY(nums[i+3]) : flipRelY(nums[i+3]);
+                    }
+                } else if (cmd === 'A') {
+                    for (let i = 0; i < nums.length; i += 7) {
+                        // When mirroring an SVG arc across exactly one axis, its sweep direction inverts
+                        if (flipH !== flipV) {
+                            nums[i+2] = -nums[i+2]; // invert angle
+                            nums[i+4] = nums[i+4] === 1 ? 0 : 1; // invert sweep flag
+                        }
+                        nums[i+5] = isAbs ? flipAbsX(nums[i+5]) : flipRelX(nums[i+5]);
+                        nums[i+6] = isAbs ? flipAbsY(nums[i+6]) : flipRelY(nums[i+6]);
+                    }
+                }
+                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+            }).replace(/\s+/g, ' ').trim();
+
+            return newPath + textBlock;
+        }
 		
 		
 
@@ -2667,6 +2795,9 @@
                     let destLayerId = result.value;
                     let targetLayer;
 
+                    // --- NEW: Check if we are in Solo mode BEFORE making any layer changes ---
+                    let wasInSoloMode = layers.filter(l => l.visible).length === 1;
+
                     // --- 1. HANDLE PATHS (SHAPES) ---
                     let extractedPaths = [];
                     if (selectedShapeIndices.size > 0) {
@@ -2708,8 +2839,6 @@
                             if (isCopy) {
                                 let newPin = JSON.parse(JSON.stringify(p));
                                 newPin.layerId = targetLayer.id;
-                                newPin.x += 10; 
-                                newPin.y -= 10;
                                 
                                 // NEW: If it's a dynamic text pin ($), DO NOT rename it so it keeps its data link!
                                 if (!newPin.id.includes('$')) {
@@ -2725,9 +2854,15 @@
 
                     // --- 4. CLEANUP & RENDER ---
                     activeLayerId = targetLayer.id; 
+                    
+                    // --- NEW: Transfer Solo visibility to the target layer ---
+                    if (wasInSoloMode) {
+                        layers.forEach(l => l.visible = (l.id === activeLayerId));
+                    }
+                    
                     setTool('line'); 
                     selectedShapeIndices.clear();
-                    selectedPinIndices.clear(); // NEW: Clear index tracking
+                    selectedPinIndices.clear();
                     renderLayerList();
                     
                     Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: isCopy ? 'Copied!' : 'Moved!', showConfirmButton: false, timer: 1500 });
@@ -2905,14 +3040,99 @@
                 }
             });
         }
+		
+		function flipSelectedAction(flipH, flipV) {
+            if (selectedShapeIndices.size === 0) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select shapes to flip!'});
+
+            let l = layers.find(x => x.id === activeLayerId);
+            saveHistory(l);
+            
+            let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+
+            // Calculate Bounding Box Center of selected shapes
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            subPaths.forEach((p, i) => {
+                if (selectedShapeIndices.has(i)) {
+                    let coords = [...p.matchAll(/([MLCcQqAa])\s*([-+]?\d*\.?\d+)\s*([-+]?\d*\.?\d+)/g)];
+                    coords.forEach(m => {
+                        let x = parseFloat(m[2]), y = parseFloat(m[3]);
+                        if (x < minX) minX = x; if (x > maxX) maxX = x;
+                        if (y < minY) minY = y; if (y > maxY) maxY = y;
+                    });
+                }
+            });
+            let cx = (minX + maxX) / 2;
+            let cy = (minY + maxY) / 2;
+
+            // Apply flip
+            selectedShapeIndices.forEach(idx => {
+                subPaths[idx] = flipPathString(subPaths[idx], flipH, flipV, cx, cy);
+            });
+            
+            l.pathStr = subPaths.join(' ');
+            renderLayerList();
+        }
+		
+		function mirrorSelectedAction(mirrorX, mirrorY) {
+            if (selectedShapeIndices.size === 0) return Swal.fire({icon: 'warning', title: 'Oops...', text: 'Select shapes to mirror!'});
+
+            let l = layers.find(x => x.id === activeLayerId);
+            saveHistory(l);
+            
+            let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+
+            // --- ABSOLUTE MIRRORING ---
+            // Unlike Local Flip (which calculates the center of the bounding box),
+            // Absolute Mirror strictly uses the 0,0 Canvas Origin.
+            let cx = 0;
+            let cy = 0;
+
+            // Apply mirror
+            selectedShapeIndices.forEach(idx => {
+                subPaths[idx] = flipPathString(subPaths[idx], mirrorX, mirrorY, cx, cy);
+            });
+            
+            l.pathStr = subPaths.join(' ');
+            renderLayerList();
+        }
 
         // --- LAYER MANIPULATION TOOLS ---
         function changeLayerType(id, newType) {
             let l = layers.find(x => x.id === id);
-            l.type = newType;
-            if (newType === 'base') l.rule = { type: 'base' };
-            else if (!Array.isArray(l.rule)) l.rule = [];
+            
+            if (newType === 'base') {
+                // Convert any existing base layers into 'Always ON' overlays
+                layers.forEach(layer => {
+                    if (layer.id !== id && layer.type === 'base') {
+                        layer.type = 'add';
+                        layer.rule = []; 
+                    }
+                });
+                
+                l.type = 'base';
+                l.rule = { type: 'base' };
+                
+                // Reorder layers so the Base is always visually at the bottom of the stack (Index 0)
+                layers.sort((a, b) => {
+                    if (a.type === 'base' && b.type !== 'base') return -1;
+                    if (a.type !== 'base' && b.type === 'base') return 1;
+                    return 0;
+                });
+            } else {
+                // Changing from base to overlay
+                l.type = 'add';
+                if (!Array.isArray(l.rule)) l.rule = [];
+                
+                // Safety: If there are no base layers left, force the first layer to be the base
+                let hasBase = layers.some(layer => layer.type === 'base');
+                if (!hasBase && layers.length > 0) {
+                    layers[0].type = 'base';
+                    layers[0].rule = { type: 'base' };
+                }
+            }
+            
             renderLayerList();
+            generateCode();
         }
 
         function mergeLayerDown(id) {
@@ -3448,12 +3668,16 @@
             // THE FIX: Safely strip out any accidental newlines the user typed in the textarea!
             let cArgs = document.getElementById('cArgs').value.replace(/\s*\n\s*/g, '').trim();
             
-            let argCount = (cArgs.match(/\{/g) || []).length;
-            if (argCount === 0) argCount = 1; 
+            // NEW: Count both { and [ brackets to get accurate argCount
+            let matches = [...cArgs.matchAll(/\[[^\]]+\]|\{[^}]+\}/g)];
+            let argCount = matches.length || 1; 
+            
+            let optDef = document.getElementById('cOptDef') ? document.getElementById('cOptDef').value.trim() : "";
+            let optPart = optDef ? `[${optDef}]` : "";
             
             let lines = [
                 `%% ${dName}`,
-                `\\newcommand{\\${cName}}[${argCount}]{%${cArgs}`
+                `\\newcommand{\\${cName}}[${argCount}]${optPart}{%${cArgs}`
             ];
             
             if(document.getElementById('mEnabled').checked) lines.push(`% enabled`);
@@ -3461,6 +3685,10 @@
             lines.push(`% scales: ${document.getElementById('mScales').value.trim()}`);
             lines.push(`% label_anchor: ${document.getElementById('mAnchor').value.trim()}`);
             lines.push(`% flip: ${document.getElementById('mFlip').value.trim()}`);
+            // --- NEW: Export hide_label if true ---
+            if (document.getElementById('mHideLabel').checked) {
+                lines.push(`% hide_label: true`);
+            }
             let prevArgsEl = document.getElementById('mPreview');
             if (prevArgsEl && prevArgsEl.value.trim()) {
                 lines.push(`% preview_args: ${prevArgsEl.value.trim()}`);
@@ -3480,15 +3708,15 @@
                 let cleanPath = l.pathStr.replace(/\s+/g, ' ').trim();
                 let desc = l.description ? ` // ${l.description.trim()}` : "";
                 
-                if (cleanPath) {
-                    if (idx === 0) {
-                        let attrs = formatStyleTag(l.styles);
-                        lines.push(`% icon_base: ${attrs}${cleanPath}${desc}`);
-                    } else {
-                        let condStr = buildRuleText(l.rule) + " : ";
-                        let attrs = formatStyleTag(l.styles);
-                        lines.push(`% add_icon: ${condStr}${attrs}${cleanPath}${desc}`);
-                    }
+                if (l.type === 'base') {
+                    // Always export the base layer (even if empty) so the importer doesn't get confused
+                    let attrs = formatStyleTag(l.styles);
+                    lines.push(`% icon_base: ${attrs}${cleanPath}${desc}`);
+                } else if (cleanPath) {
+                    // Only export overlays if they actually contain graphics
+                    let condStr = buildRuleText(l.rule) + " : ";
+                    let attrs = formatStyleTag(l.styles);
+                    lines.push(`% add_icon: ${condStr}${attrs}${cleanPath}${desc}`);
                 }
             });
 

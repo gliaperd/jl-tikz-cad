@@ -1550,16 +1550,21 @@
 % enabled
 % category: Digital/Logic
 % scales: 1, 2, 4
-% label_anchor: -15 -25 L
+% label_anchor: -21 -17 L
 % flip: disabled
 % preview_args: 3=normal
+
+% arg_def: 3 | select | symbol | normal | plain, normal, diamond
+% arg_def: 4 | rotation | Rotation | 0
+
 
 % icon_base: [rounded=true] M -40 0 L -20 0 M 20 0 L 40 0 // base
 % add_icon: 3==diamond : [rounded=true] M 0 -16 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M -20 0 L -20 -20 L 20 0 L 20 -20 L -20 0 M -20 0 L -20 20 M -20 20 L 20 0 M 20 0 L 20 20 M 20 20 L -20 0 M 0 -50 L 0 -20 M 0 10 L 0 50 // diamond
 % add_icon: 3==normal : [rounded=true] M 0 -34 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 0 -50 L 0 -38 M 0 30 L 0 50 // normal
 % add_icon: 3==normal : [rounded=true] M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -20 -30 L 20 -30 M -20 30 L 20 30 // normal-plain
 % add_icon: 3==plain : [rounded=true] M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -20 -30 L 20 -30 M -20 30 L 20 30 // normal-plain
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
+% add_icon: 3==plain : [rounded=true] M 0 30 L 0 50 M 0 -30 L 0 -50 // plain
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				% draw body
 					\ifstrequal{#3}{plain}
@@ -1648,9 +1653,11 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (-4, 0); % left terminal
-				\coordinate (pin2) at (4, 0); % right terminal
-		\end{scope}
+		        \coordinate (pin1) at (-4.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (4.00, 0.00); % right terminal  [R]
+        \coordinate (pin3) at (0.00, 5.00); % top (ctrln) [R]
+        \coordinate (pin4) at (0.00, -5.00); % bottom (ctrl) [R]
+    \end{scope}
 }
 
 %% OPAMP
@@ -1658,18 +1665,18 @@
 % enabled
 % category: Active Components
 % scales: 1, 2, 4
-% label_anchor: 110 20 R
+% label_anchor: 68 24 R
 % flip: disabled
+
+% arg_def: 3 | flags | flip |  | flip
+% arg_def: 4 | text | supplyvoltage | 
+% arg_def: 5 | rotation | Rotation | 0
+
 
 % icon_base: M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 25 20 L 35 20 // base
 % add_icon: 4!= : M 60 -20 L 60 -40 M 50 -40 L 70 -40 M 60 20 L 60 40 M 50 40 L 70 40 // supply terminals
 % add_icon: 3!=flip : M 30 -25 L 30 -15 // plus up
 % add_icon: 3~=flip : M 30 15 L 30 25 // plus down
-% pin: pin1 0 -20
-% pin: pin2 0 20
-% pin: pin3 120 0
-% pin: $4 60 -50
-% pin: -$4 60 50
     \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				% draw input/output terminals
@@ -1717,11 +1724,11 @@
 						{
 						}
 		        % coordinate pins
-        \coordinate (pin1) at (0.00, 2.00); % top left terminal (non-inverting input)
-        \coordinate (pin2) at (0.00, -2.00); % bottom left terminal (inverting input)
-        \coordinate (pin3) at (12.00, 0.00); % right terminal (output)
-        \coordinate ($4) at (6.00, 5.00);
-        \coordinate (-$4) at (6.00, -5.00);
+            \coordinate (pin1) at (0.00, 2.00); % top left terminal (non-inverting input) [R]
+        \coordinate (pin2) at (0.00, -2.00); % bottom left terminal (inverting input) [R]
+        \coordinate (pin3) at (12.00, 0.00); % right terminal (output) [R]
+        \coordinate ($4) at (6.00, 5.00); % [R]
+        \coordinate (-$4) at (6.00, -5.00); % [R]
     \end{scope}
 }
 
@@ -1729,44 +1736,17 @@
 \newcommand{\diode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Diodes
-% icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\ifstrequal{#3}{vertical}
-			{
-				\ifstrequal{#4}{90}
-					{
-						\edef\dioderotationangle{90}
-					}
-					{
-					}
-				\ifstrequal{#4}{-90}
-					{
-						\edef\dioderotationangle{-90}
-					}
-					{
-					}
-			}
-			{
-				\ifstrequal{#3}{horizontal}
-					{
-						\ifstrequal{#4}{0}
-							{
-								\edef\dioderotationangle{0}
-							}
-							{
-							}
-						\ifstrequal{#4}{180}
-							{
-								\edef\dioderotationangle{180}
-							}
-							{
-							}
-					}
-					{						
-						\edef\dioderotationangle{#4}
-					}
-			}			
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\dioderotationangle]
+
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0 // base
+% add_icon: 1~= : [stroke-width=3.4] M 36.50 -15 L 36.50 15 // cathode
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=\dioderotationangle]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -1819,53 +1799,26 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal (anode)
-				\coordinate (pin2) at (5, 0); % right terminal (cathode)
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
+        \coordinate (pin2) at (5.00, 0.00); % right terminal (cathode) [R]
+    \end{scope}
 }
 
 %% Zener Diode
 \newcommand{\zenerdiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Diodes
-% icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 30 -15 L 35 -15 L 35 15 L 40 15 M 35 0 L 50 0
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\ifstrequal{#3}{vertical}
-			{
-				\ifstrequal{#4}{90}
-					{
-						\edef\zenerdioderotationangle{90}
-					}
-					{
-					}
-				\ifstrequal{#4}{-90}
-					{
-						\edef\zenerdioderotationangle{-90}
-					}
-					{
-					}
-			}
-			{
-				\ifstrequal{#3}{horizontal}
-					{
-						\ifstrequal{#4}{0}
-							{
-								\edef\zenerdioderotationangle{0}
-							}
-							{
-							}
-						\ifstrequal{#4}{180}
-							{
-								\edef\zenerdioderotationangle{180}
-							}
-							{
-							}
-					}
-					{						
-						\edef\zenerdioderotationangle{#4}
-					}
-			}			
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\zenerdioderotationangle]
+
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) |  | horizontal, vertical, 
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0 // base
+% add_icon: 1~= : [stroke-width=2.7] M 31 -15 L 36 -15 L 36 15 L 41 15 // cathode
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=\zenerdioderotationangle]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -1918,53 +1871,27 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal (anode)
-				\coordinate (pin2) at (5, 0); % right terminal (cathode)
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
+        \coordinate (pin2) at (5.00, 0.00); % right terminal (cathode) [R]
+    \end{scope}
 }
 
-%% LED 
+%% LED
 \newcommand{\leddiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Diodes
-% icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 10 -20 L 20 -30 M 15 -30 L 20 -30 L 20 -25 M 15 -20 L 25 -30 M 20 -30 L 25 -30 L 25 -25
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\ifstrequal{#3}{vertical}
-			{
-				\ifstrequal{#4}{90}
-					{
-						\edef\leddioderotationangle{90}
-					}
-					{
-					}
-				\ifstrequal{#4}{-90}
-					{
-						\edef\leddioderotationangle{-90}
-					}
-					{
-					}
-			}
-			{
-				\ifstrequal{#3}{horizontal}
-					{
-						\ifstrequal{#4}{0}
-							{
-								\edef\leddioderotationangle{0}
-							}
-							{
-							}
-						\ifstrequal{#4}{180}
-							{
-								\edef\leddioderotationangle{180}
-							}
-							{
-							}
-					}
-					{						
-						\edef\leddioderotationangle{#4}
-					}
-			}			
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\leddioderotationangle]
+
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) |  | horizontal, vertical, 
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0 // base
+% add_icon: 1~= : [stroke-width=2.9] M 36.50 -15 L 36.50 15 // cathode
+% add_icon: 1~= : [rounded=true] M 17.50 -19.50 L 27.50 -29.50 M 22.50 -29.50 L 27.50 -29.50 L 27.50 -24.50 M 26 -17 L 36 -27 M 31 -27 L 36 -27 L 36 -22 // rays
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=\leddioderotationangle]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -2025,53 +1952,27 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal (anode)
-				\coordinate (pin2) at (5, 0); % right terminal (cathode)
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
+        \coordinate (pin2) at (5.00, 0.00); % right terminal (cathode) [R]
+    \end{scope}
 }
 
-%% Photodiode 
+%% Photodiode
 \newcommand{\photodiode}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Diodes
-% icon: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 20 -30 L 10 -20 M 10 -25 L 10 -20 L 15 -20 M 25 -30 L 15 -20 M 15 -25 L 15 -20 L 20 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\ifstrequal{#3}{vertical}
-			{
-				\ifstrequal{#4}{90}
-					{
-						\edef\photodioderotationangle{90}
-					}
-					{
-					}
-				\ifstrequal{#4}{-90}
-					{
-						\edef\photodioderotationangle{-90}
-					}
-					{
-					}
-			}
-			{
-				\ifstrequal{#3}{horizontal}
-					{
-						\ifstrequal{#4}{0}
-							{
-								\edef\photodioderotationangle{0}
-							}
-							{
-							}
-						\ifstrequal{#4}{180}
-							{
-								\edef\photodioderotationangle{180}
-							}
-							{
-							}
-					}
-					{						
-						\edef\photodioderotationangle{#4}
-					}
-			}			
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\photodioderotationangle]
+
+% arg_def: 3 | select | horizontal/vertical (LaTex only) |  | horizontal, vertical, 
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0 // base
+% add_icon: 1~= : [rounded=true] M 27.50 -30 L 17.50 -20 M 17.50 -25 L 17.50 -20 L 22.50 -20 M 37.50 -27.50 L 27.50 -17.50 M 27.50 -22.50 L 27.50 -17.50 L 32.50 -17.50 // rays
+% add_icon: 1~= : [stroke-width=2.7] M 36.50 -15 L 36.50 15 // cathode
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=\photodioderotationangle]
 				\getzoomfactor
 				% draw input/output terminals
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
@@ -2132,18 +2033,25 @@
 						}
 						{
 						}
-				\coordinate (pin1) at (0, 0); % left terminal (anode)
-				\coordinate (pin2) at (5, 0); % right terminal (cathode)
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
+        \coordinate (pin2) at (5.00, 0.00); % right terminal (cathode) [R]
+    \end{scope}
 }
 
 %% Supply Terminal
 \newcommand{\supplyterminal}[5]{%{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Terminals
-% icon: M 0 10 L 0 0 M -15 0 L 15 0
+% scales: 1, 2, 4
+% label_anchor: 0 -1 T
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+
+
+% icon_base: M 0 10 L 0 0 // base
+% add_icon: 1~= : [stroke-width=4] M -15 0 L 15 0 // anode
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				% draw terminal
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1)  -- (0,0);
@@ -2199,17 +2107,29 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, -1); % bottom terminal
-		\end{scope}
+		        \coordinate (pin1) at (0.00, -1.00); % bottom terminal  [R]
+    \end{scope}
 }
 
 %% Input/Output Port
 \newcommand{\ioport}[6]{%{position}{name}{input/output/top/bottom}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Terminals
-% icon: M 0 0 L 5 0 M 11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
+% hide_label: true
+
+% arg_def: 3 | select | orientation | input | input, output, top, bottom
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base:  // base
+% add_icon: 3==input : M -11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 0 L -7.50 0 // input
+% add_icon: 3==output : M 11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 0 L 7.5 0 // output
+% add_icon: 3==top : M 0 -11 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 0 L 0 -7.50 // top
+% add_icon: 3==bottom : M 0 11 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 0 L 0 7.50 // bottom
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				\ifstrequal{#3}{output}
 					{
@@ -2220,7 +2140,6 @@
 							\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (1.3,0) circle (0.3);
 						% draw name
 							\node[draw=none, anchor=west] at (1.6,0) {#2};
-						\coordinate (pin1) at (0, 0); % terminal
 					}
 					{
 						\ifstrequal{#3}{input}
@@ -2232,7 +2151,6 @@
 									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (-0.3,0) circle (0.3);
 								% draw name
 									\node[draw=none, anchor=east] at (-0.6,0) {#2};
-								\coordinate (pin1) at (1, 0); % terminal
 							}
 							{
 								\ifstrequal{#3}{top}
@@ -2244,7 +2162,6 @@
 											\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,1.3) circle (0.3);
 										% draw name
 											\node[draw=none, anchor=south] at (0,1.6) {#2};
-										\coordinate (pin1) at (0, 0); % terminal
 									}
 									{
 										% draw line
@@ -2254,7 +2171,6 @@
 											\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,-0.3) circle (0.3);
 										% draw name
 											\node[draw=none, anchor=north] at (0,-0.6) {#2};
-										\coordinate (pin1) at (0, 1); % terminal
 									}
 							}
 					}
@@ -2271,7 +2187,12 @@
 					}
 					{
 					}
-		\end{scope}
+            \coordinate ($2) at (-1.50, 0.00); % [L] IF:3==input
+        \coordinate ($2) at (1.80, 0.00); % [R] IF:3==output
+        \coordinate ($2) at (0.00, 1.80); % [T] IF:3==top
+        \coordinate ($2) at (0.00, -1.70); % [B] IF:3==bottom
+        \coordinate (pin3) at (0.00, 0.00); % terminal  [R]
+    \end{scope}
 }
 
 %
@@ -2284,9 +2205,23 @@
 % enabled
 % category: Digital/Logic
 % scales: 1, 2, 4
-% icon: M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 000 | 000, 001, 010, 011, 100, 101, 110, 111
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10 // base
+% add_icon: 1==000 : M 0 -30 L 15 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10 // 000
+% add_icon: 1==001 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10 // 001
+% add_icon: 1==010 : M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -20 L 10 -20 M 0 -30 L 15 -30 M 0 -10 L 15 -10 // 010
+% add_icon: 1==011 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 15 -10 // 011
+% add_icon: 1==100 : M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -10 L 10 -10 M 0 -20 L 15 -20 M 0 -30 L 15 -30 // 100
+% add_icon: 1==101 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -20 L 15 -20 M 0 -30 L 10 -30 M 0 -10 L 10 -10 // 101
+% add_icon: 1==110 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 15 -10 // 110
+% add_icon: 1==111 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10 // 111
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=green!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
@@ -2332,11 +2267,11 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 2); % middle left terminal (input-2)
-				\coordinate (pin3) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin4) at (7, 2); % right terminal (output)			
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 2.00); % middle left terminal (input-2) [R]
+        \coordinate (pin3) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin4) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% AND - n inputs
@@ -2421,9 +2356,24 @@
 \newcommand{\nandthree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 000 | 000, 001, 010, 011, 100, 101, 110, 111
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10 M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20 // base
+% add_icon: 1==000 : M 0 -30 L 15 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10 // 000
+% add_icon: 1==001 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10 // 001
+% add_icon: 1==010 : M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -20 L 10 -20 M 0 -30 L 15 -30 M 0 -10 L 15 -10 // 010
+% add_icon: 1==011 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 15 -10 // 011
+% add_icon: 1==100 : M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -10 L 10 -10 M 0 -20 L 15 -20 M 0 -30 L 15 -30 // 100
+% add_icon: 1==101 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -20 L 15 -20 M 0 -30 L 10 -30 M 0 -10 L 10 -10 // 101
+% add_icon: 1==110 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 15 -10 // 110
+% add_icon: 1==111 : M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10 // 111
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=blue!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
@@ -2471,20 +2421,31 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 2); % middle left terminal (input-2)
-				\coordinate (pin3) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin4) at (7, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 2.00); % middle left terminal (input-2) [R]
+        \coordinate (pin3) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin4) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% AND-2
 \newcommand{\andtwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20 // base
+% add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
+% add_icon: 1==01 : M 0 -30 L 16 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 // 01
+% add_icon: 1==10 : M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 // 10
+% add_icon: 1==11 : M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 // 11
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=green!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
@@ -2521,19 +2482,30 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin3) at (7, 2); % right terminal (output)	
-		\end{scope}
+            \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin3) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% NAND-2
 \newcommand{\nandtwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base: M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20 // base
+% add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
+% add_icon: 1==01 : M 0 -30 L 16 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 // 01
+% add_icon: 1==10 : M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 16 -10 M 0 -30 L 10 -30 // 10
+% add_icon: 1==11 : M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 // 11
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=blue!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
@@ -2572,19 +2544,33 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin3) at (7, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin3) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% OR-3
 \newcommand{\orthree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 000 | 000, 001, 010, 011, 100, 101, 110, 111
+
+
+% icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20 // base
+% add_icon: 1==000 : M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 // 000
+% add_icon: 1==001 : M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 // 001
+% add_icon: 1==010 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -20 L 12 -20 // 010
+% add_icon: 1==011 : M 0 -30 L 16 -30 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 M 0 -20 L 11.5 -20 // 011
+% add_icon: 1==100 : M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 // 100
+% add_icon: 1==101 : M 0 -20 L 18 -20 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 // 101
+% add_icon: 1==110 : M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -20 L 12 -20 // 110
+% add_icon: 1==111 : M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 M 0 -20 L 11.5 -20 // 111
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=red!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
@@ -2629,20 +2615,34 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 2); % middle left terminal (input-2)
-				\coordinate (pin3) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin4) at (7, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 2.00); % middle left terminal (input-2) [R]
+        \coordinate (pin3) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin4) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% NOR-3
 \newcommand{\northree}[6][000]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 000 | 000, 001, 010, 011, 100, 101, 110, 111
+
+
+% icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20 // base
+% add_icon: 1==000 : M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 // 000
+% add_icon: 1==001 : M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 // 001
+% add_icon: 1==010 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -20 L 12 -20 // 010
+% add_icon: 1==011 : M 0 -30 L 16 -30 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 M 0 -20 L 11.5 -20 // 011
+% add_icon: 1==100 : M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 // 100
+% add_icon: 1==101 : M 0 -20 L 18 -20 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 // 101
+% add_icon: 1==110 : M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -20 L 12 -20 // 110
+% add_icon: 1==111 : M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 M 0 -20 L 11.5 -20 // 111
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=yellow!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
@@ -2689,20 +2689,30 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 2); % middle left terminal (input-2)
-				\coordinate (pin3) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin4) at (7, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 2.00); % middle left terminal (input-2) [R]
+        \coordinate (pin3) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin4) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% OR-2
 \newcommand{\ortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
+
+
+% icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20 // base
+% add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
+% add_icon: 1==01 : M 0 -30 L 16 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 // 01
+% add_icon: 1==10 : M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 // 10
+% add_icon: 1==11 : M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 // 11
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=red!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
@@ -2738,10 +2748,10 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin3) at (7, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin3) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% OR - n inputs
@@ -2786,9 +2796,19 @@
 \newcommand{\nortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
+
+
+% icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20 // base
+% add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
+% add_icon: 1==01 : M 0 -30 L 16 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 // 01
+% add_icon: 1==10 : M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 // 10
+% add_icon: 1==11 : M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 // 11
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=yellow!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
@@ -2826,10 +2846,10 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin3) at (7, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin3) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% NOR-2 Flipped (only to be used by the \dipic macro)
@@ -2893,9 +2913,19 @@
 \newcommand{\xortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
+
+
+% icon_base: M 8 -39.50 Q 23 -19.50 8 0.50 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20 // base
+% add_icon: 1==00 : M 0 -30 L 13 -30 M 0 -10 L 13 -10 // 00
+% add_icon: 1==01 : M 0 -30 L 13 -30 M 9.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 6 -10 // 01
+% add_icon: 1==10 : M 9.50 -30 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 13 -10 M 0 -30 L 7.5 -30 // 10
+% add_icon: 1==11 : M 9.50 -30 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -30 L 7.5 -30 M 9.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 7 -10 // 11
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=orange!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
@@ -2932,19 +2962,29 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin3) at (7, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin3) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% XNOR-2
 \newcommand{\xnortwo}[6][00]{%[string for inverted inputs]{position}{name}{rotation}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 45 -10 50 -20 C 45 -30 40 -40 15 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#2}, rotate=#4]
+
+% arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
+
+
+% icon_base: M 8 -39.50 Q 23 -19.50 8 0.50 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 64 -20 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 70 -20 L 66 -20 // base
+% add_icon: 1==00 : M 0 -30 L 13 -30 M 0 -10 L 13 -10 // 00
+% add_icon: 1==01 : M 0 -30 L 13 -30 M 9.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 6 -10 // 01
+% add_icon: 1==10 : M 9.50 -30 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 13 -10 M 0 -30 L 7.5 -30 // 10
+% add_icon: 1==11 : M 9.50 -30 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -30 L 7.5 -30 M 9.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 7 -10 // 11
+    \begin{scope}[shift={#2}, rotate=#4]
 				\getzoomfactor
 				\shade[left color=brown!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (1.6,3);
@@ -2983,19 +3023,26 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 3); % top left terminal (input-1)
-				\coordinate (pin2) at (0, 1); % bottom left terminal (input-3)
-				\coordinate (pin3) at (7, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 3.00); % top left terminal (input-1) [R]
+        \coordinate (pin2) at (0.00, 1.00); % bottom left terminal (input-3) [R]
+        \coordinate (pin3) at (7.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% NOT
 \newcommand{\inverter}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 35 -20 Z M 39 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 43 -20 L 50 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | select | color (LaTeX only) | nocolor | nocolor, color
+
+
+% icon_base: M 43 -20 L 50 -20 M 0 -20 L 10 -20 M 10 0 L 10 -40 L 35 -20 Z M 39.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // base
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\ifstrequal{#4}{nocolor}
 				{
@@ -3021,18 +3068,25 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 2); % left terminal (input)
-				\coordinate (pin2) at (5, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 2.00); % left terminal (input) [R]
+        \coordinate (pin2) at (5.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% NOT small
 \newcommand{\invertersmall}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -10 L 10 -10 M 10 -20 L 10 0 L 30 -10 Z M 34 -10 m -4 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 34 -10 L 40 -10
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | flags | color (LaTeX only) | nocolor | nocolor
+
+
+% icon_base: M 0 -10 L 10 -10 M 10 -20 L 10 0 L 29 -10 Z M 33.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 40 -10 L 35 -10
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\ifstrequal{#4}{nocolor}
 				{
@@ -3058,18 +3112,25 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 1); % left terminal (input)
-				\coordinate (pin2) at (4, 1); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 1.00); % left terminal (input) [R]
+        \coordinate (pin2) at (4.00, 1.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% BUFFER
 \newcommand{\buffer}[6]{%{position}{name}{rotation}{nocolor}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | flags | Color (LaTeX only) | nocolor | nocolor
+
+
+% icon_base: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20 // base
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\ifstrequal{#4}{nocolor}
 				{
@@ -3093,18 +3154,31 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 2); % left terminal (input)
-				\coordinate (pin2) at (5, 2); % right terminal (output)	
-		\end{scope}
+		        \coordinate (pin1) at (0.00, 2.00); % left terminal (input) [R]
+        \coordinate (pin2) at (5.00, 2.00); % right terminal (output) [R]
+    \end{scope}
 }
 
 %% J-K Flip Flop
 \newcommand{\jkflipflop}[7]{%{position}{name}{rotation}{reset/resetn/noreset}{positive/negative trigger}{grid}{show (0,0)}
 % enabled
 % category: Digital/Logic
-% icon: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10
+% scales: 1, 2, 4
+% label_anchor: T
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | select | reset | noreset | reset, resetn, noreset
+% arg_def: 5 | select | negative, positive trigger | negative | negative, positive
+
+
+% icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 // base
+% add_icon: 1~= : M 15 -80 L 15 -80 /*TEXT:10,normal,J*/ M 15 -20 L 15 -20 /*TEXT:10,normal,K*/ M 30 -50 L 30 -50 /*TEXT:10,normal,CLK*/ M 50 -80 L 50 -80 /*TEXT:10,normal,Q*/ M 50 -20 L 50 -20 /*TEXT:10,normal,Q*/ M 46.50 -26.50 L 53.50 -26.50 // terminals
+% add_icon: 1== && 4==reset : M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ // clr
+% add_icon: 5==positive : M 6.50 -50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -50 L 3.5 -50 // positive trigger
+% add_icon: 5==negative : M 0 -50 L 10 -50 // negative trigger
+% add_icon: 4==resetn : M 35 -5 L 35 -5 /*TEXT:10,normal,clrn*/ M 35 3 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 35 10 L 35 5 // clrn
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=purple!20!white, draw=none] (1,0) rectangle (6,10);
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,8)  -- (1,8);
@@ -3124,7 +3198,6 @@
 					{
 						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (3.5,0)  -- (3.5,-1);
 						\node[draw=none, align=center] at (3.5,0.7) {clr};
-						\coordinate (pin4) at (3.5, -1); % bottom terminal (clr)
 					}
 					{
 						\ifstrequal{#4}{resetn}
@@ -3133,7 +3206,6 @@
 								\node[draw=none, align=center] at (3.5,0.7) {clr};
 								\filldraw[white]  (3.5,-0.3) circle(0.25);
 								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,-0.3) circle(0.25);
-								\coordinate (pin4) at (3.5, -1); % bottom terminal (clr)
 							}
 							{
 							}
@@ -3157,12 +3229,14 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (0, 8); % top left terminal (J)
-				\coordinate (pin2) at (0, 5); % middle left terminal (CLK)
-				\coordinate (pin3) at (0, 2); % bottom left terminal (K)
-				\coordinate (pin5) at (7, 8); % top right terminal (Q)	
-				\coordinate (pin6) at (7, 2); % bottom right terminal (Qn)	
-		\end{scope}
+		        \coordinate (pin4) at (3.50, -1.00); % bottom terminal (clr) [R] IF:1== && 4==reset
+        \coordinate (pin1) at (0.00, 8.00); % top left terminal (J) [R]
+        \coordinate (pin2) at (0.00, 5.00); % middle left terminal (CLK) [R]
+        \coordinate (pin3) at (0.00, 2.00); % bottom left terminal (K) [R]
+        \coordinate (pin5) at (7.00, 8.00); % top right terminal (Q) [R]
+        \coordinate (pin6) at (7.00, 2.00); % bottom right terminal (Qn) [R]
+        \coordinate (pin7) at (3.50, -1.00); % bottom terminal (clr) [R] IF:4==resetn
+    \end{scope}
 }
 
 

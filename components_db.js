@@ -1896,14 +1896,29 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": -15.0,
-            "y": -25.0,
+            "x": -21.0,
+            "y": -17.0,
             "dir": "L"
         },
         "flippable": false,
         "previewArgs": {
             "3": "normal"
         },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "symbol",
+                "defVal": "normal",
+                "options": "plain, normal, diamond"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
         "iconBase": "M -40 0 L -20 0 M 20 0 L 40 0",
         "iconBaseStyle": "rounded=true",
         "filled": false,
@@ -1927,6 +1942,11 @@ const JL_DATABASE = {
                 "condition": "3==plain",
                 "style": "rounded=true",
                 "path": "M -20 -20 L 20 -20 L 20 20 L -20 20 Z M -20 -30 L 20 -30 M -20 30 L 20 30"
+            },
+            {
+                "condition": "3==plain",
+                "style": "rounded=true",
+                "path": "M 0 30 L 0 50 M 0 -30 L 0 -50"
             }
         ],
         "argNames": [
@@ -1969,6 +1989,20 @@ const JL_DATABASE = {
                 "y": -0.0,
                 "label": "",
                 "dir": "R"
+            },
+            {
+                "id": "pin3",
+                "x": 0.0,
+                "y": -50.0,
+                "label": "ctrln",
+                "dir": "R"
+            },
+            {
+                "id": "pin4",
+                "x": 0.0,
+                "y": 50.0,
+                "label": "ctrl",
+                "dir": "R"
             }
         ]
     },
@@ -1984,11 +2018,32 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 110.0,
-            "y": 20.0,
+            "x": 68.0,
+            "y": 24.0,
             "dir": "R"
         },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "flags",
+                "label": "flip",
+                "defVal": "",
+                "options": "flip"
+            },
+            {
+                "idx": 4,
+                "type": "text",
+                "label": "supplyvoltage",
+                "defVal": ""
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
         "iconBase": "M 0 -20 L 20 -20 M 0 20 L 20 20 M 100 0 L 120 0 M 20 -40 L 20 40 L 100 0 Z M 25 -20 L 35 -20 M 25 20 L 35 20",
         "filled": false,
         "iconLayers": [
@@ -2082,8 +2137,40 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Diodes",
-        "icon": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=3.4",
+                "path": "M 36.50 -15 L 36.50 15"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -2133,8 +2220,40 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Diodes",
-        "icon": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 30 -15 L 35 -15 L 35 15 L 40 15 M 35 0 L 50 0",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "",
+                "options": "horizontal, vertical,"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.7",
+                "path": "M 31 -15 L 36 -15 L 36 15 L 41 15"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -2184,8 +2303,45 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Diodes",
-        "icon": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 10 -20 L 20 -30 M 15 -30 L 20 -30 L 20 -25 M 15 -20 L 25 -30 M 20 -30 L 25 -30 L 25 -25",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "",
+                "options": "horizontal, vertical,"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.9",
+                "path": "M 36.50 -15 L 36.50 15"
+            },
+            {
+                "condition": "1~=",
+                "style": "rounded=true",
+                "path": "M 17.50 -19.50 L 27.50 -29.50 M 22.50 -29.50 L 27.50 -29.50 L 27.50 -24.50 M 26 -17 L 36 -27 M 31 -27 L 36 -27 L 36 -22"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -2235,8 +2391,45 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Diodes",
-        "icon": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 -15 L 35 15 M 35 0 L 50 0 M 20 -30 L 10 -20 M 10 -25 L 10 -20 L 15 -20 M 25 -30 L 15 -20 M 15 -25 L 15 -20 L 20 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTex only)",
+                "defVal": "",
+                "options": "horizontal, vertical,"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "rounded=true",
+                "path": "M 27.50 -30 L 17.50 -20 M 17.50 -25 L 17.50 -20 L 22.50 -20 M 37.50 -27.50 L 27.50 -17.50 M 27.50 -22.50 L 27.50 -17.50 L 32.50 -17.50"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.7",
+                "path": "M 36.50 -15 L 36.50 15"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -2286,8 +2479,34 @@ const JL_DATABASE = {
         "argsCount": 5,
         "enabled": "true",
         "category": "Terminals",
-        "icon": "M 0 10 L 0 0 M -15 0 L 15 0",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": 0.0,
+            "y": -1.0,
+            "dir": "T"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 10 L 0 0",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=4",
+                "path": "M -15 0 L 15 0"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -2326,8 +2545,56 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Terminals",
-        "icon": "M 0 0 L 5 0 M 11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "hideLabel": true,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "orientation",
+                "defVal": "input",
+                "options": "input, output, top, bottom"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "3==input",
+                "style": "",
+                "path": "M -11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 0 L -7.50 0"
+            },
+            {
+                "condition": "3==output",
+                "style": "",
+                "path": "M 11 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 0 L 7.5 0"
+            },
+            {
+                "condition": "3==top",
+                "style": "",
+                "path": "M 0 -11 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 0 L 0 -7.50"
+            },
+            {
+                "condition": "3==bottom",
+                "style": "",
+                "path": "M 0 11 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 0 L 0 7.50"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -2356,30 +2623,41 @@ const JL_DATABASE = {
         ],
         "pins": [
             {
-                "id": "pin1",
-                "x": 0.0,
+                "id": "$2",
+                "x": -15.0,
                 "y": -0.0,
                 "label": "",
-                "dir": "R"
+                "dir": "L",
+                "condition": "3==input"
             },
             {
-                "id": "pin1",
-                "x": 10.0,
+                "id": "$2",
+                "x": 18.0,
                 "y": -0.0,
                 "label": "",
-                "dir": "R"
+                "dir": "R",
+                "condition": "3==output"
             },
             {
-                "id": "pin1",
+                "id": "$2",
+                "x": 0.0,
+                "y": -18.0,
+                "label": "",
+                "dir": "T",
+                "condition": "3==top"
+            },
+            {
+                "id": "$2",
+                "x": 0.0,
+                "y": 17.0,
+                "label": "",
+                "dir": "B",
+                "condition": "3==bottom"
+            },
+            {
+                "id": "pin3",
                 "x": 0.0,
                 "y": -0.0,
-                "label": "",
-                "dir": "R"
-            },
-            {
-                "id": "pin1",
-                "x": 0.0,
-                "y": -10.0,
                 "label": "",
                 "dir": "R"
             }
@@ -2396,8 +2674,70 @@ const JL_DATABASE = {
             2,
             4
         ],
-        "icon": "M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20",
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "000",
+                "options": "000, 001, 010, 011, 100, 101, 110, 111"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==000",
+                "style": "",
+                "path": "M 0 -30 L 15 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==001",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==010",
+                "style": "",
+                "path": "M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -20 L 10 -20 M 0 -30 L 15 -30 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==011",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==100",
+                "style": "",
+                "path": "M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -10 L 10 -10 M 0 -20 L 15 -20 M 0 -30 L 15 -30"
+            },
+            {
+                "condition": "1==101",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -20 L 15 -20 M 0 -30 L 10 -30 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==110",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==111",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2461,8 +2801,75 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 16 -30 M 0 -20 L 16 -20 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "000",
+                "options": "000, 001, 010, 011, 100, 101, 110, 111"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10 M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==000",
+                "style": "",
+                "path": "M 0 -30 L 15 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==001",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==010",
+                "style": "",
+                "path": "M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -20 L 10 -20 M 0 -30 L 15 -30 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==011",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==100",
+                "style": "",
+                "path": "M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -10 L 10 -10 M 0 -20 L 15 -20 M 0 -30 L 15 -30"
+            },
+            {
+                "condition": "1==101",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -20 L 15 -20 M 0 -30 L 10 -30 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==110",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 15 -10"
+            },
+            {
+                "condition": "1==111",
+                "style": "",
+                "path": "M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -29.50 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -20 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 12.50 -10 m -2 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2526,8 +2933,55 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "00",
+                "options": "00, 01, 10, 11"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==00",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -10 L 16 -10"
+            },
+            {
+                "condition": "1==01",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==10",
+                "style": "",
+                "path": "M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30"
+            },
+            {
+                "condition": "1==11",
+                "style": "",
+                "path": "M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2584,8 +3038,55 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "00",
+                "options": "00, 01, 10, 11"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==00",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -10 L 16 -10"
+            },
+            {
+                "condition": "1==01",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==10",
+                "style": "",
+                "path": "M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 16 -10 M 0 -30 L 10 -30"
+            },
+            {
+                "condition": "1==11",
+                "style": "",
+                "path": "M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2642,8 +3143,69 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "000",
+                "options": "000, 001, 010, 011, 100, 101, 110, 111"
+            }
+        ],
+        "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==000",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10"
+            },
+            {
+                "condition": "1==001",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==010",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -20 L 12 -20"
+            },
+            {
+                "condition": "1==011",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 M 0 -20 L 11.5 -20"
+            },
+            {
+                "condition": "1==100",
+                "style": "",
+                "path": "M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30"
+            },
+            {
+                "condition": "1==101",
+                "style": "",
+                "path": "M 0 -20 L 18 -20 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==110",
+                "style": "",
+                "path": "M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -20 L 12 -20"
+            },
+            {
+                "condition": "1==111",
+                "style": "",
+                "path": "M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 M 0 -20 L 11.5 -20"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2707,8 +3269,69 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "000",
+                "options": "000, 001, 010, 011, 100, 101, 110, 111"
+            }
+        ],
+        "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==000",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10"
+            },
+            {
+                "condition": "1==001",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==010",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -20 L 12 -20"
+            },
+            {
+                "condition": "1==011",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10 M 0 -20 L 11.5 -20"
+            },
+            {
+                "condition": "1==100",
+                "style": "",
+                "path": "M 0 -20 L 18 -20 M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30"
+            },
+            {
+                "condition": "1==101",
+                "style": "",
+                "path": "M 0 -20 L 18 -20 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==110",
+                "style": "",
+                "path": "M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -20 L 12 -20"
+            },
+            {
+                "condition": "1==111",
+                "style": "",
+                "path": "M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 14.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10 M 0 -20 L 11.5 -20"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2772,8 +3395,49 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "00",
+                "options": "00, 01, 10, 11"
+            }
+        ],
+        "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==00",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -10 L 16 -10"
+            },
+            {
+                "condition": "1==01",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==10",
+                "style": "",
+                "path": "M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30"
+            },
+            {
+                "condition": "1==11",
+                "style": "",
+                "path": "M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2830,8 +3494,49 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 16 -30 M 0 -10 L 16 -10 M 10 -40 Q 25 -20 10 0 C 35 0 45 -10 50 -20 C 45 -30 35 -40 10 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "00",
+                "options": "00, 01, 10, 11"
+            }
+        ],
+        "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==00",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 0 -10 L 16 -10"
+            },
+            {
+                "condition": "1==01",
+                "style": "",
+                "path": "M 0 -30 L 16 -30 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -10 L 10 -10"
+            },
+            {
+                "condition": "1==10",
+                "style": "",
+                "path": "M 0 -10 L 16 -10 M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30"
+            },
+            {
+                "condition": "1==11",
+                "style": "",
+                "path": "M 12.50 -30 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 12.50 -10 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -30 L 10 -30 M 0 -10 L 10 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2888,8 +3593,49 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "00",
+                "options": "00, 01, 10, 11"
+            }
+        ],
+        "iconBase": "M 8 -39.50 Q 23 -19.50 8 0.50 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==00",
+                "style": "",
+                "path": "M 0 -30 L 13 -30 M 0 -10 L 13 -10"
+            },
+            {
+                "condition": "1==01",
+                "style": "",
+                "path": "M 0 -30 L 13 -30 M 9.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 6 -10"
+            },
+            {
+                "condition": "1==10",
+                "style": "",
+                "path": "M 9.50 -30 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 13 -10 M 0 -30 L 7.5 -30"
+            },
+            {
+                "condition": "1==11",
+                "style": "",
+                "path": "M 9.50 -30 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -30 L 7.5 -30 M 9.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 7 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -2946,8 +3692,49 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -30 L 13 -30 M 0 -10 L 13 -10 M 5 -40 Q 20 -20 5 0 M 15 -40 Q 30 -20 15 0 C 40 0 45 -10 50 -20 C 45 -30 40 -40 15 -40 Z M 55 -20 m -5 0 a 5 5 0 1 0 10 0 a 5 5 0 1 0 -10 0 M 60 -20 L 70 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 1,
+                "type": "select",
+                "label": "string for inverted inputs",
+                "defVal": "00",
+                "options": "00, 01, 10, 11"
+            }
+        ],
+        "iconBase": "M 8 -39.50 Q 23 -19.50 8 0.50 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 64 -20 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 70 -20 L 66 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1==00",
+                "style": "",
+                "path": "M 0 -30 L 13 -30 M 0 -10 L 13 -10"
+            },
+            {
+                "condition": "1==01",
+                "style": "",
+                "path": "M 0 -30 L 13 -30 M 9.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 6 -10"
+            },
+            {
+                "condition": "1==10",
+                "style": "",
+                "path": "M 9.50 -30 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 13 -10 M 0 -30 L 7.5 -30"
+            },
+            {
+                "condition": "1==11",
+                "style": "",
+                "path": "M 9.50 -30 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -30 L 7.5 -30 M 9.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 0 -10 L 7 -10"
+            }
+        ],
         "argNames": [
             {
                 "name": "string for inverted inputs",
@@ -3004,8 +3791,33 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -20 L 15 -20 M 15 0 L 15 -40 L 35 -20 Z M 39 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 43 -20 L 50 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "color (LaTeX only)",
+                "defVal": "nocolor",
+                "options": "nocolor, color"
+            }
+        ],
+        "iconBase": "M 43 -20 L 50 -20 M 0 -20 L 10 -20 M 10 0 L 10 -40 L 35 -20 Z M 39.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
+        "filled": false,
         "argNames": [
             {
                 "name": "position",
@@ -3055,8 +3867,33 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -10 L 10 -10 M 10 -20 L 10 0 L 30 -10 Z M 34 -10 m -4 0 a 2 2 0 1 0 4 0 a 2 2 0 1 0 -4 0 M 34 -10 L 40 -10",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "flags",
+                "label": "color (LaTeX only)",
+                "defVal": "nocolor",
+                "options": "nocolor"
+            }
+        ],
+        "iconBase": "M 0 -10 L 10 -10 M 10 -20 L 10 0 L 29 -10 Z M 33.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 40 -10 L 35 -10",
+        "filled": false,
         "argNames": [
             {
                 "name": "position",
@@ -3106,8 +3943,33 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "flags",
+                "label": "Color (LaTeX only)",
+                "defVal": "nocolor",
+                "options": "nocolor"
+            }
+        ],
+        "iconBase": "M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20",
+        "filled": false,
         "argNames": [
             {
                 "name": "position",
@@ -3157,8 +4019,67 @@ const JL_DATABASE = {
         "argsCount": 7,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 0 -50 L 10 -50 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 35 0 L 35 10",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "T"
+        },
         "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "reset",
+                "defVal": "noreset",
+                "options": "reset, resetn, noreset"
+            },
+            {
+                "idx": 5,
+                "type": "select",
+                "label": "negative, positive trigger",
+                "defVal": "negative",
+                "options": "negative, positive"
+            }
+        ],
+        "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "",
+                "path": "M 15 -80 L 15 -80 /*TEXT:10,normal,J*/ M 15 -20 L 15 -20 /*TEXT:10,normal,K*/ M 30 -50 L 30 -50 /*TEXT:10,normal,CLK*/ M 50 -80 L 50 -80 /*TEXT:10,normal,Q*/ M 50 -20 L 50 -20 /*TEXT:10,normal,Q*/ M 46.50 -26.50 L 53.50 -26.50"
+            },
+            {
+                "condition": "1== && 4==reset",
+                "style": "",
+                "path": "M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/"
+            },
+            {
+                "condition": "5==positive",
+                "style": "",
+                "path": "M 6.50 -50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -50 L 3.5 -50"
+            },
+            {
+                "condition": "5==negative",
+                "style": "",
+                "path": "M 0 -50 L 10 -50"
+            },
+            {
+                "condition": "4==resetn",
+                "style": "",
+                "path": "M 35 -5 L 35 -5 /*TEXT:10,normal,clrn*/ M 35 3 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 35 10 L 35 5"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -3195,14 +4116,8 @@ const JL_DATABASE = {
                 "x": 35.0,
                 "y": 10.0,
                 "label": "clr",
-                "dir": "R"
-            },
-            {
-                "id": "pin4",
-                "x": 35.0,
-                "y": 10.0,
-                "label": "clr",
-                "dir": "R"
+                "dir": "R",
+                "condition": "1== && 4==reset"
             },
             {
                 "id": "pin1",
@@ -3238,6 +4153,14 @@ const JL_DATABASE = {
                 "y": -20.0,
                 "label": "Qn",
                 "dir": "R"
+            },
+            {
+                "id": "pin7",
+                "x": 35.0,
+                "y": 10.0,
+                "label": "clr",
+                "dir": "R",
+                "condition": "4==resetn"
             }
         ]
     },

@@ -164,6 +164,11 @@ def generate_db(sty_file):
                 comp_data['rotatable'] = 'disabled' not in line.lower()
             elif '% flip:' in line.lower():
                 comp_data['flippable'] = 'disabled' not in line.lower()
+            
+            # --- NEW: Parse the hide_label property ---
+            elif line.startswith('% hide_label:'):
+                val = line.replace('% hide_label:', '').strip().lower()
+                comp_data['hideLabel'] = (val == 'true')
 
         arg_names = []
         if body_lines and body_lines[0].strip().startswith('%'):
