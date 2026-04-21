@@ -373,6 +373,41 @@
 				}
 			}
 		});
+	
+	// --- TIKZ TO SVG PATH BUILDER ---
+        window.TikZBuilder = class {
+            constructor() { this.path = ""; this.pins = []; }
+            pt(x, y) { return `${+(x * 10).toFixed(3)} ${+(-y * 10).toFixed(3)}`; }
+            draw(x, y) { this.path += `M ${this.pt(x, y)} `; return this; }
+            to(x, y)   { this.path += `L ${this.pt(x, y)} `; return this; }
+            rect(x1, y1, x2, y2) { this.draw(x1, y1).to(x2, y1).to(x2, y2).to(x1, y2).cycle(); return this; }
+            circle(cx, cy, r) {
+                let cX = cx * 10, cY = -cy * 10, R = r * 10;
+                this.path += `M ${+(cX - R).toFixed(3)} ${+cY.toFixed(3)} a ${+R.toFixed(3)} ${+R.toFixed(3)} 0 1 0 ${+(R * 2).toFixed(3)} 0 a ${+R.toFixed(3)} ${+R.toFixed(3)} 0 1 0 ${+(-R * 2).toFixed(3)} 0 `;
+                return this;
+            }
+            arc(cx, cy, r, startAngle, endAngle) {
+                let cX = cx * 10, cY = -cy * 10, R = r * 10;
+                let sRad = startAngle * Math.PI / 180, eRad = endAngle * Math.PI / 180;
+                let sX = cX + R * Math.cos(sRad), sY = cY - R * Math.sin(sRad);
+                let eX = cX + R * Math.cos(eRad), eY = cY - R * Math.sin(eRad);
+                let largeArcFlag = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
+                let sweepFlag = endAngle > startAngle ? "0" : "1";
+                this.path += (this.path === "" ? `M ` : `L `) + `${+sX.toFixed(3)} ${+sY.toFixed(3)} A ${+R.toFixed(3)} ${+R.toFixed(3)} 0 ${largeArcFlag} ${sweepFlag} ${+eX.toFixed(3)} ${+eY.toFixed(3)} `;
+                return this;
+            }
+            text(x, y, str, size = 10, style = 'normal') {
+                let ptStr = this.pt(x, y);
+                this.path += `M ${ptStr} L ${ptStr} /*TEXT:${size},${style},${str}*/ `;
+                return this;
+            }
+            cycle() { this.path += "Z "; return this; }
+            pin(id, x, y, dir = 'R', label = undefined) {
+                this.pins.push({ id: id, x: x * 10, y: -y * 10, dir: dir, label: label });
+                return this;
+            }
+            export() { return { pathStr: this.path.trim(), pins: this.pins }; }
+        };
 
 
 	const graph = new joint.dia.Graph();
@@ -520,11 +555,13 @@
             let currentDir = data.labelAnchor.dir;
             
             if (data.labelAnchor.auto) {
-                // Αφαιρούμε το shift για να πάρουμε τις καθαρές συντεταγμένες
-                let vTopRaw = (el.get('baseVisualTop') || 0) - shiftY;
-                let vBotRaw = (el.get('baseVisualBottom') || (el.get('baseHeight') || 40)) - shiftY;
-                let vLeftRaw = (el.get('baseVisualLeft') || 0) - shiftX;
-                let vRightRaw = (el.get('baseVisualRight') || (el.get('baseWidth') || 40)) - shiftX;
+                // --- THE FIX: Pure Visual Boundaries ---
+                // Do NOT subtract shiftX/Y here! The visual base boundaries are already
+                // calculated relative to the top-left of the element's bounding box.
+                let vTopRaw = el.get('baseVisualTop') || 0;
+                let vBotRaw = el.get('baseVisualBottom') || (el.get('baseHeight') || 40);
+                let vLeftRaw = el.get('baseVisualLeft') || 0;
+                let vRightRaw = el.get('baseVisualRight') || (el.get('baseWidth') || 40);
                 
                 let rawX, rawY;
                 if (currentDir === 'T') { rawX = (vLeftRaw + vRightRaw) / 2; rawY = vTopRaw; }
@@ -532,8 +569,9 @@
                 else if (currentDir === 'L') { rawX = vLeftRaw; rawY = (vTopRaw + vBotRaw) / 2; }
                 else if (currentDir === 'R') { rawX = vRightRaw; rawY = (vTopRaw + vBotRaw) / 2; }
                 
-                ax = (rawX * scale) + shiftX; 
-                ay = (rawY * scale) + shiftY; 
+                // Directly scale the pure coordinates
+                ax = rawX * scale; 
+                ay = rawY * scale; 
 
                 // --- AUTO-ANCHOR FIX: Mirror around the physical Bounding Box ---
                 if (flipH) {
@@ -565,7 +603,8 @@
                     else if (currentDir === 'B') currentDir = 'T';
                 }
 
-                // Η ΛΥΣΗ: Πολλαπλασιάζουμε ΠΡΩΤΑ, προσθέτουμε ΜΕΤΑ
+                // For Custom mathematical anchors, we DO need to add the shift to translate 
+                // the mathematical origin (0,0) to its physical place in the SVG box.
                 ax = (rawX * scale) + shiftX;
                 ay = (rawY * scale) + shiftY;
             }
@@ -733,6 +772,9 @@
 
         el.resize(w, h);
         el.set('customScale', newScale); 
+        
+        // --- THE FIX: Force the label and internal text to redraw relative to the new scale! ---
+        assembleIcon(el, el.get('customArgs') || []);
         updateElementLabel(el);          
     }
 
@@ -741,10 +783,153 @@
         let macro = el.get('latexMacro');
         let dbData = JL_DATABASE[macro];
         if (!dbData) return;
-        
+
         const theme = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
         let dynLabels = el.get('dynamicLabels') || [];
         let basePath = dbData.iconBase || dbData.icon || "";
+
+        // --- HOISTED: Calculate matched layers FIRST so the JS engine can see them! ---
+        let matchedLayers = [];
+        if (dbData.iconLayers) {
+            dbData.iconLayers.forEach(layer => {
+                if (evaluatePinCondition(layer.condition, argsArray)) matchedLayers.push({ ...layer });
+            });
+        }
+
+        // --- NEW: DYNAMIC SHAPE GENERATION ENGINE ---
+        if (dbData.shapeGenerator) {
+            try {
+                const buildShape = new Function('args', dbData.shapeGenerator);
+                // NEW: Pad the array so it is 1-indexed
+                let jsArgs = ["", ...argsArray];
+                const generated = buildShape(jsArgs);
+                
+                // NEW: Scale the physical pins to the CAD PPU multiplier
+                if (generated.pins) {
+                    generated.pins.forEach(p => { p.x *= PPU_MULT; p.y *= PPU_MULT; });
+                }
+                
+                // 1. Overwrite the visual SVG path
+                basePath = generated.pathStr;
+                
+                // Clear static matched layers because the JS generator handles the full drawing
+                matchedLayers = [];
+                
+                // 2. Dynamically rebuild the JointJS Ports
+                const theme = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
+                let scale = el.get('customScale') || 1;
+                let shiftX = (el.get('baseShiftX') !== undefined ? el.get('baseShiftX') : (el.get('shiftX') || 0)) * scale;
+                let shiftY = (el.get('baseShiftY') !== undefined ? el.get('baseShiftY') : (el.get('shiftY') || 0)) * scale;
+
+                let flipH = el.get('flipH') || false;
+                let flipV = el.get('flipV') || false;
+                let w = el.size().width;
+                let h = el.size().height;
+
+                let newBasePorts = {};
+				
+				// --- THE FIX: Recalculate Bounding Box dynamically to fix Label Drift! ---
+                let bbox = { x: 0, y: 0, width: 0, height: 0 };
+                if (generated.pathStr) {
+                    let cleanMeasurePath = extractStaticTexts(generated.pathStr).cleanPath;
+                    const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    
+                    tempPath.setAttribute('d', cleanMeasurePath);
+                    // Do NOT set a scale transform here, it corrupts getBBox() across different browsers!
+                    
+                    tempSvg.appendChild(tempPath);
+                    Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
+                    document.body.appendChild(tempSvg);
+                    try { bbox = tempPath.getBBox(); } catch(e){}
+                    document.body.removeChild(tempSvg);
+                }
+
+                // THE FIX: Do NOT multiply by 10 or negate! The pins are already scaled perfectly!
+                const xs = generated.pins.map(p => p.x); 
+                const ys = generated.pins.map(p => p.y);
+                
+                const minPinX = xs.length ? Math.min(...xs) : 0; const maxPinX = xs.length ? Math.max(...xs) : 0;
+                const minPinY = ys.length ? Math.min(...ys) : 0; const maxPinY = ys.length ? Math.max(...ys) : 0;
+
+                let hasBounds = bbox.width > 0 || bbox.height > 0;
+                const absMinX = hasBounds ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
+                const absMaxX = hasBounds ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
+                const absMinY = hasBounds ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
+                const absMaxY = hasBounds ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
+
+                const pad = 10; 
+                const boxOriginX = Math.floor((absMinX - pad) / 40) * 40;
+                const boxOriginY = Math.floor((absMinY - pad) / 40) * 40;
+                const boxMaxX = Math.ceil((absMaxX + pad) / 40) * 40;
+                const boxMaxY = Math.ceil((absMaxY + pad) / 40) * 40;
+
+                const boxWidth = Math.max(boxMaxX - boxOriginX, 40);
+                const boxHeight = Math.max(boxMaxY - boxOriginY, 40);
+
+                // Update the mathematical shift values
+                let baseShiftX = -boxOriginX;
+                let baseShiftY = -boxOriginY;
+                
+                // CRITICAL: Update the scaled shiftX/Y for the rest of the function!
+                shiftX = baseShiftX * scale;
+                shiftY = baseShiftY * scale;
+
+                // Push new memory to the element
+                el.set({
+                    'baseWidth': boxWidth,
+                    'baseHeight': boxHeight,
+                    'baseShiftX': baseShiftX,
+                    'baseShiftY': baseShiftY,
+                    'baseVisualTop': absMinY - boxOriginY,
+                    'baseVisualBottom': absMaxY - boxOriginY,
+                    'baseVisualLeft': absMinX - boxOriginX,
+                    'baseVisualRight': absMaxX - boxOriginX
+                });
+                
+                el.resize(boxWidth * scale, boxHeight * scale);
+                // -------------------------------------------------------------
+
+                let newPorts = generated.pins.map(p => {
+                    newBasePorts[p.id] = { x: p.x, y: p.y }; // Save unscaled CAD coordinates to memory
+                    
+                    let px = (p.x * scale) + shiftX;
+                    let py = (p.y * scale) + shiftY;
+                    
+                    if (flipH) px = w - px;
+                    if (flipV) py = h - py;
+                    
+                    // Strict text evaluation
+                    let labelText = p.label !== undefined ? p.label : "";
+                    
+                    return {
+                        id: p.id, group: 'absolute',
+                        args: { x: Math.round(px), y: Math.round(py) }, 
+                        markup: [
+                            { tagName: 'rect', selector: 'portBody' },
+                            { tagName: 'text', selector: 'portLabel' }
+                        ],
+                        attrs: {
+                            portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: theme.portBody },
+                            portLabel: { 
+                                text: labelText, 
+                                display: (showPinNames && labelText !== "") ? 'block' : 'none',
+                                fontSize: 9 * PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'monospace',
+                                x: 6 * PPU_MULT, y: -6 * PPU_MULT, textAnchor: 'start'
+                            }
+                        }
+                    };
+                });
+                
+                el.set('basePorts', newBasePorts); // Push the new memory to the element
+                
+                // --- THE FIX: Nuke all old ports so JointJS is forced to redraw them! ---
+                el.removePorts(); 
+                el.addPorts(newPorts);
+                
+            } catch (error) { console.error("Shape Generator Failed for: " + macro, error); }
+        }
+        // --- END NEW ENGINE ---
 
         let dynamicMarkup = [{
             tagName: 'g', selector: 'rotatable', className: 'rotatable', children: [
@@ -762,13 +947,6 @@
         let baseExtracted = extractStaticTexts(basePath);
         basePath = baseExtracted.cleanPath;
         baseExtracted.texts.forEach((t, idx) => staticTexts.push({ ...t, id: `baseTxt_${idx}` }));
-
-        let matchedLayers = [];
-        if (dbData.iconLayers) {
-            dbData.iconLayers.forEach(layer => {
-                if (evaluatePinCondition(layer.condition, argsArray)) matchedLayers.push({ ...layer });
-            });
-        }
 
         matchedLayers.forEach((layer, i) => {
             let lExtracted = extractStaticTexts(layer.path);
@@ -816,8 +994,11 @@
         el.attr('iconStroke/stroke-dasharray', baseDashed);
         el.attr('iconStroke/stroke-linecap', baseLineCap);
         el.attr('iconStroke/stroke-linejoin', baseLineJoin);
+        
+        // --- THE FIX: Lock Line Thickness During Scaling ---
+        el.attr('iconStroke/vector-effect', 'non-scaling-stroke');
+        el.attr('iconFill/vector-effect', 'non-scaling-stroke');
 
-        // --- THE FIX: Parse dynamic styles for the Overlay Layers ---
         matchedLayers.forEach((layer, i) => {
             let sel = `overlay_${i}`;
             let layerStrokeWidth = 1.8;
@@ -840,19 +1021,25 @@
             el.attr(`${sel}/stroke-linecap`, layerLineCap);
             el.attr(`${sel}/stroke-linejoin`, layerLineJoin);
             el.attr(`${sel}/fill`, layer.style && layer.style.includes('fill=solid') ? layerStrokeColor : 'none');
+            
+            // --- THE FIX: Lock Line Thickness for Overlays ---
+            el.attr(`${sel}/vector-effect`, 'non-scaling-stroke');
         });
 
         staticTexts.forEach(t => {
-			el.attr(`${t.id}/text`, t.str);
-			el.attr(`${t.id}/transform`, `translate(${t.x}, ${t.y}) scale(${sx}, ${sy})`);
-			el.attr(`${t.id}/x`, 0); 
-			el.attr(`${t.id}/y`, 0);
-			el.attr(`${t.id}/font-size`, t.size);
-			el.attr(`${t.id}/font-weight`, t.style === 'bold' ? 'bold' : 'normal');
-			el.attr(`${t.id}/font-style`, t.style === 'italic' ? 'italic' : 'normal');
-			el.attr(`${t.id}/fill`, theme.componentIcon);
-			el.attr(`${t.id}/text-anchor`, 'middle'); el.attr(`${t.id}/dominant-baseline`, 'central');
-		});
+            el.attr(`${t.id}/text`, t.str);
+            el.attr(`${t.id}/transform`, `translate(${t.x}, ${t.y}) scale(${sx}, ${sy})`);
+            el.attr(`${t.id}/x`, 0); 
+            el.attr(`${t.id}/y`, 0);
+            
+            // --- THE FIX: Counter-scale the font size so it never inflates! ---
+            el.attr(`${t.id}/font-size`, t.size / scale);
+            
+            el.attr(`${t.id}/font-weight`, t.style === 'bold' ? 'bold' : 'normal');
+            el.attr(`${t.id}/font-style`, t.style === 'italic' ? 'italic' : 'normal');
+            el.attr(`${t.id}/fill`, theme.componentIcon);
+            el.attr(`${t.id}/text-anchor`, 'middle'); el.attr(`${t.id}/dominant-baseline`, 'central');
+        });
 
         let pinsHtml = '';
         el.getPorts().forEach(port => {
@@ -1800,22 +1987,53 @@
 		} else {
 			element = new joint.shapes.jl.Component();
 
-            // Build the base path for drawing
+            // --- NEW: Generate Arguments First ---
+            let initialArgs = [];
+            for (let i = 0; i < (data.argsCount || 7); i++) {
+                let argDef = data.argNames && data.argNames[i] ? data.argNames[i].name : '';
+                let defaultVal = argDef.includes('/') ? argDef.split('/')[0].trim() : '';
+                if (data.argDefs) {
+                    let customDefs = data.argDefs.filter(d => d.idx === (i + 1));
+                    if (customDefs.length > 1) defaultVal = customDefs.map(d => d.defVal || "").join(', ');
+                    else if (customDefs.length === 1) defaultVal = customDefs[0].defVal || "";
+                }
+                initialArgs.push(defaultVal);
+            }
+            if (data.previewArgs) {
+                Object.keys(data.previewArgs).forEach(idx => { initialArgs[parseInt(idx) - 1] = data.previewArgs[idx]; });
+            }
+
+            // --- NEW: Evaluate JS Shape Generator on Drop ---
+            let generatedDynamic = null;
             let rawIconPath = data.icon || data.iconBase || ''; 
+            
+            if (data.shapeGenerator) {
+                try {
+                    const buildShape = new Function('args', data.shapeGenerator);
+                    // NEW: Pad the array so it is 1-indexed (args[1], args[2], etc.)
+                    let jsArgs = ["", ...initialArgs];
+                    generatedDynamic = buildShape(jsArgs);
+                    rawIconPath = generatedDynamic.pathStr;
+                    
+                    // NEW: Scale the physical pins to the CAD PPU multiplier
+                    if (generatedDynamic.pins) {
+                        generatedDynamic.pins.forEach(p => { p.x *= PPU_MULT; p.y *= PPU_MULT; });
+                    }
+                } catch(e) { console.error("Shape Gen Error on Drop:", e); }
+            }
+
             let extractedInit = extractStaticTexts(rawIconPath);
             let iconPath = extractedInit.cleanPath;
 
-            // --- THIS IS THE MISSING PIECE ---
-            // Καθαρισμός διπλότυπων Pins (και διατήρηση των Labels)
+            // Use the newly generated JS pins if they exist, otherwise fallback to static .sty pins
+            const sourcePins = (generatedDynamic && generatedDynamic.pins) ? generatedDynamic.pins : data.pins;
             const uniquePins = [];
             const seenIds = new Set();
-            data.pins.forEach(p => {
-                // DO NOT deduplicate dynamic text labels! Let them all exist.
+            sourcePins.forEach(p => {
                 let isDynamicText = p.id && p.id.includes('$'); 
-                
                 if (isDynamicText || !seenIds.has(p.id)) { 
-					if (!isDynamicText) seenIds.add(p.id); 
-					uniquePins.push({ ...p });
+                    if (!isDynamicText) seenIds.add(p.id); 
+                    uniquePins.push({ ...p });
                 } else {
                     const existing = uniquePins.find(up => up.id === p.id);
                     if (existing && !existing.label && p.label) existing.label = p.label;
@@ -1823,44 +2041,35 @@
             });
             // ----------------------------------
 
-            // Build the combined path (base + layers) specifically for accurate bounding box measurement
-            let iconData = getPaletteIconData(data);
-            let combinedPathForMath = iconData.base + " " + iconData.layers.map(l => l.path).join(" ");
-            let combinedExtracted = extractStaticTexts(combinedPathForMath);
-            let measurePath = combinedExtracted.cleanPath;
+            // Use the freshly generated clean path for measurement!
+            let measurePath = iconPath;
 
-            // Bulletproof Μέτρηση του SVG
+            // Bulletproof SVG Measurement
             let bbox = { x: 0, y: 0, width: 0, height: 0 };
             if (measurePath) {
                 const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                tempSvg.setAttribute('width', '500'); tempSvg.setAttribute('height', '500');
                 const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                 tempPath.setAttribute('d', measurePath);
-                tempPath.setAttribute('transform', `scale(${PPU_MULT})`);
+                // Removed the scaling transform here to prevent browser calculation bugs
                 tempSvg.appendChild(tempPath);
                 Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
                 document.body.appendChild(tempSvg);
-                try { 
-                    const b = tempPath.getBBox(); 
-                    if (b.width > 0 || b.height > 0) bbox = b;
-                } catch(e) {}
+                try { bbox = tempPath.getBBox(); } catch(e){}
                 document.body.removeChild(tempSvg);
             }
 
-            // Απόλυτα Όρια.
+            // Calculate Absolute Limits based on the correct PPU_MULT
             const xs = uniquePins.map(p => p.x), ys = uniquePins.map(p => p.y);
-            const minPinX = xs.length ? Math.min(...xs) : 0;
-            const maxPinX = xs.length ? Math.max(...xs) : 0;
-            const minPinY = ys.length ? Math.min(...ys) : 0;
-            const maxPinY = ys.length ? Math.max(...ys) : 0;
+            const minPinX = xs.length ? Math.min(...xs) : 0; const maxPinX = xs.length ? Math.max(...xs) : 0;
+            const minPinY = ys.length ? Math.min(...ys) : 0; const maxPinY = ys.length ? Math.max(...ys) : 0;
 
             let hasBounds = bbox.width > 0 || bbox.height > 0;
             const absMinX = hasBounds ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
             const absMaxX = hasBounds ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
             const absMinY = hasBounds ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
             const absMaxY = hasBounds ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
-				
-			// Snapping Bounding Box στο Grid των 40px (1 TikZ Unit)
+                
+            // Snapping Bounding Box to the 40px Grid
             const pad = 10; 
             const boxOriginX = Math.floor((absMinX - pad) / 40) * 40;
             const boxOriginY = Math.floor((absMinY - pad) / 40) * 40;
@@ -1960,28 +2169,6 @@
 
             element.prop('ports', { groups: { 'absolute': { position: { name: 'absolute' } } } });
             element.addPorts(ports);
-           // --- NEW: Build Default Arguments for Drop ---
-            let initialArgs = [];
-            for (let i = 0; i < (data.argsCount || 7); i++) {
-                let argDef = data.argNames && data.argNames[i] ? data.argNames[i].name : '';
-                let defaultVal = '';
-                
-                // Fallback: Pick the first option if it's a slash-separated name
-                if (argDef.includes('/')) {
-                    defaultVal = argDef.split('/')[0].trim();
-                }
-
-                // THE FIX: Override with the robust argDefs properties!
-                if (data.argDefs) {
-                    let customDefs = data.argDefs.filter(d => d.idx === (i + 1));
-                    if (customDefs.length > 1) {
-                        defaultVal = customDefs.map(d => d.defVal || "").join(', ');
-                    } else if (customDefs.length === 1) {
-                        defaultVal = customDefs[0].defVal || "";
-                    }
-                }
-                initialArgs.push(defaultVal);
-            }
             
             // Apply the smart preview overrides so it drops exactly like it looks in the palette!
             if (data.previewArgs) {
@@ -3473,9 +3660,8 @@ ${indentedTikz}
         let texts = [];
         if (!pathStr) return { cleanPath: "", texts: [] };
         
-        // FIX: Το regex τώρα απαιτεί ακριβώς τη δομή "M x y L x y" πριν το σχόλιο!
-        // Έτσι δεν καταπίνει τα προηγούμενα M του σχεδίου και βρίσκει τις ΣΩΣΤΕΣ συντεταγμένες.
-        let cleanPath = pathStr.replace(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+)\s*L\s*[-+]?[\d\.]+\s*[-+]?[\d\.]+\s*\/\*TEXT:([^,]+),([^,]+),(.*?)\*\//g, (match, x, y, size, style, str) => {
+        // 1. Extract the text data safely
+        let cleanPath = pathStr.replace(/[Mm]\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+)\s*[Ll]\s*[-+]?[\d\.]+\s*[-+]?[\d\.]+\s*\/\*TEXT:([^,]+),([^,]+),(.*?)\*\//g, (match, x, y, size, style, str) => {
             texts.push({
                 x: parseFloat(x), 
                 y: parseFloat(y), 
@@ -3483,11 +3669,13 @@ ${indentedTikz}
                 style: style, 
                 str: str
             });
-            return ""; // Αφαιρεί ΜΟΝΟ το dummy path από το καθαρό SVG
+            return ""; // Strip the node from the SVG
         }).trim();
         
-        // Failsafe για τυχόν ορφανά comments
-        cleanPath = cleanPath.replace(/\/\*TEXT:[^\*]+\*\//g, '').trim();
+        // 2. Aggressive Failsafe: Destroy ANY remaining TEXT tags and the MoveTo/LineTo that spawned them
+        // This ensures the browser SVG parser never crashes on stray metadata!
+        cleanPath = cleanPath.replace(/[Mm]\s*[-+]?[\d\.]+\s*[-+]?[\d\.]+\s*[Ll]\s*[-+]?[\d\.]+\s*[-+]?[\d\.]+\s*\/\*TEXT:.*?\*\//g, '').trim();
+        cleanPath = cleanPath.replace(/\/\*TEXT:.*?\*\//g, '').trim();
         
         return { cleanPath, texts };
     }
@@ -3528,6 +3716,17 @@ ${indentedTikz}
         if (data.variantArg && data.icons) {
             let defaultVariant = defaultArgs[data.variantArg - 1];
             base = data.icons[defaultVariant] ? data.icons[defaultVariant] : Object.values(data.icons)[0] || base;
+        }
+		
+		// --- NEW: Evaluate JS Generator for Palette ---
+        if (data.shapeGenerator) {
+            try {
+                const buildShape = new Function('args', data.shapeGenerator);
+                // NEW: Pad the array so it is 1-indexed
+                let jsArgs = ["", ...defaultArgs];
+                const generated = buildShape(jsArgs);
+                base = generated.pathStr; 
+            } catch(e) { console.error("Palette Generation Error:", e); }
         }
 
         // --- FIX 2: Use the bulletproof evaluator we built earlier ---

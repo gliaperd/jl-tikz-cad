@@ -172,8 +172,26 @@
         /* Εξασφαλίζουμε ότι ο Importer δεν θα κρυφτεί ποτέ */
         #sec-importer:not(.collapsed) { max-height: none !important; overflow: visible; }
 		
+		/* CodeMirror Overrides for JS Lab */
+        .CodeMirror { height: 100% !important; font-family: 'Consolas', monospace; font-size: 13px; text-align: left !important; }
+        .CodeMirror-dialog { background: #2c3e50; color: white; border: none; padding: 10px; }
+        .CodeMirror-dialog input { background: #1e1e1e; color: white; border: 1px solid #7f8c8d; padding: 3px; border-radius: 3px; }
+        .CodeMirror-dialog button { background: #3498db; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; }
+		/* --- Make Search & Selection Highlights POP --- */
+        div.CodeMirror-selected { background: rgba(243, 156, 18, 0.7) !important; } /* Vibrant Orange for selection */
+        .CodeMirror-focused div.CodeMirror-selected { background: rgba(243, 156, 18, 0.7) !important; }
+        .CodeMirror-search-match { background: rgba(231, 76, 60, 0.8) !important; border-radius: 2px; color: white !important; } /* Bright Red for native Ctrl+F */
+		
     </style>
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/searchcursor.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/search/search.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/dialog/dialog.min.js"></script>
 </head>
 <body>
     <div class="panel side-panel">
@@ -243,6 +261,16 @@
                     <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mEnabled" checked onchange="generateCode()"> Enabled in Palette</label>
                 </div>
             </div>
+			
+			<h2 class="section-header collapsed" onclick="toggleSection('sec-shapegen', this)" style="margin-top: 5px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #9b59b6; background: #fdfdfd;">
+				<span style="display: flex; align-items: center; gap: 4px; color: #8e44ad;"><span class="toggle-icon">▼</span> 🪄 JS Shape Generator (Expert)</span>
+				<div class="header-controls">
+					<button class="tool-btn" onclick="event.stopPropagation(); openJSLab()" style="padding: 2px 8px; font-size: 10px; background: #8e44ad; border-color: #732d91; font-weight: bold;">🚀 Open JS Lab</button>
+				</div>
+			</h2>
+			<div id="sec-shapegen" class="section-content collapsed">
+				<textarea id="cShapeGen" placeholder="// Click 'Open JS Lab' to edit..." style="height: 100px; width: 100%; font-family: monospace; font-size: 10px; border-color: #9b59b6; background: #f4f6f7; color: #7f8c8d; box-sizing: border-box;" readonly></textarea>
+			</div>
 
             <style>
                 /* Makes the Dynamic Properties header float when scrolling */
@@ -552,62 +580,116 @@
                 return d;
             }
 
+            // --- NEW: DYNAMIC JS SHAPE EXECUTION ---
+            let jsCode = document.getElementById('cShapeGen') ? document.getElementById('cShapeGen').value.trim() : "";
+            let generatedDynamic = null;
+
+            if (jsCode) {
+                try {
+                    // Rebuild the 1-indexed args array to match LaTeX variables
+                    let jsArgs = [""]; 
+                    argsList.forEach(a => {
+                        // FIX: ALWAYS use testValues as the source of truth!
+                        // Querying DOM inputs directly fails for split controls like rot/flip
+                        jsArgs[a.idx] = testValues[a.idx] !== undefined ? testValues[a.idx].toString() : "";
+                    });
+                    const buildShape = new Function('args', jsCode);
+                    generatedDynamic = buildShape(jsArgs);
+                    
+                    // Force a throw if the user returned garbage
+                    if (!generatedDynamic || typeof generatedDynamic.pathStr === 'undefined') {
+                        throw new Error("Invalid return object.");
+                    }
+                } catch(e) {
+                    console.warn("Shape Generator Error. Falling back to static layers.", e);
+                    generatedDynamic = null; // Forces fallback to static layers
+                }
+            }
+
             // 3. ZΩΓΡΑΦΙΚΗ ΤΩΝ LAYERS
-            layers.forEach(l => {
-                let shouldShow = evaluateLayerVisibility(l);
-                if (!shouldShow || !l.pathStr.trim()) return;
-                let stroke = l.styles.stroke ? l.styles.stroke : baseColor;
-                let sw = parseFloat(l.styles.sw); 
-                let dash = l.styles.dashed ? 'stroke-dasharray="4 4"' : '';
-                let fill = l.styles.solid ? stroke : "none";
-                let lineCap = l.styles.rounded ? 'round' : 'butt';
-                let lineJoin = l.styles.rounded ? 'round' : 'miter';
-                
-                let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+            if (generatedDynamic && generatedDynamic.pathStr) {
+                // Parse the JS path to extract custom Text Nodes
+                let subPaths = generatedDynamic.pathStr.split(/(?=[Mm]\s)/).filter(p => p.trim() !== '');
                 subPaths.forEach(sub => {
-                    let textMatch = sub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
+                    let cleanSub = sub.trim();
+                    let textMatch = cleanSub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
+                    
                     if (textMatch) {
-                        let tx = parseFloat(textMatch[1]); let ty = parseFloat(textMatch[2]);
-                        let tSize = parseFloat(textMatch[3]); let tStyle = textMatch[4]; let tStr = textMatch[5];
-                        let fw = tStyle === 'bold' ? 'bold' : 'normal'; let fs = tStyle === 'italic' ? 'italic' : 'normal';
+                        let tx = parseFloat(textMatch[1]);
+                        let ty = parseFloat(textMatch[2]);
+                        let tSize = parseFloat(textMatch[3]);
+                        let tStyle = textMatch[4];
+                        let tStr = textMatch[5];
+                        let fw = tStyle === 'bold' ? 'bold' : 'normal';
+                        let fs = tStyle === 'italic' ? 'italic' : 'normal';
                         
-                        let pt = trans(tx, ty);
-                        textHtml += `<text x="${pt.x}" y="${pt.y}" font-family="Arial" font-size="${tSize}" font-weight="${fw}" font-style="${fs}" fill="${stroke}" text-anchor="middle" dominant-baseline="central">${tStr}</text>`;
+                        textHtml += `<text x="${tx}" y="${ty}" font-family="Arial" font-size="${tSize}" font-weight="${fw}" font-style="${fs}" fill="${baseColor}" text-anchor="middle" dominant-baseline="central">${tStr}</text>`;
                     } else {
-                        geomHtml += `<path d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
-                        combinedPathForMath += " " + sub;
+                        geomHtml += `<path d="${cleanSub}" stroke="${baseColor}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round" />`;
+                        combinedPathForMath += " " + cleanSub;
                     }
                 });
-            });
+            } else {
+                // Otherwise, fall back to static layers
+                layers.forEach(l => {
+                    let shouldShow = evaluateLayerVisibility(l);
+                    if (!shouldShow || !l.pathStr.trim()) return;
+                    let stroke = l.styles.stroke ? l.styles.stroke : baseColor;
+                    let sw = parseFloat(l.styles.sw); 
+                    let dash = l.styles.dashed ? 'stroke-dasharray="4 4"' : '';
+                    let fill = l.styles.solid ? stroke : "none";
+                    let lineCap = l.styles.rounded ? 'round' : 'butt';
+                    let lineJoin = l.styles.rounded ? 'round' : 'miter';
+                    
+                    let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                    subPaths.forEach(sub => {
+                        let textMatch = sub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
+                        if (textMatch) {
+                            let tx = parseFloat(textMatch[1]); let ty = parseFloat(textMatch[2]);
+                            let tSize = parseFloat(textMatch[3]); let tStyle = textMatch[4]; let tStr = textMatch[5];
+                            let fw = tStyle === 'bold' ? 'bold' : 'normal'; let fs = tStyle === 'italic' ? 'italic' : 'normal';
+                            
+                            let pt = trans(tx, ty);
+                            textHtml += `<text x="${pt.x}" y="${pt.y}" font-family="Arial" font-size="${tSize}" font-weight="${fw}" font-style="${fs}" fill="${stroke}" text-anchor="middle" dominant-baseline="central">${tStr}</text>`;
+                        } else {
+                            geomHtml += `<path d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
+                            combinedPathForMath += " " + sub;
+                        }
+                    });
+                });
+            }
 
-            // --- NEW: Calculate CAD Readability Angle Globally ---
+            // --- NEW: CAD READABILITY GLOBALS ---
             let visualAngle = -previewAngle;
             let normalizedAngle = (visualAngle % 360 + 360) % 360;
             let textRot = visualAngle;
-            
-            // CAD Readability Standard: Keep text Left-to-Right or Bottom-to-Top
-            if (normalizedAngle >= 90 && normalizedAngle < 270) {
-                textRot += 180;
-            }
-            // -----------------------------------------------------
+            if (normalizedAngle >= 90 && normalizedAngle < 270) textRot += 180;
 
             // 4. ΔΥΝΑΜΙΚΑ PINS & LABELS
-            pins.forEach(p => {
-                let pLayer = layers.find(l => l.id === p.layerId);
-                let isVisible = pLayer ? evaluateLayerVisibility(pLayer) : true;
-                if (!isVisible || !p.id.includes('$')) return; 
-
+            let activePins = (generatedDynamic && generatedDynamic.pins) ? generatedDynamic.pins : pins;
+            
+            activePins.forEach(p => {
                 let textOpacity = 1;
-                let displayText = p.id.replace(/\$(\d+)/g, (match, idxStr) => {
-                    let argIdx = parseInt(idxStr);
-                    let domInput = document.getElementById(`test-arg-${argIdx}`);
-                    let val = domInput ? domInput.value : testValues[argIdx];
-                    if (val && val.toString().trim() !== "") return val.toString().trim(); 
-                    let argObj = argsList.find(a => a.idx === argIdx);
-                    let argName = argObj ? argObj.name.split('/')[0].trim() : `Arg ${argIdx}`;
-                    textOpacity = 0.5;
-                    return `[${argName}]`;
-                });
+                // User View: Only show a label if explicitly provided. Otherwise, empty string.
+                let displayText = p.label !== undefined ? p.label : ""; 
+                
+                // If it's a legacy static pin, check layer visibility
+                if (!generatedDynamic) {
+                    let pLayer = layers.find(l => l.id === p.layerId);
+                    let isVisible = pLayer ? evaluateLayerVisibility(pLayer) : true;
+                    if (!isVisible || !p.id.includes('$')) return; // Only draw $ pins in preview
+                    
+                    displayText = p.id.replace(/\$(\d+)/g, (match, idxStr) => {
+                        let argIdx = parseInt(idxStr);
+                        let domInput = document.getElementById(`test-arg-${argIdx}`);
+                        let val = domInput ? domInput.value : testValues[argIdx];
+                        if (val && val.toString().trim() !== "") return val.toString().trim(); 
+                        let argObj = argsList.find(a => a.idx === argIdx);
+                        let argName = argObj ? argObj.name.split('/')[0].trim() : `Arg ${argIdx}`;
+                        textOpacity = 0.5;
+                        return `[${argName}]`;
+                    });
+                }
 
                 let dir = p.dir || 'R';
                 let ox = p.x, oy = p.y;
@@ -2069,12 +2151,23 @@
             let actualEnd = fullCode.length;
             let matchBody = fullCode.substring(macroStart).match(/\\newcommand\{\\[a-zA-Z0-9_]+\}\s*(?:\[\d+\])?\s*\{/);
             if (matchBody) {
-                // Χειρουργική εύρεση του κλεισίματος της \newcommand μετρώντας αγκύλες {}
+                // --- UPGRADED: Smart Bracket Counter (Ignores JS inside comments) ---
                 let openBraceIdx = macroStart + matchBody.index + matchBody[0].length - 1;
                 let bracketCount = 0;
+                let inComment = false;
+                
                 for (let i = openBraceIdx; i < fullCode.length; i++) {
-                    if (fullCode[i] === '{') bracketCount++;
-                    else if (fullCode[i] === '}') bracketCount--;
+                    let char = fullCode[i];
+
+                    // Track if we are inside a LaTeX comment line
+                    if (char === '%' && (i === 0 || fullCode[i-1] !== '\\')) inComment = true;
+                    if (char === '\n' || char === '\r') inComment = false;
+
+                    // Only count structural braces if they aren't commented out!
+                    if (!inComment) {
+                        if (char === '{' && (i === 0 || fullCode[i-1] !== '\\')) bracketCount++;
+                        else if (char === '}' && (i === 0 || fullCode[i-1] !== '\\')) bracketCount--;
+                    }
                     
                     if (bracketCount === 0) {
                         actualEnd = i + 1;
@@ -2119,6 +2212,53 @@
             // --- NEW: Import hide_label ---
             let mHideLabel = code.match(/% hide_label:\s*([^\n]+)/); 
             document.getElementById('mHideLabel').checked = (mHideLabel && mHideLabel[1].trim().toLowerCase() === 'true');
+			
+			// --- NEW: Import Shape Generator JS (Bulletproof) ---
+            let shapeGenElement = document.getElementById('cShapeGen');
+            if (shapeGenElement) shapeGenElement.value = ""; 
+            
+            let codeLines = code.split('\n');
+            let inShapeGen = false;
+            let shapeGenLines = [];
+            
+            for (let i = 0; i < codeLines.length; i++) {
+                let rawLine = codeLines[i];
+                let ln = rawLine.trim();
+                
+                if (ln.startsWith('% shape_generator:')) {
+                    inShapeGen = true;
+                    continue;
+                }
+                
+                if (inShapeGen) {
+                    // Stop explicitly when we hit the next known metadata tag
+                    if (ln.match(/^%\s*(enabled|category|scales|label_anchor|flip|hide_label|preview_args|arg_def|icon_base|add_icon|icon):/)) {
+                        inShapeGen = false;
+                        continue;
+                    }
+                    // Stop if we hit raw LaTeX commands
+                    if (ln.startsWith('\\begin') || ln.startsWith('\\draw') || ln.startsWith('\\IfSubStr')) {
+                        inShapeGen = false;
+                        continue;
+                    }
+                    
+                    // Safely extract the code, preserving user indentation
+                    if (rawLine.trim().startsWith('%')) {
+                        let content = rawLine.substring(rawLine.indexOf('%') + 1);
+                        if (content.startsWith(' ')) content = content.substring(1); // Strip exactly 1 leading space
+                        shapeGenLines.push(content.replace(/\r$/, '')); // Clean up \r for Windows
+                    } else if (ln === '') {
+                        shapeGenLines.push('');
+                    } else {
+                        // Even if they pasted raw JS without % comments, capture it!
+                        shapeGenLines.push(rawLine.replace(/\r$/, ''));
+                    }
+                }
+            }
+            if (shapeGenElement && shapeGenLines.length > 0) {
+                shapeGenElement.value = shapeGenLines.join('\n').trim();
+            }
+            // --- END SHAPE GEN IMPORT ---
             
             // --- IMPORT DYNAMIC PROPERTIES ---
             // Use .* to strictly grab only the current line, then split by pipe.
@@ -2487,6 +2627,7 @@
         let selectStartPt = {x: 0, y: 0}, dragStartPt = {x: 0, y: 0}, dragDelta = {dx: 0, dy: 0};
 
         svg.addEventListener('mousedown', (e) => {
+			if (window.isJSLabActive) return; // Lock canvas interactions when JS Lab is open
             if(e.button !== 0) return;
             let pt = getCoords(e);
             // Το closest διασφαλίζει ότι αν κάνεις κλικ στο κείμενο, θα πιάσει το <g> που το περιβάλλει!
@@ -3361,9 +3502,17 @@
 				let lineCap = l.styles.rounded ? 'round' : 'butt';
                 let lineJoin = l.styles.rounded ? 'round' : 'miter';
                 
-                // FIX 3: Apply the improved Regex here too so the hover-glow targets whole shapes!
-                let subPaths = l.pathStr.split(/(?=M\s)/).filter(p => p.trim() !== '');
+                // Split the path and filter out empty strings
+                let subPaths = l.pathStr.split(/(?=[Mm]\s)/).filter(p => p.trim() !== '');
+                
                 subPaths.forEach((sub, idx) => {
+                    let cleanSub = sub.trim();
+                    
+                    // --- NEW: THE GATEKEEPER ---
+                    // If it's not a Text Node and doesn't start with a valid SVG MoveTo command, skip it entirely!
+                    let isTextNode = cleanSub.includes('/*TEXT:');
+                    if (!isTextNode && !cleanSub.toUpperCase().startsWith('M')) return; 
+                    
                     let interactionClass = '';
                     if (l.id === activeLayerId) {
                         if (currentTool === 'erase') interactionClass = 'erasable';
@@ -3373,8 +3522,7 @@
                     }
 
                     // --- ΕΛΕΓΧΟΣ ΓΙΑ ΕΝΣΩΜΑΤΩΜΕΝΟ ΚΕΙΜΕΝΟ ---
-                    // Διαβάζουμε το X,Y απευθείας από το M ... ... !
-                    let textMatch = sub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
+                    let textMatch = cleanSub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
                     if (textMatch) {
                         let tx = parseFloat(textMatch[1]);
                         let ty = parseFloat(textMatch[2]);
@@ -3385,7 +3533,6 @@
                         let fw = tStyle === 'bold' ? 'bold' : 'normal';
                         let fs = tStyle === 'italic' ? 'italic' : 'normal';
                         
-                        // Το text-anchor="middle" κάνει το κέντρο του κειμένου να είναι στο ποντίκι
                         html += `<g class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" 
                                     ondblclick="event.stopPropagation(); window.editTextNode('${l.id}', ${idx}, '${tStr.replace(/'/g, "\\'")}', ${tSize}, '${tStyle}')" 
                                     style="cursor:${currentTool==='line'?'pointer':'inherit'};">
@@ -3393,7 +3540,7 @@
                                  </g>`;
                     } else {
                         // Είναι κανονικό path!
-                        html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${sub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" 
+                        html += `<path class="shape-path ${interactionClass}" data-layer="${l.id}" data-idx="${idx}" d="${cleanSub}" stroke="${stroke}" stroke-width="${sw}" fill="${fill}" ${dash} stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" 
                                     ondblclick="event.stopPropagation(); window.editShapePath('${l.id}', ${idx})" 
                                     style="cursor:${currentTool==='line'?'pointer':'inherit'};" />`;
                     }
@@ -3699,6 +3846,16 @@
             let prevArgsEl = document.getElementById('mPreview');
             if (prevArgsEl && prevArgsEl.value.trim()) {
                 lines.push(`% preview_args: ${prevArgsEl.value.trim()}`);
+            }
+			
+			// --- NEW: Export Shape Generator JS ---
+            let shapeGenCode = document.getElementById('cShapeGen') ? document.getElementById('cShapeGen').value.trim() : "";
+            if (shapeGenCode) {
+                lines.push(``);
+                lines.push(`% shape_generator:`);
+                shapeGenCode.split('\n').forEach(l => {
+                    lines.push(`% ${l}`);
+                });
             }
             
             if (argDefs.length > 0) {
@@ -4124,7 +4281,532 @@
         commitTestValue(inputId, f);
     }
 	
-	renderArgDefList();
+	// --- TIKZ TO SVG PATH BUILDER ---
+        window.TikZBuilder = class {
+            constructor() {
+                this.path = "";
+                this.pins = [];
+            }
+            
+            // Core coordinate transformer: 1 TikZ unit = 10 SVG units, invert Y
+            pt(x, y) {
+                return `${+(x * 10).toFixed(3)} ${+(-y * 10).toFixed(3)}`;
+            }
+            
+            draw(x, y) { this.path += `M ${this.pt(x, y)} `; return this; }
+            to(x, y)   { this.path += `L ${this.pt(x, y)} `; return this; }
+            
+            rect(x1, y1, x2, y2) {
+                this.draw(x1, y1).to(x2, y1).to(x2, y2).to(x1, y2).cycle();
+                return this;
+            }
+            
+            circle(cx, cy, r) {
+                let cx_svg = cx * 10;
+                let cy_svg = -cy * 10;
+                let r_svg = r * 10;
+                // SVG requires two 180-degree arcs to draw a full circle in a single path
+                this.path += `M ${+(cx_svg - r_svg).toFixed(3)} ${+cy_svg.toFixed(3)} `;
+                this.path += `a ${+r_svg.toFixed(3)} ${+r_svg.toFixed(3)} 0 1 0 ${+(r_svg * 2).toFixed(3)} 0 `;
+                this.path += `a ${+r_svg.toFixed(3)} ${+r_svg.toFixed(3)} 0 1 0 ${+(-r_svg * 2).toFixed(3)} 0 `;
+                return this;
+            }
+            
+            arc(cx, cy, r, startAngle, endAngle) {
+                let cx_svg = cx * 10;
+                let cy_svg = -cy * 10;
+                let r_svg = r * 10;
+
+                // Math to SVG coordinate conversion (Y is inverted)
+                let startRad = startAngle * Math.PI / 180;
+                let endRad = endAngle * Math.PI / 180;
+
+                let startX = cx_svg + r_svg * Math.cos(startRad);
+                let startY = cy_svg - r_svg * Math.sin(startRad);
+                let endX = cx_svg + r_svg * Math.cos(endRad);
+                let endY = cy_svg - r_svg * Math.sin(endRad);
+
+                let largeArcFlag = Math.abs(endAngle - startAngle) <= 180 ? "0" : "1";
+                let sweepFlag = endAngle > startAngle ? "0" : "1"; // Inverted Y-axis reverses sweep logic
+
+                // Draw line to the start of the arc (or MoveTo if it's the very first command)
+                if (this.path === "") {
+                    this.path += `M ${+startX.toFixed(3)} ${+startY.toFixed(3)} `;
+                } else {
+                    this.path += `L ${+startX.toFixed(3)} ${+startY.toFixed(3)} `;
+                }
+                
+                this.path += `A ${+r_svg.toFixed(3)} ${+r_svg.toFixed(3)} 0 ${largeArcFlag} ${sweepFlag} ${+endX.toFixed(3)} ${+endY.toFixed(3)} `;
+                return this;
+            }
+            
+            text(x, y, str, size = 10, style = 'normal') {
+                let ptStr = this.pt(x, y);
+                // Injects the custom text node signature
+                this.path += `M ${ptStr} L ${ptStr} /*TEXT:${size},${style},${str}*/ `;
+                return this;
+            }
+
+            cycle() { this.path += "Z "; return this; }
+
+            pin(id, x, y, dir = 'R', label = undefined) {
+                this.pins.push({ id: id, x: x * 10, y: -y * 10, dir: dir, label: label });
+                return this;
+            }
+
+            export() {
+                return { pathStr: this.path.trim(), pins: this.pins };
+            }
+        };
+	
+	// --- 🪄 FLOATING JS SHAPE LAB ENGINE (THE GHOSTBUSTER EDITION) ---
+        window.openJSLab = function() {
+            let jsCode = document.getElementById('cShapeGen').value;
+            let argsList = getParsedArgs();
+
+            window.isJSLabActive = true;
+
+            let argsHtml = '';
+            argsList.forEach(a => {
+                if (a.name.toLowerCase().includes('position') || a.name.toLowerCase().includes('grid') || a.name.toLowerCase().includes('show')) return;
+                let currentVal = testValues[a.idx] || "";
+                argsHtml += `
+                    <div style="display:flex; gap:8px; margin-bottom: 6px; align-items:center;">
+                        <span style="width: 55px; font-size:11px; font-weight:bold; color:#2c3e50;">args[${a.idx}]</span>
+                        <input type="text" id="js-mock-arg-${a.idx}" value="${currentVal}" style="flex:1; height:26px; margin:0; font-size:12px; padding:0 8px; background: #ffffff; border: 1px solid #bdc3c7; border-radius: 4px; color: #2c3e50; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05); outline: none;" placeholder="${a.name}" oninput="updateJSLivePreview()">
+                    </div>
+                `;
+            });
+
+            Swal.fire({
+                width: 'auto', 
+                padding: '0', 
+                background: 'transparent', 
+                showConfirmButton: false, 
+                backdrop: false, 
+                html: `
+                    <div id="js-lab-true-window" style="width: 800px; height: 500px; min-width: 650px; min-height: 400px; resize: both; overflow: hidden; display: flex; flex-direction: column; background: #f4f6f7; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid #bdc3c7; pointer-events: auto;">
+                        
+                        <div id="swal-drag-handle" style="flex: 0 0 40px; cursor: move; background: #2c3e50; color: #ecf0f1; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+                            <span style="font-size: 13px; font-weight: bold; display:flex; align-items:center; gap:8px;">🪄 JS Shape Lab <span id="js-error-badge" style="display:none; background:#e74c3c; padding:2px 6px; border-radius:10px; font-size:9px;">Error</span></span>
+                            <button onclick="window.toggleJSLabMinimize(this)" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold; font-size: 16px; padding: 0 5px; line-height: 1;" title="Minimize">_</button>
+                        </div>
+                        
+                        <div id="js-lab-content" style="flex: 1; display: flex; flex-direction: column; min-height: 0; width: 100%;">
+                            
+                            <div style="flex: 0 0 40px; background: #34495e; color: #ecf0f1; padding: 0 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2c3e50; box-sizing: border-box;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span style="font-family: monospace; font-size: 12px; font-weight: bold;">function build(args) {</span>
+                                    <button onclick="window.showSyntaxGuide()" style="background: #27ae60; color: white; border: none; border-radius: 2px; padding: 3px 8px; font-size: 10px; cursor: pointer; font-weight: bold;">📘 Syntax Guide</button>
+                                </div>
+                                <div style="font-size: 11px; color: #bdc3c7;">
+                                    🔍 <kbd>Ctrl</kbd>+<kbd>F</kbd> Find | 🔄 <kbd>Shift</kbd>+<kbd>Ctrl</kbd>+<kbd>F</kbd> Replace
+                                </div>
+                            </div>
+                            
+                            <div style="flex: 1; display: flex; min-height: 0; overflow: hidden;">
+                                <div style="flex: 3; display: flex; flex-direction: column; background: #282a36; border-right: 1px solid #bdc3c7; overflow: hidden; position: relative;">
+                                    <textarea id="swal-js-editor">${jsCode}</textarea>
+                                </div>
+                                <div style="flex: 1; min-width: 240px; padding: 10px; box-sizing: border-box; background: #ecf0f1; overflow-y: auto; height: 100%;">
+                                    <div style="font-weight:bold; font-size:10px; color:#7f8c8d; margin-bottom:10px; text-transform:uppercase; letter-spacing: 0.5px;">Test Parameters</div>
+                                    ${argsHtml}
+                                </div>
+                            </div>
+
+                            <div style="flex: 0 0 50px; background: #eaeded; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #bdc3c7; box-sizing: border-box; z-index: 10;">
+                                <div id="js-error-box" style="color: #27ae60; font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60%;">✅ Ready</div>
+                                <div style="display: flex; gap: 8px;">
+                                    <button onclick="window.closeJSLab()" style="padding: 6px 14px; background: #95a5a6; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px;">Cancel</button>
+                                    <button onclick="window.applyJSCode()" style="padding: 6px 14px; background: #8e44ad; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">💾 Apply Code</button>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                `,
+                didOpen: () => {
+                    const popup = Swal.getPopup();
+                    const htmlContainer = Swal.getHtmlContainer();
+                    const handle = document.getElementById('swal-drag-handle');
+                    
+                    popup.style.background = 'transparent';
+                    popup.style.boxShadow = 'none';
+                    
+                    if(htmlContainer) {
+                        htmlContainer.style.overflow = 'visible';
+                        htmlContainer.style.padding = '0';
+                        htmlContainer.style.margin = '0';
+                    }
+                    
+                    // Native drag logic 
+                    let isDragging = false, startX, startY, initialLeft, initialTop;
+                    const onMouseMove = (e) => {
+                        if (!isDragging) return;
+                        popup.style.left = (initialLeft + (e.clientX - startX)) + 'px';
+                        popup.style.top = (initialTop + (e.clientY - startY)) + 'px';
+                    };
+                    const onMouseUp = () => {
+                        isDragging = false;
+                        document.removeEventListener('mousemove', onMouseMove);
+                        document.removeEventListener('mouseup', onMouseUp);
+                    };
+                    handle.addEventListener('mousedown', (e) => {
+                        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return; 
+                        isDragging = true;
+                        const rect = popup.getBoundingClientRect();
+                        popup.style.margin = '0';
+                        popup.style.position = 'fixed'; 
+                        popup.style.left = rect.left + 'px';
+                        popup.style.top = rect.top + 'px';
+                        popup.style.transform = 'none'; 
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        initialLeft = rect.left;
+                        initialTop = rect.top;
+                        document.addEventListener('mousemove', onMouseMove);
+                        document.addEventListener('mouseup', onMouseUp);
+                    });
+
+                    // --- INITIALIZE CODEMIRROR ---
+                    window.cmEditor = CodeMirror.fromTextArea(document.getElementById('swal-js-editor'), {
+                        mode: "javascript",
+                        theme: "dracula",
+                        lineNumbers: true,
+                        lineWrapping: true,  // Word wrapping enabled!
+                        viewportMargin: Infinity
+                    });
+                    
+                    // Force a refresh to ensure it fits the flexbox
+                    setTimeout(() => window.cmEditor.refresh(), 10);
+
+                    window.cmEditor.on("change", () => {
+                        window.updateJSLivePreview();
+                    });
+
+                    updateJSLivePreview();
+                },
+                willClose: () => {
+                    window.isJSLabActive = false;
+                    renderCanvas(); 
+                }
+            });
+        };
+
+        // --- GHOSTBUSTER MINIMIZE ---
+        window.toggleJSLabMinimize = function(btnElement) {
+            // Safety first: If there's no button, abort.
+            if (!btnElement) return;
+            
+            // THE FIX: We use DOM Traversal. We ask the button to find its own parent window!
+            let win = btnElement.closest('#js-lab-true-window');
+            if (!win) return; // Ghost busted!
+            
+            // Now we ask that specific window to find its content payload
+            let content = win.querySelector('#js-lab-content');
+            if (!content) return; // Ghost busted!
+            
+            if (content.style.display === 'none') {
+                // Maximize
+                content.style.display = 'flex';
+                
+                win.style.width = '800px';
+                win.style.height = '500px';
+                win.style.minWidth = '650px';
+                win.style.minHeight = '400px';
+                win.style.resize = 'both';
+                
+                btnElement.innerHTML = '_';
+                btnElement.title = 'Minimize';
+                
+                // Tell CodeMirror to recalculate its layout now that it's visible again!
+                if (window.cmEditor) {
+                    setTimeout(() => window.cmEditor.refresh(), 10);
+                }
+            } else {
+                // Minimize
+                content.style.display = 'none';
+                
+                win.style.minWidth = '0px';
+                win.style.minHeight = '0px';
+                win.style.width = '300px';
+                win.style.height = '40px';
+                win.style.resize = 'none';
+                
+                btnElement.innerHTML = '+';
+                btnElement.title = 'Maximize';
+            }
+        };
+
+        window.updateJSLivePreview = function() {
+            let code = window.cmEditor ? window.cmEditor.getValue() : document.getElementById('swal-js-editor').value;
+            let errorBox = document.getElementById('js-error-box');
+            let errorBadge = document.getElementById('js-error-badge');
+            
+            // Target the MAIN canvas container directly
+            let renderedPaths = document.getElementById('renderedPaths');
+
+            let argsList = getParsedArgs();
+            let jsArgs = [""];
+            argsList.forEach(a => {
+                let mockInput = document.getElementById(`js-mock-arg-${a.idx}`);
+                jsArgs[a.idx] = mockInput ? mockInput.value : (testValues[a.idx] || "");
+            });
+
+            try {
+                const buildShape = new Function('args', code);
+                const generated = buildShape(jsArgs);
+
+                if (!generated || typeof generated.pathStr === 'undefined') {
+                    throw new Error("Return an object: { pathStr: '...', pins: [] }");
+                }
+
+                errorBox.innerHTML = "✅ Syntax OK";
+                errorBox.style.color = "#27ae60";
+                if (errorBadge) errorBadge.style.display = 'none';
+
+                // Grab the current active theme color
+                let theme = document.getElementById('selTheme').value;
+                let baseColor = (theme === 'cadence') ? "#007c3c" : "#2c3e50";
+                
+                // Read styles if provided by the user's code, otherwise default to sharp CAD corners
+                let lineCap = (generated.style && generated.style.lineCap) ? generated.style.lineCap : 'butt';
+                let lineJoin = (generated.style && generated.style.lineJoin) ? generated.style.lineJoin : 'miter';
+
+                // Parse the generated path to separate real SVG paths from our custom Text nodes
+                let svgHtml = "";
+                let subPaths = generated.pathStr.split(/(?=[Mm]\s)/).filter(p => p.trim() !== '');
+
+                subPaths.forEach(sub => {
+                    let cleanSub = sub.trim();
+                    let textMatch = cleanSub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
+                    
+                    if (textMatch) {
+                        let tx = parseFloat(textMatch[1]);
+                        let ty = parseFloat(textMatch[2]);
+                        let tSize = parseFloat(textMatch[3]);
+                        let tStyle = textMatch[4];
+                        let tStr = textMatch[5];
+                        
+                        let fw = tStyle === 'bold' ? 'bold' : 'normal';
+                        let fs = tStyle === 'italic' ? 'italic' : 'normal';
+                        
+                        svgHtml += `<text x="${tx}" y="${ty}" font-family="Arial" font-size="${tSize}" font-weight="${fw}" font-style="${fs}" fill="${baseColor}" text-anchor="middle" dominant-baseline="central">${tStr}</text>`;
+                    } else {
+                        svgHtml += `<path d="${cleanSub}" stroke="${baseColor}" stroke-width="1.8" fill="none" stroke-linecap="${lineCap}" stroke-linejoin="${lineJoin}" />`;
+                    }
+                });
+
+                if (generated.pins) {
+                    generated.pins.forEach((p) => {
+                        let lx = p.x + 3, ly = p.y - 2, align = "start";
+                        if (p.dir === 'L') { lx = p.x - 3; align = "end"; }
+                        else if (p.dir === 'T') { lx = p.x; ly = p.y - 4; align = "middle"; }
+                        else if (p.dir === 'B') { lx = p.x; ly = p.y + 6; align = "middle"; }
+                        
+                        let isTextMode = p.id.includes('$');
+                        let circleMarkup = isTextMode
+                            ? `<circle cx="${p.x}" cy="${p.y}" r="1.5" class="pin-marker dummy-pin" />`
+                            : `<circle cx="${p.x}" cy="${p.y}" r="1.5" class="pin-marker" />`;
+                        
+                        // Developer View: If label is omitted OR empty, show the ID so we can see the pin!
+                        let displayLabel = (p.label === undefined || p.label === '') ? p.id : p.label;
+
+                        // Disable pointer events so the preview is display-only
+                        svgHtml += `
+                            <g class="shape-path" data-is-pin="true" style="pointer-events: none;">
+                                ${circleMarkup}
+                                <text x="${lx}" y="${ly}" class="pin-label" style="text-anchor:${align}">${displayLabel}</text>
+                            </g>`;
+                    });
+                }
+                
+                // Overwrite the main canvas layer visually
+                renderedPaths.innerHTML = svgHtml;
+
+            } catch (e) {
+                let lineInfo = "";
+                let actualLine = null;
+                let codeLineCount = code.split('\n').length;
+
+                if (e.stack) {
+                    let matches = [...e.stack.matchAll(/:(\d+):\d+/g)];
+                    for (let m of matches) {
+                        let candidate = parseInt(m[1]) - 2;
+                        if (candidate > 0 && candidate <= codeLineCount) {
+                            actualLine = candidate;
+                            break; 
+                        }
+                    }
+                } 
+                if (!actualLine && e.lineNumber) {
+                    let candidate = e.lineNumber - 2;
+                    if (candidate > 0 && candidate <= codeLineCount) actualLine = candidate;
+                }
+                if (actualLine !== null) {
+                    lineInfo = ` <span style="color:#e74c3c; background:rgba(231,76,60,0.1); padding:2px 6px; border-radius:4px;">(Line ${actualLine})</span>`;
+                }
+
+                let tokenMatch = e.message.match(/['"]([^'"]+)['"]/);
+                let findButtonHtml = "";
+                if (tokenMatch && tokenMatch[1]) {
+                    let token = tokenMatch[1].replace(/'/g, "\\'");
+                    // THE FIX: Call our new, robust search function!
+                    findButtonHtml = ` <button onclick="window.findInEditor('${token}')" style="background: #e74c3c; color: white; border: 1px solid #c0392b; border-radius: 3px; padding: 2px 8px; font-size: 10px; cursor: pointer; margin-left: 8px; font-weight: bold;">🔍 Find '${token}'</button>`;
+                }
+
+                errorBox.innerHTML = "❌ " + e.message + lineInfo + findButtonHtml;
+                errorBox.style.color = "#c0392b";
+                if (errorBadge) errorBadge.style.display = 'inline-block';
+                
+                // Clear the main canvas on error so the user knows it's broken
+                renderedPaths.innerHTML = '';
+            }
+        };
+
+        window.applyJSCode = function() {
+            document.getElementById('cShapeGen').value = window.cmEditor.getValue();
+            generateCode();
+            
+            if (testModeActive) {
+                window.markPreviewDirty();
+                let testPreviewContainer = document.getElementById('test-preview-container');
+                if (testPreviewContainer) testPreviewContainer.innerHTML = generateTestPreviewSVG();
+            }
+            Swal.close();
+        };
+
+        window.closeJSLab = function() {
+            Swal.close();
+        };
+
+	
+	// --- 📘 TIKZBUILDER SYNTAX GUIDE (FLOATING OVERLAY) ---
+        window.showSyntaxGuide = function() {
+            // 1. If it already exists, just toggle visibility and return focus to CodeMirror
+            let existingGuide = document.getElementById('floating-syntax-guide');
+            if (existingGuide) {
+                existingGuide.style.display = existingGuide.style.display === 'none' ? 'block' : 'none';
+                if (window.cmEditor && existingGuide.style.display === 'none') window.cmEditor.focus();
+                return;
+            }
+
+            // 2. Find the active JS Lab window to attach our floating panel to
+            let jsLabWin = document.getElementById('js-lab-true-window');
+            if (!jsLabWin) return;
+
+            // 3. Create the floating panel dynamically
+            let guide = document.createElement('div');
+            guide.id = 'floating-syntax-guide';
+            guide.style.cssText = "position: absolute; top: 50px; right: 20px; width: 380px; background: rgba(40, 42, 54, 0.95); color: #d4d4d4; padding: 15px; border-radius: 6px; box-shadow: 0 8px 25px rgba(0,0,0,0.6); border: 1px solid #7f8c8d; z-index: 9999; backdrop-filter: blur(4px);";
+            
+            guide.innerHTML = `
+                <div id="syntax-guide-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #555; padding-bottom: 5px; cursor: move; user-select: none;">
+                    <strong style="color: #27ae60;">📘 TikZBuilder Syntax Guide</strong>
+                    <button onclick="document.getElementById('floating-syntax-guide').style.display='none'; if(window.cmEditor) window.cmEditor.focus();" style="background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 14px; font-weight: bold;" title="Close">✖</button>
+                </div>
+                <div style="text-align: left; font-size: 12px; font-family: monospace; line-height: 1.4; user-select: text;">
+                    <span style="color: #56b6c2;">let</span> tikz = <span style="color: #c678dd;">new</span> <span style="color: #e5c07b;">TikZBuilder</span>();<br><br>
+                    
+                    <span style="color: #7f8c8d;">// 1. Basic Drawing (*10 & invert Y)</span><br>
+                    tikz.<span style="color: #61afef;">draw</span>(<span style="color: #d19a66;">0</span>,<span style="color: #d19a66;">0</span>).<span style="color: #61afef;">to</span>(<span style="color: #d19a66;">1</span>,<span style="color: #d19a66;">0</span>).<span style="color: #61afef;">cycle</span>();<br><br>
+
+                    <span style="color: #7f8c8d;">// 2. Shapes</span><br>
+                    tikz.<span style="color: #61afef;">rect</span>(<span style="color: #d19a66;">x1</span>,<span style="color: #d19a66;">y1</span>, <span style="color: #d19a66;">x2</span>,<span style="color: #d19a66;">y2</span>);<br>
+                    tikz.<span style="color: #61afef;">circle</span>(<span style="color: #d19a66;">cx</span>,<span style="color: #d19a66;">cy</span>, <span style="color: #d19a66;">r</span>);<br>
+                    tikz.<span style="color: #61afef;">arc</span>(<span style="color: #d19a66;">cx</span>,<span style="color: #d19a66;">cy</span>, <span style="color: #d19a66;">r</span>, <span style="color: #d19a66;">startAng</span>, <span style="color: #d19a66;">endAng</span>);<br><br>
+
+                    <span style="color: #7f8c8d;">// 3. Text Nodes</span><br>
+                    tikz.<span style="color: #61afef;">text</span>(<span style="color: #d19a66;">x</span>,<span style="color: #d19a66;">y</span>, <span style="color: #98c379;">"Str"</span>, <span style="color: #d19a66;">size</span>=10, <span style="color: #98c379;">'normal|bold|italic'</span>);<br><br>
+
+                    <span style="color: #7f8c8d;">// 4. Pins</span><br>
+                    tikz.<span style="color: #61afef;">pin</span>(<span style="color: #98c379;">'id'</span>, <span style="color: #d19a66;">x</span>,<span style="color: #d19a66;">y</span>, <span style="color: #98c379;">'R|L|T|B'</span>, <span style="color: #98c379;">'Label'</span>);<br><br>
+
+                    <span style="color: #7f8c8d;">// 5. Final Export</span><br>
+                    <span style="color: #c678dd;">return</span> tikz.<span style="color: #61afef;">export</span>();
+                </div>
+            `;
+
+            jsLabWin.appendChild(guide);
+
+            // 4. Add Dragging capability to the header so it can be moved out of the way!
+            let header = document.getElementById('syntax-guide-header');
+            let isDragging = false, startX, startY, initialLeft, initialTop;
+            
+            header.addEventListener('mousedown', (e) => {
+                if(e.target.tagName === 'BUTTON') return;
+                isDragging = true;
+                startX = e.clientX; startY = e.clientY;
+                let rect = guide.getBoundingClientRect();
+                let parentRect = jsLabWin.getBoundingClientRect();
+                initialLeft = rect.left - parentRect.left;
+                initialTop = rect.top - parentRect.top;
+                
+                // Break the "right" positioning lock once dragging starts
+                guide.style.right = 'auto';
+                guide.style.left = initialLeft + 'px';
+                guide.style.top = initialTop + 'px';
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if(!isDragging) return;
+                guide.style.left = (initialLeft + (e.clientX - startX)) + 'px';
+                guide.style.top = (initialTop + (e.clientY - startY)) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => { isDragging = false; });
+            
+            // 5. Return focus to CodeMirror immediately after opening
+            if (window.cmEditor) window.cmEditor.focus();
+        };
+	
+	// --- 🔍 CODEMIRROR SEARCH ENGINE ---
+        window.lastSearchTerm = null;
+        window.lastSearchCursor = null;
+
+        window.findInEditor = function(specificTerm = null) {
+            if (!window.cmEditor) return;
+            
+            let searchInput = document.getElementById('js-search-input');
+            let term = specificTerm;
+            
+            // Try to read the input box if no specific term was passed
+            if (!term && searchInput) {
+                term = searchInput.value;
+            }
+            if (!term) return;
+
+            // If the term changed, or we don't have a cursor, create a new one from the current text cursor position
+            if (term !== window.lastSearchTerm || !window.lastSearchCursor) {
+                window.lastSearchTerm = term;
+                let currentPos = window.cmEditor.getCursor();
+                window.lastSearchCursor = window.cmEditor.getSearchCursor(term, currentPos);
+            }
+
+            // Try to find the next occurrence
+            if (window.lastSearchCursor.findNext()) {
+                window.cmEditor.setSelection(window.lastSearchCursor.from(), window.lastSearchCursor.to());
+                window.cmEditor.scrollIntoView({from: window.lastSearchCursor.from(), to: window.lastSearchCursor.to()}, 100);
+                window.cmEditor.focus();
+            } else {
+                // If we hit the end of the document, wrap around to the top and search again!
+                window.lastSearchCursor = window.cmEditor.getSearchCursor(term, {line: 0, ch: 0});
+                if (window.lastSearchCursor.findNext()) {
+                    window.cmEditor.setSelection(window.lastSearchCursor.from(), window.lastSearchCursor.to());
+                    window.cmEditor.scrollIntoView({from: window.lastSearchCursor.from(), to: window.lastSearchCursor.to()}, 100);
+                    window.cmEditor.focus();
+                } else {
+                    // Not found at all. Flash the search bar red if it exists.
+                    if (searchInput) {
+                        let oldBg = searchInput.style.background;
+                        searchInput.style.background = '#c0392b';
+                        setTimeout(() => searchInput.style.background = oldBg, 300);
+                    }
+                }
+            }
+        };
+	
+	renderArgDefList(); // stays always at end!
 	
     </script>
 </body>

@@ -1723,12 +1723,11 @@
 						}
 						{
 						}
-		        % coordinate pins
             \coordinate (pin1) at (0.00, 2.00); % top left terminal (non-inverting input) [R]
         \coordinate (pin2) at (0.00, -2.00); % bottom left terminal (inverting input) [R]
         \coordinate (pin3) at (12.00, 0.00); % right terminal (output) [R]
-        \coordinate ($4) at (6.00, 5.00); % [R]
-        \coordinate (-$4) at (6.00, -5.00); % [R]
+        \coordinate ($4) at (6.00, 5.00); % [T] IF:4!=
+        \coordinate (-$4) at (6.00, -5.00); % [B] IF:4!=
     \end{scope}
 }
 
@@ -3577,10 +3576,82 @@
 
 %% Multiplexer with n inputs
 \newcommand{\muxninputs}[7]{%{position}{name}{number of inputs}{rotation}{select at top/bottom}{grid}{show (0,0)}
-% disabled
+% enabled
 % category: Digital/Logic
+% scales: 1, 2, 4
+% label_anchor: 15 2 L
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+% preview_args: 3=2, 4=0, 5=bottom
+
+% shape_generator:
+% let n = parseInt(args[3]);
+% if (isNaN(n) || n < 2) n = 2; // Fallback to 2 inputs
+% let spacing = (n === 2) ? 2 : 1;
+% let yOffset = (n === 2) ? -1 : 0;
+% let isTop = args[5] === 'top';
+% 
+% let numSelects = Math.ceil(Math.log2(n));
+% let w = numSelects + 1; // Width of the mux body
+% let h = (n === 2) ? n*spacing: (n + 1)*spacing;  // Height of the mux body
+% 
+% let tikz = new TikZBuilder();
+% 
+% // 1. Draw Inputs & Input Pins
+% for (let i = 1; i <= n; i++) {
+%     tikz.draw(0, i*spacing+yOffset).to(1, i*spacing+yOffset);
+%     tikz.pin('pin' + i, 0, i*spacing+yOffset, 'L', '');
+% }
+% 
+% // 2. Draw Select Lines & Select Pins
+% let selY2 = isTop ? (h + 1) : -1; // The outer tip of the pin
+% 
+% for (let i = 1; i <= numSelects; i++) {
+%     let selX = 1 + i;
+%     
+%     // --- THE EXACT SLANT INTERSECTION ---
+%     // Because the slope is 0.4, for every 'i' units we move right, 
+%     // the slant moves exactly 0.4 * i units vertically!
+%     let selY1 = isTop ? (h - 0.4 * i) : (0.4 * i); 
+%     
+%     tikz.draw(selX, selY1).to(selX, selY2);
+%     tikz.pin('pinSelect' + i, selX, selY2, isTop ? 'T' : 'B', '');
+% }
+% 
+% // 3. Draw Output & Output Pin
+% let outY = Math.ceil((n + 1) / 2);
+% tikz.draw(w + 1, outY).to(w + 2, outY);
+% tikz.pin('pinOutput', w + 2, outY, 'R', '');
+% 
+% // 4. Draw Trapezoid Box
+% tikz.draw(1, 0)
+%     .to(1, h)
+%     .to(w + 1, h - 0.4 * w)
+%     .to(w + 1, 0.4 * w)
+%     .cycle();
+% 
+% // 5. Add the Center Text Label
+% // X center is halfway between the left edge (1) and right edge (w + 1)
+% // Y center is halfway down the height (h)
+% let centerX = 1 + (w / 2);
+% let centerY = h / 2;
+% 
+% tikz.text(centerX, centerY, n+":1", 9, 'normal');
+% 
+% return tikz.export();
+
+% arg_def: 3 | text | number of inputs | 2
+% arg_def: 4 | rotation | Rotation | 0
+% arg_def: 5 | select | select terminals position | bottom | bottom, top
+
+
+% icon_base: \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
 				\getzoomfactor
 				\LOG[2]{#3}{\numberofselectterminalstmp}				
 				\FLOOR{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
@@ -3599,14 +3670,12 @@
 						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,\currentinput)  -- (1,\currentinput);
 						\SUBTRACT{\currentinput}{1}{\currentinputindex}
 						\node[draw=none, align=center] at (0.5,\currentinput + 0.5) {I\textsubscript{\currentinputindex}}; % draw input symbol
-						\coordinate (pin\currentinput) at (0, \currentinput); % left terminal (input-i)
 					}
 				\ifstrequal{#5}{top}
 					{
 						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at top
 							{
 								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 1+#3-0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  #3+2); % draw select lines at top
-								\coordinate (pinSelect\currentselectterminal) at (1 + \currentselectterminal,  #3+2); % top terminal (select-i)
 								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
 								\IfEq{\numberofselectterminals}{1}
 									{
@@ -3627,7 +3696,6 @@
 						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at bottom
 							{
 								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  -1); % draw select lines at bottom
-								\coordinate (pinSelect\currentselectterminal) at (1 + \currentselectterminal,  -1); % bottom terminal (select-i)
 								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
 								\IfEq{\numberofselectterminals}{1}
 									{
@@ -3647,7 +3715,6 @@
 
 				% draw body
 					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (\muxrectanglewidth + 1,{(#3+1) / 2})  -- (\muxrectanglewidth + 2,{(#3+1) / 2}); % draw output line
-					\coordinate (pinOutput) at (\muxrectanglewidth + 1,{(#3+1) / 2}); % right terminal (output)
 					\node[draw=none, align=center] at (\muxrectanglewidth + 1.5,{0.5 + (#3+1) / 2}) {O}; % draw output symbol
 					\shade[left color=gray!50!white, draw=none] (1,0) -- (1, #3+1) -- (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) -- cycle; % draw shade
 					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1pt, color=gray!70]  (1,0) -- (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth); % draw diagonal
@@ -3675,7 +3742,7 @@
 					}
 					{
 					}
-		\end{scope}
+		                                \end{scope}
 }
 
 %% Demultiplexer with n outputs
@@ -4110,16 +4177,21 @@
 \newcommand{\fulladder}[6]{%{position}{name}{rotation}{grid}{show (0,0)}{right/left}
 % enabled
 % category: Digital/Logic
-% icon: M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20
+% scales: 1, 2, 4
+% label_anchor: 49 12 R
 % flip: disabled
-		\ifstrequal{#6}{right}
-					{
-						\edef\arrowdirection{<-}
-					}
-					{
-						\edef\arrowdirection{->}
-					}
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+% preview_args: 3=0, 6=right
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 6 | select | arrow direction | right | right, left
+
+
+% icon_base: M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20 M 20 -70 L 20 -70 /*TEXT:10,normal,B*/ M 60 -70 L 60 -70 /*TEXT:10,normal,A*/ M 40 -10 L 40 -10 /*TEXT:10,normal,S*/ // base
+% add_icon: 6==right : M 10 -40 L 10 -40 /*TEXT:10,normal,Ci*/ M 70 -40 L 70 -40 /*TEXT:10,normal,Co*/ // right
+% add_icon: 6==left : M 10 -40 L 10 -40 /*TEXT:10,normal,Co*/ M 70 -40 L 70 -40 /*TEXT:10,normal,Ci*/ // left
+% add_icon: 6==right : [rounded=true] M 92.75 -37.75 L 97.25 -40.25 L 92.75 -42.75 L 96.75 -40.25 M 17.50 -85 L 20 -80.50 L 22.50 -85 L 20 -81 M 57.50 -85.50 L 60 -81 L 62.50 -85.50 L 60 -81.50 M 37.50 12.50 L 40 17 L 42.50 12.50 L 40 16.50 M -6.75 -37.75 L -2.25 -40.25 L -6.75 -42.75 L -2.75 -40.25 // arrowheads right
+% add_icon: 6==left : [rounded=true] M 87.25 -37.75 L 82.75 -40.25 L 87.25 -42.75 L 83.25 -40.25 M 17.50 -85 L 20 -80.50 L 22.50 -85 L 20 -81 M 57.50 -85.50 L 60 -81 L 62.50 -85.50 L 60 -81.50 M 37.50 12.50 L 40 17 L 42.50 12.50 L 40 16.50 M -12.25 -37.75 L -16.75 -40.25 L -12.25 -42.75 L -16.25 -40.25 // arrowheads left
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
 				\shade[left color=magenta!20!white, draw=none] (0,0) rectangle (8,8);
 				\draw [\arrowdirection, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (10,4) -- (8,4);
@@ -4132,14 +4204,10 @@
 					{
 						\node[draw=none, align=center] at (1,4) {\textbf{\textcolor{blue}{c\textsubscript{i}}}};
 						\node[draw=none, align=center] at (7,4) {\textbf{\textcolor{blue}{c\textsubscript{o}}}};
-						\coordinate (pin4) at (-2,4); % left terminal (ci)
-						\coordinate (pin5) at (10,4); % right terminal (co)
 					}
 					{
 						\node[draw=none, align=center] at (7,4) {\textbf{\textcolor{blue}{c\textsubscript{i}}}};
 						\node[draw=none, align=center] at (1,4) {\textbf{\textcolor{blue}{c\textsubscript{o}}}};
-						\coordinate (pin4) at (-2,4); % left terminal (co)
-						\coordinate (pin5) at (10,4); % right terminal (ci)
 					}
 				\node[draw=none, align=center] at (4,1) {\textbf{\textcolor{blue}{s}}};
 				\node[draw=none, align=center] at (2,7) {\textbf{\textcolor{blue}{b}}};
@@ -4158,18 +4226,34 @@
 					}
 					{
 					}
-				\coordinate (pin1) at (6,10); % top right terminal (a)
-				\coordinate (pin2) at (2,10); % top left terminal (b)
-				\coordinate (pin3) at (4,-2); % bottom terminal (s)
-		\end{scope}
+		        \coordinate (pin4) at (-2.00, 4.00); % left terminal (ci) [R]
+        \coordinate (pin5) at (10.00, 4.00); % right terminal (co) [R]
+        \coordinate (pin4) at (-2.00, 4.00); % left terminal (co) [R]
+        \coordinate (pin5) at (10.00, 4.00); % right terminal (ci) [R]
+        \coordinate (pin1) at (6.00, 10.00); % top right terminal (a) [R]
+        \coordinate (pin2) at (2.00, 10.00); % top left terminal (b) [R]
+        \coordinate (pin3) at (4.00, -2.00); % bottom terminal (s) [R]
+    \end{scope}
 }
 
 %% FULL SUBTRACTOR (one digit numbers)
 \newcommand{\fullsubtractor}[6]{%{position}{name}{rotation}{grid}{show (0,0)}{right/left}
 % enabled
 % category: Digital/Logic
-% icon: M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20
+% scales: 1, 2, 4
+% label_anchor: 49 12 R
 % flip: disabled
+% preview_args: 3=0, 6=right
+
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 6 | select | arrow direction | right | right, left
+
+
+% icon_base: M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20 M 20 -70 L 20 -70 /*TEXT:10,normal,B*/ M 60 -70 L 60 -70 /*TEXT:10,normal,A*/ M 40 -10 L 40 -10 /*TEXT:10,normal,S*/ // base
+% add_icon: 6==right : M 10 -40 L 10 -40 /*TEXT:10,normal,Ci*/ M 70 -40 L 70 -40 /*TEXT:10,normal,Co*/ // right
+% add_icon: 6==left : M 10 -40 L 10 -40 /*TEXT:10,normal,Co*/ M 70 -40 L 70 -40 /*TEXT:10,normal,Ci*/ // left
+% add_icon: 6==right : [rounded=true] M 92.75 -37.75 L 97.25 -40.25 L 92.75 -42.75 L 96.75 -40.25 M 17.50 -85 L 20 -80.50 L 22.50 -85 L 20 -81 M 57.50 -85.50 L 60 -81 L 62.50 -85.50 L 60 -81.50 M 37.50 12.50 L 40 17 L 42.50 12.50 L 40 16.50 M -6.75 -37.75 L -2.25 -40.25 L -6.75 -42.75 L -2.75 -40.25 // arrowheads right
+% add_icon: 6==left : [rounded=true] M 87.25 -37.75 L 82.75 -40.25 L 87.25 -42.75 L 83.25 -40.25 M 17.50 -85 L 20 -80.50 L 22.50 -85 L 20 -81 M 57.50 -85.50 L 60 -81 L 62.50 -85.50 L 60 -81.50 M 37.50 12.50 L 40 17 L 42.50 12.50 L 40 16.50 M -12.25 -37.75 L -16.75 -40.25 L -12.25 -42.75 L -16.25 -40.25 // arrowheads left
 		\ifstrequal{#6}{right}
 					{
 						\edef\arrowdirection{<-}

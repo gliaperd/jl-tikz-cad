@@ -25,8 +25,8 @@ def generate_db(sty_file):
         # Fallback to the short macro name if no %% Title exists
         display_name = display_name_raw.strip() if display_name_raw else name
         
-        # Strip out // comments from every line
-        body_lines = [line.split('//')[0].strip() for line in body.strip().split('\n')]
+        # Clean whitespace, but DO NOT split on '//' globally because it destroys JavaScript code!
+        body_lines = [line.strip() for line in body.strip().split('\n')]
         
         # --- 1. ΑΘΟΡΥΒΟ DISABLE (% disabled!) ---
         if any(line.lower() == '% disabled!' for line in body_lines):
@@ -46,8 +46,28 @@ def generate_db(sty_file):
             "enabled": "true"
         }
         
+        in_shape_generator = False
+        shape_gen_lines = []
+        
         for line in body_lines:
-            line = line.strip()
+            line_stripped = line.strip()
+            
+            # --- NEW: Catch Multi-line JS Generator ---
+            if line_stripped.startswith('% shape_generator:'):
+                in_shape_generator = True
+                shape_gen_lines.append(line_stripped.replace('% shape_generator:', '').strip())
+                continue
+                
+            if in_shape_generator:
+                if line_stripped.startswith('%'):
+                    # Strip the leading '%' and space to reconstruct the JS
+                    js_line = line_stripped[1:].strip() 
+                    shape_gen_lines.append(js_line)
+                    continue
+                else:
+                    # We hit the end of the comment block
+                    in_shape_generator = False
+                    comp_data['shapeGenerator'] = '\n'.join(shape_gen_lines)
             
             if line.startswith('% category:'):
                 comp_data['category'] = line.replace('% category:', '').strip()
@@ -91,8 +111,11 @@ def generate_db(sty_file):
 
             elif re.match(r'%\s*icon_base\s*:', line, re.IGNORECASE):
                 path_data = re.sub(r'%\s*icon_base\s*:', '', line, flags=re.IGNORECASE).strip()
-                style_str = ""
                 
+                # FIX: Strip inline comments (//) from the SVG path so the browser doesn't choke!
+                path_data = path_data.split('//')[0].strip()
+                
+                style_str = ""
                 if path_data.startswith('['):
                     end_idx = path_data.find(']')
                     if end_idx != -1:
@@ -109,6 +132,9 @@ def generate_db(sty_file):
                 if len(parts) == 2:
                     condition = parts[0].strip()
                     path_data = parts[1].strip()
+                    
+                    # FIX: Strip inline comments (//) from the SVG path
+                    path_data = path_data.split('//')[0].strip()
                     
                     style_str = ""
                     if path_data.startswith('['):
@@ -129,7 +155,10 @@ def generate_db(sty_file):
                 m = re.match(r'% icon_([^:]+):(.*)', line)
                 if m:
                     variant_name = m.group(1).strip()
-                    variant_path = m.group(2).strip()
+                    
+                    # FIX: Strip inline comments
+                    variant_path = m.group(2).split('//')[0].strip()
+                    
                     if 'icons' not in comp_data:
                         comp_data['icons'] = {}
                     comp_data['icons'][variant_name] = variant_path
@@ -137,7 +166,8 @@ def generate_db(sty_file):
                         comp_data['icon'] = variant_path
             
             elif line.startswith('% icon:'):
-                comp_data['icon'] = line.replace('% icon:', '').strip()
+                # FIX: Strip inline comments
+                comp_data['icon'] = line.replace('% icon:', '').split('//')[0].strip()
 
             elif line.startswith('% scales:'):
                 scales_str = line.replace('% scales:', '').strip()
@@ -170,6 +200,9 @@ def generate_db(sty_file):
                 val = line.replace('% hide_label:', '').strip().lower()
                 comp_data['hideLabel'] = (val == 'true')
 
+        if in_shape_generator:
+            comp_data['shapeGenerator'] = '\n'.join(shape_gen_lines)
+        
         arg_names = []
         if body_lines and body_lines[0].strip().startswith('%'):
             comment_line = body_lines[0].strip()
@@ -224,11 +257,12 @@ def generate_db(sty_file):
         comp_data['pins'] = pins
 
         # --- 3. ΕΛΕΓΧΟΣ IMPORT & PINS ---
-        if pins or name in ['connectordot', 'freetext']:
+        # Allow components if they have static pins, are special system shapes, OR possess a JS Shape Generator
+        if pins or name in ['connectordot', 'freetext'] or 'shapeGenerator' in comp_data:
             database[name] = comp_data
             imported_count += 1
         else:
-            ignored_components.append((name, "no pins"))
+            ignored_components.append((name, "no static pins or JS generator"))
 
     # Εγγραφή της βάσης στο αρχείο
     with open("components_db.js", "w", encoding="utf-8") as f:

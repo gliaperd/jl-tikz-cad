@@ -2120,14 +2120,16 @@ const JL_DATABASE = {
                 "x": 60.0,
                 "y": -50.0,
                 "label": "",
-                "dir": "R"
+                "dir": "T",
+                "condition": "4!="
             },
             {
                 "id": "-$4",
                 "x": 60.0,
                 "y": 50.0,
                 "label": "",
-                "dir": "R"
+                "dir": "B",
+                "condition": "4!="
             }
         ]
     },
@@ -4773,6 +4775,84 @@ const JL_DATABASE = {
             }
         ]
     },
+    "muxninputs": {
+        "name": "muxninputs",
+        "displayName": "Multiplexer with n inputs",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Digital/Logic",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": 15.0,
+            "y": 2.0,
+            "dir": "L"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "2",
+            "4": "0",
+            "5": "bottom"
+        },
+        "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2; // Fallback to 2 inputs\nlet spacing = (n === 2) ? 2 : 1;\nlet yOffset = (n === 2) ? -1 : 0;\nlet isTop = args[5] === 'top';\n\nlet numSelects = Math.ceil(Math.log2(n));\nlet w = numSelects + 1; // Width of the mux body\nlet h = (n === 2) ? n*spacing: (n + 1)*spacing;  // Height of the mux body\n\nlet tikz = new TikZBuilder();\n\n// 1. Draw Inputs & Input Pins\nfor (let i = 1; i <= n; i++) {\ntikz.draw(0, i*spacing+yOffset).to(1, i*spacing+yOffset);\ntikz.pin('pin' + i, 0, i*spacing+yOffset, 'L', '');\n}\n\n// 2. Draw Select Lines & Select Pins\nlet selY2 = isTop ? (h + 1) : -1; // The outer tip of the pin\n\nfor (let i = 1; i <= numSelects; i++) {\nlet selX = 1 + i;\n\n// --- THE EXACT SLANT INTERSECTION ---\n// Because the slope is 0.4, for every 'i' units we move right,\n// the slant moves exactly 0.4 * i units vertically!\nlet selY1 = isTop ? (h - 0.4 * i) : (0.4 * i);\n\ntikz.draw(selX, selY1).to(selX, selY2);\ntikz.pin('pinSelect' + i, selX, selY2, isTop ? 'T' : 'B', '');\n}\n\n// 3. Draw Output & Output Pin\nlet outY = Math.ceil((n + 1) / 2);\ntikz.draw(w + 1, outY).to(w + 2, outY);\ntikz.pin('pinOutput', w + 2, outY, 'R', '');\n\n// 4. Draw Trapezoid Box\ntikz.draw(1, 0)\n.to(1, h)\n.to(w + 1, h - 0.4 * w)\n.to(w + 1, 0.4 * w)\n.cycle();\n\n// 5. Add the Center Text Label\n// X center is halfway between the left edge (1) and right edge (w + 1)\n// Y center is halfway down the height (h)\nlet centerX = 1 + (w / 2);\nlet centerY = h / 2;\n\ntikz.text(centerX, centerY, n+\":1\", 9, 'normal');\n\nreturn tikz.export();",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "text",
+                "label": "number of inputs",
+                "defVal": "2"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 5,
+                "type": "select",
+                "label": "select terminals position",
+                "defVal": "bottom",
+                "options": "bottom, top"
+            }
+        ],
+        "iconBase": "\\begin{scope}[shift={#1}, scale=\\jlcscale, rotate=#4, yshift=1]",
+        "filled": false,
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "number of inputs",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "select at top/bottom",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": []
+    },
     "sevensegmentdisplay": {
         "name": "sevensegmentdisplay",
         "displayName": "Seven-segment display",
@@ -4987,8 +5067,60 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": 49.0,
+            "y": 12.0,
+            "dir": "R"
+        },
         "flippable": false,
+        "previewArgs": {
+            "3": "0",
+            "6": "right"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 6,
+                "type": "select",
+                "label": "arrow direction",
+                "defVal": "right",
+                "options": "right, left"
+            }
+        ],
+        "iconBase": "M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20 M 20 -70 L 20 -70 /*TEXT:10,normal,B*/ M 60 -70 L 60 -70 /*TEXT:10,normal,A*/ M 40 -10 L 40 -10 /*TEXT:10,normal,S*/",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "6==right",
+                "style": "",
+                "path": "M 10 -40 L 10 -40 /*TEXT:10,normal,Ci*/ M 70 -40 L 70 -40 /*TEXT:10,normal,Co*/"
+            },
+            {
+                "condition": "6==left",
+                "style": "",
+                "path": "M 10 -40 L 10 -40 /*TEXT:10,normal,Co*/ M 70 -40 L 70 -40 /*TEXT:10,normal,Ci*/"
+            },
+            {
+                "condition": "6==right",
+                "style": "rounded=true",
+                "path": "M 92.75 -37.75 L 97.25 -40.25 L 92.75 -42.75 L 96.75 -40.25 M 17.50 -85 L 20 -80.50 L 22.50 -85 L 20 -81 M 57.50 -85.50 L 60 -81 L 62.50 -85.50 L 60 -81.50 M 37.50 12.50 L 40 17 L 42.50 12.50 L 40 16.50 M -6.75 -37.75 L -2.25 -40.25 L -6.75 -42.75 L -2.75 -40.25"
+            },
+            {
+                "condition": "6==left",
+                "style": "rounded=true",
+                "path": "M 87.25 -37.75 L 82.75 -40.25 L 87.25 -42.75 L 83.25 -40.25 M 17.50 -85 L 20 -80.50 L 22.50 -85 L 20 -81 M 57.50 -85.50 L 60 -81 L 62.50 -85.50 L 60 -81.50 M 37.50 12.50 L 40 17 L 42.50 12.50 L 40 16.50 M -12.25 -37.75 L -16.75 -40.25 L -12.25 -42.75 L -16.25 -40.25"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -5073,8 +5205,60 @@ const JL_DATABASE = {
         "argsCount": 6,
         "enabled": "true",
         "category": "Digital/Logic",
-        "icon": "M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": 49.0,
+            "y": 12.0,
+            "dir": "R"
+        },
         "flippable": false,
+        "previewArgs": {
+            "3": "0",
+            "6": "right"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 6,
+                "type": "select",
+                "label": "arrow direction",
+                "defVal": "right",
+                "options": "right, left"
+            }
+        ],
+        "iconBase": "M 0 0 L 80 0 L 80 -80 L 0 -80 Z M 60 -100 L 60 -80 M 20 -100 L 20 -80 M -20 -40 L 0 -40 M 80 -40 L 100 -40 M 40 0 L 40 20 M 20 -70 L 20 -70 /*TEXT:10,normal,B*/ M 60 -70 L 60 -70 /*TEXT:10,normal,A*/ M 40 -10 L 40 -10 /*TEXT:10,normal,S*/",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "6==right",
+                "style": "",
+                "path": "M 10 -40 L 10 -40 /*TEXT:10,normal,Ci*/ M 70 -40 L 70 -40 /*TEXT:10,normal,Co*/"
+            },
+            {
+                "condition": "6==left",
+                "style": "",
+                "path": "M 10 -40 L 10 -40 /*TEXT:10,normal,Co*/ M 70 -40 L 70 -40 /*TEXT:10,normal,Ci*/"
+            },
+            {
+                "condition": "6==right",
+                "style": "rounded=true",
+                "path": "M 92.75 -37.75 L 97.25 -40.25 L 92.75 -42.75 L 96.75 -40.25 M 17.50 -85 L 20 -80.50 L 22.50 -85 L 20 -81 M 57.50 -85.50 L 60 -81 L 62.50 -85.50 L 60 -81.50 M 37.50 12.50 L 40 17 L 42.50 12.50 L 40 16.50 M -6.75 -37.75 L -2.25 -40.25 L -6.75 -42.75 L -2.75 -40.25"
+            },
+            {
+                "condition": "6==left",
+                "style": "rounded=true",
+                "path": "M 87.25 -37.75 L 82.75 -40.25 L 87.25 -42.75 L 83.25 -40.25 M 17.50 -85 L 20 -80.50 L 22.50 -85 L 20 -81 M 57.50 -85.50 L 60 -81 L 62.50 -85.50 L 60 -81.50 M 37.50 12.50 L 40 17 L 42.50 12.50 L 40 16.50 M -12.25 -37.75 L -16.75 -40.25 L -12.25 -42.75 L -16.25 -40.25"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
