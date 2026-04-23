@@ -1056,7 +1056,10 @@
         let pinsHtml = '';
         el.getPorts().forEach(port => {
             let isVisible = evaluatePinCondition(port.condition, resolvedArgsArray);
-            el.portProp(port.id, 'attrs/portBody/display', isVisible ? 'block' : 'none');
+            
+            // Η συνάρτηση σέβεται πλέον το global checkbox!
+            el.portProp(port.id, 'attrs/portBody/display', (isVisible && showComponentPins) ? 'block' : 'none');
+            
             el.portProp(port.id, 'attrs/portBody/pointer-events', isVisible ? 'all' : 'none');
             el.portProp(port.id, 'attrs/portLabel/display', (isVisible && showPinNames) ? 'block' : 'none');
         });
@@ -2173,7 +2176,7 @@
 						x: -4 * PPU_MULT, 
 						y: -4 * PPU_MULT, 
 						fill: theme.portBody,
-						display: (isVisible && showComponentPins) ? 'block' : 'none' // <--- Ενημέρωση εδώ
+						display: showComponentPins ? 'block' : 'none'
 					},
                     portTitle: { text: p.label || p.id },
                     portLabel: { 
@@ -2760,6 +2763,9 @@ ${indentedTikz}
             n.setAttribute('stroke', '#000000'); // <--- ΕΔΩ: Κατάμαυρο καλώδιο
             n.setAttribute('stroke-linejoin', 'round');
             n.setAttribute('stroke-linecap', 'round');
+			// --- Η ΝΕΑ ΠΡΟΣΘΗΚΗ: Καθαρίζουμε το vector-effect και από τα καλώδια! ---
+            n.removeAttribute('vector-effect');
+            if (n.style.vectorEffect) n.style.vectorEffect = '';
         });
 
         // 2. Ρύθμιση όλων των υπόλοιπων σχημάτων (Components/Symbols)
@@ -2930,6 +2936,8 @@ ${indentedTikz}
             // ----------------------------------------------
 
             graph.fromJSON(parsedData); 
+			
+			syncVisibilityFromUI();
             
             // Push all wires to the background layer AND normalize their thickness!
             graph.getLinks().forEach(link => {
@@ -4024,6 +4032,21 @@ ${indentedTikz}
         selectEl.setAttribute('data-old-val', f);
         selectEl.dispatchEvent(new Event('change', { bubbles: true }));
     }
+	
+	function syncVisibilityFromUI() {
+		showPinNames = document.getElementById('toggle-pin-names').checked;
+		showComponentPins = document.getElementById('toggle-pins').checked;
+
+		graph.getElements().forEach(el => {
+			if (el.get('latexMacro') === 'connectordot') return;
+			
+			el.getPorts().forEach(port => {
+				el.portProp(port.id, 'attrs/portBody/display', showComponentPins ? 'block' : 'none');
+				let hasLabel = el.portProp(port.id, 'attrs/portLabel/text');
+				el.portProp(port.id, 'attrs/portLabel/display', (showPinNames && hasLabel) ? 'block' : 'none');
+			});
+		});
+	}
 	
 </script>
 </body>
