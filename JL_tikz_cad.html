@@ -228,6 +228,9 @@
     <button id="btn-flip-h" onclick="flipHorizontal()" class="tool-btn">↔ Flip H</button>
     <button id="btn-flip-v" onclick="flipVertical()" class="tool-btn">↕ Flip V</button>
 	<label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
+		<input type="checkbox" id="toggle-pins" checked> Show Pins
+	</label>
+	<label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
 		<input type="checkbox" id="toggle-pin-names" checked> Show Pin Names
 	</label>
     
@@ -308,7 +311,7 @@
         size: { width: 40, height: 40 },
         attrs: {
             hitbox: { width: 40, height: 40, fill: '#ffffff', 'fill-opacity': 0.01, stroke: 'none', 'pointer-events': 'all', cursor: 'pointer' },
-            dot: { cx: 20, cy: 20, r: 15, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
+            dot: { cx: 20, cy: 20, r: 8, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
         }
     }, {
         markup: [{ tagName: 'rect', selector: 'hitbox' }, { tagName: 'circle', selector: 'dot' }]
@@ -485,10 +488,10 @@
         
         if (combined.trim() !== '') {
             el.attr('fo/display', 'block');
-            el.attr('fo/x', 0);
-            el.attr('fo/y', 0);
-            el.attr('fo/width', 1);
-            el.attr('fo/height', 1);
+            el.attr('fo/x', 0);        // <--- ΕΠΑΝΑΦΟΡΑ ΣΕ 0
+            el.attr('fo/y', 0);        // <--- ΕΠΑΝΑΦΟΡΑ ΣΕ 0
+            el.attr('fo/width', 1);    // <--- ΕΠΑΝΑΦΟΡΑ ΣΕ 1
+            el.attr('fo/height', 1);   // <--- ΕΠΑΝΑΦΟΡΑ ΣΕ 1
             el.attr('fo/style', 'overflow: visible; pointer-events: none;');
         } else {
             el.attr('fo/display', 'none');
@@ -784,6 +787,15 @@
         let dbData = JL_DATABASE[macro];
         if (!dbData) return;
 
+        // --- ΠΡΟΣΘΗΚΗ: Βρίσκουμε την πραγματική τιμή του Ονόματος για τα Dynamic Pins ---
+        let resolvedArgsArray = argsArray.map((val, idx) => {
+            let argDef = dbData.argNames && dbData.argNames[idx];
+            if (argDef && (argDef.name.toLowerCase() === 'name' || argDef.name.toLowerCase() === 'text')) {
+                if (!val || val === '$NAME$') return el.get('displayedText') || dbData.name;
+            }
+            return val;
+        });
+
         const theme = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
         let dynLabels = el.get('dynamicLabels') || [];
         let basePath = dbData.iconBase || dbData.icon || "";
@@ -792,7 +804,7 @@
         let matchedLayers = [];
         if (dbData.iconLayers) {
             dbData.iconLayers.forEach(layer => {
-                if (evaluatePinCondition(layer.condition, argsArray)) matchedLayers.push({ ...layer });
+                if (evaluatePinCondition(layer.condition, resolvedArgsArray)) matchedLayers.push({ ...layer });
             });
         }
 
@@ -801,7 +813,7 @@
             try {
                 const buildShape = new Function('args', dbData.shapeGenerator);
                 // NEW: Pad the array so it is 1-indexed
-                let jsArgs = ["", ...argsArray];
+                let jsArgs = ["", ...resolvedArgsArray];
                 const generated = buildShape(jsArgs);
                 
                 // NEW: Scale the physical pins to the CAD PPU multiplier
@@ -1043,7 +1055,7 @@
 
         let pinsHtml = '';
         el.getPorts().forEach(port => {
-            let isVisible = evaluatePinCondition(port.condition, argsArray);
+            let isVisible = evaluatePinCondition(port.condition, resolvedArgsArray);
             el.portProp(port.id, 'attrs/portBody/display', isVisible ? 'block' : 'none');
             el.portProp(port.id, 'attrs/portBody/pointer-events', isVisible ? 'all' : 'none');
             el.portProp(port.id, 'attrs/portLabel/display', (isVisible && showPinNames) ? 'block' : 'none');
@@ -1051,11 +1063,11 @@
 
         dynLabels.forEach((lbl, i) => {
             let sel = `dynLbl_${i}`;
-            let isVisibleCond = evaluatePinCondition(lbl.condition, argsArray);
+            let isVisibleCond = evaluatePinCondition(lbl.condition, resolvedArgsArray);
             if (!isVisibleCond) { el.attr(`${sel}/display`, 'none'); return; }
 
             let rawText = lbl.label || lbl.id;
-            let newText = getDynamicPortLabel(rawText, argsArray, dbData.argNames);
+            let newText = getDynamicPortLabel(rawText, resolvedArgsArray, dbData.argNames);
             let isVisibleText = newText.trim() !== "";
             let isPlaceholder = newText.startsWith('[') && newText.endsWith(']');
             let dir = lbl.dir || 'R';
@@ -1123,7 +1135,14 @@
         snapLinks: { radius: 15 },
         linkPinning: false,
         defaultLink: new joint.shapes.standard.Link({
-            attrs: { line: { stroke: THEME_COLORS.standard.wire, strokeWidth: 1.5 * PPU_MULT, targetMarker: null } }
+            attrs: { 
+                line: { 
+                    stroke: THEME_COLORS.standard.wire, 
+                    strokeWidth: 1.8, // Σκέτο 1.8
+                    targetMarker: null,
+                    'vector-effect': 'non-scaling-stroke' // <--- Η μαγική ιδιότητα
+                } 
+            }
         }),
         useModelGeometry: true,
         cellViewNamespace: joint.shapes,
@@ -1352,6 +1371,7 @@
                         applyTheme(currentThemeName); // Fix colors immediately
                         clearSelection();
                         forceExportLatex();
+						setTimeout(() => zoomFit(), 150);
                     } else {
                         localStorage.removeItem('jlcad_autosave'); // Wipe it
                     }
@@ -1388,39 +1408,35 @@
     }
 
 	function zoomFit() {
-        const bbox = paper.getContentBBox();
-        
-        if (!bbox || bbox.width === 0 || bbox.height === 0) {
-            // Αν ο καμβάς είναι άδειος, μηδενίζουμε τα πάντα
-            paper.translate(0, 0);
-            userZoom = 1.0;
-            paper.scale(userZoom / PPU_MULT, userZoom / PPU_MULT);
-            updateZoomDisplay();
-            updateDynamicGrid(); // Ενημέρωση πλέγματος
-            return;
-        }
+		// Παίρνουμε τα καθαρά γεωμετρικά όρια των στοιχείων (unscaled)
+		let bbox = paper.getContentBBox({ useModelGeometry: true });
 
-        // 1. Χρησιμοποιούμε τη native μέθοδο για να υπολογίσει η JointJS τη νέα κλίμακα και θέση
-        paper.scaleContentToFit({
-            padding: 50,
-            minScale: 0.1 / PPU_MULT,
-            maxScale: 1.5 / PPU_MULT,
-            useModelGeometry: true
-        });
+		if (!bbox || bbox.width === 0 || bbox.height === 0) {
+			paper.translate(0, 0);
+			userZoom = 1.0;
+			paper.scale(userZoom / PPU_MULT, userZoom / PPU_MULT);
+			updateZoomDisplay();
+			updateDynamicGrid();
+			return;
+		}
 
-        // 2. Ενημερώνουμε το "ψεύτικο" zoom που βλέπει ο χρήστης βάσει της νέας κλίμακας
-        userZoom = paper.scale().sx * PPU_MULT;
-        
-        // 3. ΔΙΟΡΘΩΣΗ: Αν το zoomFit μας έφερε σε πολύ περίεργα δεκαδικά, 
-        // στρογγυλοποιούμε ελαφρώς για να μην "τρεμοπαίζει" το grid
-        userZoom = Math.round(userZoom * 100) / 100;
-        
-        updateZoomDisplay();
+		// Ορίζουμε ένα γενναιόδωρο περιθώριο (π.χ. 150 μονάδες) για να χωρέσουν τα labels
+		const safetyPadding = 150;
 
-        // 4. ΤΟ ΚΛΕΙΔΙ: Καλούμε τη συνάρτηση που συγχρονίζει το CSS Grid με τη νέα θέση
-        // Χωρίς αυτό, τα εξαρτήματα θα φαίνονται "εκτός πλέγματος"
-        updateDynamicGrid();
-    }
+		paper.scaleContentToFit({
+			padding: safetyPadding,
+			minScale: 0.1 / PPU_MULT,
+			maxScale: 1.5 / PPU_MULT,
+			useModelGeometry: true
+		});
+
+		// Συγχρονισμός του εσωτερικού zoom με την εμφάνιση
+		userZoom = paper.scale().sx * PPU_MULT;
+		userZoom = Math.round(userZoom * 100) / 100;
+		
+		updateZoomDisplay();
+		updateDynamicGrid();
+	}
 
 	$(container).on('mousewheel DOMMouseScroll', function(e) {
         if (e.ctrlKey) {
@@ -2151,7 +2167,14 @@
                     { tagName: 'text', selector: 'portLabel' }   
                 ],
                 attrs: { 
-                    portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: theme.portBody },
+                    portBody: { 
+						width: 8 * PPU_MULT, 
+						height: 8 * PPU_MULT, 
+						x: -4 * PPU_MULT, 
+						y: -4 * PPU_MULT, 
+						fill: theme.portBody,
+						display: (isVisible && showComponentPins) ? 'block' : 'none' // <--- Ενημέρωση εδώ
+					},
                     portTitle: { text: p.label || p.id },
                     portLabel: { 
                         text: p.label || '', display: showPinNames ? 'block' : 'none',
@@ -2232,7 +2255,14 @@
         wire = new joint.shapes.standard.Link({ 
             source: s, 
             target: s, 
-            attrs: { line: { stroke: theme.wire, strokeWidth: 2 * PPU_MULT, targetMarker: null } } 
+            attrs: { 
+                line: { 
+                    stroke: theme.wire, 
+                    strokeWidth: 1.8, // Σκέτο 1.8
+                    targetMarker: null,
+                    'vector-effect': 'non-scaling-stroke' // <--- Η μαγική ιδιότητα
+                } 
+            } 
         });
         wire.addTo(graph);
     });
@@ -2255,9 +2285,16 @@
     }).on('mouseup', function() { 
         if (drawing) { 
             drawing = false; 
-            if (wire) wire.toBack(); 
-            exportLatex();
-            saveState();            
+            if (wire) {
+                // ΑΝ ΤΟ ΚΑΛΩΔΙΟ ΕΧΕΙ ΜΗΚΟΣ ΜΗΔΕΝ, ΚΑΤΑΣΤΡΕΨΕ ΤΟ!
+                if (wire.source().x === wire.target().x && wire.source().y === wire.target().y) {
+                    wire.remove();
+                } else {
+                    wire.toBack(); 
+                    exportLatex();
+                    saveState(); 
+                }
+            }           
         } 
     });
 
@@ -2357,6 +2394,7 @@
                 const argsCount = (data && data.argsCount) ? data.argsCount : 7;
                 const argNames = (data && data.argNames) ? data.argNames : [];
                 
+                let actualArgs = []; // Αποθηκεύει τις ΠΡΑΓΜΑΤΙΚΕΣ τιμές
                 let args = [];
                 for (let i = 0; i < argsCount; i++) {
                     let argDef = argNames[i] || { name: '', optional: false };
@@ -2369,11 +2407,11 @@
                     if (desc.includes('position')) {
                         innerVal = `(${tx},${ty})`;
                     } else if (desc.includes('rotation') && desc.includes('flip')) {
-                        innerVal = `${rot},${flipStr}`; // Το combined
+                        innerVal = `${rot},${flipStr}`;
                     } else if (desc.includes('rotation') || desc.includes('angle')) {
-                        innerVal = `${rot}`;            // Μόνο μοίρες
+                        innerVal = `${rot}`;            
                     } else if (desc.includes('flip')) {
-                        innerVal = `${flipStr}`;        // Μόνο h, v
+                        innerVal = `${flipStr}`;        
                     } else {
                         if (customArgs[i] !== undefined) {
                             innerVal = customArgs[i];
@@ -2387,13 +2425,18 @@
                         }
                     }
                     
-                    // --- BUG 2 FIX: Empty the name string if Hide Auto-Label is checked ---
-                    if ((desc === 'name' || desc === 'text') && el.get('customHideLabel') === true) {
-                        innerVal = '';
+                    // --- ΛΥΣΗ 1a: Κρατάμε την πραγματική τιμή για τα Pins ---
+                    let realName = innerVal;
+                    if (desc === 'name' || desc === 'text') {
+                        if (realName === '$NAME$' || realName === '') realName = el.get('displayedText') || data.name;
                     }
+                    actualArgs.push(realName);
 
-                    if (isOpt) args.push(`[${innerVal}]`);
-                    else args.push(`{${innerVal}}`);
+                    // --- ΛΥΣΗ 1b: Αδειάζουμε την τιμή ΜΟΝΟ για την LaTeX macro ---
+                    let exportVal = innerVal;
+
+                    if (isOpt) args.push(`[${exportVal}]`);
+                    else args.push(`{${exportVal}}`);
                 }
 
                 // --- ΕΞΑΓΩΓΗ MACRO ΚΑΙ ΑΟΡΑΤΟΥ ID ---
@@ -2459,9 +2502,10 @@
         }
 
         paths.forEach(pathObj => {
-            let line = "  \\draw (" + pathObj.points.join(") -- (") + ");\n";
+            // Προσθήκη του line cap=round, line join=round για να δένουν τέλεια οι κάθετες ενώσεις!
+            let line = "  \\draw[line cap=round, line join=round] (" + pathObj.points.join(") -- (") + ");\n";
             outText += line;
-			let safeLine = highlightLatex(escapeHTML(line));
+            let safeLine = highlightLatex(escapeHTML(line));
             if (pathObj.linkIds.some(id => isSelected(id))) outHTML += `<span class="highlight">${safeLine}</span>`;
             else outHTML += safeLine;
         });
@@ -2585,6 +2629,9 @@ ${indentedTikz}
                         <option value="tikz">📄 TikZ Code Snippet (.tex)</option>
                         <option value="standalone">📦 Standalone LaTeX (.tex)</option>
                     </select>
+					<div style="margin-top: 10px; padding: 8px; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 4px; font-size: 11px; color: #c53030;">
+						⚠️ <b>Note:</b> Math (KaTeX) is exported as HTML elements. Vector editors like Inkscape will not display them. For print quality, prefer <b>Standalone LaTeX</b>.
+					</div>
                 </div>
                 <div style="margin-bottom: 5px; font-weight: 600;">Visual Options (SVG Only):</div>
                 <div style="background: #f8f9fa; border: 1px solid #dcdde1; padding: 10px; border-radius: 6px;">
@@ -2674,52 +2721,38 @@ ${indentedTikz}
     });
 }
 
-    // --- ADVANCED SVG EXPORT (WITH FILTERS) ---
+// --- ADVANCED SVG EXPORT (WITH FILTERS) ---
     function downloadAdvancedSVG(options) {
-        const bbox = paper.getContentBBox();
+        // --- 1. ΥΠΟΛΟΓΙΣΜΟΣ ΒΑΣΙΚΩΝ ΟΡΙΩΝ ΜΟΝΤΕΛΟΥ ---
+        const bbox = paper.getContentBBox({ useModelGeometry: true }); 
         if (!bbox || bbox.width === 0 || bbox.height === 0) {
             Swal.fire({ icon: 'info', title: 'Empty Canvas', text: 'There is nothing to export.'});
             return;
         }
 
-        // --- BULLETPROOF HIGHLIGHT REMOVAL ---
-        // 1. Save current selection to memory
-        const savedSelectedElements = [...selectedElements];
-        const savedSelectedLinks = [...selectedLinks];
-        // 2. Clear selection on the actual canvas so highlights are destroyed natively by JointJS
-        clearSelection();
+        // Προσθέτουμε padding για τα labels στο export
+        const expPadding = 120;
+        const x = bbox.x - expPadding;
+        const y = bbox.y - expPadding;
+        const width = bbox.width + expPadding * 2;
+        const height = bbox.height + expPadding * 2;
 
-        const padding = 25;
-        const x = bbox.x - padding;
-        const y = bbox.y - padding;
-        const width = bbox.width + padding * 2;
-        const height = bbox.height + padding * 2;
-
-        // Clone the clean, selection-free SVG
+        // --- 2. ΚΛΩΝΟΠΟΙΗΣΗ ΚΑΙ ΚΑΘΑΡΙΣΜΟΣ ΤΟΥ SVG ---
         const svgNode = paper.svg.cloneNode(true);
         const viewport = svgNode.querySelector('.viewport');
         if (viewport) viewport.removeAttribute('transform');
 
+        // Το viewBox ορίζει το "κάδρο". Τώρα είναι ευθυγραμμισμένο με το περιεχόμενο.
         svgNode.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
         svgNode.setAttribute('width', width);
         svgNode.setAttribute('height', height);
 
-        // 3. Restore the selection silently for the user
-        savedSelectedElements.forEach(el => { 
-            selectedElements.push(el); 
-            const v = paper.findViewByModel(el); 
-            if(v) v.highlight(); 
-        });
-        savedSelectedLinks.forEach(l => { 
-            selectedLinks.push(l); 
-            const v = paper.findViewByModel(l); 
-            if(v) v.highlight(); 
-        });
-        // -------------------------------------
+        // Καθαρισμός highlights
+        svgNode.querySelectorAll('.joint-highlighted, .joint-selection-rect, [class*="highlight"]').forEach(el => el.remove());
 
-		// A. Apply Global Line Weight Scale, Standardize Vector Effects & Force Pure Black
+        // B. Apply Global Line Weight Scale, Standardize Vector Effects & Force Pure Black
         const scaleFactor = options.weightScale;
-        const baseThickness = 1.8;
+        const baseThickness = 1.8; // <--- ΕΔΩ ΕΙΝΑΙ Η ΔΙΟΡΘΩΣΗ ΠΟΥ ΕΛΕΙΠΕ!
 
         // 1. Ρύθμιση των Καλωδίων (Wires)
         svgNode.querySelectorAll('path[joint-selector="line"]').forEach(n => {
@@ -2743,18 +2776,20 @@ ${indentedTikz}
                 n.setAttribute('stroke', '#000000');
             }
             
-            // ΕΔΩ: Επιβολή απόλυτου μαύρου στο γέμισμα (π.χ. αν έχουμε solid transistors)
+            // ΕΔΩ: Επιβολή απόλυτου μαύρου στο γέμισμα 
             if (n.getAttribute('fill') && n.getAttribute('fill') !== 'none' && n.getAttribute('fill') !== 'transparent' && n.getAttribute('fill') !== '#ffffff') {
                 n.setAttribute('fill', '#000000');
             }
 
-            // Εφαρμογή του πάχους
-            let currentWidth = n.getAttribute('stroke-width');
-            if (currentWidth && currentWidth !== 'none') {
-                let newWidth = baseThickness * scaleFactor;
-                n.setAttribute('stroke-width', newWidth);
-            }
-        });
+            // ΔΙΟΡΘΩΣΗ: Αντί για σταθερό πάχος, κλιμακώνουμε το υπάρχον
+			let currentWidthAttr = n.getAttribute('stroke-width');
+			if (currentWidthAttr && currentWidthAttr !== 'none' && currentWidthAttr !== '0') {
+				let currentWidth = parseFloat(currentWidthAttr);
+				// Πολλαπλασιάζουμε το πάχος που ήδη έχει το σύμβολο με το scaleFactor του χρήστη
+				n.setAttribute('stroke-width', currentWidth * scaleFactor);
+			}
+		});
+
         // -- APPLY VISUAL FILTERS --
 
         // 1. Free Text
@@ -2833,6 +2868,27 @@ ${indentedTikz}
             
             svgNode.insertBefore(gridRect, viewport); 
         }
+        
+        // --- FIX: Διόρθωση εμφάνισης Math (KaTeX) και Clipping στο SVG ---
+        
+        // 1. Ενσωμάτωση του CSS για να διαβάζονται οι μαθηματικές γραμματοσειρές (KaTeX)
+        let styleTag = document.createElementNS("http://www.w3.org/2000/svg", "style");
+        styleTag.textContent = "@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');";
+        svgNode.insertBefore(styleTag, svgNode.firstChild);
+
+        // 2. Διόρθωση των foreignObject για KaTeX χωρίς το παλιό translation hack
+        svgNode.querySelectorAll('foreignObject').forEach(fo => {
+            fo.setAttribute('width', '500'); 
+            fo.setAttribute('height', '500');
+            fo.style.overflow = 'visible';
+            
+            let innerDiv = fo.firstElementChild;
+            if (innerDiv) {
+                innerDiv.style.overflow = 'visible';
+                innerDiv.style.display = 'inline-block';
+                innerDiv.style.whiteSpace = 'nowrap';
+            }
+        });
 
         // -- FINALIZE AND DOWNLOAD --
         let svgString = new XMLSerializer().serializeToString(svgNode);
@@ -2849,37 +2905,67 @@ ${indentedTikz}
         
         const r = new FileReader(); 
         r.onload = ev => {
-            graph.fromJSON(JSON.parse(ev.target.result)); 
-            
-            // --- NEW: Push all wires to the background layer ---
-            graph.getLinks().forEach(link => link.toBack());
-            
-            zoomFit(); 
-            clearSelection();
-			
-			applyTheme(document.getElementById('theme-selector').value);
-            
-			const savedLatex = graph.get('customLatex');
-            if (savedLatex) {
-                window.rawLatexCode = savedLatex;
-                
-                // --- BUG 1 FIX: Re-wrap the ID in the invisible span during import ---
-                const highlighted = savedLatex.split('\n').map(line => {
-                    let match = line.match(/^(.*?)( % id:[a-zA-Z0-9-]+)$/);
-                    if (match) {
-                        return highlightLatex(escapeHTML(match[1])) + `<span class="sync-id" contenteditable="false">${match[2]}</span>`;
+            let parsedData = JSON.parse(ev.target.result);
+
+            // --- ΑΥΤΟΜΑΤΗ ΕΚΚΑΘΑΡΙΣΗ (PHANTOM DOT FIX) ---
+            if (parsedData && parsedData.cells) {
+                parsedData.cells = parsedData.cells.filter(cell => {
+                    if (cell.type === 'standard.Link') {
+                        let src = cell.source;
+                        let tgt = cell.target;
+                        let verts = cell.vertices || [];
+                        
+                        // Αν το καλώδιο είναι ελεύθερο (όχι δεμένο σε εξάρτημα), δεν έχει γωνίες (vertices), 
+                        // και η αρχή του ταυτίζεται με το τέλος του, είναι phantom dot!
+                        if (src && tgt && src.x !== undefined && tgt.x !== undefined) {
+                            if (src.x === tgt.x && src.y === tgt.y && verts.length === 0) {
+                                console.log("🧹 Καθαρίστηκε phantom dot καλώδιο:", cell.id);
+                                return false; // Το διαγράφουμε από το JSON
+                            }
+                        }
                     }
-                    return highlightLatex(escapeHTML(line));
-                }).join('\n');
-                
-                document.getElementById('latex-output').innerHTML = highlighted;
-                latexEdited = true;
-            } else {
-                forceExportLatex();
+                    return true; // Κρατάμε όλα τα υπόλοιπα εξαρτήματα και υγιή καλώδια
+                });
             }
+            // ----------------------------------------------
+
+            graph.fromJSON(parsedData); 
+            
+            // Push all wires to the background layer AND normalize their thickness!
+            graph.getLinks().forEach(link => {
+                link.toBack();
+                // ΕΠΙΒΟΛΗ: Όλα τα καλώδια συγχρονίζονται με τα εξαρτήματα
+                link.attr('line/strokeWidth', 1.8);
+                link.attr('line/vector-effect', 'non-scaling-stroke');
+            });
+            
+			// ΠΡΟΣΘΗΚΗ: Δίνουμε χρόνο στον browser να ζωγραφίσει τα εξαρτήματα
+			setTimeout(() => {
+				zoomFit(); 
+				clearSelection();
+				applyTheme(document.getElementById('theme-selector').value);
+            
+				const savedLatex = graph.get('customLatex');
+				if (savedLatex) {
+					window.rawLatexCode = savedLatex;
+					
+					const highlighted = savedLatex.split('\n').map(line => {
+						let match = line.match(/^(.*?)( % id:[a-zA-Z0-9-]+)$/);
+						if (match) {
+							return highlightLatex(escapeHTML(match[1])) + `<span class="sync-id" contenteditable="false">${match[2]}</span>`;
+						}
+						return highlightLatex(escapeHTML(line));
+					}).join('\n');
+					
+					document.getElementById('latex-output').innerHTML = highlighted;
+					latexEdited = true;
+				} else {
+					forceExportLatex();
+				}
+			}, 150);
         }; 
         r.readAsText(f); 
-        e.target.value = ''; // Μηδενισμός του input για να μπορούμε να ξαναφορτώσουμε το ίδιο αρχείο αν χρειαστεί
+        e.target.value = '';
     }
 
 	function runLinterUI(onSuccessCallback = null) {
@@ -3585,6 +3671,21 @@ ${indentedTikz}
 			const ports = el.getPorts();
 			ports.forEach(port => {
 				el.portProp(port.id, 'attrs/portLabel/display', showPinNames ? 'block' : 'none');
+			});
+		});
+	});
+	
+	let showComponentPins = true;
+
+	$('#toggle-pins').change(function() {
+		showComponentPins = this.checked;
+		graph.getElements().forEach(el => {
+			if (el.get('latexMacro') === 'connectordot') return;
+			el.getPorts().forEach(port => {
+				// Ενημερώνουμε την ορατότητα του πορτοκαλί κουτιού (portBody)
+				// Προσοχή: Διατηρούμε το pointer-events για να μπορεί ο χρήστης να συνδέει καλώδια!
+				el.portProp(port.id, 'attrs/portBody/display', showComponentPins ? 'block' : 'none');
+				// Αν θέλουμε να είναι τελείως αόρατα αλλά λειτουργικά, θα μπορούσαμε να παίξουμε με το opacity
 			});
 		});
 	});

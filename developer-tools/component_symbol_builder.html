@@ -609,7 +609,7 @@
             // 3. ZΩΓΡΑΦΙΚΗ ΤΩΝ LAYERS
             if (generatedDynamic && generatedDynamic.pathStr) {
                 // Parse the JS path to extract custom Text Nodes
-                let subPaths = generatedDynamic.pathStr.split(/(?=[Mm]\s)/).filter(p => p.trim() !== '');
+                let subPaths = generatedDynamic.pathStr.split(/(?=[M]\s)/).filter(p => p.trim() !== '');
                 subPaths.forEach(sub => {
                     let cleanSub = sub.trim();
                     let textMatch = cleanSub.match(/M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//);
@@ -3505,7 +3505,7 @@
                 let lineJoin = l.styles.rounded ? 'round' : 'miter';
                 
                 // Split the path and filter out empty strings
-                let subPaths = l.pathStr.split(/(?=[Mm]\s)/).filter(p => p.trim() !== '');
+                let subPaths = l.pathStr.split(/(?=[M]\s)/).filter(p => p.trim() !== '');
                 
                 subPaths.forEach((sub, idx) => {
                     let cleanSub = sub.trim();
@@ -4599,7 +4599,7 @@
                     }
                     svgHtml += `</g>`;
                 }
-                let subPaths = generated.pathStr.split(/(?=[Mm]\s)/).filter(p => p.trim() !== '');
+                let subPaths = generated.pathStr.split(/(?=[M]\s)/).filter(p => p.trim() !== '');
 
                 subPaths.forEach(sub => {
                     let cleanSub = sub.trim();
