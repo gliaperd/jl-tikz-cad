@@ -1101,8 +1101,8 @@ const JL_DATABASE = {
                 "defVal": "0,none"
             }
         ],
-        "iconBase": "M 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0",
-        "iconBaseStyle": "stroke-width=2.8",
+        "iconBase": "M 10 0 L 15 -10 M 15 -10 L 25 10 M 25 10 L 35 -10 M 35 -10 L 45 10 M 45 10 L 55 -10 M 55 -10 L 65 10 M 65 10 L 70 0",
+        "iconBaseStyle": "stroke-width=2.8, rounded=true",
         "filled": false,
         "iconLayers": [
             {
@@ -1112,8 +1112,8 @@ const JL_DATABASE = {
             },
             {
                 "condition": "1~=",
-                "style": "",
-                "path": "M 0 0 L 11.5 0 M 80 0 L 68.5 0"
+                "style": "rounded=true",
+                "path": "M 0 0 L 8.50 0 M 80 0 L 70 0 M 0 0 L 10 -0.20 M 80 0 L 70 0.4 M 80 0 L 70 -0.4 M 80 0 L 70 0.4 M 0 0 L 10 0.40"
             }
         ],
         "argNames": [
@@ -2797,6 +2797,146 @@ const JL_DATABASE = {
             }
         ]
     },
+    "andninputs": {
+        "name": "andninputs",
+        "displayName": "AND - n inputs",
+        "argsCount": 6,
+        "enabled": "true",
+        "category": "Digital/Logic",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "4"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "text",
+                "label": "number of inputs",
+                "defVal": "4"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2;\nlet tikz = new TikZBuilder();\n\nlet startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);\n\nif (n > 4) {\nlet endY = startY + n - 1;\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(-2, y).to(-1, y);\ntikz.pin('pin' + (i+1), -2, y, 'L', '');\n}\ntikz.draw(-1, startY).to(-1, endY);\ntikz.draw(-1, 2).to(1, 2);\ntikz.draw(-0.2, 1.5).to(0.2, 2.5);\ntikz.text(0, 3.0, n.toString(), 10, 'normal');\n} else {\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(0, y).to(1, y);\ntikz.pin('pin' + (i+1), 0, y, 'L', '');\n}\n}\n\ntikz.draw(1, 0).to(4, 0).arc(4, 2, 2, -90, 90).to(4, 4).to(1, 4).cycle();\ntikz.text(2.5, 2, args[2] || \"\", 12, 'bold');\n\ntikz.draw(6, 2).to(7, 2);\ntikz.pin('pinRight', 7, 2, 'R', '');\nreturn tikz.export();",
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "number of inputs",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pinRight",
+                "x": 70.0,
+                "y": -20.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
+    "nandninputs": {
+        "name": "nandninputs",
+        "displayName": "NAND - n inputs",
+        "argsCount": 6,
+        "enabled": "true",
+        "category": "Digital/Logic",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "4"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "text",
+                "label": "number of inputs",
+                "defVal": "4"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2;\nlet tikz = new TikZBuilder();\n\nlet startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);\n\nif (n > 4) {\nlet endY = startY + n - 1;\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(-2, y).to(-1, y);\ntikz.pin('pin' + (i+1), -2, y, 'L', '');\n}\ntikz.draw(-1, startY).to(-1, endY);\ntikz.draw(-1, 2).to(1, 2);\ntikz.draw(-0.2, 1.5).to(0.2, 2.5);\ntikz.text(0, 3.0, n.toString(), 10, 'normal');\n} else {\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(0, y).to(1, y);\ntikz.pin('pin' + (i+1), 0, y, 'L', '');\n}\n}\n\ntikz.draw(1, 0).to(4, 0).arc(4, 2, 2, -90, 90).to(4, 4).to(1, 4).cycle();\ntikz.text(2.5, 2, args[2] || \"\", 12, 'bold');\n\ntikz.circle(6.25, 2, 0.25);\ntikz.draw(6.5, 2).to(7.5, 2);\ntikz.pin('pinRight', 7.5, 2, 'R', '');\nreturn tikz.export();",
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "number of inputs",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pinRight",
+                "x": 75.0,
+                "y": -20.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
     "nandthree": {
         "name": "nandthree",
         "displayName": "NAND-3",
@@ -3490,6 +3630,76 @@ const JL_DATABASE = {
             }
         ]
     },
+    "orninputs": {
+        "name": "orninputs",
+        "displayName": "OR - n inputs",
+        "argsCount": 6,
+        "enabled": "true",
+        "category": "Digital/Logic",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "4"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "text",
+                "label": "number of inputs",
+                "defVal": "4"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2;\nlet tikz = new TikZBuilder();\n\nlet startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);\n\nif (n > 4) {\nlet endY = startY + n - 1;\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(-2, y).to(-1, y);\ntikz.pin('pin' + (i+1), -2, y, 'L', '');\n}\ntikz.draw(-1, startY).to(-1, endY);\nlet endX = -1.236 + 3; // \u03a4\u03bf\u03bc\u03ae \u03bc\u03b5 \u03c4\u03b7\u03bd \u03ba\u03b1\u03bc\u03c0\u03cd\u03bb\u03b7 \u03c3\u03c4\u03bf \u03ba\u03ad\u03bd\u03c4\u03c1\u03bf (y=2)\ntikz.draw(-1, 2).to(endX, 2);\ntikz.draw(-0.2, 1.5).to(0.2, 2.5);\ntikz.text(0, 3.0, n.toString(), 10, 'normal');\n} else {\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\nlet dy = y - 2;\nlet endX = -1.236 + Math.sqrt(9 - dy*dy);\ntikz.draw(0, y).to(endX, y);\ntikz.pin('pin' + (i+1), 0, y, 'L', '');\n}\n}\n\n// THE FIX: sweep-flag is 0 so the arc bows INWARD (concave) relative to the inputs!\ntikz.path += `M ${tikz.pt(1, 4)} C ${tikz.pt(4, 4)} ${tikz.pt(5, 3)} ${tikz.pt(6, 2)} C ${tikz.pt(5, 1)} ${tikz.pt(4, 0)} ${tikz.pt(1, 0)} A 30 30 0 0 0 ${tikz.pt(1, 4)} Z `;\ntikz.text(3.5, 2, args[2] || \"\", 12, 'bold');\n\ntikz.draw(6, 2).to(7, 2);\ntikz.pin('pinRight', 7, 2, 'R', '');\nreturn tikz.export();",
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "number of inputs",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pinRight",
+                "x": 70.0,
+                "y": -20.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
     "nortwo": {
         "name": "nortwo",
         "displayName": "NOR-2",
@@ -3585,6 +3795,76 @@ const JL_DATABASE = {
                 "x": 70.0,
                 "y": -20.0,
                 "label": "output",
+                "dir": "R"
+            }
+        ]
+    },
+    "norninputs": {
+        "name": "norninputs",
+        "displayName": "NOR - n inputs",
+        "argsCount": 6,
+        "enabled": "true",
+        "category": "Digital/Logic",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "4"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "text",
+                "label": "number of inputs",
+                "defVal": "4"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2;\nlet tikz = new TikZBuilder();\n\nlet startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);\n\nif (n > 4) {\nlet endY = startY + n - 1;\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(-2, y).to(-1, y);\ntikz.pin('pin' + (i+1), -2, y, 'L', '');\n}\ntikz.draw(-1, startY).to(-1, endY);\nlet endX = -1.236 + 3; // \u03a4\u03bf\u03bc\u03ae \u03bc\u03b5 \u03c4\u03b7\u03bd \u03ba\u03b1\u03bc\u03c0\u03cd\u03bb\u03b7 \u03c3\u03c4\u03bf \u03ba\u03ad\u03bd\u03c4\u03c1\u03bf (y=2)\ntikz.draw(-1, 2).to(endX, 2);\ntikz.draw(-0.2, 1.5).to(0.2, 2.5);\ntikz.text(0, 3.0, n.toString(), 10, 'normal');\n} else {\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\nlet dy = y - 2;\nlet endX = -1.236 + Math.sqrt(9 - dy*dy);\ntikz.draw(0, y).to(endX, y);\ntikz.pin('pin' + (i+1), 0, y, 'L', '');\n}\n}\n\n// THE FIX: sweep-flag is 0 so the arc bows INWARD (concave) relative to the inputs!\ntikz.path += `M ${tikz.pt(1, 4)} C ${tikz.pt(4, 4)} ${tikz.pt(5, 3)} ${tikz.pt(6, 2)} C ${tikz.pt(5, 1)} ${tikz.pt(4, 0)} ${tikz.pt(1, 0)} A 30 30 0 0 0 ${tikz.pt(1, 4)} Z `;\ntikz.text(3.5, 2, args[2] || \"\", 12, 'bold');\n\ntikz.circle(6.25, 2, 0.25);\ntikz.draw(6.5, 2).to(7.5, 2);\ntikz.pin('pinRight', 7.5, 2, 'R', '');\nreturn tikz.export();",
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "number of inputs",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pinRight",
+                "x": 75.0,
+                "y": -20.0,
+                "label": "",
                 "dir": "R"
             }
         ]
@@ -4819,7 +5099,7 @@ const JL_DATABASE = {
                 "options": "bottom, top"
             }
         ],
-        "iconBase": "\\begin{scope}[shift={#1}, scale=\\jlcscale, rotate=#4, yshift=1]",
+        "iconBase": "",
         "filled": false,
         "argNames": [
             {
@@ -4852,6 +5132,167 @@ const JL_DATABASE = {
             }
         ],
         "pins": []
+    },
+    "demuxnoutputs": {
+        "name": "demuxnoutputs",
+        "displayName": "Demultiplexer with n outputs",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Digital/Logic",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2; // Fallback to 2 outputs\nlet spacing = (n === 2) ? 2 : 1;\nlet yOffset = (n === 2) ? -1 : 0;\nlet isTop = args[5] === 'top';\n\nlet numSelects = Math.ceil(Math.log2(n));\nlet w = numSelects + 1; // Width of the mux body\nlet h = (n === 2) ? n*spacing: (n + 1)*spacing;  // Height of the mux body\n\nlet tikz = new TikZBuilder();\n\n// 1. Draw Outputs & Output Pins\nfor (let i = 1; i <= n; i++) {\ntikz.draw(w+1, i*spacing+yOffset).to(w+2, i*spacing+yOffset);\ntikz.pin('pin' + i, w+2, i*spacing+yOffset, 'L', '');\n}\n\n// 2. Draw Select Lines & Select Pins\nlet selY2 = isTop ? (h + 1) : -1; // The outer tip of the pin\n\nfor (let i = 1; i <= numSelects; i++) {\nlet selX = 1 + i;\n\nlet selY1 = isTop ? (h-0.4*(w-i)) : (0.4*(w-i));\n\ntikz.draw(selX, selY1).to(selX, selY2);\ntikz.pin('pinSelect' + i, selX, selY2, isTop ? 'T' : 'B', '');\n}\n\n// 3. Draw Input & Input Pin\nlet outY = Math.ceil((n + 1) / 2);\ntikz.draw(0, outY).to(1, outY);\ntikz.pin('pinOutput', 0, outY, 'R', '');\n\n// 4. Draw Trapezoid Box\ntikz.draw(1, h - 0.4 * w)\n.to(w+1, h)\n.to(w+1, 0)\n.to(1, 0.4 * w)\n.cycle();\n\n// 5. Add the Center Text Label\n// X center is halfway between the left edge (1) and right edge (w + 1)\n// Y center is halfway down the height (h)\nlet centerX = 1 + (w / 2);\nlet centerY = h / 2;\n\ntikz.text(centerX, centerY, \"1:\"+n, 9, 'normal');\n\nreturn tikz.export();",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "text",
+                "label": "number of outputs",
+                "defVal": "2"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 5,
+                "type": "select",
+                "label": "select position",
+                "defVal": "bottom",
+                "options": "bottom, top"
+            }
+        ],
+        "iconBase": "",
+        "filled": false,
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "number of outputs",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "select at top/bottom",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": []
+    },
+    "genericdigitalcircuit": {
+        "name": "genericdigitalcircuit",
+        "displayName": "Generic digital circuit (n-inputs, m-outputs)",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Digital/Logic",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "2": "ALU",
+            "3": "2",
+            "4": "2"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "text",
+                "label": "number of inputs",
+                "defVal": "2"
+            },
+            {
+                "idx": 3,
+                "type": "flags",
+                "label": "enable",
+                "defVal": "",
+                "options": "enable"
+            },
+            {
+                "idx": 4,
+                "type": "text",
+                "label": "number of outputs",
+                "defVal": "2"
+            },
+            {
+                "idx": 5,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "shapeGenerator": "\nlet inStr = args[3] ? args[3].toString().trim().toLowerCase() : \"1\";\nlet parts = inStr.split(',');\nlet baseIn = parseInt(parts[0]);\nif (isNaN(baseIn) || baseIn < 1) baseIn = 1;\nlet hasEn = inStr.includes('enable');\n\n// \u03a3\u03c4\u03bf TikZ, \u03b1\u03bd \u03c5\u03c0\u03ac\u03c1\u03c7\u03b5\u03b9 enable, \u03b4\u03b5\u03c3\u03bc\u03b5\u03cd\u03b5\u03b9 +2 \u03b8\u03ad\u03c3\u03b5\u03b9\u03c2 (\u03b7 \u03bc\u03af\u03b1 \u03b3\u03b9\u03b1 \u03c4\u03bf En \u03c3\u03c4\u03bf \u03ba\u03ac\u03c4\u03c9 \u03bc\u03ad\u03c1\u03bf\u03c2)\nlet numInTerms = hasEn ? baseIn + 2 : baseIn;\nlet numOut = parseInt(args[4]);\nif (isNaN(numOut) || numOut < 1) numOut = 1;\n\n// \u03a4\u03bf \u03cd\u03c8\u03bf\u03c2 \u03c4\u03bf\u03c5 \u03ba\u03bf\u03c5\u03c4\u03b9\u03bf\u03cd \u03ba\u03b1\u03b8\u03bf\u03c1\u03af\u03b6\u03b5\u03c4\u03b1\u03b9 \u03b1\u03c0\u03cc \u03c4\u03bf \u03b1\u03bd \u03ad\u03c7\u03bf\u03c5\u03bc\u03b5 \u03c0\u03b5\u03c1\u03b9\u03c3\u03c3\u03cc\u03c4\u03b5\u03c1\u03b5\u03c2 \u03b5\u03b9\u03c3\u03cc\u03b4\u03bf\u03c5\u03c2 \u03ae \u03b5\u03be\u03cc\u03b4\u03bf\u03c5\u03c2\nlet maxTerms = Math.max(numInTerms, numOut);\nlet h = maxTerms + 1;\n\n// \u03a5\u03c0\u03bf\u03bb\u03bf\u03b3\u03b9\u03c3\u03bc\u03cc\u03c2 \u03c4\u03bf\u03c5 offset \u03b3\u03b9\u03b1 \u03bd\u03b1 \u03ba\u03b5\u03bd\u03c4\u03c1\u03ac\u03c1\u03bf\u03bd\u03c4\u03b1\u03b9 \u03c4\u03b1 pins\nlet inOff = Math.round((maxTerms - numInTerms) / 2);\nlet outOff = Math.round((maxTerms - numOut) / 2);\n\nlet tikz = new TikZBuilder();\n\n// 1. \u0396\u03c9\u03b3\u03c1\u03b1\u03c6\u03af\u03b6\u03bf\u03c5\u03bc\u03b5 \u03c4\u03bf \u03ba\u03b5\u03bd\u03c4\u03c1\u03b9\u03ba\u03cc \u03ba\u03bf\u03c5\u03c4\u03af\ntikz.draw(1, 0).to(6, 0).to(6, h).to(1, h).cycle();\n\n// 2. \u0396\u03c9\u03b3\u03c1\u03b1\u03c6\u03af\u03b6\u03bf\u03c5\u03bc\u03b5 \u03c4\u03b9\u03c2 \u0395\u03b9\u03c3\u03cc\u03b4\u03bf\u03c5\u03c2 (\u0391\u03c1\u03b9\u03c3\u03c4\u03b5\u03c1\u03ac)\nlet startIdx = hasEn ? 3 : 1;\nfor (let i = startIdx; i <= numInTerms; i++) {\nlet y = i + inOff;\ntikz.draw(0, y).to(1, y);\ntikz.pin('pinInput' + i, 0, y, 'L', '');\n\n// \u0391\u03bd \u03b5\u03af\u03bd\u03b1\u03b9 \u03bc\u03cc\u03bd\u03bf 1 \u03b5\u03af\u03c3\u03bf\u03b4\u03bf\u03c2 \u03c4\u03b7\u03bd \u03bb\u03ad\u03bc\u03b5 \"I\", \u03b1\u03bb\u03bb\u03b9\u03ce\u03c2 \"I0\", \"I1\" \u03ba\u03bb\u03c0.\nlet lbl = (baseIn === 1) ? \"I\" : \"I\" + (i - startIdx);\ntikz.text(1.5, y, lbl, 9, 'normal');\n}\n\n// 3. \u0396\u03c9\u03b3\u03c1\u03b1\u03c6\u03af\u03b6\u03bf\u03c5\u03bc\u03b5 \u03c4\u03b9\u03c2 \u0395\u03be\u03cc\u03b4\u03bf\u03c5\u03c2 (\u0394\u03b5\u03be\u03b9\u03ac)\nfor (let i = 1; i <= numOut; i++) {\nlet y = i + outOff;\ntikz.draw(6, y).to(7, y);\ntikz.pin('pinOutput' + i, 7, y, 'R', '');\n\nlet lbl = (numOut === 1) ? \"O\" : \"O\" + (i - 1);\ntikz.text(5.5, y, lbl, 9, 'normal');\n}\n\n// 4. \u0396\u03c9\u03b3\u03c1\u03b1\u03c6\u03af\u03b6\u03bf\u03c5\u03bc\u03b5 \u03c4\u03bf Enable Pin (\u03b1\u03bd \u03b6\u03b7\u03c4\u03ae\u03b8\u03b7\u03ba\u03b5)\nif (hasEn) {\nlet y = 1 + inOff; // \u03a4\u03bf \u03c4\u03bf\u03c0\u03bf\u03b8\u03b5\u03c4\u03bf\u03cd\u03bc\u03b5 \u03c3\u03b5 \u03c3\u03c7\u03ad\u03c3\u03b7 \u03bc\u03b5 \u03c4\u03bf grid \u03c4\u03c9\u03bd \u03b5\u03b9\u03c3\u03cc\u03b4\u03c9\u03bd\ntikz.draw(0, y).to(1, y);\ntikz.pin('pinEnable', 0, y, 'L', '');\ntikz.text(1.6, y, \"En\", 9, 'normal');\n}\n\n// 5. \u03a0\u03c1\u03bf\u03c3\u03b8\u03ae\u03ba\u03b7 \u03c4\u03bf\u03c5 \u039f\u03bd\u03cc\u03bc\u03b1\u03c4\u03bf\u03c2 (\u03a3\u03c4\u03bf \u03ba\u03ad\u03bd\u03c4\u03c1\u03bf)\nlet name = args[2] || \"\";\nif (name !== \"\") {\ntikz.text(3.5, h / 2, name, 12, 'bold');\n}\n\nreturn tikz.export();",
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "number of inputs-enable",
+                "optional": false
+            },
+            {
+                "name": "number of outputs",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pinEnable",
+                "x": 0.0,
+                "y": -10.0,
+                "label": "enable",
+                "dir": "R"
+            }
+        ]
     },
     "sevensegmentdisplay": {
         "name": "sevensegmentdisplay",
@@ -5336,6 +5777,79 @@ const JL_DATABASE = {
                 "dir": "R"
             }
         ]
+    },
+    "dipic": {
+        "name": "dipic",
+        "displayName": "DIP INTEGRATED CIRCUIT",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Digital/Logic",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "4": "14",
+            "5": "7404"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            },
+            {
+                "idx": 4,
+                "type": "text",
+                "label": "Number of Pins",
+                "defVal": "14"
+            },
+            {
+                "idx": 5,
+                "type": "text",
+                "label": "IC Code",
+                "defVal": "7404"
+            }
+        ],
+        "shapeGenerator": "\nlet n = parseInt(args[4]);\nif (isNaN(n) || n < 4) n = 14;\nlet pinsPerSide = Math.ceil(n / 2);\nlet w = 1 + pinsPerSide;\nlet tikz = new TikZBuilder();\n\n// Body\ntikz.rect(1, 1, 1 + w, 5);\n\n// Notch (Orientation Mark left side)\ntikz.path += `M ${tikz.pt(1, 3.75)} A ${0.75*10} ${0.75*10} 0 0 1 ${tikz.pt(1, 2.25)} Z `;\n\n// Pins\nfor(let i=1; i<=pinsPerSide; i++) {\nlet px = 1 + i;\ntikz.draw(px, 0).to(px, 1);\ntikz.pin('pin1.' + i, px, 0, 'B', i.toString());\n\nlet topPinNum = (n + 1) - i;\nif (topPinNum > pinsPerSide) {\ntikz.draw(px, 5).to(px, 6);\ntikz.pin('pin2.' + i, px, 6, 'T', topPinNum.toString());\n}\n}\n\n// Labels\nlet code = args[5] || \"\";\nlet name = args[2] || \"\";\nlet centerX = 1 + (w / 2);\nif (name) {\ntikz.text(centerX, 3, name, 12, 'bold');\ntikz.text(centerX, 2, code, 10, 'normal');\n} else {\ntikz.text(centerX, 3, code, 12, 'bold');\n}\n\nreturn tikz.export();",
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "number of pins",
+                "optional": false
+            },
+            {
+                "name": "code",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": []
     },
     "connectordot": {
         "name": "connectordot",

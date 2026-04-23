@@ -805,9 +805,9 @@
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
 
 
-% icon_base: [stroke-width=2.8] M 10 0 L 15 -10 L 25 10 L 35 -10 L 45 10 L 55 -10 L 65 10 L 70 0 // zig-zag
+% icon_base: [stroke-width=2.8, rounded=true] M 10 0 L 15 -10 M 15 -10 L 25 10 M 25 10 L 35 -10 M 35 -10 L 45 10 M 45 10 L 55 -10 M 55 -10 L 65 10 M 65 10 L 70 0 // zig-zag
 % add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 48.33 -21.32 L 42.41 -17.44 L 48.33 -21.32 L 49.47 -14.13 M 28.5 16.5 L 47.5 -19.5 // arrow
-% add_icon: 1~= : M 0 0 L 11.5 0 M 80 0 L 68.5 0 // terminals
+% add_icon: 1~= : [rounded=true] M 0 0 L 8.50 0 M 80 0 L 70 0 M 0 0 L 10 -0.20 M 80 0 L 70 0.4 M 80 0 L 70 -0.4 M 80 0 L 70 0.4 M 0 0 L 10 0.40 // terminals
     \IfSubStr{#5}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -1365,6 +1365,8 @@
 % add_icon: 3==p : [rounded=true] M -1 8 L -8 6.5 L -6.5 12.5 L -7.5 6.5 // arrow in
 % add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 // case
 % add_icon: 4~=terminals : M 18 -30.50 L 18 -30.50 9 NaN mal,C*/ M 30 25 L 30 25 21 NaN mal,E*/ M -31 5.50 L -31 5.50 /*TEXT:9,normal,B*/ M 15 -30 L 15 -30 /*TEXT:9,normal,C*/ M 15 27.50 L 15 27.50 /*TEXT:9,normal,E*/ // terminal symbols
+	\StrBefore{#5}{,}[\rotationvalue]
+	\StrBehind{#5}{,}[\flipvalue]
     \IfSubStr{\flipvalue}{h}
 			{
 				\edef\xscalevalue{-1}
@@ -1457,7 +1459,9 @@
 % add_icon: 3==p && 4~=arrow : M -20 0 L -10 0 // p gate segment arrow
 % add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 // case
 % add_icon: 4~=terminals : M -31 6 L -31 6 /*TEXT:10,normal,G*/ M 15 -30 L 15 -30 /*TEXT:10,normal,D*/ M 15.50 27 L 15.50 27 /*TEXT:10,normal,S*/ // terminal names
-    \IfSubStr{\flipvalue}{h}
+    \StrBefore{#5}{,}[\rotationvalue]
+	\StrBehind{#5}{,}[\flipvalue]
+	\IfSubStr{\flipvalue}{h}
 			{
 				\edef\xscalevalue{-1}
 			}
@@ -2275,79 +2279,172 @@
 
 %% AND - n inputs
 \newcommand{\andninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
-% disabled
+% enabled
 % category: Digital/Logic
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
+% preview_args: 3=4
+
+% arg_def: 3 | text | number of inputs | 4
+% arg_def: 4 | rotation | Rotation | 0
+
+% shape_generator:
+% let n = parseInt(args[3]);
+% if (isNaN(n) || n < 2) n = 2;
+% let tikz = new TikZBuilder();
+% 
+% let startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);
+% 
+% if (n > 4) {
+%     let endY = startY + n - 1;
+%     for(let i=0; i<n; i++) {
+%         let y = startY + i;
+%         tikz.draw(-2, y).to(-1, y);
+%         tikz.pin('pin' + (i+1), -2, y, 'L', '');
+%     }
+%     tikz.draw(-1, startY).to(-1, endY);
+%     tikz.draw(-1, 2).to(1, 2);
+%     tikz.draw(-0.2, 1.5).to(0.2, 2.5);
+%     tikz.text(0, 3.0, n.toString(), 10, 'normal');
+% } else {
+%     for(let i=0; i<n; i++) {
+%         let y = startY + i;
+%         tikz.draw(0, y).to(1, y);
+%         tikz.pin('pin' + (i+1), 0, y, 'L', '');
+%     }
+% }
+% 
+% tikz.draw(1, 0).to(4, 0).arc(4, 2, 2, -90, 90).to(4, 4).to(1, 4).cycle();
+% tikz.text(2.5, 2, args[2] || "", 12, 'bold');
+% 
+% tikz.draw(6, 2).to(7, 2);
+% tikz.pin('pinRight', 7, 2, 'R', '');
+% return tikz.export();
+
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
-				\shade[left color=green!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{2+int(#3 / 2)-0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{2-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}) ;
-				\foreach \currentinput in {1,...,#3} % draw input lines
-					{
-						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-1,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))});
-						\coordinate (pin\currentinput) at (-1, {\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}); % current left terminal (input-i)
+				
+				\shade[left color=green!20!white, draw=none] (1,0) -- (4,0) arc (-90:90:2) -- (4,4) -- (1,4) -- cycle;
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,0) -- (4,0) arc (-90:90:2) -- (4,4) -- (1,4) -- cycle;
+				
+				\pgfmathsetmacro{\starty}{2 - floor(#3/2) + (mod(#3,2) == 0 ? 0.5 : 0)}
+				
+				\ifnum#3>4
+					\pgfmathsetmacro{\endy}{\starty + #3 - 1}
+					\foreach \i in {1,...,#3} {
+						\pgfmathsetmacro{\inputY}{\starty + \i - 1}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,\inputY) -- (-1,\inputY);
+						\coordinate (pin\i) at (-2, \inputY); 
 					}
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt]  (0.4,1.5)  -- (0.6,2.5);
-				\node[draw=none, align=center] at (0.5,3) {#3};
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,\starty) -- (-1,\endy);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,2) -- (1,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-0.2,1.5) -- (0.2,2.5);
+					\node[draw=none, align=center] at (0,3.0) {#3};
+				\else
+					\foreach \i in {1,...,#3} {
+						\pgfmathsetmacro{\inputY}{\starty + \i - 1}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,\inputY) -- (1,\inputY);
+						\coordinate (pin\i) at (0, \inputY); 
+					}
+				\fi
+
+				\node[draw=none, align=center] at (2.5,2) {#2};
 				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
-				\node[draw=none, align=center] at (3.5,2) {#2};
-				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,0) arc (-90:90:2) ;
-				\ifstrequal{#5}{gridon}
-					{
-						\MAX{#3}{5}{\gridheight}
-						\draw[step=1cm,color=gray] (-1,{2-int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))}) grid (7,{2+int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))});
-					}
-					{
-					}
-				\ifstrequal{#6}{show}
-					{
-						\node[draw=none, align=center, color=red] at (0,0) {#1};
-					}
-					{
-					}
-				\coordinate (pinRight) at (7, 2); % right terminal (output)
+				
+				\pgfmathsetmacro{\gridminX}{#3>4 ? -2 : 0}
+				\pgfmathsetmacro{\gridminY}{min(0, \starty - 1)}
+				\pgfmathsetmacro{\gridmaxY}{max(5, \starty + #3)}
+				\ifstrequal{#5}{gridon}{\draw[step=1cm,color=gray] (\gridminX,\gridminY) grid (7,\gridmaxY);}{}
+				\ifstrequal{#6}{show}{\node[draw=none, align=center, color=red] at (0,0) {#1};}{}
+				\coordinate (pinRight) at (7, 2);
 		\end{scope}
 }
 
 %% NAND - n inputs
 \newcommand{\nandninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
-% disabled
+% enabled
 % category: Digital/Logic
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
+% preview_args: 3=4
+
+% arg_def: 3 | text | number of inputs | 4
+% arg_def: 4 | rotation | Rotation | 0
+
+% shape_generator:
+% let n = parseInt(args[3]);
+% if (isNaN(n) || n < 2) n = 2;
+% let tikz = new TikZBuilder();
+% 
+% let startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);
+% 
+% if (n > 4) {
+%     let endY = startY + n - 1;
+%     for(let i=0; i<n; i++) {
+%         let y = startY + i;
+%         tikz.draw(-2, y).to(-1, y);
+%         tikz.pin('pin' + (i+1), -2, y, 'L', '');
+%     }
+%     tikz.draw(-1, startY).to(-1, endY);
+%     tikz.draw(-1, 2).to(1, 2);
+%     tikz.draw(-0.2, 1.5).to(0.2, 2.5);
+%     tikz.text(0, 3.0, n.toString(), 10, 'normal');
+% } else {
+%     for(let i=0; i<n; i++) {
+%         let y = startY + i;
+%         tikz.draw(0, y).to(1, y);
+%         tikz.pin('pin' + (i+1), 0, y, 'L', '');
+%     }
+% }
+% 
+% tikz.draw(1, 0).to(4, 0).arc(4, 2, 2, -90, 90).to(4, 4).to(1, 4).cycle();
+% tikz.text(2.5, 2, args[2] || "", 12, 'bold');
+% 
+% tikz.circle(6.25, 2, 0.25);
+% tikz.draw(6.5, 2).to(7.5, 2);
+% tikz.pin('pinRight', 7.5, 2, 'R', '');
+% return tikz.export();
+
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
-				\shade[left color=blue!20!white, draw=none] (1,0) rectangle (4,4) (4,0) arc (-90:90:2);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (4,4)  -- (1,4) -- (1,0) -- (4,0);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{2+int(#3 / 2)-0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{2-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}) ;
-				\foreach \currentinput in {1,...,#3} % draw input lines
-					{
-						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-1,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))});
-						\coordinate (pin\currentinput) at (-1, {\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}); % current left terminal (input-i)
+				
+				\shade[left color=blue!20!white, draw=none] (1,0) -- (4,0) arc (-90:90:2) -- (4,4) -- (1,4) -- cycle;
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,0) -- (4,0) arc (-90:90:2) -- (4,4) -- (1,4) -- cycle;
+				
+				\pgfmathsetmacro{\starty}{2 - floor(#3/2) + (mod(#3,2) == 0 ? 0.5 : 0)}
+				
+				\ifnum#3>4
+					\pgfmathsetmacro{\endy}{\starty + #3 - 1}
+					\foreach \i in {1,...,#3} {
+						\pgfmathsetmacro{\inputY}{\starty + \i - 1}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,\inputY) -- (-1,\inputY);
+						\coordinate (pin\i) at (-2, \inputY); 
 					}
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt]  (0.4,1.5)  -- (0.6,2.5);
-				\node[draw=none, align=center] at (0.5,3) {#3};
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
-				\node[draw=none, align=center] at (3.5,2) {#2};
-				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (4,0) arc (-90:90:2) ;
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,\starty) -- (-1,\endy);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,2) -- (1,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-0.2,1.5) -- (0.2,2.5);
+					\node[draw=none, align=center] at (0,3.0) {#3};
+				\else
+					\foreach \i in {1,...,#3} {
+						\pgfmathsetmacro{\inputY}{\starty + \i - 1}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,\inputY) -- (1,\inputY);
+						\coordinate (pin\i) at (0, \inputY); 
+					}
+				\fi
+
+				\node[draw=none, align=center] at (2.5,2) {#2};
 				\filldraw[white]  (6.25,2) circle(0.25);
 				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
-				\ifstrequal{#5}{gridon}
-					{
-						\MAX{#3}{5}{\gridheight}
-						\draw[step=1cm,color=gray] (-1,{2-int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))}) grid (7,{2+int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))});
-					}
-					{
-					}
-				\ifstrequal{#6}{show}
-					{
-						\node[draw=none, align=center, color=red] at (0,0) {#1};
-					}
-					{
-					}
-				\coordinate (pinRight) at (7, 2); % right terminal (output)
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.5,2)  -- (7.5,2);
+				
+				\pgfmathsetmacro{\gridminX}{#3>4 ? -2 : 0}
+				\pgfmathsetmacro{\gridminY}{min(0, \starty - 1)}
+				\pgfmathsetmacro{\gridmaxY}{max(5, \starty + #3)}
+				\ifstrequal{#5}{gridon}{\draw[step=1cm,color=gray] (\gridminX,\gridminY) grid (8,\gridmaxY);}{}
+				\ifstrequal{#6}{show}{\node[draw=none, align=center, color=red] at (0,0) {#1};}{}
+				\coordinate (pinRight) at (7.5, 2);
 		\end{scope}
 }
 
@@ -2755,39 +2852,98 @@
 
 %% OR - n inputs
 \newcommand{\orninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
-% disabled
+% enabled
 % category: Digital/Logic
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
+% preview_args: 3=4
+
+% arg_def: 3 | text | number of inputs | 4
+% arg_def: 4 | rotation | Rotation | 0
+
+% shape_generator:
+% let n = parseInt(args[3]);
+% if (isNaN(n) || n < 2) n = 2;
+% let tikz = new TikZBuilder();
+% 
+% let startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);
+% 
+% if (n > 4) {
+%     let endY = startY + n - 1;
+%     for(let i=0; i<n; i++) {
+%         let y = startY + i;
+%         tikz.draw(-2, y).to(-1, y);
+%         tikz.pin('pin' + (i+1), -2, y, 'L', '');
+%     }
+%     tikz.draw(-1, startY).to(-1, endY);
+%     let endX = -1.236 + 3; // Τομή με την καμπύλη στο κέντρο (y=2)
+%     tikz.draw(-1, 2).to(endX, 2);
+%     tikz.draw(-0.2, 1.5).to(0.2, 2.5);
+%     tikz.text(0, 3.0, n.toString(), 10, 'normal');
+% } else {
+%     for(let i=0; i<n; i++) {
+%         let y = startY + i;
+%         let dy = y - 2;
+%         let endX = -1.236 + Math.sqrt(9 - dy*dy);
+%         tikz.draw(0, y).to(endX, y);
+%         tikz.pin('pin' + (i+1), 0, y, 'L', '');
+%     }
+% }
+% 
+% // THE FIX: sweep-flag is 0 so the arc bows INWARD (concave) relative to the inputs!
+% tikz.path += `M ${tikz.pt(1, 4)} C ${tikz.pt(4, 4)} ${tikz.pt(5, 3)} ${tikz.pt(6, 2)} C ${tikz.pt(5, 1)} ${tikz.pt(4, 0)} ${tikz.pt(1, 0)} A 30 30 0 0 0 ${tikz.pt(1, 4)} Z `;
+% tikz.text(3.5, 2, args[2] || "", 12, 'bold');
+% 
+% tikz.draw(6, 2).to(7, 2);
+% tikz.pin('pinRight', 7, 2, 'R', '');
+% return tikz.export();
+
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
-				\shade[left color=red!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1.8,2);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{2+int(#3 / 2)-0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{2-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}) ;
-				\foreach \currentinput in {1,...,#3} % draw input lines
-					{
-						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-1,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))});
-						\coordinate (pin\currentinput) at (-1, {\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}); % current left terminal (input-i)
+				
+				\shade[left color=red!20!white, draw=none] 
+					(1,4) .. controls (4,4) and (5, 3) .. (6,2) 
+						  .. controls (5, 1) and (4, 0) .. (1,0) 
+						  arc (-41.5:41:3) -- cycle;
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] 
+					(1,4) .. controls (4,4) and (5, 3) .. (6,2) 
+						  .. controls (5, 1) and (4, 0) .. (1,0) 
+						  arc (-41.5:41:3) -- cycle;
+				
+				\pgfmathsetmacro{\starty}{2 - floor(#3/2) + (mod(#3,2) == 0 ? 0.5 : 0)}
+				
+				\ifnum#3>4
+					\pgfmathsetmacro{\endy}{\starty + #3 - 1}
+					\foreach \i in {1,...,#3} {
+						\pgfmathsetmacro{\inputY}{\starty + \i - 1}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,\inputY) -- (-1,\inputY);
+						\coordinate (pin\i) at (-2, \inputY); 
 					}
-				\draw [line width=0.75pt]  (0.4,1.5)  -- (0.6,2.5);
-				\node[draw=none, align=center] at (0.5,3) {#3};
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,\starty) -- (-1,\endy);
+					\pgfmathsetmacro{\endX}{-1.236 + 3}
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,2) -- (\endX,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-0.2,1.5) -- (0.2,2.5);
+					\node[draw=none, align=center] at (0,3.0) {#3};
+				\else
+					\foreach \i in {1,...,#3} {
+						\pgfmathsetmacro{\inputY}{\starty + \i - 1}
+						\pgfmathsetmacro{\dy}{\inputY - 2}
+						\pgfmathsetmacro{\endX}{-1.236 + sqrt(9 - \dy*\dy)}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,\inputY)  -- (\endX,\inputY);
+						\coordinate (pin\i) at (0, \inputY); 
+					}
+				\fi
+
 				\node[draw=none, align=center] at (3.5,2) {#2};
-				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
-				\ifstrequal{#5}{gridon}
-					{
-						\MAX{#3}{5}{\gridheight}
-						\draw[step=1cm,color=gray] (-1,{2-int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))}) grid (7,{2+int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))});
-					}
-					{
-					}
-				\ifstrequal{#6}{show}
-					{
-						\node[draw=none, align=center, color=red] at (0,0) {#1};
-					}
-					{
-					}
-				\coordinate (pinRight) at (7, 2); % right terminal (output)
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+				
+				\pgfmathsetmacro{\gridminX}{#3>4 ? -2 : 0}
+				\pgfmathsetmacro{\gridminY}{min(0, \starty - 1)}
+				\pgfmathsetmacro{\gridmaxY}{max(5, \starty + #3)}
+				\ifstrequal{#5}{gridon}{\draw[step=1cm,color=gray] (\gridminX,\gridminY) grid (7,\gridmaxY);}{}
+				\ifstrequal{#6}{show}{\node[draw=none, align=center, color=red] at (0,0) {#1};}{}
+				\coordinate (pinRight) at (7, 2); 
 		\end{scope}
 }
 
@@ -2870,41 +3026,101 @@
 
 %% NOR - n inputs
 \newcommand{\norninputs}[6]{%{position}{name}{number of inputs}{rotation}{grid}{show (0,0)}
-% disabled
+% enabled
 % category: Digital/Logic
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, xshift=1]
+% preview_args: 3=4
+
+% arg_def: 3 | text | number of inputs | 4
+% arg_def: 4 | rotation | Rotation | 0
+
+% shape_generator:
+% let n = parseInt(args[3]);
+% if (isNaN(n) || n < 2) n = 2;
+% let tikz = new TikZBuilder();
+% 
+% let startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);
+% 
+% if (n > 4) {
+%     let endY = startY + n - 1;
+%     for(let i=0; i<n; i++) {
+%         let y = startY + i;
+%         tikz.draw(-2, y).to(-1, y);
+%         tikz.pin('pin' + (i+1), -2, y, 'L', '');
+%     }
+%     tikz.draw(-1, startY).to(-1, endY);
+%     let endX = -1.236 + 3; // Τομή με την καμπύλη στο κέντρο (y=2)
+%     tikz.draw(-1, 2).to(endX, 2);
+%     tikz.draw(-0.2, 1.5).to(0.2, 2.5);
+%     tikz.text(0, 3.0, n.toString(), 10, 'normal');
+% } else {
+%     for(let i=0; i<n; i++) {
+%         let y = startY + i;
+%         let dy = y - 2;
+%         let endX = -1.236 + Math.sqrt(9 - dy*dy);
+%         tikz.draw(0, y).to(endX, y);
+%         tikz.pin('pin' + (i+1), 0, y, 'L', '');
+%     }
+% }
+% 
+% // THE FIX: sweep-flag is 0 so the arc bows INWARD (concave) relative to the inputs!
+% tikz.path += `M ${tikz.pt(1, 4)} C ${tikz.pt(4, 4)} ${tikz.pt(5, 3)} ${tikz.pt(6, 2)} C ${tikz.pt(5, 1)} ${tikz.pt(4, 0)} ${tikz.pt(1, 0)} A 30 30 0 0 0 ${tikz.pt(1, 4)} Z `;
+% tikz.text(3.5, 2, args[2] || "", 12, 'bold');
+% 
+% tikz.circle(6.25, 2, 0.25);
+% tikz.draw(6.5, 2).to(7.5, 2);
+% tikz.pin('pinRight', 7.5, 2, 'R', '');
+% return tikz.export();
+
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
-				\shade[left color=yellow!20!white, draw=none]  (1,4) .. controls (4,4)  and (5,3) .. (6,2)  .. controls (5,1)  and (4,0) .. (1,0)  arc (-42:42:3);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1.8,2);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{2+int(#3 / 2)-0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{2-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}) ;
-				\foreach \currentinput in {1,...,#3} % draw input lines
-					{
-						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-1,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))})  -- (0,{\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))});
-						\coordinate (pin\currentinput) at (-1, {\currentinput+1-int(#3 / 2)+0.5*((#3+1)-2*int((#3+1) / 2))}); % current left terminal (input-i)
+				
+				\shade[left color=yellow!20!white, draw=none] 
+					(1,4) .. controls (4,4) and (5, 3) .. (6,2) 
+						  .. controls (5, 1) and (4, 0) .. (1,0) 
+						  arc (-41.5:41:3) -- cycle;
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] 
+					(1,4) .. controls (4,4) and (5, 3) .. (6,2) 
+						  .. controls (5, 1) and (4, 0) .. (1,0) 
+						  arc (-41.5:41:3) -- cycle;
+				
+				\pgfmathsetmacro{\starty}{2 - floor(#3/2) + (mod(#3,2) == 0 ? 0.5 : 0)}
+				
+				\ifnum#3>4
+					\pgfmathsetmacro{\endy}{\starty + #3 - 1}
+					\foreach \i in {1,...,#3} {
+						\pgfmathsetmacro{\inputY}{\starty + \i - 1}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,\inputY) -- (-1,\inputY);
+						\coordinate (pin\i) at (-2, \inputY); 
 					}
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt]  (0.4,1.5)  -- (0.6,2.5);
-				\node[draw=none, align=center] at (0.5,3) {#3};
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (1,2);
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,2)  -- (7,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,\starty) -- (-1,\endy);
+					\pgfmathsetmacro{\endX}{-1.236 + 3}
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,2) -- (\endX,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-0.2,1.5) -- (0.2,2.5);
+					\node[draw=none, align=center] at (0,3.0) {#3};
+				\else
+					\foreach \i in {1,...,#3} {
+						\pgfmathsetmacro{\inputY}{\starty + \i - 1}
+						\pgfmathsetmacro{\dy}{\inputY - 2}
+						\pgfmathsetmacro{\endX}{-1.236 + sqrt(9 - \dy*\dy)}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,\inputY)  -- (\endX,\inputY);
+						\coordinate (pin\i) at (0, \inputY); 
+					}
+				\fi
+
 				\node[draw=none, align=center] at (3.5,2) {#2};
-				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,4) .. controls (4,4) and (5,3) .. (6,2) .. controls (5,1)  and (4,0) .. (1,0) arc (-41.5:41:3) -- cycle;
 				\filldraw[white]  (6.25,2) circle(0.25);
 				\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.25,2) circle(0.25);
-				\ifstrequal{#5}{gridon}
-					{
-						\MAX{#3}{5}{\gridheight}
-						\draw[step=1cm,color=gray] (-1,{2-int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))}) grid (7,{2+int(\gridheight / 2)-0.5*((\gridheight+1)-2*int((\gridheight+1) / 2))});
-					}
-					{
-					}
-				\ifstrequal{#6}{show}
-					{
-						\node[draw=none, align=center, color=red] at (0,0) {#1};
-					}
-					{
-					}
-				\coordinate (pinRight) at (7, 2); % right terminal (output)
+				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6.5,2)  -- (7.5,2);
+				
+				\pgfmathsetmacro{\gridminX}{#3>4 ? -2 : 0}
+				\pgfmathsetmacro{\gridminY}{min(0, \starty - 1)}
+				\pgfmathsetmacro{\gridmaxY}{max(5, \starty + #3)}
+				\ifstrequal{#5}{gridon}{\draw[step=1cm,color=gray] (\gridminX,\gridminY) grid (8,\gridmaxY);}{}
+				\ifstrequal{#6}{show}{\node[draw=none, align=center, color=red] at (0,0) {#1};}{}
+				\coordinate (pinRight) at (7.5, 2);
 		\end{scope}
 }
 
@@ -3644,14 +3860,8 @@
 % arg_def: 5 | select | select terminals position | bottom | bottom, top
 
 
-% icon_base: \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
-    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
-    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
-    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
-    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
-    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
-    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
-    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+% icon_base: 
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				\LOG[2]{#3}{\numberofselectterminalstmp}				
 				\FLOOR{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
@@ -3665,24 +3875,34 @@
 				\ADD{1}{\numberofselectterminals}{\muxrectanglewidth}				
 				\ADD{1}{#3}{\muxrectangleheight}
 
+				% JS Logic for spacing and offset (spacing = 2 for n=2, else 1)
+				\pgfmathsetmacro{\inputspacing}{#3 == 2 ? 2 : 1}
+				\pgfmathsetmacro{\inputyoffset}{#3 == 2 ? -1 : 0}
+				
 				\foreach \currentinput in {1,...,#3} % draw input lines
 					{
-						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,\currentinput)  -- (1,\currentinput);
+						\pgfmathsetmacro{\inputY}{\currentinput * \inputspacing + \inputyoffset}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,\inputY)  -- (1,\inputY);
 						\SUBTRACT{\currentinput}{1}{\currentinputindex}
-						\node[draw=none, align=center] at (0.5,\currentinput + 0.5) {I\textsubscript{\currentinputindex}}; % draw input symbol
+						\node[draw=none, align=center] at (0.5,\inputY + 0.5) {I\textsubscript{\currentinputindex}}; % draw input symbol
 					}
+				% JS Logic for dynamic height (n=2 expands by 1 grid step)
+				\pgfmathsetmacro{\muxheight}{#3 == 2 ? 4 : #3 + 1}
+				
 				\ifstrequal{#5}{top}
 					{
 						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at top
 							{
-								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 1+#3-0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  #3+2); % draw select lines at top
+								% Exact intersection with the slant: h - 0.4*i
+								\pgfmathsetmacro{\selY}{\muxheight - 0.4 * \currentselectterminal}
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, \selY)  -- (1 + \currentselectterminal,  \muxheight+1); 
 								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
 								\IfEq{\numberofselectterminals}{1}
 									{
-										\node[draw=none, align=center] at (1.5 + \currentselectterminal,#3+1.5) {s}; % draw select symbols
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,\muxheight+0.5) {s}; % draw select symbols
 									}
 									{
-										\node[draw=none, align=center] at (1.5 + \currentselectterminal,#3+1.5) {s\textsubscript{\currentselectterminalindex}}; % draw select symbols
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,\muxheight+0.5) {s\textsubscript{\currentselectterminalindex}}; % draw select symbols
 									}
 							}
 						\ifstrequal{#2}{}	
@@ -3695,7 +3915,9 @@
 					{
 						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at bottom
 							{
-								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  -1); % draw select lines at bottom
+								% Exact intersection with the slant: 0.4*i
+								\pgfmathsetmacro{\selY}{0.4 * \currentselectterminal}
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, \selY)  -- (1 + \currentselectterminal,  -1); 
 								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
 								\IfEq{\numberofselectterminals}{1}
 									{
@@ -3709,25 +3931,27 @@
 							{
 							}
 							{					
-								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},#3+2) {#2}; % draw name at top
+								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},\muxheight+1) {#2}; % draw name at top
 							}
 					}
 
 				% draw body
-					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (\muxrectanglewidth + 1,{(#3+1) / 2})  -- (\muxrectanglewidth + 2,{(#3+1) / 2}); % draw output line
-					\node[draw=none, align=center] at (\muxrectanglewidth + 1.5,{0.5 + (#3+1) / 2}) {O}; % draw output symbol
-					\shade[left color=gray!50!white, draw=none] (1,0) -- (1, #3+1) -- (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) -- cycle; % draw shade
-					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1pt, color=gray!70]  (1,0) -- (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth); % draw diagonal
-					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) -- (1, #3+1) -- (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) -- cycle; % draw box 
-					% draw number of inputs/outputs
-						% define dummy nodes
-							\node[draw=none] (BL) at (1,0) {}; % bottom-left body corner
-							\node[draw=none] (TL) at (1, #3+1) {}; % top-left body corner
-							\node[draw=none] (TR) at (1 + \muxrectanglewidth,1+#3-0.4*\muxrectanglewidth) {}; % top-right body corner
-							\node[draw=none] (BR) at (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) {}; % bottom-right body corner
-						%place numbers 
-							\node[draw=none, align=center] at  (barycentric cs:BL=1/3,TL=1/3,TR=1/3) {#3}; % draw number of inputs
-							\node[draw=none, align=center] at  (barycentric cs:BL=1/3,BR=1/3,TR=1/3) {1}; % draw number of outputs
+					\pgfmathsetmacro{\outputY}{ceil((#3+1)/2)}
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (\muxrectanglewidth + 1,\outputY)  -- (\muxrectanglewidth + 2,\outputY); % draw output line
+					\node[draw=none, align=center] at (\muxrectanglewidth + 1.5,\outputY + 0.5) {O}; % draw output symbol
+					
+					\shade[left color=gray!50!white, draw=none] (1,0) -- (1, \muxheight) -- (1 + \muxrectanglewidth,\muxheight-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) -- cycle; % draw shade
+					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1pt, color=gray!70]  (1,0) -- (1 + \muxrectanglewidth,\muxheight-0.4*\muxrectanglewidth); % draw diagonal
+					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0) -- (1, \muxheight) -- (1 + \muxrectanglewidth,\muxheight-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) -- cycle; % draw box 
+					
+					% define dummy nodes
+						\node[draw=none] (BL) at (1,0) {}; % bottom-left body corner
+						\node[draw=none] (TL) at (1, \muxheight) {}; % top-left body corner
+						\node[draw=none] (TR) at (1 + \muxrectanglewidth,\muxheight-0.4*\muxrectanglewidth) {}; % top-right body corner
+						\node[draw=none] (BR) at (1 + \muxrectanglewidth,0.4*\muxrectanglewidth) {}; % bottom-right body corner
+					%place numbers 
+						\node[draw=none, align=center] at  (barycentric cs:BL=1/3,TL=1/3,TR=1/3) {#3}; % draw number of inputs
+						\node[draw=none, align=center] at  (barycentric cs:BL=1/3,BR=1/3,TR=1/3) {1}; % draw number of outputs
 
 				% other options
 				\ifstrequal{#6}{gridon}
@@ -3742,15 +3966,76 @@
 					}
 					{
 					}
-		                                \end{scope}
+	\end{scope}
 }
 
 %% Demultiplexer with n outputs
 \newcommand{\demuxnoutputs}[7]{%{position}{name}{number of outputs}{rotation}{select at top/bottom}{grid}{show (0,0)}
-% disabled
 % category: Digital/Logic
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+
+% shape_generator:
+% let n = parseInt(args[3]);
+%  if (isNaN(n) || n < 2) n = 2; // Fallback to 2 outputs
+%  let spacing = (n === 2) ? 2 : 1;
+%  let yOffset = (n === 2) ? -1 : 0;
+%  let isTop = args[5] === 'top';
+%  
+%  let numSelects = Math.ceil(Math.log2(n));
+%  let w = numSelects + 1; // Width of the mux body
+%  let h = (n === 2) ? n*spacing: (n + 1)*spacing;  // Height of the mux body
+%  
+%  let tikz = new TikZBuilder();
+%  
+%  // 1. Draw Outputs & Output Pins
+%  for (let i = 1; i <= n; i++) {
+%      tikz.draw(w+1, i*spacing+yOffset).to(w+2, i*spacing+yOffset);
+%      tikz.pin('pin' + i, w+2, i*spacing+yOffset, 'L', '');
+%  }
+%  
+%  // 2. Draw Select Lines & Select Pins
+%  let selY2 = isTop ? (h + 1) : -1; // The outer tip of the pin
+%  
+%  for (let i = 1; i <= numSelects; i++) {
+%      let selX = 1 + i;
+%      
+%      let selY1 = isTop ? (h-0.4*(w-i)) : (0.4*(w-i));
+%      
+%      tikz.draw(selX, selY1).to(selX, selY2);
+%      tikz.pin('pinSelect' + i, selX, selY2, isTop ? 'T' : 'B', '');
+%  }
+%  
+%  // 3. Draw Input & Input Pin
+%  let outY = Math.ceil((n + 1) / 2);
+%  tikz.draw(0, outY).to(1, outY);
+%  tikz.pin('pinOutput', 0, outY, 'R', '');
+%  
+%  // 4. Draw Trapezoid Box
+%  tikz.draw(1, h - 0.4 * w)
+%      .to(w+1, h)
+%      .to(w+1, 0)
+%      .to(1, 0.4 * w)
+%      .cycle();
+%  
+%  // 5. Add the Center Text Label
+%  // X center is halfway between the left edge (1) and right edge (w + 1)
+%  // Y center is halfway down the height (h)
+%  let centerX = 1 + (w / 2);
+%  let centerY = h / 2;
+%  
+%  tikz.text(centerX, centerY, "1:"+n, 9, 'normal');
+%  
+%  return tikz.export();
+
+% arg_def: 3 | text | number of outputs | 2
+% arg_def: 4 | rotation | Rotation | 0
+% arg_def: 5 | select | select position | bottom | bottom, top
+
+
+% icon_base: 
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				\LOG[2]{#3}{\numberofselectterminalstmp}				
 				\FLOOR{\numberofselectterminalstmp}{\numberofselectterminalsfloor}
@@ -3764,40 +4049,48 @@
 				\ADD{1}{\numberofselectterminals}{\muxrectanglewidth}
 				\ADD{1}{#3}{\muxrectangleheight}
 
+				% JS Logic for dynamic height and spacing
+				\pgfmathsetmacro{\muxheight}{#3 == 2 ? 4 : #3 + 1}
+				\pgfmathsetmacro{\outputspacing}{#3 == 2 ? 2 : 1}
+				\pgfmathsetmacro{\outputyoffset}{#3 == 2 ? -1 : 0}
+
 				\foreach \currentoutput in {1,...,#3} % draw output lines
 					{
-						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \muxrectanglewidth,\currentoutput)  -- (2 + \muxrectanglewidth,\currentoutput);
-						\coordinate (pin\currentoutput) at (1 + \muxrectanglewidth,\currentoutput); % right terminal (output-i)
+						\pgfmathsetmacro{\outputY}{\currentoutput * \outputspacing + \outputyoffset}
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \muxrectanglewidth, \outputY)  -- (2 + \muxrectanglewidth, \outputY);
 						\SUBTRACT{\currentoutput}{1}{\currentoutputindex}
-						\node[draw=none, align=center] at (1.5 + \muxrectanglewidth, 0.5 + \currentoutput) {O\textsubscript{\currentoutputindex}}; % draw output symbol
+						\node[draw=none, align=center] at (1.5 + \muxrectanglewidth, \outputY + 0.5) {O\textsubscript{\currentoutputindex}}; % draw output symbol
 					}
+
 				\ifstrequal{#5}{top}
 					{
 						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at top
 							{
-								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 1+#3-0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  #3+2); % draw select lines at top
-								\coordinate (pinSelect\currentselectterminal) at (1 + \currentselectterminal,  #3+2); % top terminal (select-i)
+								% Intersection with slant (DEMUX logic): h - 0.4 * (w - i)
+								\pgfmathsetmacro{\selY}{\muxheight - 0.4 * (\muxrectanglewidth - \currentselectterminal)}
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, \selY)  -- (1 + \currentselectterminal,  \muxheight+1); 
 								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
 								\IfEq{\numberofselectterminals}{1}
 									{
-										\node[draw=none, align=center] at (1.5 + \currentselectterminal,#3+1.5) {s}; % draw select symbols
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,\muxheight+0.5) {s}; % draw select symbols
 									}
 									{
-										\node[draw=none, align=center] at (1.5 + \currentselectterminal,#3+1.5) {s\textsubscript{\currentselectterminalindex}}; % draw select symbols
+										\node[draw=none, align=center] at (1.5 + \currentselectterminal,\muxheight+0.5) {s\textsubscript{\currentselectterminalindex}}; % draw select symbols
 									}
 							}
 						\ifstrequal{#2}{}	
 							{
 							}
-							{						
+							{					
 								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},-1) {#2}; % draw name at bottom
 							}
 					}
 					{
 						\foreach \currentselectterminal in {1,...,\numberofselectterminals} % draw select lines at bottom
 							{
-								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, 0.4*\muxrectanglewidth)  -- (1 + \currentselectterminal,  -1); % draw select lines at bottom
-								\coordinate (pinSelect\currentselectterminal) at (1 + \currentselectterminal,  -1); % bottom terminal (select-i)
+								% Intersection with slant (DEMUX logic): 0.4 * (w - i)
+								\pgfmathsetmacro{\selY}{0.4 * (\muxrectanglewidth - \currentselectterminal)}
+								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1 + \currentselectterminal, \selY)  -- (1 + \currentselectterminal,  -1); 
 								\SUBTRACT{\numberofselectterminals}{\currentselectterminal}{\currentselectterminalindex}
 								\IfEq{\numberofselectterminals}{1}
 									{
@@ -3811,26 +4104,27 @@
 							{
 							}
 							{					
-								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},#3+2) {#2}; % draw name at top
+								\node[draw=none, align=center] at ({1 + (\muxrectanglewidth / 2)},\muxheight+1) {#2}; % draw name at top
 							}
 					}
 
 				% draw body
-					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{(#3+1) / 2})  -- (1,{(#3+1) / 2}); % draw input line
-					\coordinate (pinInput) at (0,{(#3+1) / 2}); % left terminal (input)
-					\node[draw=none, align=center] at (0.5,{0.5 + (#3+1) / 2}) {I}; % draw input symbol
-					\shade[left color=gray!50!white, draw=none] (1,0.4*\muxrectanglewidth) -- (1, 1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,#3+1) -- (1 + \muxrectanglewidth,0) -- cycle; % draw shade
-					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1pt, color=gray!70]  (1,0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,#3+1); % draw diagonal
-					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,0.4*\muxrectanglewidth) -- (1, 1+#3-0.4*\muxrectanglewidth) -- (1 + \muxrectanglewidth,#3+1) -- (1 + \muxrectanglewidth,0) -- cycle;  % draw box
-					% draw number of inputs/outputs
-						% define dummy nodes
-							\node[draw=none] (BL) at (1,0.4*\muxrectanglewidth) {}; % bottom-left body corner
-							\node[draw=none] (TL) at (1, 1+#3-0.4*\muxrectanglewidth) {}; % top-left body corner
-							\node[draw=none] (TR) at (1 + \muxrectanglewidth,#3+1) {}; % top-right body corner
-							\node[draw=none] (BR) at (1 + \muxrectanglewidth,0) {}; % bottom-right body corner
-						%place numbers 
-							\node[draw=none, align=center] at  (barycentric cs:BL=1/3,TL=1/3,TR=1/3) {1}; % draw number of inputs
-							\node[draw=none, align=center] at  (barycentric cs:BL=1/3,BR=1/3,TR=1/3) {#3}; % draw number of outputs
+					\pgfmathsetmacro{\inputY}{ceil((#3+1)/2)}
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0, \inputY)  -- (1, \inputY); % draw input line
+					\node[draw=none, align=center] at (0.5, \inputY + 0.5) {I}; % draw input symbol
+					
+					\shade[left color=gray!50!white, draw=none] (1, 0.4 * \muxrectanglewidth) -- (1, \muxheight - 0.4 * \muxrectanglewidth) -- (1 + \muxrectanglewidth, \muxheight) -- (1 + \muxrectanglewidth, 0) -- cycle; % draw shade
+					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1pt, color=gray!70]  (1, 0.4 * \muxrectanglewidth) -- (1 + \muxrectanglewidth, \muxheight); % draw diagonal
+					\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1, 0.4 * \muxrectanglewidth) -- (1, \muxheight - 0.4 * \muxrectanglewidth) -- (1 + \muxrectanglewidth, \muxheight) -- (1 + \muxrectanglewidth, 0) -- cycle;  % draw box
+					
+					% define dummy nodes
+						\node[draw=none] (BL) at (1, 0.4 * \muxrectanglewidth) {}; % bottom-left body corner
+						\node[draw=none] (TL) at (1, \muxheight - 0.4 * \muxrectanglewidth) {}; % top-left body corner
+						\node[draw=none] (TR) at (1 + \muxrectanglewidth, \muxheight) {}; % top-right body corner
+						\node[draw=none] (BR) at (1 + \muxrectanglewidth, 0) {}; % bottom-right body corner
+					%place numbers 
+						\node[draw=none, align=center] at  (barycentric cs:BL=1/3,TL=1/3,TR=1/3) {1}; % draw number of inputs
+						\node[draw=none, align=center] at  (barycentric cs:BL=1/3,BR=1/3,TR=1/3) {#3}; % draw number of outputs
 
 				% other options
 				\ifstrequal{#6}{gridon}
@@ -3845,36 +4139,108 @@
 					}
 					{
 					}
-		\end{scope}
+		    \end{scope}
 }
 
 %% Generic digital circuit (n-inputs, m-outputs)
 \newcommand{\genericdigitalcircuit}[7]{%{position}{name}{number of inputs-enable}{number of outputs}{rotation}{grid}{show (0,0)}
-% disabled
+% enabled
 % category: Digital/Logic
+% scales: 1, 2, 4
+% label_anchor: B
 % flip: disabled
-		\StrBehind{#3}{-}[\genericcircuitwithenable]
-		\StrBefore{#3}{-}[\numberofinputswithoutenable]
+% preview_args: 2=ALU, 3=2, 4=2
+
+% arg_def: 3 | text | number of inputs | 2
+% arg_def: 3 | flags | enable |  | enable
+% arg_def: 4 | text | number of outputs | 2
+% arg_def: 5 | rotation | Rotation | 0
+
+% shape_generator:
+% let inStr = args[3] ? args[3].toString().trim().toLowerCase() : "1";
+% let parts = inStr.split(',');
+% let baseIn = parseInt(parts[0]);
+% if (isNaN(baseIn) || baseIn < 1) baseIn = 1;
+% let hasEn = inStr.includes('enable');
+% 
+% // Στο TikZ, αν υπάρχει enable, δεσμεύει +2 θέσεις (η μία για το En στο κάτω μέρος)
+% let numInTerms = hasEn ? baseIn + 2 : baseIn;
+% let numOut = parseInt(args[4]);
+% if (isNaN(numOut) || numOut < 1) numOut = 1;
+% 
+% // Το ύψος του κουτιού καθορίζεται από το αν έχουμε περισσότερες εισόδους ή εξόδους
+% let maxTerms = Math.max(numInTerms, numOut);
+% let h = maxTerms + 1;
+% 
+% // Υπολογισμός του offset για να κεντράρονται τα pins
+% let inOff = Math.round((maxTerms - numInTerms) / 2);
+% let outOff = Math.round((maxTerms - numOut) / 2);
+% 
+% let tikz = new TikZBuilder();
+% 
+% // 1. Ζωγραφίζουμε το κεντρικό κουτί
+% tikz.draw(1, 0).to(6, 0).to(6, h).to(1, h).cycle();
+% 
+% // 2. Ζωγραφίζουμε τις Εισόδους (Αριστερά)
+% let startIdx = hasEn ? 3 : 1;
+% for (let i = startIdx; i <= numInTerms; i++) {
+%     let y = i + inOff;
+%     tikz.draw(0, y).to(1, y);
+%     tikz.pin('pinInput' + i, 0, y, 'L', '');
+%     
+%     // Αν είναι μόνο 1 είσοδος την λέμε "I", αλλιώς "I0", "I1" κλπ.
+%     let lbl = (baseIn === 1) ? "I" : "I" + (i - startIdx);
+%     tikz.text(1.5, y, lbl, 9, 'normal');
+% }
+% 
+% // 3. Ζωγραφίζουμε τις Εξόδους (Δεξιά)
+% for (let i = 1; i <= numOut; i++) {
+%     let y = i + outOff;
+%     tikz.draw(6, y).to(7, y);
+%     tikz.pin('pinOutput' + i, 7, y, 'R', '');
+%     
+%     let lbl = (numOut === 1) ? "O" : "O" + (i - 1);
+%     tikz.text(5.5, y, lbl, 9, 'normal');
+% }
+% 
+% // 4. Ζωγραφίζουμε το Enable Pin (αν ζητήθηκε)
+% if (hasEn) {
+%     let y = 1 + inOff; // Το τοποθετούμε σε σχέση με το grid των εισόδων
+%     tikz.draw(0, y).to(1, y);
+%     tikz.pin('pinEnable', 0, y, 'L', '');
+%     tikz.text(1.6, y, "En", 9, 'normal');
+% }
+% 
+% // 5. Προσθήκη του Ονόματος (Στο κέντρο)
+% let name = args[2] || "";
+% if (name !== "") {
+%     tikz.text(3.5, h / 2, name, 12, 'bold');
+% }
+% 
+% return tikz.export();
+
+		% Διαβάζουμε τους αριθμούς αν υπάρχει κόμμα, αλλιώς παίρνουμε όλο το string
+		\IfSubStr{#3}{,}
+			{\StrBefore{#3}{,}[\numberofinputswithoutenable]}
+			{\edef\numberofinputswithoutenable{#3}}
+
+		% Ελέγχουμε αν τσεκαρίστηκε το enable
+		\IfSubStr{#3}{enable}
+			{\edef\genericcircuitwithenable{enable}}
+			{\edef\genericcircuitwithenable{}}
+
 		\IfStrEq{\genericcircuitwithenable}{}
 			{
-				\edef\numberofinputterminals{#3}
+				\edef\numberofinputterminals{\numberofinputswithoutenable}
 				\edef\foreachstartindex{1}
 				\edef\foreachsubtractvalue{1}
 			}
 			{
-				\IfStrEq{\genericcircuitwithenable}{enable}
-					{
-						\ADD{\numberofinputswithoutenable}{2}{\numberofinputterminals}
-						\edef\foreachstartindex{3}
-						\edef\foreachsubtractvalue{3}
-					}
-					{
-						\edef\numberofinputterminals{\numberofinputswithoutenable}
-						\edef\foreachstartindex{1}
-						\edef\foreachsubtractvalue{1}
-					}
+				\ADD{\numberofinputswithoutenable}{2}{\numberofinputterminals}
+				\edef\foreachstartindex{3}
+				\edef\foreachsubtractvalue{3}
 			}
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5, yshift=1]
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
 				\getzoomfactor
 				\MAX{\numberofinputterminals}{#4}{\maxterminals}
 				\foreach \currentinput in {\foreachstartindex,...,\numberofinputterminals} % draw input lines
@@ -3884,7 +4250,6 @@
 						\IfEq{\maxterminals}{\numberofinputterminals}
 							{
 								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,\currentinput)  -- (1,\currentinput);
-								\coordinate (pinInput\currentinput) at (0,\currentinput); % left terminal (input-i)
 								\IfEq{\numberofinputterminals}{1}
 									{
 										\node[draw=none, align=center] at (0.5, 0.5 + \currentinput) {I}; % draw input symbols
@@ -3895,7 +4260,6 @@
 							}
 							{
 								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,{\currentinput +  round((\maxterminals - \numberofinputterminals) / 2)})  -- (1,{\currentinput +  round((\maxterminals - \numberofinputterminals) / 2)});
-								\coordinate (pinInput\currentinput) at (0,{\currentinput +  round((\maxterminals - \numberofinputterminals) / 2)}); % left terminal (input-i)
 								\IfEq{\numberofinputterminals}{1}
 									{
 										\node[draw=none, align=center] at (0.5,{0.5 + \currentinput +  round((\maxterminals - \numberofinputterminals) / 2)}) {I}; % draw input symbols
@@ -3912,7 +4276,6 @@
 						\IfEq{\maxterminals}{#4}
 							{
 								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,\currentoutput)  -- (7,\currentoutput);
-								\coordinate (pinOutput\currentoutput) at (7,\currentoutput); % right terminal (output-i)
 								\IfEq{#4}{1}
 									{
 										\node[draw=none, align=center] at (6.5, 0.5 + \currentoutput) {O}; % draw output symbols
@@ -3923,7 +4286,6 @@
 							}
 							{
 								\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (6,{\currentoutput +  round((\maxterminals - #4) / 2)})  -- (7,{\currentoutput +  round((\maxterminals - #4) / 2)});
-								\coordinate (pinOutput\currentoutput) at (7,{\currentoutput +  round((\maxterminals - #4) / 2)}); % right terminal (output-i)
 								\IfEq{#4}{1}
 									{
 										\node[draw=none, align=center] at  (6.5,{0.5 + \currentoutput +  round((\maxterminals - #4) / 2)})  {O}; % draw output symbols
@@ -3940,7 +4302,6 @@
 					\IfStrEq{\genericcircuitwithenable}{enable}
 						{
 							\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (1,1);
-							\coordinate (pinEnable) at (0,1); % bottom left terminal (enable)
 							\node[draw=none, align=center, anchor=west] at (1,1) {En};
 						}
 						{
@@ -3958,7 +4319,8 @@
 					}
 					{
 					}
-		\end{scope}
+		        \coordinate (pinEnable) at (0.00, 1.00); % bottom left terminal (enable) [R]
+    \end{scope}
 }
 
 %% Seven-segment display
@@ -3993,7 +4355,7 @@
 % add_icon: 3==6 : [stroke=#bababa, fill=solid] M 55 -80 L 65 -80 L 65 -50 L 55 -50 Z // 6-off
 % add_icon: 3==7 : [stroke=#bababa, fill=solid] M 25 -25 L 55 -25 L 55 -15 L 25 -15 Z M 25 -55 L 55 -55 L 55 -45 L 25 -45 Z M 15 -80 L 25 -80 L 25 -50 L 15 -50 Z M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 7-off
 % add_icon: 3==9 : [stroke=#bababa, fill=solid] M 15 -50 L 25 -50 L 25 -20 L 15 -20 Z // 9-off
-    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4, yshift=1]
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
 				\getzoomfactor
 				\draw  [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,0) rectangle (8,10); % draw box
 				\node[draw=none, align=center] at (4,10.5) {#2}; % draw name
@@ -4307,162 +4669,99 @@
 }
 
 %% DIP INTEGRATED CIRCUIT
-% define helper macros:
-\newcommand{\drawembeddedgateconnections}
-% disabled
-% category: Digital/Logic
-% flip: disabled
-{
-	\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,3)  -- (-2,3) -- (-2,-3.5);
-	\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,1)  -- (-1,1) -- (-1,-2) -- (2.5,-2) -- (2.5,-3.5) ;
-	\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (7,2)  -- (7,-3.5);
-}
-%
-% MAIN macro:
 \newcommand{\dipic}[7]{%{position}{name}{rotation}{number of pins}{code}{grid}{show (0,0)}
-% disabled
-	% find width
-		\IfEq{#5}{741}
-			{
-				\edef\numpinsperside{4}
-			}
-			{
-				\IfBeginWith{#5}{74}
-					{
-						\edef\numpinsperside{7}
-					}
-					{
-						\DIVIDE{#4}{2}{\numpinspersidetmp}
-						\FLOOR{\numpinspersidetmp}{\numpinspersidefloor}
-						\IfEq{\numpinspersidetmp}{\numpinspersidefloor}
-							{
-								\ADD{\numpinspersidefloor}{0}{\numpinsperside}
-							}
-							{
-								\ADD{\numpinspersidefloor}{1}{\numpinsperside}
-							}		
-					}
-			}		
-	% draw		
-		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
-			% draw pins
-				\foreach \currenticside in {1, 2} 
-					{
-						\IfEq{\currenticside}{1}
-							{
-								\edef\pinverticalshift{0}
-								\edef\pinrotation{0}
-							}
-							{
-								\edef\pinverticalshift{6}
-								\edef\pinrotation{180}
-							}
-						\foreach \currentpinindex in {1, ..., \numpinsperside} 
-							{
-								\begin{scope}[shift={(1+\currentpinindex,\pinverticalshift)}, rotate=\pinrotation]
-									\shade[top color=gray!50!white, draw=none]   (-0.1,0)  -- (0.1,0) -- (0.3,1)  -- (-0.3,1) -- cycle;
-									\draw [line width=\linewidthscalefactor * \zoomfactor * 0.75pt]  (-0.1,0)  -- (0.1,0) -- (0.3,1)  -- (-0.3,1) -- cycle;
-									\coordinate (pin\currenticside .\currentpinindex) at (0,0); % ic pin
-								\end{scope}
-							}
-					}
-			% draw package body
-				\shade[right color=gray!20!black, draw=none]  (1,1)  rectangle (2+\numpinsperside,5);
-			% draw orientation mark
-				\draw[fill=black]  (1,3.75)  arc (90:-90:0.75);
-			% draw code
-				\node[draw=none, align=center, color=black, rotate=90] at (3+\numpinsperside,3) {#5};
-			% draw name
-				\ifstrequal{#5}{}
-					{
-						\ADD{\numpinsperside}{3}{\iccanvaswidth}						
-						\DIVIDE{\iccanvaswidth}{2}{\namehorizontalposition}
-						\node[draw=none, align=center, color=white] at (\namehorizontalposition,3) {\textbf{#2}};
-					}
-					{
-						\node[draw=none, align=center, color=blue, rotate=90] at (0,3) {#2};
-					}
-			% draw interior for known ICs
-				\IfEq{#5}{7404}
-					{
-						\foreach \currenticside in {1, 2} 
-							{
-								\IfEq{\currenticside}{1}
-									{
-										\edef\gateverticalshift{0}
-										\edef\gatehorizontalshift{0}
-										\edef\gateyscale{1}
-									}
-									{
-										\edef\gateverticalshift{18}
-										\edef\gatehorizontalshift{5}
-										\edef\gateyscale{-1}
-									}
-								\foreach \currentembeddedgate in {1, ..., 3} 
-									{
-										\begin{scope}[scale=0.2]
-											\begin{scope}[shift={(\gatehorizontalshift + 10 * \currentembeddedgate , 6 + \gateverticalshift)}, yscale=\gateyscale, color=white]
-													\getzoomfactor
-													\tikzset{every path}=[line width=\linewidthscalefactor * \zoomfactor * 1.5pt]
-													\inverter{(0,0)}{}{0}{gridoff}{showoff}
-													\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (0,2)  -- (0,-1);
-													\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (5,2)  -- (5,-1);
-											\end{scope}
-										\end{scope}
-									}
-							}
-					}
-					{
-						% draw embedded gates
-						\foreach \currenticside in {1, 2} 
-							{
-								\IfEq{\currenticside}{1}
-									{
-										\edef\gateverticalshift{0}
-										\edef\gatehorizontalshift{11}
-										\edef\gateyscale{1}
-									}
-									{
-										\edef\gateverticalshift{11}
-										\edef\gatehorizontalshift{15.5}
-										\edef\gateyscale{-1}
-									}
-								\foreach \currentembeddedgate in {0,1} 
-									{
-										\begin{scope}[scale=0.22]
-											\begin{scope}[shift={(\gatehorizontalshift + 14 * \currentembeddedgate , 8 + \gateverticalshift)}, yscale=\gateyscale, color=white]																				\getzoomfactor
-												\IfEq{#5}{7408}{\andtwo{(0,0)}{}{0}{gridoff}{showoff} \drawembeddedgateconnections}{}
-												\IfEq{#5}{7432}{\ortwo{(0,0)}{}{0}{gridoff}{showoff} \drawembeddedgateconnections}{}
-												\IfEq{#5}{7400}{\nandtwo{(0,0)}{}{0}{gridoff}{showoff} \drawembeddedgateconnections}{}																
-												\IfEq{#5}{7402}
-													{
-														\nortwoflipped{(5,0)}
-														\begin{scope}[shift={(5,0)}, rotate=180, yscale=-1]
-															\drawembeddedgateconnections									
-														\end{scope}
-													}{}								
-											\end{scope}	
-										\end{scope}
-									}
-							}
-					}
+% enabled
+% category: Digital/Logic
+% scales: 1, 2, 4
+% label_anchor: B
+% flip: disabled
+% preview_args: 4=14, 5=7404
 
-			% draw package border
-				\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,1)  rectangle (2+\numpinsperside,5);
+% arg_def: 3 | rotation | Rotation | 0
+% arg_def: 4 | text | Number of Pins | 14
+% arg_def: 5 | text | IC Code | 7404
+
+% shape_generator:
+% let n = parseInt(args[4]);
+% if (isNaN(n) || n < 4) n = 14;
+% let pinsPerSide = Math.ceil(n / 2);
+% let w = 1 + pinsPerSide;
+% let tikz = new TikZBuilder();
+% 
+% // Body
+% tikz.rect(1, 1, 1 + w, 5);
+% 
+% // Notch (Orientation Mark left side)
+% tikz.path += `M ${tikz.pt(1, 3.75)} A ${0.75*10} ${0.75*10} 0 0 1 ${tikz.pt(1, 2.25)} Z `;
+% 
+% // Pins
+% for(let i=1; i<=pinsPerSide; i++) {
+%     let px = 1 + i;
+%     tikz.draw(px, 0).to(px, 1);
+%     tikz.pin('pin1.' + i, px, 0, 'B', i.toString());
+%     
+%     let topPinNum = (n + 1) - i;
+%     if (topPinNum > pinsPerSide) {
+%         tikz.draw(px, 5).to(px, 6);
+%         tikz.pin('pin2.' + i, px, 6, 'T', topPinNum.toString());
+%     }
+% }
+% 
+% // Labels
+% let code = args[5] || "";
+% let name = args[2] || "";
+% let centerX = 1 + (w / 2);
+% if (name) {
+%     tikz.text(centerX, 3, name, 12, 'bold');
+%     tikz.text(centerX, 2, code, 10, 'normal');
+% } else {
+%     tikz.text(centerX, 3, code, 12, 'bold');
+% }
+% 
+% return tikz.export();
+
+		\pgfmathsetmacro{\numpinsperside}{ceil(#4 / 2)}
+		\pgfmathsetmacro{\icwidth}{1 + \numpinsperside}
+
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+			\getzoomfactor
+			% draw pins
+			\foreach \i in {1, ..., \numpinsperside} 
+				{
+					% Bottom Pins
+					\pgfmathsetmacro{\px}{1 + \i}
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (\px, 0) -- (\px, 1);
+					\coordinate (pin1.\i) at (\px, 0); 
+					
+					% Top Pins
+					\pgfmathsetmacro{\toppin}{(#4 + 1) - \i}
+					\ifnum \toppin > \numpinsperside
+						\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (\px, 5) -- (\px, 6);
+						\coordinate (pin2.\i) at (\px, 6); 
+					\fi
+				}
+				
+			% draw package body
+			\shade[right color=gray!20!black, draw=none]  (1,1) rectangle (1+\icwidth,5);
+			\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,1) rectangle (1+\icwidth,5);
+			
+			% draw orientation mark
+			\draw[fill=black]  (1,3.75)  arc (90:-90:0.75);
+			
+			% draw labels
+			\pgfmathsetmacro{\centerX}{1 + (\icwidth / 2)}
+			\ifstrequal{#2}{}
+				{
+					\node[draw=none, align=center, color=blue] at (\centerX,3) {\textbf{#5}};
+				}
+				{
+					\node[draw=none, align=center, color=blue] at (\centerX,3) {\textbf{#2}};
+					\node[draw=none, align=center, color=black] at (\centerX,2) {#5};
+				}
 
 			% grid and coordinates
-				\ifstrequal{#6}{gridon}
-					{
-						\draw[step=1cm,color=gray] (0,0) grid (3+\numpinsperside,6);
-					}
-					{
-					}
-				\ifstrequal{#7}{show}
-					{
-						\node[draw=none, align=center, color=red] at (0,0) {#1};
-					}
-					{
-					}
+			\ifstrequal{#6}{gridon}{\draw[step=1cm,color=gray] (0,0) grid (2+\icwidth,6);}{}
+			\ifstrequal{#7}{show}{\node[draw=none, align=center, color=red] at (0,0) {#1};}{}
 		\end{scope}
 }
 

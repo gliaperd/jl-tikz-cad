@@ -2236,11 +2236,11 @@
                         inShapeGen = false;
                         continue;
                     }
-                    // Stop if we hit raw LaTeX commands
-                    if (ln.startsWith('\\begin') || ln.startsWith('\\draw') || ln.startsWith('\\IfSubStr')) {
-                        inShapeGen = false;
-                        continue;
-                    }
+                    // Stop if we hit ANY raw LaTeX command
+					if (ln.startsWith('\\')) {
+						inShapeGen = false;
+						continue;
+					}
                     
                     // Safely extract the code, preserving user indentation
                     if (rawLine.trim().startsWith('%')) {
@@ -2338,7 +2338,9 @@
             }
             
             // --- ΔΙΑΒΑΣΜΑ PINS ΚΑΙ TIKZ BODY ---
-            let tikzStartMatch = code.match(/(\\IfSubStr|\\begin\{scope\})/);
+			// THE FIX: Bulletproof extraction of the native TikZ body that survives \r\n and blank lines.
+			// We look for the first \IfSubStr or \begin{scope} that is NOT preceded by a % on the same line.
+			let tikzStartMatch = code.match(/(?:^|\n)[ \t]*(\\IfSubStr|\\begin\{scope\}|\\StrBehind|\\StrBefore|\\LOG|\\MAX|\\IfEq|\\IfStrEq)/);
             if (tikzStartMatch) {
                 let rawTikz = code.substring(tikzStartMatch.index);
                 rawTikz = rawTikz.replace(/\}\s*$/, ''); 
@@ -3712,6 +3714,11 @@
             }
 
             generateCode();
+            
+            // --- THE FIX: If JS Lab is open, force it to redraw the live shape on top! ---
+            if (window.isJSLabActive && typeof window.updateJSLivePreview === 'function') {
+                window.updateJSLivePreview();
+            }
         }
 
         // --- Advanced SVG to TikZ Converter ---
@@ -3912,7 +3919,8 @@
                         });
                     }
 
-                    let finalBody = originalTikzBody.replace('\\end{scope}', newPinsStr + '    \\end{scope}');
+                    // THE FIX: Regex to replace the VERY LAST \end{scope} so multi-scope components stay intact!
+						let finalBody = originalTikzBody.replace(/\\end\{scope\}(?![\s\S]*\\end\{scope\})/, newPinsStr + '    \\end{scope}');
                     lines.push('    ' + finalBody.trim());
                     lines.push(`}`);
                 } else {
@@ -4560,6 +4568,11 @@
                 if (!generated || typeof generated.pathStr === 'undefined') {
                     throw new Error("Return an object: { pathStr: '...', pins: [] }");
                 }
+				
+				// --- THE FIX: Intercept NaN math errors before the browser's SVG engine chokes! ---
+                if (generated.pathStr.includes("NaN") || (generated.pins && generated.pins.some(p => isNaN(p.x) || isNaN(p.y)))) {
+                    throw new Error("Math Error: A coordinate evaluated to NaN. Check your variables/equations!");
+                }
 
                 errorBox.innerHTML = "✅ Syntax OK";
                 errorBox.style.color = "#27ae60";
@@ -4575,6 +4588,17 @@
 
                 // Parse the generated path to separate real SVG paths from our custom Text nodes
                 let svgHtml = "";
+                
+                // --- THE FIX: Draw the coordinates behind the JS Lab preview if enabled! ---
+                let showCoords = document.getElementById('chkShowCoords');
+                if (showCoords && showCoords.checked) {
+                    svgHtml += `<g pointer-events="none" font-family="monospace" font-size="1.5" fill="#95a5a6" opacity="0.6">`;
+                    for (let i = -300; i <= 300; i += 10) {
+                        if (i === 0) svgHtml += `<text x="0.5" y="-0.5" font-weight="bold" fill="#e74c3c">0,0</text>`; 
+                        else svgHtml += `<text x="${i + 0.5}" y="-0.5">${i}</text><text x="0.5" y="${i + 0.5}">${i}</text>`; 
+                    }
+                    svgHtml += `</g>`;
+                }
                 let subPaths = generated.pathStr.split(/(?=[Mm]\s)/).filter(p => p.trim() !== '');
 
                 subPaths.forEach(sub => {
