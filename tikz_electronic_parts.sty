@@ -18,7 +18,7 @@
 \usepackage{etoolbox}
 \usepackage{calculator}
 \usetikzlibrary{positioning, calc}
-\usetikzlibrary{patterns}
+\usetikzlibrary{decorations.pathmorphing,patterns}
 
 % define some colors:
 \usepackage{xcolor}
@@ -1436,13 +1436,13 @@
 }
 
 %% MOS Transistor
-\newcommand{\mostransistor}[7]{%{position}{name}{n/p}{terminals-case-dot-arrow}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+\newcommand{\mostransistor}[7]{%{position}{name}{n/p}{terminals, case, dot, arrow}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Active Components
 % scales: 1, 2, 4
 % label_anchor: -10 -25 L
 % flip: enabled
-% preview_args: 3=n, 4=case-arrow
+% preview_args: 3=n, 4=case, arrow
 
 % arg_def: 3 | select | n/p | n | n,p
 % arg_def: 4 | flags | terminal names / case |  | terminals, case
@@ -2194,6 +2194,82 @@
         \coordinate ($2) at (1.80, 0.00); % [R] IF:3==output
         \coordinate ($2) at (0.00, 1.80); % [T] IF:3==top
         \coordinate ($2) at (0.00, -1.70); % [B] IF:3==bottom
+        \coordinate (pin3) at (0.00, 0.00); % terminal  [R]
+    \end{scope}
+}
+
+%% Input/Output Port (dot only)
+\newcommand{\ioportdot}[6]{%{position}{name}{input/output/top/bottom}{rotation}{grid}{show (0,0)}
+% enabled
+% category: Terminals
+% scales: 1, 2, 4
+% label_anchor: B
+% flip: disabled
+% hide_label: true
+
+% arg_def: 3 | select | orientation | input | input, output, top, bottom
+% arg_def: 4 | rotation | Rotation | 0
+
+
+% icon_base:  // base
+% add_icon: 3==input : M -3 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // input
+% add_icon: 3==output : M 3.50 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // output
+% add_icon: 3==top : M 0 -3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // top
+% add_icon: 3==bottom : M 0 3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // bottom
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
+				\getzoomfactor
+				\ifstrequal{#3}{output}
+					{
+						% draw terminal
+							\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0.3,0) circle (0.3);
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0.3,0) circle (0.3);
+						% draw name
+							\node[draw=none, anchor=west] at (0,0) {#2};
+					}
+					{
+						\ifstrequal{#3}{input}
+							{
+								% draw terminal
+									\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (-0.3,0) circle (0.3);
+									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (-0.3,0) circle (0.3);
+								% draw name
+									\node[draw=none, anchor=east] at (0,0) {#2};
+							}
+							{
+								\ifstrequal{#3}{top}
+									{
+										% draw terminal
+											\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,0.3) circle (0.3);
+											\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,0.3) circle (0.3);
+										% draw name
+											\node[draw=none, anchor=south] at (0,0) {#2};
+									}
+									{
+										% draw terminal
+											\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,-0.3) circle (0.3);
+											\draw[line width=\linewidthscalefactor * \zoomfactor * 1.7pt]  (0,-0.3) circle (0.3);
+										% draw name
+											\node[draw=none, anchor=north] at (0,0) {#2};
+									}
+							}
+					}
+
+				\ifstrequal{#5}{gridon}
+					{
+						\draw[step=1cm,color=gray] (-2,-2) grid (2,2);
+					}
+					{
+					}
+				\ifstrequal{#6}{show}
+					{
+						\node[draw=none, align=center, color=red] at (0,0) {#1};
+					}
+					{
+					}
+            \coordinate ($2) at (-0.70, 0.00); % [L] IF:3==input
+        \coordinate ($2) at (0.85, 0.00); % [R] IF:3==output
+        \coordinate ($2) at (0.00, 1.00); % [T] IF:3==top
+        \coordinate ($2) at (0.00, -1.05); % [B] IF:3==bottom
         \coordinate (pin3) at (0.00, 0.00); % terminal  [R]
     \end{scope}
 }
@@ -5227,5 +5303,434 @@
 }
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Cadence Virtuoso Components
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Resistor - Virtuoso
+\newcommand{\resistorcds}[7]{%{position}{name}{horizontal/vertical/empty}{fixed/variable}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% category: Virtuoso
+% scales: 1, 2, 4
+% label_anchor: 40 7 B
+% flip: disabled
+% preview_args: 4=fixed
+
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 4 | select | fixed/variable | fixed | fixed,variable
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+
+% icon_base: [stroke-width=2.8, rounded=true] M 10 0 L 15 -10 M 15 -10 L 25 10 M 25 10 L 35 -10 M 35 -10 L 45 10 M 50 0 L 45 9.5 // zig-zag
+% add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 33.33 -21.32 L 27.41 -17.44 L 33.33 -21.32 L 34.47 -14.13 M 13.50 16.50 L 32.50 -19.50 // arrow
+% add_icon: 1~= : [rounded=true] M 0 0 L 8.50 0 M 60 0 L 50 0 M 0 0 L 10 -0.20 M 60 0 L 50 0.40 M 60 0 L 50 -0.40 M 60 0 L 50 0.40 M 0 0 L 10 0.40 // terminals
+    \IfSubStr{#5}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{#5}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\ifstrequal{#3}{horizontal}
+			{
+				\edef\resistorrotationangle{0}
+			}
+			{
+				\ifstrequal{#3}{vertical}
+					{
+						\edef\resistorrotationangle{90}
+					}
+					{
+						\StrBefore{#5}{,}[\resistorrotationangle]
+					}
+			}
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\resistorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw zig-zag
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0) -- (1.5,1) -- (2.5,-1) -- (3.5,1) -- (4.5,-1) -- (5,0) -- (6,0);
+				% draw arrow (if variable)
+					\ifstrequal{#4}{variable}
+						{
+							\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1)  -- (7,1);
+						}
+						{
+						}
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\node[draw=none, align=center] at (4,2) {#2};
+						}
+						{
+							\ifstrequal{#3}{vertical}
+								{
+									\node[draw=none, anchor=east] at (4,1) {#2};
+								}
+								{
+									\node[draw=none, align=center, rotate=\resistorrotationangle] at (4,2) {#2};
+								}
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (8,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+            \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (6.00, 0.00); % right terminal  [R]
+    \end{scope}
+}
+
+%% Inductor - Virtuoso
+\newcommand{\inductorcds}[7]{%{position}{name}{horizontal/vertical/empty}{fixed/variable}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% category: Virtuoso
+% scales: 1, 2, 4
+% label_anchor: 40 0 B
+% flip: disabled
+% preview_args: 4=fixed
+
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 4 | select | fixed/variable | fixed | fixed, variable
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+
+% icon_base: [stroke-width=2.7] M 0 0 L 10 0 A 4.5 4.5 0 0 1 23.5 0 A 4.5 4.5 0 0 1 37 0 A 4.5 4.5 0 0 1 50 0 L 60 0 // coil
+% add_icon: 4==variable : [stroke-width=2.3, rounded=true] M 25 10 L 53 -19 M 53 -19 L 46 -18 L 53 -19 L 51 -12 // arrow
+    \IfSubStr{#5}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{#5}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\ifstrequal{#3}{horizontal}
+			{
+				\edef\inductorrotationangle{0}
+			}
+			{
+				\ifstrequal{#3}{vertical}
+					{
+						\edef\inductorrotationangle{90}
+					}
+					{
+						\StrBefore{#5}{,}[\inductorrotationangle]
+					}
+			}
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\inductorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw spring
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0) 
+					 decorate[decoration={aspect=0.5, segment length=9,amplitude=8,coil}] { --  (6,0)}
+					-- (7,0);
+				% draw arrow (if variable)
+					\ifstrequal{#4}{variable}
+						{
+							\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1)  -- (6,1);
+						}
+						{
+						}
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\node[draw=none, align=center] at (4,2) {#2};
+						}
+						{
+							\ifstrequal{#3}{vertical}
+								{
+									\node[draw=none, anchor=east] at (4,1) {#2};
+								}
+								{
+									\node[draw=none, align=center, rotate=\inductorrotationangle] at (4,2) {#2};
+								}
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (8,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+            \coordinate (pin1) at (0.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (6.00, 0.00); % right terminal  [R]
+    \end{scope}
+}
+
+%% Capacitor - Virtuoso
+\newcommand{\capacitorcds}[7]{%{position}{name}{horizontal/vertical/empty-fixed/variable}{plus/minus/none}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% category: Virtuoso
+% scales: 1, 2, 4
+% label_anchor: B
+% flip: disabled
+% preview_args: 3=fixed, 4=none
+
+% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | fixed/variable | fixed | fixed, variable
+% arg_def: 4 | select | sign | none | plus, minus, none
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+
+% icon_base: M 0 0 L 16 0 M 24 0 L 40 0 M 0 0 L -10 0 M 40 0 L 50 0
+% add_icon: 3~=variable : [stroke-width=1.3, rounded=true] M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34 M 35 -15 L 8 8.5 // arrow
+% add_icon: 4==plus : [stroke-width=0.9] M 12 -12 L 12 -8 M 10 -10 L 14 -10 // plus sign
+% add_icon: 4==minus : [stroke-width=0.9] M 10 -10 L 14 -10 // minus sign
+% add_icon: 1~= : [stroke-width=2.9] M 16 -15 L 16 15 M 24 -15 L 24 15 // plates
+    \IfSubStr{#5}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{#5}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\IfSubStr{#3}{horizontal}
+			{
+				\edef\capacitorrotationangle{0}
+			}
+			{
+				\IfSubStr{#3}{vertical}
+					{
+						\edef\capacitorrotationangle{90}
+					}
+					{
+						\StrBefore{#5}{,}[\capacitorrotationangle]
+					}
+			}
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\capacitorrotationangle , xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw plates
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,0) -- (1.2,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2.8,0) -- (5,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 4pt] (1.2,-2) -- (1.2,2);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 4pt] (2.8,-2) -- (2.8,2);
+				% draw arrow (if variable)
+					\IfSubStr{#3}{variable}
+						{
+							\draw [->, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0.25,-1)  -- (3.75,1);
+						}
+						{
+						}
+				% draw plus sign and name
+					\ifstrequal{#4}{plus}
+						{
+							\IfSubStr{#3}{horizontal}
+								{
+									\node[draw=none, align=center] at (0,2) {\Large\textbf{+}};
+									\node[draw=none, align=center] at (2,-3) {#2};
+								}
+								{
+									\IfSubStr{#3}{vertical}
+										{
+											\node[draw=none, align=center] at (4,2) {\Large\textbf{+}};
+											\node[draw=none, anchor=east] at (0,0) {#2};
+										}
+										{
+											\node[draw=none, align=center] at (0,2) {\Large\textbf{+}};
+											\node[draw=none, align=center, rotate=\capacitorrotationangle] at (2,-3) {#2};
+										}
+								}
+						}
+						{
+							\ifstrequal{#4}{minus}
+								{
+									\IfSubStr{#3}{horizontal}
+										{
+											\node[draw=none, align=center] at (4,2) {\Large\textbf{+}};
+											\node[draw=none, align=center] at (2,-3) {#2};
+										}
+										{
+											\IfSubStr{#3}{vertical}
+												{
+													\node[draw=none, align=center] at (0,-2) {\Large\textbf{+}};
+													\node[draw=none, anchor=east] at (0,0) {#2};
+												}
+												{
+													\node[draw=none, align=center] at (4,2) {\Large\textbf{+}};
+													\node[draw=none, align=center, rotate=\capacitorrotationangle] at (2,-3) {#2};
+												}
+										}
+								}
+								{
+									\IfSubStr{#3}{horizontal}
+										{
+											\node[draw=none, align=center] at (2,-3) {#2};
+										}
+										{
+											\IfSubStr{#3}{vertical}
+												{
+													\node[draw=none, anchor=east] at (0,0) {#2};
+												}
+												{
+													\node[draw=none, align=center, rotate=\capacitorrotationangle] at (2,-3) {#2};
+												}
+										}
+								}
+						}
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (4,2);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+            \coordinate (pin1) at (-1.00, 0.00); % left terminal  [R]
+        \coordinate (pin2) at (5.00, 0.00); % right terminal  [R]
+    \end{scope}
+}
+
+%% MOS Transistor - Virtuoso
+\newcommand{\mostransistorcds}[7]{%{position}{name}{n/p}{terminals, case, dot, arrow}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% category: Virtuoso
+% scales: 1, 2, 4
+% label_anchor: -10 -25 L
+% flip: enabled
+% preview_args: 3=n, 4=case, arrow
+
+% arg_def: 3 | select | n/p | n | n,p
+% arg_def: 4 | flags | terminal names / case | | terminals, case
+% arg_def: 4 | select | dot/arrow notation | arrow | dot, arrow
+% arg_def: 5 | rotflip | Rotation & Flip | 0,none
+
+% icon_base: M -2 -20 L -2 20 M -30 0 L -18 0 M 10 -30 L 10 -15 L -2 -15 M -2 15 L 10 15 L 10 30 // base layer
+% add_icon: 1~= : [stroke-width=3.3] M -10 -15 L -10 15 // gate line
+% add_icon: 3==n : M -18 0 L -10 0 // n gate segment (bridges the base line to the gate)
+% add_icon: 3==n && 4~=arrow : [rounded=true] M 10 15 L 6 12 L 10 15 L 6 18 // n arrow
+% add_icon: 3==p && 4~=arrow : [rounded=true] M -2 15 L 2 12 L -2 15 L 2 18 // p arrow
+% add_icon: 3==p && 4~=arrow : M -18 0 L -10 0 // p gate segment (bridges the gap if no dot)
+% add_icon: 3==p && 4~=dot : M -15 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M -12 0 L -10 0 // p dot AND the bridge to the gate
+% add_icon: 4~=case : M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0 // case
+% add_icon: 4~=terminals : M -31 6 L -31 6 /*TEXT:10,normal,G*/ M 15 -30 L 15 -30 /*TEXT:10,normal,D*/ M 15.50 27 L 15.50 27 /*TEXT:10,normal,S*/ // terminal names
+    \StrBefore{#5}{,}[\rotationvalue]
+	\StrBehind{#5}{,}[\flipvalue]
+	\IfSubStr{\flipvalue}{h}
+			{
+				\edef\xscalevalue{-1}
+			}
+			{
+				\edef\xscalevalue{1}
+			}
+		\IfSubStr{\flipvalue}{v}
+			{
+				\edef\yscalevalue{-1}
+			}
+			{
+				\edef\yscalevalue{1}
+			}
+		\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\rotationvalue, xscale=\xscalevalue , yscale=\yscalevalue]
+				\getzoomfactor
+				% draw case
+					\IfSubStr{#4}{case}
+						{
+							\draw[line width=\linewidthscalefactor * \zoomfactor * 1pt]  (0,0) circle (3);
+							\edef\nameposition{3}
+						}
+						{
+							\edef\nameposition{2.5}
+						}
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-4,0) -- (-1.7,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,4) -- (1,1.5) -- (-0.5,1.5);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-4) -- (1,-1.5) -- (-0.5,-1.5);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 4pt] (-1.7,-1.5) -- (-1.7,1.5);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 3.5pt] (-0.5,-2.2) -- (-0.5,2.2);
+				% draw source arrow / gate dot
+					\ifstrequal{#3}{n}
+						{
+							\IfSubStr{#4}{arrow}
+								{
+									\draw [->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (-0.5,-1.5) -- (1,-1.5);
+								}
+								{
+								}
+							
+						}
+						{
+							\IfSubStr{#4}{arrow}
+								{
+									\draw [->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt]  (1,-1.5) -- (-0.5,-1.5);
+								}
+								{
+									\IfSubStr{#4}{dot}
+										{
+											\filldraw[color=white, line width=\linewidthscalefactor * \zoomfactor * 1.2pt]  ({-2.1cm-\linewidthscalefactor * \zoomfactor * 3.2pt},0) circle (0.4);
+											\draw[line width=\linewidthscalefactor * \zoomfactor * 1.2pt]  ({-2.1cm-\linewidthscalefactor * \zoomfactor * 3.2pt},0) circle (0.4);										
+										}
+										{
+										}
+								}					
+						}
+				% draw terminals
+					\IfSubStr{#4}{terminals}
+						{
+							\node[draw=none, align=center] at (-4,1 * \yscalevalue) {G};
+							\node[draw=none, align=center] at (2,4) {D};
+							\node[draw=none, align=center] at (2,-4) {S};
+						}
+						{
+						}
+				% draw name
+					\node[draw=none, align=center] at (-1*\nameposition ,\nameposition * \yscalevalue) {#2};
+				% draw grid
+					\ifstrequal{#6}{gridon}
+						{
+							\draw[step=1cm,color=gray] (-4,-4) grid (4,4);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#7}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+            \coordinate (pin1) at (-3.00, 0.00); % left terminal (gate) [R]
+        \coordinate (pin2) at (1.00, 3.00); % top terminal (drain) [R]
+        \coordinate (pin3) at (1.00, -3.00); % bottom terminal (source) [R]
+    \end{scope}
+}

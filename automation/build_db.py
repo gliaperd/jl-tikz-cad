@@ -80,12 +80,20 @@ def generate_db(sty_file):
                     pass
             
             elif line.startswith('% preview_args:'):
-                pairs = line.replace('% preview_args:', '').split(',')
+                preview_str = line.replace('% preview_args:', '').strip()
                 preview_args = {}
-                for p in pairs:
+                parts = preview_str.split(',')
+                current_key = None
+                
+                for p in parts:
                     if '=' in p:
-                        k, v = p.split('=')
-                        preview_args[k.strip()] = v.strip()
+                        k, v = p.split('=', 1)
+                        current_key = k.strip()
+                        preview_args[current_key] = v.strip()
+                    elif current_key is not None:
+                        # If there is no '=', append it to the previous argument!
+                        preview_args[current_key] += ',' + p
+                        
                 comp_data['previewArgs'] = preview_args
 
             # --- DYNAMIC PROPERTIES (arg_def) ---

@@ -894,9 +894,15 @@
 
                 let pArgs = {};
                 if (previewStr) {
-                    previewStr.split(',').forEach(pair => {
-                        let kv = pair.split('=');
-                        if(kv.length === 2) pArgs[parseInt(kv[0].trim())] = kv[1].trim();
+                    let currKey = null;
+                    previewStr.split(',').forEach(p => {
+                        if (p.includes('=')) {
+                            let kv = p.split('=');
+                            currKey = parseInt(kv[0].trim());
+                            pArgs[currKey] = kv[1].trim();
+                        } else if (currKey !== null) {
+                            pArgs[currKey] += ',' + p;
+                        }
                     });
                 }
                 
@@ -1045,14 +1051,23 @@
             
             let previewStr = document.getElementById('mPreview') ? document.getElementById('mPreview').value.trim() : "";
             if (previewStr) {
-                previewStr.split(',').forEach(pair => {
-                    let kv = pair.split('=');
-                    if(kv.length === 2) testValues[parseInt(kv[0].trim())] = kv[1].trim();
+                let currKey = null;
+                previewStr.split(',').forEach(p => {
+                    if (p.includes('=')) {
+                        let kv = p.split('=');
+                        currKey = parseInt(kv[0].trim());
+                        testValues[currKey] = kv[1].trim();
+                    } else if (currKey !== null) {
+                        testValues[currKey] += ',' + p;
+                    }
                 });
             }
 
-            argDefs.forEach(def => {
-                if (testValues[def.idx] === undefined) testValues[def.idx] = def.defVal;
+            argsList.forEach(a => {
+                let defs = argDefs.filter(d => d.idx == a.idx);
+                if (defs.length > 0 && testValues[a.idx] === undefined) {
+                    testValues[a.idx] = defs.map(d => d.defVal || "").join(',');
+                }
             });
 
             argsList.forEach(a => {
@@ -1339,7 +1354,7 @@
                                             let subEl = document.getElementById(`test-arg-${a.idx}-sub-${j}`);
                                             if (subEl) subVals.push(subEl.value);
                                         }
-                                        testValues[a.idx] = subVals.filter(v => v !== "").join(', ');
+                                        testValues[a.idx] = subVals.join(',');
                                     } else {
                                         testValues[a.idx] = e.target.value;
                                     }
@@ -2904,12 +2919,12 @@
             let dragDistance = Math.abs(endPt.x - startPt.x) + Math.abs(endPt.y - startPt.y);
 
             // Only save and render if they actually dragged the mouse to draw something
-            if (finalPath && dragDistance > 2) { 
-                let l = layers.find(x => x.id === activeLayerId); 
-                saveHistory(l); 
-                l.pathStr += (l.pathStr.length > 0 ? " " : "") + finalPath; 
-                renderLayerList(); 
-            }
+			if (finalPath && dragDistance > 0) { 
+				let l = layers.find(x => x.id === activeLayerId); 
+				saveHistory(l); 
+				l.pathStr += (l.pathStr.length > 0 ? " " : "") + finalPath; 
+				renderLayerList(); 
+			}
         });
 
         function extractAction(isCopy) {
@@ -4215,7 +4230,7 @@
                 let subEl = document.getElementById(`test-arg-${baseIdx}-sub-${j}`);
                 if (subEl) subVals.push(subEl.value);
             }
-            testValues[baseIdx] = subVals.filter(v => v !== "").join(', ');
+            testValues[baseIdx] = subVals.join(',');
         } else {
             testValues[baseIdx] = val;
         }

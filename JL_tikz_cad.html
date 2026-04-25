@@ -245,7 +245,7 @@
     <div class="v-separator"></div>
 	
     <button onclick="saveProject()" class="tool-btn" style="background:#8e44ad">💾 Save</button>
-    <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Open</button>
+    <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Open File</button>
     <input type="file" id="importFile" style="display:none" onchange="importProject(event)" accept=".json">
 
 	<div class="v-separator"></div>
@@ -964,7 +964,11 @@
             let lExtracted = extractStaticTexts(layer.path);
             layer.path = lExtracted.cleanPath;
             lExtracted.texts.forEach((t, idx) => staticTexts.push({ ...t, id: `lyrTxt_${i}_${idx}` }));
-            dynamicMarkup[0].children[3].children.push({ tagName: 'path', selector: `overlay_${i}` });
+            dynamicMarkup[0].children[3].children.push({ 
+				tagName: 'path', 
+				selector: `overlay_${i}`, 
+				attributes: { fill: 'transparent' } 
+			});
         });
 
         staticTexts.forEach(t => { dynamicMarkup[0].children[3].children.push({ tagName: 'text', selector: t.id }); });
@@ -1006,6 +1010,7 @@
         el.attr('iconStroke/stroke-dasharray', baseDashed);
         el.attr('iconStroke/stroke-linecap', baseLineCap);
         el.attr('iconStroke/stroke-linejoin', baseLineJoin);
+		el.attr('iconStroke/fill', 'none');
         
         // --- THE FIX: Lock Line Thickness During Scaling ---
         el.attr('iconStroke/vector-effect', 'non-scaling-stroke');
@@ -1032,7 +1037,7 @@
             el.attr(`${sel}/stroke-dasharray`, layerDashed);
             el.attr(`${sel}/stroke-linecap`, layerLineCap);
             el.attr(`${sel}/stroke-linejoin`, layerLineJoin);
-            el.attr(`${sel}/fill`, layer.style && layer.style.includes('fill=solid') ? layerStrokeColor : 'none');
+            el.attr(`${sel}/fill`, layer.style && layer.style.includes('fill=solid') ? layerStrokeColor : 'transparent');
             
             // --- THE FIX: Lock Line Thickness for Overlays ---
             el.attr(`${sel}/vector-effect`, 'non-scaling-stroke');
@@ -1126,7 +1131,19 @@
 
         el.set('mathHtmlPins', pinsHtml);
         combineMathHtml(el);
-    }        
+		
+		// --- THE ULTIMATE FIX: Force JointJS to rebuild the SVG nodes to catch new overlays ---
+        if (typeof paper !== 'undefined') {
+            let view = paper.findViewByModel(el);
+            if (view) {
+                view.render();
+                // THE HIGHLIGHT FIX: Restore the selection box if it was selected!
+                if (typeof selectedElements !== 'undefined' && selectedElements.includes(el)) {
+                    view.highlight();
+                }
+            }
+        }
+    }       
 	
 
 	const paper = new joint.dia.Paper({
@@ -2124,14 +2141,14 @@
                 iconFill: {
                     d: iconPath, 
                     stroke: 'none',
-                    fill: data.filled ? theme.componentIcon : 'none', 
+                    fill: data.filled ? theme.componentIcon : 'transparent', 
                     'fill-rule': 'evenodd'
                 },
                 iconStroke: {
                     d: iconPath, 
-                    stroke: baseStrokeColor,        // <--- ΕΝΗΜΕΡΩΜΕΝΟ!
-                    strokeWidth: baseStrokeWidth,   // <--- ΕΝΗΜΕΡΩΜΕΝΟ!
-                    fill: 'none'
+                    stroke: baseStrokeColor,        
+                    strokeWidth: baseStrokeWidth,   
+                    fill: 'transparent'
                 },
                 label: { 
                     text: data.name, fontSize: 12 * PPU_MULT, fill: theme.componentLabel,
@@ -2911,66 +2928,124 @@ ${indentedTikz}
         
         const r = new FileReader(); 
         r.onload = ev => {
-            let parsedData = JSON.parse(ev.target.result);
+            try {
+                let parsedData = JSON.parse(ev.target.result);
 
-            // --- ΑΥΤΟΜΑΤΗ ΕΚΚΑΘΑΡΙΣΗ (PHANTOM DOT FIX) ---
-            if (parsedData && parsedData.cells) {
+                // =========================================================
+                // BRANCH A: VIRTUOSO SCHEMATIC DETECTED
+                // =========================================================
+                if (parsedData.instances && parsedData.wires) {
+                    
+                    // Find all unique component categories in the file
+                    const uniqueCells = new Set();
+                    parsedData.instances.forEach(inst => {
+                        if (VIRTUOSO_MAP[inst.cell]) uniqueCells.add(inst.cell);
+                    });
+
+                    // Build the checkboxes for the Swal Popup
+                    let checkboxesHtml = '<div style="display:flex; flex-direction:column; gap:8px; text-align:left; background:#f4f6f7; padding:15px; border-radius:6px;">';
+                    checkboxesHtml += `<label style="cursor:pointer; font-weight:bold;"><input type="checkbox" id="v-opt-pins" checked disabled> I/O Pins (Always Show Names)</label><hr style="margin:5px 0;">`;
+                    
+                    uniqueCells.forEach(cell => {
+                        if (!['ipin', 'opin', 'iopin'].includes(cell)) {
+                            checkboxesHtml += `<label style="cursor:pointer;"><input type="checkbox" class="v-val-toggle" value="${cell}" checked> Display values for <b>${cell}</b></label>`;
+                        }
+                    });
+                    checkboxesHtml += '</div>';
+
+                    Swal.fire({
+                        title: 'Virtuoso Schematic Detected!',
+                        html: `Select which components should display their parameter values on the canvas:<br><br>${checkboxesHtml}`,
+                        showCancelButton: true,
+                        confirmButtonText: 'Import to Canvas',
+                        confirmButtonColor: '#16a085'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            const allowedCells = new Set(['ipin', 'opin', 'iopin']);
+                            document.querySelectorAll('.v-val-toggle').forEach(cb => {
+                                if (cb.checked) allowedCells.add(cb.value);
+                            });
+                            // Route to the Virtuoso translation engine!
+                            executeVirtuosoConversion(parsedData, allowedCells);
+                        }
+                    });
+                    
+                    return; // Stop here, the Virtuoso engine handles the rest!
+                }
+
+                // =========================================================
+                // BRANCH B: NATIVE JOINTJS CIRCUIT DETECTED
+                // =========================================================
+                if (!parsedData || !Array.isArray(parsedData.cells)) {
+                    throw new Error("Invalid project file format. The JSON must contain either Virtuoso 'instances' or JointJS 'cells'.");
+                }
+
+                // --- ΑΥΤΟΜΑΤΗ ΕΚΚΑΘΑΡΙΣΗ (PHANTOM DOT FIX) ---
                 parsedData.cells = parsedData.cells.filter(cell => {
                     if (cell.type === 'standard.Link') {
                         let src = cell.source;
                         let tgt = cell.target;
                         let verts = cell.vertices || [];
-                        
-                        // Αν το καλώδιο είναι ελεύθερο (όχι δεμένο σε εξάρτημα), δεν έχει γωνίες (vertices), 
-                        // και η αρχή του ταυτίζεται με το τέλος του, είναι phantom dot!
                         if (src && tgt && src.x !== undefined && tgt.x !== undefined) {
                             if (src.x === tgt.x && src.y === tgt.y && verts.length === 0) {
                                 console.log("🧹 Καθαρίστηκε phantom dot καλώδιο:", cell.id);
-                                return false; // Το διαγράφουμε από το JSON
+                                return false; 
                             }
                         }
                     }
-                    return true; // Κρατάμε όλα τα υπόλοιπα εξαρτήματα και υγιή καλώδια
+                    return true; 
+                });
+
+                graph.fromJSON(parsedData); 
+                syncVisibilityFromUI();
+                
+                // Force the text labels to draw on the canvas
+                graph.getElements().forEach(el => {
+                    if (el.get('latexMacro') && el.get('latexMacro') !== 'connectordot') {
+                        updateElementLabel(el, el.get('displayedText'));
+                    }
+                });
+                
+                // Push all wires to the background layer AND normalize their thickness!
+                graph.getLinks().forEach(link => {
+                    link.toBack();
+                    link.attr('line/strokeWidth', 1.8);
+                    link.attr('line/vector-effect', 'non-scaling-stroke');
+                    link.attr('line/targetMarker', null); 
+                    link.attr('line/sourceMarker', null);
+                });
+                
+                setTimeout(() => {
+                    zoomFit(); 
+                    clearSelection();
+                    applyTheme(document.getElementById('theme-selector').value);
+                
+                    const savedLatex = graph.get('customLatex');
+                    if (savedLatex) {
+                        window.rawLatexCode = savedLatex;
+                        const highlighted = savedLatex.split('\n').map(line => {
+                            let match = line.match(/^(.*?)( % id:[a-zA-Z0-9-]+)$/);
+                            if (match) {
+                                return highlightLatex(escapeHTML(match[1])) + `<span class="sync-id" contenteditable="false">${match[2]}</span>`;
+                            }
+                            return highlightLatex(escapeHTML(line));
+                        }).join('\n');
+                        
+                        document.getElementById('latex-output').innerHTML = highlighted;
+                        latexEdited = true;
+                    } else {
+                        forceExportLatex();
+                    }
+                }, 150);
+
+            } catch (err) {
+                console.error("Import Error:", err);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Import Failed',
+                    text: err.message || "Failed to load the circuit file. It might be corrupted."
                 });
             }
-            // ----------------------------------------------
-
-            graph.fromJSON(parsedData); 
-			
-			syncVisibilityFromUI();
-            
-            // Push all wires to the background layer AND normalize their thickness!
-            graph.getLinks().forEach(link => {
-                link.toBack();
-                // ΕΠΙΒΟΛΗ: Όλα τα καλώδια συγχρονίζονται με τα εξαρτήματα
-                link.attr('line/strokeWidth', 1.8);
-                link.attr('line/vector-effect', 'non-scaling-stroke');
-            });
-            
-			// ΠΡΟΣΘΗΚΗ: Δίνουμε χρόνο στον browser να ζωγραφίσει τα εξαρτήματα
-			setTimeout(() => {
-				zoomFit(); 
-				clearSelection();
-				applyTheme(document.getElementById('theme-selector').value);
-            
-				const savedLatex = graph.get('customLatex');
-				if (savedLatex) {
-					window.rawLatexCode = savedLatex;
-					
-					const highlighted = savedLatex.split('\n').map(line => {
-						let match = line.match(/^(.*?)( % id:[a-zA-Z0-9-]+)$/);
-						if (match) {
-							return highlightLatex(escapeHTML(match[1])) + `<span class="sync-id" contenteditable="false">${match[2]}</span>`;
-						}
-						return highlightLatex(escapeHTML(line));
-					}).join('\n');
-					
-					document.getElementById('latex-output').innerHTML = highlighted;
-					latexEdited = true;
-				} else {
-					forceExportLatex();
-				}
-			}, 150);
         }; 
         r.readAsText(f); 
         e.target.value = '';
@@ -3204,7 +3279,7 @@ ${indentedTikz}
                 let valParts = customDefs.length > 1 ? val.split(',').map(s => s.trim()) : [val];
 
                 customDefs.forEach((customDef, subIdx) => {
-                    let activeVal = valParts[subIdx] !== undefined && valParts[subIdx] !== "" ? valParts[subIdx] : customDef.defVal;
+                    let activeVal = valParts[subIdx] !== undefined ? valParts[subIdx] : customDef.defVal;
                     let labelText = customDef.label;
                     
                     // Create unique IDs for sub-components (e.g. swal-input-2-sub-0, swal-input-2-sub-1)
@@ -3349,7 +3424,7 @@ ${indentedTikz}
                                     let el = popup.querySelector(`#swal-input-${i}-sub-${j}`);
                                     if (el) subVals.push(el.value);
                                 }
-                                previewArgs.push(subVals.filter(v => v !== "").join(', '));
+                                previewArgs.push(subVals.join(','));
                             } else {
                                 let el = popup.querySelector(`#swal-input-${i}`);
                                 previewArgs.push(el ? el.value : "");
@@ -3393,7 +3468,10 @@ ${indentedTikz}
                         }
                     }
                     const view = paper.findViewByModel(el);
-                    if (view) view.update();
+                    if (view) {
+                        view.render();
+                        if (selectedElements.includes(el)) view.highlight();
+                    }
                 };
 
                 popup.addEventListener('input', (e) => { if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') applyLivePreview(); });
@@ -3420,7 +3498,7 @@ ${indentedTikz}
                                 let el = popup.querySelector(`#swal-input-${i}-sub-${j}`);
                                 if (el) subVals.push(el.value);
                             }
-                            results.args.push(subVals.filter(v => v !== "").join(', '));
+                            results.args.push(subVals.join(','));
                         } else {
                             let el = popup.querySelector(`#swal-input-${i}`);
                             results.args.push(el ? el.value : "");
@@ -3503,7 +3581,10 @@ ${indentedTikz}
                     }
                 }
                 const view = paper.findViewByModel(el);
-                if (view) view.update();
+                if (view) {
+                    view.render();
+                    if (selectedElements.includes(el)) view.highlight();
+                }
             }
         });
     });
@@ -4047,6 +4128,371 @@ ${indentedTikz}
 			});
 		});
 	}
+	
+	// --- VIRTUOSO TO JLCAD NATIVE IMPORTER ---
+		const VIRTUOSO_SCALE_FACTOR = 640;
+
+		const VIRTUOSO_MAP = {
+			"nch_lvt": { macro: "mostransistorcds", args: ["", "$NAME$", "n", "dot", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:120, y:0} },
+			"pch_lvt": { macro: "mostransistorcds", args: ["", "$NAME$", "p", "dot", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:120, y:0} },
+			"gnd":     { macro: "groundterminal", args: ["", "$NAME$", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} },
+			"vdd":     { macro: "supplyterminal", args: ["", "$NAME$", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} },
+			"res":     { macro: "resistorcds", args: ["", "$NAME$", "none", "fixed", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-120, y:120} },
+			"cap":     { macro: "capacitorcds", args: ["", "$NAME$", "none", "none", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-80, y:120} },
+			"ind":     { macro: "inductorcds", args: ["", "$NAME$", "none", "fixed", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-120, y:120} },
+			"isource": { macro: "currentsource", args: ["", "$NAME$", "none", "standard", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:0, y:120} },
+			"ipin":    { macro: "ioport", args: ["", "$NAME$", "input", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:-40, y:0} },
+			"opin":    { macro: "ioport", args: ["", "$NAME$", "output", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:40, y:0} },
+			"iopin":   { macro: "ioport", args: ["", "$NAME$", "input", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} }
+		};
+
+		function parseVirtuosoOrient(orientStr, intrinsicAngle) {
+			let angle = 0, flipH = false, flipV = false;
+			if (orientStr === "R90") angle = 90;
+			else if (orientStr === "R180") angle = 180;
+			else if (orientStr === "R270") angle = 270;
+			else if (orientStr === "MX") flipV = true;
+			else if (orientStr === "MY") flipH = true;
+			else if (orientStr === "MXR90") { flipV = true; angle = 90; }
+			else if (orientStr === "MYR90") { flipH = true; angle = 90; }
+			
+			angle = (angle + intrinsicAngle) % 360;
+			
+			let flipStr = "none";
+			if (flipH && flipV) flipStr = "hv";
+			else if (flipH) flipStr = "h";
+			else if (flipV) flipStr = "v";
+			
+			return { angle, flipH, flipV, rotFlipArg: `${angle},${flipStr}` };
+		}
+
+		function convertVirtuosoCoords(x, y) {
+			return {
+				x: Math.round(x * VIRTUOSO_SCALE_FACTOR) + 2000,
+				y: Math.round(-y * VIRTUOSO_SCALE_FACTOR) + 2000
+			};
+		}
+		
+		function handleVirtuosoImport(e) {
+			const file = e.target.files[0];
+			if (!file) return;
+
+			const reader = new FileReader();
+			reader.onload = ev => {
+				try {
+					const rawData = JSON.parse(ev.target.result);
+					if (!rawData.instances || !rawData.wires) {
+						return Swal.fire('Error', 'Invalid Virtuoso JSON format.', 'error');
+					}
+
+					// Find all unique component categories in the file
+					const uniqueCells = new Set();
+					rawData.instances.forEach(inst => {
+						if (VIRTUOSO_MAP[inst.cell]) uniqueCells.add(inst.cell);
+					});
+
+					// Build the checkboxes for the Swal Popup
+					let checkboxesHtml = '<div style="display:flex; flex-direction:column; gap:8px; text-align:left; background:#f4f6f7; padding:15px; border-radius:6px;">';
+					
+					// Group PINs automatically, they usually shouldn't have their values hidden
+					checkboxesHtml += `<label style="cursor:pointer; font-weight:bold;"><input type="checkbox" id="v-opt-pins" checked disabled> I/O Pins (Always Show Names)</label><hr style="margin:5px 0;">`;
+					
+					uniqueCells.forEach(cell => {
+						if (!['ipin', 'opin', 'iopin'].includes(cell)) {
+							checkboxesHtml += `<label style="cursor:pointer;"><input type="checkbox" class="v-val-toggle" value="${cell}" checked> Display values for <b>${cell}</b></label>`;
+						}
+					});
+					checkboxesHtml += '</div>';
+
+					Swal.fire({
+						title: 'Import Virtuoso Schematic',
+						html: `Select which components should display their parameter values on the canvas:<br><br>${checkboxesHtml}`,
+						showCancelButton: true,
+						confirmButtonText: 'Import',
+						confirmButtonColor: '#16a085'
+					}).then((result) => {
+						if (result.isConfirmed) {
+							const allowedCells = new Set(['ipin', 'opin', 'iopin']);
+							document.querySelectorAll('.v-val-toggle').forEach(cb => {
+								if (cb.checked) allowedCells.add(cb.value);
+							});
+							executeVirtuosoConversion(rawData, allowedCells);
+						}
+					});
+				} catch (err) {
+					Swal.fire('Error', 'Failed to parse JSON.', 'error');
+				}
+			};
+			reader.readAsText(file);
+			e.target.value = ''; // Reset input
+		}
+
+		function executeVirtuosoConversion(rawData, allowedValueCells) {
+			let jointjs_cells = [];
+			let bulk_pins = new Set();
+			const PPU_MULT = 4;
+			const theme = THEME_COLORS[document.getElementById('theme-selector').value] || THEME_COLORS.standard;
+
+			// 1. PROCESS INSTANCES
+			rawData.instances.forEach(inst => {
+				const cell_type = inst.cell;
+				if (!VIRTUOSO_MAP[cell_type]) return;
+
+				const mapping = VIRTUOSO_MAP[cell_type];
+				const dbData = JL_DATABASE[mapping.macro];
+				if (!dbData) return;
+
+				const basePos = convertVirtuosoCoords(inst.x, inst.y);
+				const orient = parseVirtuosoOrient(inst.orient, mapping.intrinsicAngle);
+				
+				const final_x = basePos.x + mapping.offset.x;
+				const final_y = basePos.y + mapping.offset.y;
+
+				// Display Value Logic
+				let val = (inst.value || "").trim();
+				let display_text = inst.name;
+
+				if (val && allowedValueCells.has(cell_type)) {
+					if (['ipin', 'opin', 'iopin'].includes(cell_type)) display_text = val; 
+					else if (['nch_lvt', 'pch_lvt'].includes(cell_type)) display_text = `${inst.name} (${val})`;
+					else display_text = `${inst.name}=${val}`;
+				}
+
+				const custom_args = mapping.args.map(v => v.replace("{ROT}", orient.rotFlipArg).replace("$NAME$", display_text));
+
+				// --- NATIVE CAD GEOMETRY & PIN ENGINE ---
+				let rawIconPath = dbData.icon || dbData.iconBase || '';
+				let extractedInit = extractStaticTexts(rawIconPath);
+				let iconPath = extractedInit.cleanPath;
+
+				// Measure true Bounding Box
+				let bbox = { x: 0, y: 0, width: 0, height: 0 };
+				if (iconPath) {
+					const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+					const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+					tempPath.setAttribute('d', iconPath);
+					tempSvg.appendChild(tempPath);
+					Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
+					document.body.appendChild(tempSvg);
+					try { bbox = tempPath.getBBox(); } catch(e){}
+					document.body.removeChild(tempSvg);
+				}
+
+				// Separate dynamic labels from physical pins
+				const sourcePins = dbData.pins || [];
+				const uniquePins = [];
+				const seenIds = new Set();
+				sourcePins.forEach(p => {
+					let isDynamicText = p.id && p.id.includes('$'); 
+					if (isDynamicText || !seenIds.has(p.id)) { 
+						if (!isDynamicText) seenIds.add(p.id); 
+						uniquePins.push({ ...p });
+					}
+				});
+
+				// Calculate Box padding and mathematical offsets (shiftX / shiftY)
+				const xs = uniquePins.map(p => p.x), ys = uniquePins.map(p => p.y);
+				const minPinX = xs.length ? Math.min(...xs) : 0; const maxPinX = xs.length ? Math.max(...xs) : 0;
+				const minPinY = ys.length ? Math.min(...ys) : 0; const maxPinY = ys.length ? Math.max(...ys) : 0;
+
+				let hasBounds = bbox.width > 0 || bbox.height > 0;
+				const absMinX = hasBounds ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
+				const absMaxX = hasBounds ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
+				const absMinY = hasBounds ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
+				const absMaxY = hasBounds ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
+					
+				const pad = 10; 
+				const boxOriginX = Math.floor((absMinX - pad) / 40) * 40;
+				const boxOriginY = Math.floor((absMinY - pad) / 40) * 40;
+				const boxMaxX = Math.ceil((absMaxX + pad) / 40) * 40;
+				const boxMaxY = Math.ceil((absMaxY + pad) / 40) * 40;
+
+				const boxWidth = Math.max(boxMaxX - boxOriginX, 40);
+				const boxHeight = Math.max(boxMaxY - boxOriginY, 40);
+
+				const shiftX = -boxOriginX;
+				const shiftY = -boxOriginY;
+
+				const realPins = [];
+				const dynamicLabels = [];
+				uniquePins.forEach(p => {
+					if ((p.label || p.id).includes('$')) dynamicLabels.push(p);
+					else realPins.push(p);
+				});
+
+				// Build the JointJS Ports Object!
+				const portsJson = {
+					groups: { 'absolute': { position: { name: 'absolute' } } },
+					items: realPins.map(p => ({
+						id: p.id, group: 'absolute',
+						args: { x: p.x + shiftX, y: p.y + shiftY },
+						condition: p.condition,
+						markup: [
+							{ tagName: 'rect', selector: 'portBody' },
+							{ tagName: 'title', selector: 'portTitle' }, 
+							{ tagName: 'text', selector: 'portLabel' }   
+						],
+						attrs: { 
+							portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: theme.portBody, display: 'block' },
+							portTitle: { text: p.label || p.id },
+							portLabel: { text: p.label || '', display: 'block', fontSize: 9 * PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'monospace', x: 6 * PPU_MULT, y: -6 * PPU_MULT, textAnchor: 'start' }
+						}
+					}))
+				};
+
+				let basePorts = {};
+				portsJson.items.forEach(p => { basePorts[p.id] = { x: p.args.x - shiftX, y: p.args.y - shiftY }; });
+				// --- END NATIVE GEOMETRY ENGINE ---
+
+				// Inject everything into the component object
+				jointjs_cells.push({
+					type: "jl.Component",
+					id: `cell-${inst.name}`,
+					position: { x: final_x - shiftX, y: final_y - shiftY }, // Offset so the 0,0 anchors properly
+					size: { width: boxWidth, height: boxHeight },
+					ports: portsJson,
+					latexMacro: mapping.macro,
+					customArgs: custom_args,
+					angle: orient.angle,
+					flipH: orient.flipH,
+					flipV: orient.flipV,
+					displayedText: display_text,
+					customScale: mapping.scale,
+					offsetX: boxOriginX,
+					offsetY: boxOriginY,
+					shiftX: shiftX,
+					shiftY: shiftY,
+					baseWidth: boxWidth,
+					baseHeight: boxHeight,
+					baseOffsetX: boxOriginX,
+					baseOffsetY: boxOriginY,
+					baseShiftX: shiftX,
+					baseShiftY: shiftY,
+					basePorts: basePorts,
+					baseVisualTop: absMinY - boxOriginY,
+					baseVisualBottom: absMaxY - boxOriginY,
+					baseVisualLeft: absMinX - boxOriginX,
+					baseVisualRight: absMaxX - boxOriginX,
+					dynamicLabels: dynamicLabels
+				});
+
+				// Bulk Pin Logic
+				if (['nch_lvt', 'pch_lvt'].includes(cell_type)) {
+					let bx = 0.25, by = 0.0;
+					if (inst.orient === "R90") { bx = 0.0; by = 0.25; }
+					else if (inst.orient === "R180") { bx = -0.25; by = 0.0; }
+					else if (inst.orient === "R270") { bx = 0.0; by = -0.25; }
+					else if (inst.orient === "MX") { bx = 0.25; by = 0.0; }
+					else if (inst.orient === "MY") { bx = -0.25; by = 0.0; }
+					
+					let bPos = convertVirtuosoCoords(inst.x + bx, inst.y + by);
+					bulk_pins.add(`${bPos.x},${bPos.y}`);
+				}
+			});
+
+			// 2. PRUNE BULK WIRES
+			let adj = {};
+			let wire_segments = [];
+			
+			rawData.wires.forEach((w, i) => {
+				if (w.length !== 2) return;
+				let p1 = convertVirtuosoCoords(w[0][0], w[0][1]);
+				let p2 = convertVirtuosoCoords(w[1][0], w[1][1]);
+				let p1Str = `${p1.x},${p1.y}`;
+				let p2Str = `${p2.x},${p2.y}`;
+				
+				wire_segments.push({p1, p2, p1Str, p2Str});
+				if (!adj[p1Str]) adj[p1Str] = [];
+				if (!adj[p2Str]) adj[p2Str] = [];
+				adj[p1Str].push(i);
+				adj[p2Str].push(i);
+			});
+
+			let to_remove = new Set();
+			bulk_pins.forEach(bpStr => {
+				if (!adj[bpStr]) return;
+				let queue = [bpStr];
+				let visited = new Set([bpStr]);
+				
+				while (queue.length > 0) {
+					let curr = queue.shift();
+					let active_segs = adj[curr].filter(i => !to_remove.has(i));
+					
+					active_segs.forEach(seg_idx => {
+						to_remove.add(seg_idx);
+						let seg = wire_segments[seg_idx];
+						let other = (seg.p1Str === curr) ? seg.p2Str : seg.p1Str;
+						
+						if (adj[other].length < 3 && !visited.has(other)) {
+							visited.add(other);
+							queue.push(other);
+						}
+					});
+				}
+			});
+
+			// 3. GENERATE WIRES AND DOTS
+			let point_counts = {};
+			let wire_counter = 0;
+
+			wire_segments.forEach((seg, i) => {
+				if (to_remove.has(i)) return;
+				
+				point_counts[seg.p1Str] = (point_counts[seg.p1Str] || 0) + 1;
+				point_counts[seg.p2Str] = (point_counts[seg.p2Str] || 0) + 1;
+
+				jointjs_cells.push({
+					type: "standard.Link",
+					id: `wire-${wire_counter++}`,
+					source: { x: seg.p1.x, y: seg.p1.y },
+					target: { x: seg.p2.x, y: seg.p2.y },
+					attrs: {
+						line: { stroke: "#333333", strokeWidth: 1.8, targetMarker: null, sourceMarker: null, "vector-effect": "non-scaling-stroke" }
+					}
+				});
+			});
+
+			for (let ptStr in point_counts) {
+				if (point_counts[ptStr] >= 3) {
+					let [x, y] = ptStr.split(',').map(Number);
+					jointjs_cells.push({
+						type: "jl.ConnectorDot",
+						id: `dot-${x}-${y}`,
+						position: { x: x - 20, y: y - 20 },
+						latexMacro: "connectordot",
+						offsetX: -20, offsetY: -20
+					});
+				}
+			}
+
+			// 4. LOAD INTO CANVAS
+			graph.fromJSON({ cells: jointjs_cells });
+			syncVisibilityFromUI();
+			
+			// Force UI updates to render SVG text and pins
+			graph.getElements().forEach(el => {
+				if (el.get('latexMacro') && el.get('latexMacro') !== 'connectordot') {
+					assembleIcon(el, el.get('customArgs') || []);
+					updateElementLabel(el, el.get('displayedText'));
+				}
+			});
+
+			// Push wires to back
+			graph.getLinks().forEach(link => {
+				link.toBack();
+				link.attr('line/strokeWidth', 1.8);
+				link.attr('line/vector-effect', 'non-scaling-stroke');
+				link.attr('line/targetMarker', null);
+				link.attr('line/sourceMarker', null);
+			});
+
+			setTimeout(() => { 
+				zoomFit(); 
+				clearSelection();
+				forceExportLatex();
+				saveState(); 
+			}, 150);
+		}
 	
 </script>
 </body>

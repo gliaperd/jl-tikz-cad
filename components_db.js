@@ -1402,7 +1402,7 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "horizontal",
             "4": "none",
-            "5": "0"
+            "5": "0,none"
         },
         "argDefs": [
             {
@@ -1755,7 +1755,7 @@ const JL_DATABASE = {
         "flippable": true,
         "previewArgs": {
             "3": "n",
-            "4": "case-arrow"
+            "4": "case, arrow"
         },
         "argDefs": [
             {
@@ -1844,7 +1844,7 @@ const JL_DATABASE = {
                 "optional": false
             },
             {
-                "name": "terminals-case-dot-arrow",
+                "name": "terminals, case, dot, arrow",
                 "optional": false
             },
             {
@@ -2652,6 +2652,130 @@ const JL_DATABASE = {
                 "id": "$2",
                 "x": 0.0,
                 "y": 17.0,
+                "label": "",
+                "dir": "B",
+                "condition": "3==bottom"
+            },
+            {
+                "id": "pin3",
+                "x": 0.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
+    "ioportdot": {
+        "name": "ioportdot",
+        "displayName": "Input/Output Port (dot only)",
+        "argsCount": 6,
+        "enabled": "true",
+        "category": "Terminals",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "hideLabel": true,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "orientation",
+                "defVal": "input",
+                "options": "input, output, top, bottom"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "3==input",
+                "style": "",
+                "path": "M -3 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
+            },
+            {
+                "condition": "3==output",
+                "style": "",
+                "path": "M 3.50 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
+            },
+            {
+                "condition": "3==top",
+                "style": "",
+                "path": "M 0 -3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
+            },
+            {
+                "condition": "3==bottom",
+                "style": "",
+                "path": "M 0 3.50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
+            }
+        ],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "input/output/top/bottom",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "$2",
+                "x": -7.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "L",
+                "condition": "3==input"
+            },
+            {
+                "id": "$2",
+                "x": 8.5,
+                "y": -0.0,
+                "label": "",
+                "dir": "R",
+                "condition": "3==output"
+            },
+            {
+                "id": "$2",
+                "x": 0.0,
+                "y": -10.0,
+                "label": "",
+                "dir": "T",
+                "condition": "3==top"
+            },
+            {
+                "id": "$2",
+                "x": 0.0,
+                "y": 10.5,
                 "label": "",
                 "dir": "B",
                 "condition": "3==bottom"
@@ -5901,5 +6025,476 @@ const JL_DATABASE = {
             }
         ],
         "pins": []
+    },
+    "resistorcds": {
+        "name": "resistorcds",
+        "displayName": "Resistor - Virtuoso",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Virtuoso",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": 40.0,
+            "y": 7.0,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "4": "fixed"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical, none"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "fixed/variable",
+                "defVal": "fixed",
+                "options": "fixed,variable"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M 10 0 L 15 -10 M 15 -10 L 25 10 M 25 10 L 35 -10 M 35 -10 L 45 10 M 50 0 L 45 9.5",
+        "iconBaseStyle": "stroke-width=2.8, rounded=true",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "4==variable",
+                "style": "stroke-width=2.3, rounded=true",
+                "path": "M 33.33 -21.32 L 27.41 -17.44 L 33.33 -21.32 L 34.47 -14.13 M 13.50 16.50 L 32.50 -19.50"
+            },
+            {
+                "condition": "1~=",
+                "style": "rounded=true",
+                "path": "M 0 0 L 8.50 0 M 60 0 L 50 0 M 0 0 L 10 -0.20 M 60 0 L 50 0.40 M 60 0 L 50 -0.40 M 60 0 L 50 0.40 M 0 0 L 10 0.40"
+            }
+        ],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "horizontal/vertical/empty",
+                "optional": false
+            },
+            {
+                "name": "fixed/variable",
+                "optional": false
+            },
+            {
+                "name": "rotation,flip(h, v, hv, or none)",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 0.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            },
+            {
+                "id": "pin2",
+                "x": 60.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
+    "inductorcds": {
+        "name": "inductorcds",
+        "displayName": "Inductor - Virtuoso",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Virtuoso",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": 40.0,
+            "y": 0.0,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "4": "fixed"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical, none"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "fixed/variable",
+                "defVal": "fixed",
+                "options": "fixed, variable"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M 0 0 L 10 0 A 4.5 4.5 0 0 1 23.5 0 A 4.5 4.5 0 0 1 37 0 A 4.5 4.5 0 0 1 50 0 L 60 0",
+        "iconBaseStyle": "stroke-width=2.7",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "4==variable",
+                "style": "stroke-width=2.3, rounded=true",
+                "path": "M 25 10 L 53 -19 M 53 -19 L 46 -18 L 53 -19 L 51 -12"
+            }
+        ],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "horizontal/vertical/empty",
+                "optional": false
+            },
+            {
+                "name": "fixed/variable",
+                "optional": false
+            },
+            {
+                "name": "rotation,flip(h, v, hv, or none)",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 0.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            },
+            {
+                "id": "pin2",
+                "x": 60.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
+    "capacitorcds": {
+        "name": "capacitorcds",
+        "displayName": "Capacitor - Virtuoso",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Virtuoso",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "fixed",
+            "4": "none"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical (LaTeX only)",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical, none"
+            },
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "fixed/variable",
+                "defVal": "fixed",
+                "options": "fixed, variable"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "sign",
+                "defVal": "none",
+                "options": "plus, minus, none"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M 0 0 L 16 0 M 24 0 L 40 0 M 0 0 L -10 0 M 40 0 L 50 0",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "3~=variable",
+                "style": "stroke-width=1.3, rounded=true",
+                "path": "M 27.770000000000003 -15.34 L 34.84 -15.34 L 34.84 -8.27 L 34.84 -15.34 M 35 -15 L 8 8.5"
+            },
+            {
+                "condition": "4==plus",
+                "style": "stroke-width=0.9",
+                "path": "M 12 -12 L 12 -8 M 10 -10 L 14 -10"
+            },
+            {
+                "condition": "4==minus",
+                "style": "stroke-width=0.9",
+                "path": "M 10 -10 L 14 -10"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.9",
+                "path": "M 16 -15 L 16 15 M 24 -15 L 24 15"
+            }
+        ],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "horizontal/vertical/empty-fixed/variable",
+                "optional": false
+            },
+            {
+                "name": "plus/minus/none",
+                "optional": false
+            },
+            {
+                "name": "rotation,flip(h, v, hv, or none)",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": -10.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            },
+            {
+                "id": "pin2",
+                "x": 50.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
+    "mostransistorcds": {
+        "name": "mostransistorcds",
+        "displayName": "MOS Transistor - Virtuoso",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Virtuoso",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": -10.0,
+            "y": -25.0,
+            "dir": "L"
+        },
+        "flippable": true,
+        "previewArgs": {
+            "3": "n",
+            "4": "case, arrow"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "n/p",
+                "defVal": "n",
+                "options": "n,p"
+            },
+            {
+                "idx": 4,
+                "type": "flags",
+                "label": "terminal names / case",
+                "defVal": "",
+                "options": "terminals, case"
+            },
+            {
+                "idx": 4,
+                "type": "select",
+                "label": "dot/arrow notation",
+                "defVal": "arrow",
+                "options": "dot, arrow"
+            },
+            {
+                "idx": 5,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M -2 -20 L -2 20 M -30 0 L -18 0 M 10 -30 L 10 -15 L -2 -15 M -2 15 L 10 15 L 10 30",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=3.3",
+                "path": "M -10 -15 L -10 15"
+            },
+            {
+                "condition": "3==n",
+                "style": "",
+                "path": "M -18 0 L -10 0"
+            },
+            {
+                "condition": "3==n && 4~=arrow",
+                "style": "rounded=true",
+                "path": "M 10 15 L 6 12 L 10 15 L 6 18"
+            },
+            {
+                "condition": "3==p && 4~=arrow",
+                "style": "rounded=true",
+                "path": "M -2 15 L 2 12 L -2 15 L 2 18"
+            },
+            {
+                "condition": "3==p && 4~=arrow",
+                "style": "",
+                "path": "M -18 0 L -10 0"
+            },
+            {
+                "condition": "3==p && 4~=dot",
+                "style": "",
+                "path": "M -15 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M -12 0 L -10 0"
+            },
+            {
+                "condition": "4~=case",
+                "style": "",
+                "path": "M 0 0 m -25 0 a 25 25 0 1 0 50 0 a 25 25 0 1 0 -50 0"
+            },
+            {
+                "condition": "4~=terminals",
+                "style": "",
+                "path": "M -31 6 L -31 6 /*TEXT:10,normal,G*/ M 15 -30 L 15 -30 /*TEXT:10,normal,D*/ M 15.50 27 L 15.50 27 /*TEXT:10,normal,S*/"
+            }
+        ],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "n/p",
+                "optional": false
+            },
+            {
+                "name": "terminals, case, dot, arrow",
+                "optional": false
+            },
+            {
+                "name": "rotation,flip(h, v, hv, or none)",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": -30.0,
+                "y": -0.0,
+                "label": "gate",
+                "dir": "R"
+            },
+            {
+                "id": "pin2",
+                "x": 10.0,
+                "y": -30.0,
+                "label": "drain",
+                "dir": "R"
+            },
+            {
+                "id": "pin3",
+                "x": 10.0,
+                "y": 30.0,
+                "label": "source",
+                "dir": "R"
+            }
+        ]
     }
 };
