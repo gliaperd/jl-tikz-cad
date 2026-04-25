@@ -8,6 +8,7 @@
     
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background: #f0f2f5; overflow: hidden; }
@@ -246,7 +247,7 @@
 	
     <button onclick="saveProject()" class="tool-btn" style="background:#8e44ad">💾 Save</button>
     <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Open File</button>
-    <input type="file" id="importFile" style="display:none" onchange="importProject(event)" accept=".json">
+    <input type="file" id="importFile" style="display:none" onchange="importProject(event)" accept=".json,.tex,.txt">
 
 	<div class="v-separator"></div>
     
@@ -2922,76 +2923,155 @@ ${indentedTikz}
         saveFileAs(svgString, 'circuit.svg', 'image/svg+xml', 'SVG Vector Graphic');
     }
 	
+	function finalizeCanvasAndMath(successMessage) {
+		// 1. Force the theme to apply immediately (Fixes Virtuoso blue wires/dots!)
+		applyTheme(document.getElementById('theme-selector').value);
+
+		// 2. Re-inject geometry, labels, and handle Anchor Corrections
+		graph.getElements().forEach(el => {
+			if (el.get('latexMacro') && el.get('latexMacro') !== 'connectordot') {
+				
+				let intendedAngle = el.get('intendedAngle');
+				
+				if (intendedAngle !== undefined) {
+					// This is a freshly imported component! 
+					// 1. Calculate where the (0,0) pin is right now (at 0 degrees)
+					let oldPin = getVisualOrigin(el);
+					
+					// 2. Spin the component
+					el.rotate(intendedAngle, true);
+					el.set('flipH', el.get('intendedFlipH'));
+					el.set('flipV', el.get('intendedFlipV'));
+					
+					// 3. Re-scale and re-draw it
+					applyRobustScale(el, el.get('customScale') || 1);
+					
+					// 4. Find where the pin spun to, and shift the box back to perfection!
+					let newPin = getVisualOrigin(el);
+					let p = el.position();
+					// We add { snapping: true } to lock it exactly to the grid and prevent drift!
+					el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
+					
+					// Clean memory so this only runs once
+					el.unset('intendedAngle'); el.unset('intendedFlipH'); el.unset('intendedFlipV');
+					
+				} else {
+					// Existing component, just refresh the UI
+					assembleIcon(el, el.get('customArgs') || []);
+					updateElementLabel(el, el.get('displayedText'));
+				}
+			}
+		});
+
+		// 3. Force JointJS to physically rebuild the DOM nodes
+		graph.getElements().forEach(el => {
+			let view = paper.findViewByModel(el);
+			if (view) view.render();
+		});
+
+		// 4. Push wires to the back and format them
+		graph.getLinks().forEach(link => {
+			link.toBack();
+			link.attr('line/strokeWidth', 1.8);
+			link.attr('line/vector-effect', 'non-scaling-stroke');
+			link.attr('line/targetMarker', null);
+			link.attr('line/sourceMarker', null);
+		});
+
+		// 5. Clean the UI
+		zoomFit(); 
+		clearSelection();
+		forceExportLatex();
+		saveState(); 
+
+		if (successMessage) {
+			Swal.fire({ title: 'Success', text: successMessage, icon: 'success', timer: 2000, showConfirmButton: false });
+		}
+
+		// 6. THE GOLDEN MATH BULLET: Strict KaTeX Configuration
+		const renderMath = () => {
+			if (typeof renderMathInElement !== 'undefined') {
+				renderMathInElement(document.body, {
+					delimiters: [
+						{left: '$$', right: '$$', display: true},
+						{left: '$', right: '$', display: false}, // <--- THIS WAKES UP KaTeX for $V_C$!
+						{left: '\\(', right: '\\)', display: false},
+						{left: '\\[', right: '\\]', display: true}
+					],
+					throwOnError: false // Prevents one bad latex string from breaking the whole canvas
+				});
+			} else if (typeof MathJax !== 'undefined') {
+				// Fallback just in case you ever switch back
+				if (MathJax.typesetClear) MathJax.typesetClear();
+				if (MathJax.typesetPromise) MathJax.typesetPromise();
+				else if (MathJax.Hub) MathJax.Hub.Queue(["Typeset", MathJax.Hub]);
+			}
+		};
+
+		// Fire immediately, then 100ms, then 500ms to guarantee catching the DOM no matter how slow the browser is
+		requestAnimationFrame(() => {
+			renderMath();
+			setTimeout(renderMath, 100);
+			setTimeout(renderMath, 500);
+		});
+	}
+	
     function importProject(e) { 
         const f = e.target.files[0]; 
         if(!f) return; 
         
         const r = new FileReader(); 
         r.onload = ev => {
+            const fileContent = ev.target.result.trim();
+            const isJSON = fileContent.startsWith('{'); // <--- Protects against the blank canvas bug!
+
             try {
-                let parsedData = JSON.parse(ev.target.result);
+                // =========================================================
+                // BRANCH C: RAW LATEX CODE DETECTED
+                // =========================================================
+                if (!isJSON && fileContent.includes('\\begin{tikzpictureJL}')) {
+                    executeLatexConversion(fileContent);
+                    return; 
+                }
 
                 // =========================================================
+                // JSON PARSING
+                // =========================================================
+                let parsedData = JSON.parse(fileContent);
+
                 // BRANCH A: VIRTUOSO SCHEMATIC DETECTED
-                // =========================================================
                 if (parsedData.instances && parsedData.wires) {
-                    
-                    // Find all unique component categories in the file
                     const uniqueCells = new Set();
-                    parsedData.instances.forEach(inst => {
-                        if (VIRTUOSO_MAP[inst.cell]) uniqueCells.add(inst.cell);
-                    });
+                    parsedData.instances.forEach(inst => { if (VIRTUOSO_MAP[inst.cell]) uniqueCells.add(inst.cell); });
 
-                    // Build the checkboxes for the Swal Popup
                     let checkboxesHtml = '<div style="display:flex; flex-direction:column; gap:8px; text-align:left; background:#f4f6f7; padding:15px; border-radius:6px;">';
                     checkboxesHtml += `<label style="cursor:pointer; font-weight:bold;"><input type="checkbox" id="v-opt-pins" checked disabled> I/O Pins (Always Show Names)</label><hr style="margin:5px 0;">`;
-                    
                     uniqueCells.forEach(cell => {
-                        if (!['ipin', 'opin', 'iopin'].includes(cell)) {
-                            checkboxesHtml += `<label style="cursor:pointer;"><input type="checkbox" class="v-val-toggle" value="${cell}" checked> Display values for <b>${cell}</b></label>`;
-                        }
+                        if (!['ipin', 'opin', 'iopin'].includes(cell)) checkboxesHtml += `<label style="cursor:pointer;"><input type="checkbox" class="v-val-toggle" value="${cell}" checked> Display values for <b>${cell}</b></label>`;
                     });
                     checkboxesHtml += '</div>';
 
                     Swal.fire({
                         title: 'Virtuoso Schematic Detected!',
                         html: `Select which components should display their parameter values on the canvas:<br><br>${checkboxesHtml}`,
-                        showCancelButton: true,
-                        confirmButtonText: 'Import to Canvas',
-                        confirmButtonColor: '#16a085'
+                        showCancelButton: true, confirmButtonText: 'Import to Canvas', confirmButtonColor: '#16a085'
                     }).then((result) => {
                         if (result.isConfirmed) {
                             const allowedCells = new Set(['ipin', 'opin', 'iopin']);
-                            document.querySelectorAll('.v-val-toggle').forEach(cb => {
-                                if (cb.checked) allowedCells.add(cb.value);
-                            });
-                            // Route to the Virtuoso translation engine!
+                            document.querySelectorAll('.v-val-toggle').forEach(cb => { if (cb.checked) allowedCells.add(cb.value); });
                             executeVirtuosoConversion(parsedData, allowedCells);
                         }
                     });
-                    
-                    return; // Stop here, the Virtuoso engine handles the rest!
+                    return; 
                 }
 
-                // =========================================================
                 // BRANCH B: NATIVE JOINTJS CIRCUIT DETECTED
-                // =========================================================
-                if (!parsedData || !Array.isArray(parsedData.cells)) {
-                    throw new Error("Invalid project file format. The JSON must contain either Virtuoso 'instances' or JointJS 'cells'.");
-                }
+                if (!parsedData || !Array.isArray(parsedData.cells)) throw new Error("Invalid project file format.");
 
-                // --- ΑΥΤΟΜΑΤΗ ΕΚΚΑΘΑΡΙΣΗ (PHANTOM DOT FIX) ---
+                // Phantom Dot Cleanup
                 parsedData.cells = parsedData.cells.filter(cell => {
-                    if (cell.type === 'standard.Link') {
-                        let src = cell.source;
-                        let tgt = cell.target;
-                        let verts = cell.vertices || [];
-                        if (src && tgt && src.x !== undefined && tgt.x !== undefined) {
-                            if (src.x === tgt.x && src.y === tgt.y && verts.length === 0) {
-                                console.log("🧹 Καθαρίστηκε phantom dot καλώδιο:", cell.id);
-                                return false; 
-                            }
-                        }
+                    if (cell.type === 'standard.Link' && cell.source && cell.target) {
+                        if (cell.source.x === cell.target.x && cell.source.y === cell.target.y && (!cell.vertices || cell.vertices.length === 0)) return false; 
                     }
                     return true; 
                 });
@@ -2999,52 +3079,12 @@ ${indentedTikz}
                 graph.fromJSON(parsedData); 
                 syncVisibilityFromUI();
                 
-                // Force the text labels to draw on the canvas
-                graph.getElements().forEach(el => {
-                    if (el.get('latexMacro') && el.get('latexMacro') !== 'connectordot') {
-                        updateElementLabel(el, el.get('displayedText'));
-                    }
-                });
-                
-                // Push all wires to the background layer AND normalize their thickness!
-                graph.getLinks().forEach(link => {
-                    link.toBack();
-                    link.attr('line/strokeWidth', 1.8);
-                    link.attr('line/vector-effect', 'non-scaling-stroke');
-                    link.attr('line/targetMarker', null); 
-                    link.attr('line/sourceMarker', null);
-                });
-                
-                setTimeout(() => {
-                    zoomFit(); 
-                    clearSelection();
-                    applyTheme(document.getElementById('theme-selector').value);
-                
-                    const savedLatex = graph.get('customLatex');
-                    if (savedLatex) {
-                        window.rawLatexCode = savedLatex;
-                        const highlighted = savedLatex.split('\n').map(line => {
-                            let match = line.match(/^(.*?)( % id:[a-zA-Z0-9-]+)$/);
-                            if (match) {
-                                return highlightLatex(escapeHTML(match[1])) + `<span class="sync-id" contenteditable="false">${match[2]}</span>`;
-                            }
-                            return highlightLatex(escapeHTML(line));
-                        }).join('\n');
-                        
-                        document.getElementById('latex-output').innerHTML = highlighted;
-                        latexEdited = true;
-                    } else {
-                        forceExportLatex();
-                    }
-                }, 150);
+                // Route to the new unified finalizer!
+                setTimeout(() => finalizeCanvasAndMath('Project loaded successfully!'), 50);
 
             } catch (err) {
                 console.error("Import Error:", err);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Import Failed',
-                    text: err.message || "Failed to load the circuit file. It might be corrupted."
-                });
+                Swal.fire({ icon: 'error', title: 'Import Failed', text: err.message || "Failed to load the circuit file." });
             }
         }; 
         r.readAsText(f); 
@@ -3656,10 +3696,13 @@ ${indentedTikz}
                 let newAngle = cell.get('angle') || 0;
                 let newFlipH = cell.get('flipH') || false;
                 let newFlipV = cell.get('flipV') || false;
+                let isVertical = false; 
 
                 // Ενημερώνουμε τις ιδιότητες (Αγνοούμε μόνο τη θέση (position) πλέον)
                 for(let i=0; i<data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
+                    let val = extractedArgs[i];
+                    if (typeof val === 'string' && val.includes('vertical')) isVertical = true; 
                     
                     if (desc.includes('rotation') && desc.includes('flip')) {
                         let rotVal = extractedArgs[i].toLowerCase();
@@ -3706,6 +3749,12 @@ ${indentedTikz}
                     }
                 }
                 
+                // THE FIX: Legacy LaTeX Vertical Override
+                if (isVertical && newAngle === 0) {
+                    newAngle = 270;
+                    applyGeom = true;
+                }
+
                 cell.set('customArgs', customArgs);
 				// Assemble layers after syncing args
                 assembleIcon(cell, customArgs);
@@ -4133,18 +4182,21 @@ ${indentedTikz}
 		const VIRTUOSO_SCALE_FACTOR = 640;
 
 		const VIRTUOSO_MAP = {
-			"nch_lvt": { macro: "mostransistorcds", args: ["", "$NAME$", "n", "dot", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:120, y:0} },
-			"pch_lvt": { macro: "mostransistorcds", args: ["", "$NAME$", "p", "dot", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:120, y:0} },
-			"gnd":     { macro: "groundterminal", args: ["", "$NAME$", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} },
-			"vdd":     { macro: "supplyterminal", args: ["", "$NAME$", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} },
-			"res":     { macro: "resistorcds", args: ["", "$NAME$", "none", "fixed", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-120, y:120} },
-			"cap":     { macro: "capacitorcds", args: ["", "$NAME$", "none", "none", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-80, y:120} },
-			"ind":     { macro: "inductorcds", args: ["", "$NAME$", "none", "fixed", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-120, y:120} },
-			"isource": { macro: "currentsource", args: ["", "$NAME$", "none", "standard", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:0, y:120} },
-			"ipin":    { macro: "ioport", args: ["", "$NAME$", "input", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:-40, y:0} },
-			"opin":    { macro: "ioport", args: ["", "$NAME$", "output", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:40, y:0} },
-			"iopin":   { macro: "ioport", args: ["", "$NAME$", "input", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} }
-		};
+            "nch_lvt": { macro: "mostransistorcds", args: ["", "$NAME$", "n", "dot", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:120, y:0} },
+            "pch_lvt": { macro: "mostransistorcds", args: ["", "$NAME$", "p", "dot", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:120, y:0} },
+            "gnd":     { macro: "groundterminal", args: ["", "$NAME$", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} },
+            "vdd":     { macro: "supplyterminal", args: ["", "$NAME$", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} },
+            
+            // --- UPDATED PASSIVES: Pure horizontal shifts to center the TikZ pins! ---
+            "res":     { macro: "resistorcds", args: ["", "$NAME$", "none", "fixed", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:0, y:0} },
+            "cap":     { macro: "capacitorcds", args: ["", "$NAME$", "none", "none", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:0, y:40} },
+            "ind":     { macro: "inductorcds", args: ["", "$NAME$", "none", "fixed", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:0, y:0} },
+            "isource": { macro: "currentsource", args: ["", "$NAME$", "none", "standard", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:0, y:120} },
+            
+            "ipin":    { macro: "ioport", args: ["", "$NAME$", "input", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:-40, y:0} },
+            "opin":    { macro: "ioport", args: ["", "$NAME$", "output", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:40, y:0} },
+            "iopin":   { macro: "ioport", args: ["", "$NAME$", "input", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} }
+        };
 
 		function parseVirtuosoOrient(orientStr, intrinsicAngle) {
 			let angle = 0, flipH = false, flipV = false;
@@ -4345,18 +4397,21 @@ ${indentedTikz}
 				// --- END NATIVE GEOMETRY ENGINE ---
 
 				// Inject everything into the component object
-				jointjs_cells.push({
-					type: "jl.Component",
-					id: `cell-${inst.name}`,
-					position: { x: final_x - shiftX, y: final_y - shiftY }, // Offset so the 0,0 anchors properly
-					size: { width: boxWidth, height: boxHeight },
-					ports: portsJson,
-					latexMacro: mapping.macro,
-					customArgs: custom_args,
-					angle: orient.angle,
-					flipH: orient.flipH,
-					flipV: orient.flipV,
-					displayedText: display_text,
+                jointjs_cells.push({
+                    type: "jl.Component",
+                    id: `cell-${inst.name}`,
+                    position: { x: final_x - shiftX, y: final_y - shiftY }, // Offset so the 0,0 anchors properly
+                    size: { width: boxWidth, height: boxHeight },
+                    ports: portsJson,
+                    latexMacro: mapping.macro,
+                    customArgs: custom_args,
+                    angle: 0,                    // <--- FORCE 0 FOR PERFECT ANCHOR
+                    flipH: false,
+                    flipV: false,
+                    intendedAngle: orient.angle, // <--- SAVE INTENDED GEOMETRY
+                    intendedFlipH: orient.flipH,
+                    intendedFlipV: orient.flipV,
+                    displayedText: display_text,
 					customScale: mapping.scale,
 					offsetX: boxOriginX,
 					offsetY: boxOriginY,
@@ -4469,30 +4524,241 @@ ${indentedTikz}
 			graph.fromJSON({ cells: jointjs_cells });
 			syncVisibilityFromUI();
 			
-			// Force UI updates to render SVG text and pins
-			graph.getElements().forEach(el => {
-				if (el.get('latexMacro') && el.get('latexMacro') !== 'connectordot') {
-					assembleIcon(el, el.get('customArgs') || []);
-					updateElementLabel(el, el.get('displayedText'));
+			setTimeout(() => {
+				finalizeCanvasAndMath('Virtuoso schematic imported successfully!');
+			}, 50);
+	}
+		
+	function executeLatexConversion(latexStr) {
+		let jointjs_cells = [];
+		const GRID_SIZE = 40;
+		const ORIGIN_X = 2000;
+		const ORIGIN_Y = 2000;
+		const PPU_MULT = 4;
+		const theme = THEME_COLORS[document.getElementById('theme-selector').value] || THEME_COLORS.standard;
+
+		// 1. Clean the code: Remove comments and empty lines
+		const lines = latexStr.split('\n')
+			.map(l => l.trim())
+			.filter(l => l.length > 0 && !l.startsWith('%') && !l.startsWith('\\begin') && !l.startsWith('\\end') && !l.startsWith('\\settikz'));
+
+		let wire_counter = 0;
+		let comp_counter = 0;
+
+		lines.forEach(line => {
+			// --- PARSE WIRES (\draw) ---
+			if (line.startsWith('\\draw')) {
+				// Extract all (x,y) tuples from the draw line
+				const pointsRegex = /\(([-0-9.]+),\s*([-0-9.]+)\)/g;
+				let match;
+				const points = [];
+				
+				while ((match = pointsRegex.exec(line)) !== null) {
+					points.push({
+						x: ORIGIN_X + (parseFloat(match[1]) * GRID_SIZE),
+						y: ORIGIN_Y - (parseFloat(match[2]) * GRID_SIZE)
+					});
 				}
-			});
 
-			// Push wires to back
-			graph.getLinks().forEach(link => {
-				link.toBack();
-				link.attr('line/strokeWidth', 1.8);
-				link.attr('line/vector-effect', 'non-scaling-stroke');
-				link.attr('line/targetMarker', null);
-				link.attr('line/sourceMarker', null);
-			});
+				// Create standard.Link segments between each sequential pair of points
+				for (let i = 0; i < points.length - 1; i++) {
+					jointjs_cells.push({
+						type: "standard.Link",
+						id: `wire-lx-${wire_counter++}`,
+						source: { x: points[i].x, y: points[i].y },
+						target: { x: points[i+1].x, y: points[i+1].y },
+						attrs: {
+							line: { stroke: "#333333", strokeWidth: 1.8, targetMarker: null, sourceMarker: null, "vector-effect": "non-scaling-stroke" }
+						}
+					});
+				}
+			} 
+			
+			// --- PARSE COMPONENTS (\macro) ---
+			else if (line.startsWith('\\')) {
+				// Regex to extract: \macroName{(x,y)}{arg1}{arg2}...
+				const macroRegex = /^\\([a-zA-Z0-9_]+)\{\(([-0-9.]+),\s*([-0-9.]+)\)\}(.*)/;
+				const match = line.match(macroRegex);
+				
+				if (match) {
+					const macroName = match[1];
+					const baseX = ORIGIN_X + (parseFloat(match[2]) * GRID_SIZE);
+					const baseY = ORIGIN_Y - (parseFloat(match[3]) * GRID_SIZE);
+					const restOfLine = match[4];
 
-			setTimeout(() => { 
-				zoomFit(); 
-				clearSelection();
-				forceExportLatex();
-				saveState(); 
-			}, 150);
-		}
+					// THE FIX: Use our smart parser that perfectly handles nested {} braces!
+					let extractedArgs = parseLatexArgs(restOfLine);
+					const parsedArgs = ["", ...extractedArgs];
+
+					// --- NEW SMART GEOMETRY PARSER ---
+					const dbData = JL_DATABASE[macroName];
+					
+					if (macroName === 'connectordot') {
+						jointjs_cells.push({
+							type: "jl.ConnectorDot",
+							id: `dot-lx-${comp_counter++}`,
+							position: { x: baseX - 20, y: baseY - 20 },
+							latexMacro: "connectordot",
+							offsetX: -20, offsetY: -20
+						});
+						return; 
+					}
+
+					if (!dbData) {
+						console.warn(`Unrecognized LaTeX macro: ${macroName}`);
+						return;
+					}
+
+					let angle = 0, flipH = false, flipV = false;
+					let isVertical = false;
+
+					for (let i = 0; i < (dbData.argsCount || 7); i++) {
+						let desc = (dbData.argNames && dbData.argNames[i] ? dbData.argNames[i].name.toLowerCase() : '');
+						let val = parsedArgs[i+1] || "";
+
+						if (typeof val === 'string' && val.includes('vertical')) isVertical = true;
+
+						if (desc.includes('rotation') && desc.includes('flip')) {
+							let parts = val.split(',');
+							let tikzRot = parseFloat(parts[0]) || 0;
+							angle = (360 - tikzRot) % 360;
+							if (parts.length > 1) {
+								let fStr = parts[1].trim();
+								if (fStr === 'hv' || fStr === 'vh') { flipH = true; flipV = true; }
+								else if (fStr === 'h') flipH = true;
+								else if (fStr === 'v') flipV = true;
+							}
+						} 
+						else if (desc.includes('rotation') || desc.includes('angle')) {
+							let tikzRot = parseFloat(val) || 0;
+							angle = (360 - tikzRot) % 360;
+						}
+						else if (desc.includes('flip')) {
+							let fStr = val.trim();
+							if (fStr === 'hv' || fStr === 'vh') { flipH = true; flipV = true; }
+							else if (fStr === 'h') flipH = true;
+							else if (fStr === 'v') flipV = true;
+						}
+					}
+
+					// THE FIX: Legacy LaTeX Vertical Override
+					if (isVertical && angle === 0) {
+						angle = 270; 
+					}
+					// --- END SMART GEOMETRY PARSER ---
+
+					// Display Text (Keep the $ signs so the engine triggers KaTeX!)
+                    let display_text = parsedArgs[1] || "";
+
+					// --- NATIVE CAD GEOMETRY & PIN ENGINE (Same math as Virtuoso) ---
+					let rawIconPath = dbData.icon || dbData.iconBase || '';
+					let extractedInit = extractStaticTexts(rawIconPath);
+					let iconPath = extractedInit.cleanPath;
+
+					let bbox = { x: 0, y: 0, width: 0, height: 0 };
+					if (iconPath) {
+						const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+						const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+						tempPath.setAttribute('d', iconPath);
+						tempSvg.appendChild(tempPath);
+						Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
+						document.body.appendChild(tempSvg);
+						try { bbox = tempPath.getBBox(); } catch(e){}
+						document.body.removeChild(tempSvg);
+					}
+
+					const sourcePins = dbData.pins || [];
+					const uniquePins = [];
+					const seenIds = new Set();
+					sourcePins.forEach(p => {
+						let isDynamicText = p.id && p.id.includes('$'); 
+						if (isDynamicText || !seenIds.has(p.id)) { 
+							if (!isDynamicText) seenIds.add(p.id); 
+							uniquePins.push({ ...p });
+						}
+					});
+
+					const xs = uniquePins.map(p => p.x), ys = uniquePins.map(p => p.y);
+					const minPinX = xs.length ? Math.min(...xs) : 0; const maxPinX = xs.length ? Math.max(...xs) : 0;
+					const minPinY = ys.length ? Math.min(...ys) : 0; const maxPinY = ys.length ? Math.max(...ys) : 0;
+
+					let hasBounds = bbox.width > 0 || bbox.height > 0;
+					const absMinX = hasBounds ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
+					const absMaxX = hasBounds ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
+					const absMinY = hasBounds ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
+					const absMaxY = hasBounds ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
+						
+					const pad = 10; 
+					const boxOriginX = Math.floor((absMinX - pad) / 40) * 40;
+					const boxOriginY = Math.floor((absMinY - pad) / 40) * 40;
+					const boxMaxX = Math.ceil((absMaxX + pad) / 40) * 40;
+					const boxMaxY = Math.ceil((absMaxY + pad) / 40) * 40;
+
+					const boxWidth = Math.max(boxMaxX - boxOriginX, 40);
+					const boxHeight = Math.max(boxMaxY - boxOriginY, 40);
+					const shiftX = -boxOriginX;
+					const shiftY = -boxOriginY;
+
+					const realPins = [];
+					const dynamicLabels = [];
+					uniquePins.forEach(p => {
+						if ((p.label || p.id).includes('$')) dynamicLabels.push(p);
+						else realPins.push(p);
+					});
+
+					const portsJson = {
+						groups: { 'absolute': { position: { name: 'absolute' } } },
+						items: realPins.map(p => ({
+							id: p.id, group: 'absolute',
+							args: { x: p.x + shiftX, y: p.y + shiftY },
+							condition: p.condition,
+							markup: [ { tagName: 'rect', selector: 'portBody' }, { tagName: 'title', selector: 'portTitle' }, { tagName: 'text', selector: 'portLabel' } ],
+							attrs: { 
+								portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: theme.portBody, display: 'block' },
+								portTitle: { text: p.label || p.id },
+								portLabel: { text: p.label || '', display: 'block', fontSize: 9 * PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'monospace', x: 6 * PPU_MULT, y: -6 * PPU_MULT, textAnchor: 'start' }
+							}
+						}))
+					};
+
+					let basePorts = {};
+					portsJson.items.forEach(p => { basePorts[p.id] = { x: p.args.x - shiftX, y: p.args.y - shiftY }; });
+
+					// Construct Component
+                    jointjs_cells.push({
+                        type: "jl.Component",
+                        id: `cell-lx-${comp_counter++}`,
+                        position: { x: baseX - shiftX, y: baseY - shiftY },
+                        size: { width: boxWidth, height: boxHeight },
+                        ports: portsJson,
+                        latexMacro: macroName,
+                        customArgs: parsedArgs,
+                        angle: 0,             // <--- FORCE 0 FOR PERFECT ANCHOR
+                        flipH: false,
+                        flipV: false,
+                        intendedAngle: angle, // <--- SAVE INTENDED GEOMETRY
+                        intendedFlipH: flipH,
+                        intendedFlipV: flipV,
+                        displayedText: display_text,
+						customScale: 1.0,
+						offsetX: boxOriginX, offsetY: boxOriginY, shiftX: shiftX, shiftY: shiftY,
+						baseWidth: boxWidth, baseHeight: boxHeight, baseOffsetX: boxOriginX, baseOffsetY: boxOriginY, baseShiftX: shiftX, baseShiftY: shiftY,
+						basePorts: basePorts, baseVisualTop: absMinY - boxOriginY, baseVisualBottom: absMaxY - boxOriginY, baseVisualLeft: absMinX - boxOriginX, baseVisualRight: absMaxX - boxOriginX,
+						dynamicLabels: dynamicLabels
+					});
+				}
+			}
+		});
+
+		// --- 3. LOAD INTO CANVAS ---
+		graph.fromJSON({ cells: jointjs_cells });
+		syncVisibilityFromUI();
+
+		setTimeout(() => {
+			finalizeCanvasAndMath('LaTeX code imported successfully!');
+		}, 50);
+		
+	}
 	
 </script>
 </body>

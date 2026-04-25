@@ -1433,7 +1433,7 @@ const JL_DATABASE = {
                 "defVal": "0,none"
             }
         ],
-        "iconBase": "M 0 0 L 16 0 M 16 -15 L 16 15 M 24 0 L 40 0",
+        "iconBase": "M 0 0 L 16 0 M 24 -15 L 24 15 M 24 0 L 40 0",
         "filled": false,
         "iconLayers": [
             {
@@ -1444,12 +1444,12 @@ const JL_DATABASE = {
             {
                 "condition": "4==plus",
                 "style": "stroke-width=1.1, rounded=true",
-                "path": "M 12 -12 L 12 -8 M 10 -10 L 14 -10"
+                "path": "M 28 -12 L 28 -8 M 26 -10 L 30 -10"
             },
             {
                 "condition": "1~=",
                 "style": "stroke-width=2.8",
-                "path": "M 24 -7 L 24 7"
+                "path": "M 16 -7 L 16 7"
             }
         ],
         "argNames": [
@@ -1544,23 +1544,23 @@ const JL_DATABASE = {
                 "defVal": "0,none"
             }
         ],
-        "iconBase": "M -30 0 L -10 0 M -10 -15 L -10 15 M 0 -7 L 0 7 M 0 0 L 10 0 M 10 -15 L 10 15 M 20 -7 L 20 7 M 20 0 L 40 0",
+        "iconBase": "M -30 0 L -10 0 M 0 -15 L 0 15 M -10 -7 L -10 7 M 0 0 L 10 0 M 20 -15 L 20 15 M 10 -7 L 10 7 M 20 0 L 40 0",
         "filled": false,
         "iconLayers": [
             {
                 "condition": "3~=variable",
                 "style": "stroke-width=1.6, rounded=true",
-                "path": "M 20 -17 L 14 -16 L 20 -17 L 18 -11 M 19.5 -16.5 L -17 14"
+                "path": "M -10 -17 L -4 -16 L -10 -17 L -8 -11 M -9.5 -16.5 L 27 14"
             },
             {
                 "condition": "4==plus",
                 "style": "stroke-width=0.8",
-                "path": "M -14 -12 L -14 -8 M -16 -10 L -12 -10"
+                "path": "M 26 -12 L 26 -8 M 24 -10 L 28 -10"
             },
             {
                 "condition": "1~=",
                 "style": "stroke-width=3.2, rounded=true",
-                "path": "M 0 -7 L 0 7 M 20 -7 L 20 7"
+                "path": "M -10 -7 L -10 7 M 10 -7 L 10 7"
             }
         ],
         "argNames": [
