@@ -207,6 +207,9 @@ def generate_db(sty_file):
             elif line.startswith('% hide_label:'):
                 val = line.replace('% hide_label:', '').strip().lower()
                 comp_data['hideLabel'] = (val == 'true')
+                
+            elif line.startswith('% spice_template:'):
+                comp_data['spiceTemplate'] = line.replace('% spice_template:', '').strip()
 
         if in_shape_generator:
             comp_data['shapeGenerator'] = '\n'.join(shape_gen_lines)

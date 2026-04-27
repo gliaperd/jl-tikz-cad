@@ -256,6 +256,10 @@
                         </label>
                     </div>
                     <div style="grid-column: span 2;"><label>Palette Defaults (Preview Args)</label><input type="text" id="mPreview" value="" placeholder="e.g. 3=p, 4=dot" oninput="generateCode(); if(testModeActive && document.getElementById('chkPalettePreview')?.checked) updateTestPreview();" title="Defines which overlays appear in the Circuit Editor Palette"></div>
+					<div style="grid-column: span 2; margin-top: 5px;">
+						<label style="color: #8e44ad;">SPICE Template</label>
+						<input type="text" id="mSpice" value="" placeholder="e.g. R_{NAME} {pin1} {pin2} {VALUE} (Leave blank if not simulatable)" oninput="generateCode()" style="border-color: #9b59b6;">
+					</div>
                 </div>
                 <div style="display: flex; gap: 15px; margin-top: 4px; margin-bottom: 8px;">
                     <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mEnabled" checked onchange="generateCode()"> Enabled in Palette</label>
@@ -2227,6 +2231,9 @@
             // --- NEW: Import hide_label ---
             let mHideLabel = code.match(/% hide_label:\s*([^\n]+)/); 
             document.getElementById('mHideLabel').checked = (mHideLabel && mHideLabel[1].trim().toLowerCase() === 'true');
+			let mSpice = code.match(/% spice_template:\s*([^\n]+)/);
+			if (mSpice) document.getElementById('mSpice').value = mSpice[1].trim();
+			else document.getElementById('mSpice').value = "";
 			
 			// --- NEW: Import Shape Generator JS (Bulletproof) ---
             let shapeGenElement = document.getElementById('cShapeGen');
@@ -3865,6 +3872,10 @@
             if (document.getElementById('mHideLabel').checked) {
                 lines.push(`% hide_label: true`);
             }
+			let spiceVal = document.getElementById('mSpice').value.trim();
+			if (spiceVal) {
+				lines.push(`% spice_template: ${spiceVal}`);
+			}
             let prevArgsEl = document.getElementById('mPreview');
             if (prevArgsEl && prevArgsEl.value.trim()) {
                 lines.push(`% preview_args: ${prevArgsEl.value.trim()}`);

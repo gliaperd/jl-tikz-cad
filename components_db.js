@@ -1076,6 +1076,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "R_{NAME} {pin1} {pin2} {VALUE}",
         "previewArgs": {
             "4": "fixed"
         },
@@ -1399,6 +1400,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "V_{NAME} {pin2} {pin1} {VOLTAGE}",
         "previewArgs": {
             "3": "horizontal",
             "4": "none",
@@ -1753,6 +1755,7 @@ const JL_DATABASE = {
             "dir": "L"
         },
         "flippable": true,
+        "spiceTemplate": "M_{NAME} {D} {G} {S} 0 {MODEL} W={W} L={L}",
         "previewArgs": {
             "3": "n",
             "4": "case, arrow"
@@ -1862,21 +1865,21 @@ const JL_DATABASE = {
         ],
         "pins": [
             {
-                "id": "pin1",
+                "id": "G",
                 "x": -40.0,
                 "y": -0.0,
                 "label": "gate",
                 "dir": "R"
             },
             {
-                "id": "pin2",
+                "id": "D",
                 "x": 10.0,
                 "y": -40.0,
                 "label": "drain",
                 "dir": "R"
             },
             {
-                "id": "pin3",
+                "id": "S",
                 "x": 10.0,
                 "y": 40.0,
                 "label": "source",

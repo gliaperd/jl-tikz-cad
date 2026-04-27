@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"></script>
+	<script src="simulation/ngspice_v4.js"></script>
 
     <style>
         body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background: #f0f2f5; overflow: hidden; }
@@ -213,6 +214,23 @@
 		
 		#palette-search:focus { border-color: #3498db !important; }
 		
+		/* --- TOOLBAR DROPDOWN --- */
+        .toolbar-dropdown { position: relative; display: inline-block; margin-left: 5px; }
+        .toolbar-dropdown-content { 
+            display: none; position: absolute; background-color: #ffffff; 
+            min-width: 170px; box-shadow: 0px 8px 16px rgba(0,0,0,0.3); 
+            z-index: 5000; border-radius: 6px; margin-top: 2px; border: 1px solid #bdc3c7; overflow: hidden;
+        }
+        .toolbar-dropdown-content label { 
+            color: #2c3e50; padding: 10px 12px; display: flex; align-items: center; 
+            gap: 8px; cursor: pointer; font-size: 12px; font-weight: 500; 
+            border-bottom: 1px solid #ecf0f1; margin: 0; transition: background 0.2s; user-select: none;
+        }
+        .toolbar-dropdown-content label:last-child { border-bottom: none; }
+        .toolbar-dropdown-content label:hover { background-color: #ebf5fb; }
+        .toolbar-dropdown:hover .toolbar-dropdown-content { display: block; }
+        .toolbar-dropdown:hover .tool-btn { background: #4a6278; }
+		
     </style>
 </head>
 <body>
@@ -228,12 +246,15 @@
     <button id="btn-rotate" onclick="rotateSelected()" class="tool-btn">↻ Rotate</button>
     <button id="btn-flip-h" onclick="flipHorizontal()" class="tool-btn">↔ Flip H</button>
     <button id="btn-flip-v" onclick="flipVertical()" class="tool-btn">↕ Flip V</button>
-	<label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
-		<input type="checkbox" id="toggle-pins" checked> Show Pins
-	</label>
-	<label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none;">
-		<input type="checkbox" id="toggle-pin-names" checked> Show Pin Names
-	</label>
+	<div class="toolbar-dropdown">
+        <button class="tool-btn">👁️ View ▼</button>
+        <div class="toolbar-dropdown-content">
+            <label><input type="checkbox" id="toggle-pins" checked> 📌 Show Pins</label>
+            <label><input type="checkbox" id="toggle-pin-names" checked> 🏷️ Show Pin Names</label>
+            <label style="color: #27ae60;"><input type="checkbox" id="chkShowNets" onchange="toggleNetLabels()"> ⚡ Show Net Names</label>
+            <label style="color: #e74c3c;"><input type="checkbox" id="toggle-ghost-dots" checked onchange="updateGhostDotsVisibility()"> 👻 Show Ghost Dots</label>
+        </div>
+    </div>
     
     <div class="v-separator"></div>
     <button onclick="zoomFit()" class="tool-btn" style="background:#2980b9; font-weight:bold;">🎯 Fit</button>
@@ -245,10 +266,15 @@
     <button onclick="clearCanvas()" class="tool-btn" style="color:#e74c3c;">🗑️ Clear Canvas</button> 
     <div class="v-separator"></div>
 	
+	<button onclick="runDCAnalysis()" class="tool-btn" style="background:#8e44ad; font-weight:bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">⚡ Run DC</button>
+    <button onclick="clearSimAnnotations()" class="tool-btn" style="color:#bdc3c7;">🧹 Clear</button>
+    <button onclick="openSimulationSettings()" class="tool-btn" style="background:#e67e22;">⚙️ Sim Settings</button>
+    <div class="v-separator"></div>
+	
     <button onclick="saveProject()" class="tool-btn" style="background:#8e44ad">💾 Save</button>
     <button onclick="document.getElementById('importFile').click()" class="tool-btn" style="background:#d35400">📂 Open File</button>
     <input type="file" id="importFile" style="display:none" onchange="importProject(event)" accept=".json,.tex,.txt">
-
+	
 	<div class="v-separator"></div>
     
     <label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none; margin-left: 8px;">
@@ -260,7 +286,7 @@
     </label>
     
 	<div style="margin-left:auto; display:flex; gap:8px;">
-        <button onclick="openExportDialog()" style="background: #e84393; font-weight: bold; color:white; padding: 6px 16px;" class="tool-btn">📤 Export Diagram</button>
+        <button onclick="openExportDialog()" style="background: #e84393; font-weight: bold; color:white; padding: 6px 16px;" class="tool-btn">📤 Export</button>
     </div>
 </div>
 
@@ -2288,6 +2314,53 @@
         wire.addTo(graph);
     });
     
+    // Helper: Υπολογισμός Τοπολογικού Βαθμού ενός κόμβου
+    function getTopologicalDegree(pt) {
+        let degree = 0;
+        let tol = 2; // Ανοχή 2px
+        let hasDot = false;
+
+        // 1. Μετράμε τα Pins εξαρτημάτων και ελέγχουμε αν υπάρχει ήδη Dot
+        graph.getElements().forEach(el => {
+            let macro = el.get('latexMacro');
+            if (macro === 'connectordot') {
+                let p = el.position();
+                if (Math.abs((p.x + 20) - pt.x) < tol && Math.abs((p.y + 20) - pt.y) < tol) {
+                    hasDot = true; // Υπάρχει ήδη τελεία εδώ!
+                }
+            } else if (macro !== 'freetext') {
+                el.getPorts().forEach(port => {
+                    let pinPt = getAbsolutePinCoord(el, port.id);
+                    if (Math.abs(pinPt.x - pt.x) < tol && Math.abs(pinPt.y - pt.y) < tol) {
+                        degree += 1; // Βρέθηκε Pin!
+                    }
+                });
+            }
+        });
+
+        // 2. Μετράμε τις συνδέσεις από τα καλώδια
+        graph.getLinks().forEach(l => {
+            let pts = [l.getSourcePoint(), ...(l.vertices() || []), l.getTargetPoint()];
+            for (let i = 0; i < pts.length - 1; i++) {
+                let p1 = pts[i];
+                let p2 = pts[i+1];
+                
+                let onP1 = Math.abs(p1.x - pt.x) < tol && Math.abs(p1.y - pt.y) < tol;
+                let onP2 = Math.abs(p2.x - pt.x) < tol && Math.abs(p2.y - pt.y) < tol;
+                
+                if (onP1 && onP2) {
+                    // Αγνοούμε καλώδια μηδενικού μήκους
+                } else if (onP1 || onP2) {
+                    degree += 1; // Το σημείο είναι άκρη ή γωνία του καλωδίου
+                } else if (isPointOnLine(pt, p1, p2)) {
+                    degree += 2; // Το σημείο περνάει ΜΕΣΑ από το καλώδιο (Σταυρός ή Ταυ)
+                }
+            }
+        });
+
+        return { degree, hasDot };
+    }
+
     $(document).on('mousemove', function(e) {
         if (!drawing) return;
         let p = paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
@@ -2296,10 +2369,8 @@
         let s = wire.source();
         
         if (e.altKey) {
-            // Free angle (diagonal routing) when Alt is held
             wire.target({ x: tx, y: ty }, { snapping: true });
         } else {
-            // Standard CAD Orthogonal routing
             if (Math.abs(tx - s.x) > Math.abs(ty - s.y)) wire.target({ x: tx, y: s.y }, { snapping: true });
             else wire.target({ x: s.x, y: ty }, { snapping: true });
         }
@@ -2307,14 +2378,35 @@
         if (drawing) { 
             drawing = false; 
             if (wire) {
-                // ΑΝ ΤΟ ΚΑΛΩΔΙΟ ΕΧΕΙ ΜΗΚΟΣ ΜΗΔΕΝ, ΚΑΤΑΣΤΡΕΨΕ ΤΟ!
-                if (wire.source().x === wire.target().x && wire.source().y === wire.target().y) {
+                let s = wire.source();
+                let t = wire.target();
+                
+                if (s.x === t.x && s.y === t.y) {
                     wire.remove();
                 } else {
                     wire.toBack(); 
+                    
+                    // --- ΕΞΥΠΝΑ AUTO-CONNECTOR DOTS ---
+                    let endpoints = [s, t];
+                    
+                    endpoints.forEach(pt => {
+                        let topoInfo = getTopologicalDegree(pt);
+                        
+                        // Αν ενώνονται >2 διαδρομές και ΔΕΝ υπάρχει ήδη τελεία, ΒΑΛΕ ΤΕΛΕΙΑ!
+                        if (topoInfo.degree > 2 && !topoInfo.hasDot) {
+                            let dot = new joint.shapes.jl.ConnectorDot();
+                            dot.addPort({ id: 'p1', group: 'absolute', args: {x: 20, y: 20}, markup: '<g/>' });
+                            dot.set({'latexMacro': 'connectordot', 'offsetX': -20, 'offsetY': -20});
+                            dot.position(pt.x - 20, pt.y - 20);
+                            dot.attr('dot/fill', THEME_COLORS[currentThemeName].dot);
+                            dot.addTo(graph);
+                        }
+                    });
+                    // ---------------------------------
+
                     exportLatex();
                     saveState(); 
-                }
+                }           
             }           
         } 
     });
@@ -2388,6 +2480,7 @@
             let htmlBlock = ""; // Εδώ θα χτίσουμε το ασφαλές HTML
 
             if (macro === 'connectordot') {
+				if (el.get('isGhost')) return; // ΝΕΟ: Αν είναι Ghost, αγνόησέ το (δεν βγαίνει στο TikZ)
                 let cleanDotLine = "  \\connectordot{(" + ((p.x + 20) / EXPORT_DIV).toFixed(2) + "," + (-(p.y + 20) / EXPORT_DIV).toFixed(2) + ")}";
                 let idStr = ` % id:${el.id}`;
                 let htmlIdSpan = `<span class="sync-id" contenteditable="false">${idStr}</span>`;
@@ -2636,111 +2729,400 @@ ${indentedTikz}
             saveFileAs(finalOutput, filename, 'text/plain', 'LaTeX Document');
         });
     }
+
+// --- ⚡ SPICE NETLIST & TOPOLOGY ENGINE ---
+
+	class UnionFind {
+		constructor() { this.parent = {}; }
+		find(i) {
+			if (this.parent[i] === undefined) this.parent[i] = i;
+			if (this.parent[i] === i) return i;
+			return this.parent[i] = this.find(this.parent[i]);
+		}
+		union(i, j) {
+			let rootI = this.find(i);
+			let rootJ = this.find(j);
+			if (rootI !== rootJ) this.parent[rootI] = rootJ;
+		}
+	}
+
+	function isPointOnLine(pt, p1, p2) {
+		let tol = 1; 
+		if (Math.abs(p1.x - p2.x) < tol && Math.abs(pt.x - p1.x) < tol) { 
+			return pt.y >= Math.min(p1.y, p2.y) - tol && pt.y <= Math.max(p1.y, p2.y) + tol;
+		}
+		if (Math.abs(p1.y - p2.y) < tol && Math.abs(pt.y - p1.y) < tol) { 
+			return pt.x >= Math.min(p1.x, p2.x) - tol && pt.x <= Math.max(p1.x, p2.x) + tol;
+		}
+		let cross = Math.abs((pt.y - p1.y) * (p2.x - p1.x) - (pt.x - p1.x) * (p2.y - p1.y));
+		if (cross > 50) return false; 
+		let dot = (pt.x - p1.x) * (p2.x - p1.x) + (pt.y - p1.y) * (p2.y - p1.y);
+		let lenSq = (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
+		return dot >= -tol && dot <= lenSq + tol;
+	}
+
+	function getAbsolutePinCoord(el, portId) {
+		let port = el.getPort(portId);
+		let pos = el.position();
+		return { x: pos.x + port.args.x, y: pos.y + port.args.y };
+	}
+
+	// Ο ΠΥΡΗΝΑΣ ΤΗΣ ΤΟΠΟΛΟΓΙΑΣ (Clustering & L vs T Junctions)
+	function extractTopology() {
+		let uf = new UnionFind();
+		let explicitTerminals = [];
+		let gndNodes = new Set();
+		
+		// 1. Συλλογή Φυσικών Pins & Dots
+		graph.getElements().forEach(el => {
+			let macro = el.get('latexMacro');
+			if (macro === 'connectordot') {
+				let p = el.position();
+				explicitTerminals.push({ x: p.x + 20, y: p.y + 20, isGnd: false });
+			} else if (macro !== 'freetext') {
+				let isGnd = (macro === 'groundterminal');
+				el.getPorts().forEach(port => {
+					let pt = getAbsolutePinCoord(el, port.id);
+					explicitTerminals.push({ x: pt.x, y: pt.y, isGnd: isGnd });
+				});
+			}
+		});
+
+		// Ομαδοποίηση explicit terminals για μικρο-σφάλματα (float errors)
+		let terminals = [];
+		explicitTerminals.forEach(rt => {
+			let cluster = terminals.find(t => Math.abs(t.x - rt.x) < 5 && Math.abs(t.y - rt.y) < 5);
+			if (cluster) {
+				if (rt.isGnd) gndNodes.add(cluster.id);
+			} else {
+				let newId = `${Math.round(rt.x)},${Math.round(rt.y)}`;
+				terminals.push({ x: rt.x, y: rt.y, id: newId, isExplicit: true });
+				if (rt.isGnd) gndNodes.add(newId);
+			}
+		});
+
+		// 2. Εντοπισμός Simple Corners (L-shapes χωρίς τελεία)
+		let wireEndpoints = [];
+		let links = graph.getLinks();
+		links.forEach(link => {
+			let pts = [link.getSourcePoint(), ...(link.vertices() || []), link.getTargetPoint()];
+			wireEndpoints.push({ pt: pts[0], linkId: link.id });
+			wireEndpoints.push({ pt: pts[pts.length - 1], linkId: link.id });
+		});
+
+		let endpointClusters = [];
+		wireEndpoints.forEach(we => {
+			let cluster = endpointClusters.find(c => Math.abs(c.x - we.pt.x) < 5 && Math.abs(c.y - we.pt.y) < 5);
+			if (cluster) {
+				if (!cluster.linkIds.includes(we.linkId)) cluster.linkIds.push(we.linkId);
+			} else {
+				endpointClusters.push({ x: we.pt.x, y: we.pt.y, linkIds: [we.linkId] });
+			}
+		});
+
+		// Ο ΜΑΓΙΚΟΣ ΚΑΝΟΝΑΣ: Είναι Γωνία (L) ή Διασταύρωση/Ταυ (T);
+		endpointClusters.forEach(ec => {
+			let hasExplicit = terminals.some(t => Math.abs(t.x - ec.x) < 5 && Math.abs(t.y - ec.y) < 5);
+			if (hasExplicit) return; // Αν έχει ήδη τελεία ή pin, το αναλαμβάνει αυτό.
+
+			// Περνάει κάποιο άλλο καλώδιο από πάνω του; (Middle touch)
+			let middleTouches = 0;
+			links.forEach(link => {
+				if (ec.linkIds.includes(link.id)) return;
+				let pts = [link.getSourcePoint(), ...(link.vertices() || []), link.getTargetPoint()];
+				for (let i = 0; i < pts.length - 1; i++) {
+					if (isPointOnLine(ec, pts[i], pts[i+1])) {
+						middleTouches++; break;
+					}
+				}
+			});
+
+			// Είναι Corner ΑΝ ενώνονται ΑΚΡΙΒΩΣ 2 άκρες καλωδίων ΚΑΙ δεν περνάει κανένα άλλο από πάνω!
+			// (Δηλαδή τα "T" χωρίς τελεία απορρίπτονται!)
+			if (ec.linkIds.length === 2 && middleTouches === 0) {
+				let newId = `${Math.round(ec.x)},${Math.round(ec.y)}`;
+				terminals.push({ x: ec.x, y: ec.y, id: newId, isExplicit: false });
+			}
+		});
+
+		// 3. Σάρωση Καλωδίων και Ενώσεις
+		links.forEach(link => {
+			let pts = [link.getSourcePoint(), ...(link.vertices() || []), link.getTargetPoint()];
+			let linkTerminals = [];
+			
+			terminals.forEach(term => {
+				for (let i = 0; i < pts.length - 1; i++) {
+					if (isPointOnLine(term, pts[i], pts[i+1])) {
+						linkTerminals.push(term.id);
+						break;
+					}
+				}
+			});
+			
+			for (let i = 1; i < linkTerminals.length; i++) {
+				uf.union(linkTerminals[0], linkTerminals[i]);
+			}
+			
+			// Δίνουμε ID και στο ίδιο το καλώδιο, για να φαίνεται στο "Show Nets" ακόμα κι αν δεν ακουμπάει πουθενά!
+			if (linkTerminals.length > 0) uf.union(link.id, linkTerminals[0]);
+		});
+
+		// 4. Ανάθεση Net IDs
+		let netMap = new Map();
+		let netCounter = 1;
+
+		gndNodes.forEach(gndStr => { netMap.set(uf.find(gndStr), "0"); });
+
+		terminals.forEach(term => {
+			let root = uf.find(term.id);
+			if (!netMap.has(root)) { netMap.set(root, netCounter.toString()); netCounter++; }
+		});
+		links.forEach(link => {
+			let root = uf.find(link.id);
+			if (!netMap.has(root)) { netMap.set(root, netCounter.toString()); netCounter++; }
+		});
+
+		return { uf, netMap, terminals, gndNodes };
+	}
+
+	// ΟΠΤΙΚΟΠΟΙΗΣΗ ΤΩΝ NETS ΣΤΟΝ ΚΑΜΒΑ (Με υποστήριξη ορφανών καλωδίων)
+	function toggleNetLabels() {
+		let show = document.getElementById('chkShowNets') && document.getElementById('chkShowNets').checked;
+		let overlay = document.getElementById('net-labels-overlay');
+		
+		if (!overlay) {
+			overlay = document.createElement('div');
+			overlay.id = 'net-labels-overlay';
+			overlay.style.position = 'absolute';
+			overlay.style.top = '0';
+			overlay.style.left = '0';
+			overlay.style.width = '100%';
+			overlay.style.height = '100%';
+			overlay.style.pointerEvents = 'none';
+			overlay.style.overflow = 'hidden';
+			overlay.style.zIndex = '1000';
+			document.getElementById('paper-container').appendChild(overlay);
+		}
+		
+		overlay.innerHTML = '';
+		if (!show) return;
+
+		let topo = extractTopology();
+		let getNet = (id) => topo.netMap.get(topo.uf.find(id));
+		let drawnNets = new Set();
+		let matrix = paper.matrix(); 
+
+		let drawBadge = (netId, cx, cy) => {
+			if (drawnNets.has(netId)) return;
+			drawnNets.add(netId);
+			
+			let isGnd = (netId === '0');
+			let text = isGnd ? 'GND' : 'N' + netId;
+			
+			let screenX = cx * matrix.a + matrix.e;
+			let screenY = cy * matrix.d + matrix.f;
+
+			let badge = document.createElement('div');
+			badge.style.position = 'absolute';
+			badge.style.left = (screenX + 10) + 'px';
+			badge.style.top = (screenY - 20) + 'px';
+			badge.style.background = isGnd ? '#e74c3c' : '#27ae60';
+			badge.style.color = 'white';
+			badge.style.padding = '2px 6px';
+			badge.style.borderRadius = '4px';
+			badge.style.fontSize = '10px';
+			badge.style.fontFamily = 'monospace';
+			badge.style.fontWeight = 'bold';
+			badge.style.boxShadow = '0 2px 4px rgba(0,0,0,0.2)';
+			badge.innerText = text;
+			overlay.appendChild(badge);
+		};
+
+		topo.terminals.forEach(term => {
+			let netId = getNet(term.id);
+			if (netId) drawBadge(netId, term.x, term.y);
+		});
+
+		// Ζωγραφίζουμε labels και στα καλώδια που δεν έχουν Terminal (όπως το T-junction χωρίς dot)
+		graph.getLinks().forEach(link => {
+			let netId = getNet(link.id);
+			if (netId && !drawnNets.has(netId)) {
+				let pt = link.getSourcePoint();
+				drawBadge(netId, pt.x, pt.y);
+			}
+		});
+	}
 	
-// --- EXPORT DIALOG (CENTRALIZED) ---
-    function openExportDialog() {
-    Swal.fire({
-        title: '<span style="font-size: 20px;">Export Diagram</span>',
-        html: `
-            <div style="text-align: left; font-size: 14px; color: #2c3e50;">
-                <div style="margin-bottom: 15px;">
-                    <label style="font-weight: 600;">File Format:</label>
-                    <select id="export-format" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin-top: 5px;">
-                        <option value="svg">🖼️ SVG (Vector Graphic)</option>
-                        <option value="tikz">📄 TikZ Code Snippet (.tex)</option>
-                        <option value="standalone">📦 Standalone LaTeX (.tex)</option>
-                    </select>
-					<div style="margin-top: 10px; padding: 8px; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 4px; font-size: 11px; color: #c53030;">
-						⚠️ <b>Note:</b> Math (KaTeX) is exported as HTML elements. Vector editors like Inkscape will not display them. For print quality, prefer <b>Standalone LaTeX</b>.
+	function updateGhostDotsVisibility() {
+		let showGhosts = document.getElementById('toggle-ghost-dots') && document.getElementById('toggle-ghost-dots').checked;
+		let theme = THEME_COLORS[currentThemeName] || THEME_COLORS.standard;
+
+		graph.getElements().forEach(el => {
+			if (el.get('latexMacro') === 'connectordot') {
+				let isGhost = el.get('isGhost');
+
+				if (isGhost) {
+					if (showGhosts) {
+						// Εμφανές ως Ghost (Πλέον τεράστιο και έντονο!)
+						el.attr('./display', 'block');
+						el.attr('dot/fill', 'rgba(231, 76, 60, 0.4)');  // Πιο αδιαφανές κόκκινο
+						el.attr('dot/stroke', '#e74c3c');               // Έντονο κόκκινο περίγραμμα
+						el.attr('dot/stroke-width', 3);                 // Παχύτερη γραμμή (ήταν 2)
+						el.attr('dot/stroke-dasharray', '5,3');         // Πιο αραιή διακεκομμένη
+						el.attr('dot/r', 16);                           // ΔΙΠΛΑΣΙΟ μέγεθος από την κανονική τελεία!
+					} else {
+						el.attr('./display', 'none');
+					}
+				} else {
+					// Κανονικό Dot
+					el.attr('./display', 'block');
+					el.attr('dot/fill', theme.dot);
+					el.attr('dot/stroke', 'none');
+					el.attr('dot/stroke-dasharray', 'none');
+					el.attr('dot/r', 8);                                // Επαναφορά στο μικρό, κλασικό μέγεθος
+				}
+			}
+		});
+	}
+
+	// Συγχρονισμός όταν κουνάς την κάμερα ή αλλάζεις το κύκλωμα
+	paper.on('translate scale', toggleNetLabels);
+	// Όταν αλλάζει το κύκλωμα ή φορτώνεται νέο αρχείο:
+	graph.on('change add remove reset', () => {
+		// 1. Καθαρίζουμε πάντα τα παλιά αποτελέσματα προσομοίωσης!
+		clearSimAnnotations(); 
+
+		// 2. Ανανεώνουμε τα πράσινα Net Labels αν είναι ενεργοποιημένα
+		if (document.getElementById('chkShowNets') && document.getElementById('chkShowNets').checked) {
+			toggleNetLabels();
+		}
+	});
+
+
+	
+// --- EXPORT DIALOG (CENTRALIZED & DYNAMIC) ---
+	function openExportDialog() {
+		Swal.fire({
+			title: '<span style="font-size: 20px;">Export</span>',
+			html: `
+				<div style="text-align: left; font-size: 14px; color: #2c3e50;">
+					<div style="margin-bottom: 15px;">
+						<label style="font-weight: 600;">File Format:</label>
+						<select id="export-format" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin-top: 5px;">
+							<option value="svg">🖼️ SVG (Vector Graphic)</option>
+							<option value="tikz">📄 TikZ Code Snippet (.tex)</option>
+							<option value="standalone">📦 Standalone LaTeX (.tex)</option>
+							<option value="spice">⚡ SPICE Netlist (.cir)</option>
+						</select>
 					</div>
-                </div>
-                <div style="margin-bottom: 5px; font-weight: 600;">Visual Options (SVG Only):</div>
-                <div style="background: #f8f9fa; border: 1px solid #dcdde1; padding: 10px; border-radius: 6px;">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
-                        <input type="checkbox" id="exp-grid"> Show Canvas Grid
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
-                        <input type="checkbox" id="exp-pins"> Show Component Pins 
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
-                        <input type="checkbox" id="exp-pinnames" checked> Show Pin Names
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
-                        <input type="checkbox" id="exp-compnames" checked> Show Component Names
-                    </label>
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 8px;">
-                        <input type="checkbox" id="exp-freetext" checked> Show Free Text Labels
-                    </label>
-                    
-                    <hr style="border-top: 1px dashed #bdc3c7; margin: 12px 0;">
-                    
-                    <div style="margin-bottom: 10px;">
-                        <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-                            <label style="font-weight: 600;">Global Line Weight:</label>
-                            <span id="weight-val" style="font-weight: bold; color: #e84393;">100%</span>
-                        </div>
-                        <input type="range" id="exp-weight-scale" min="0.5" max="3" step="0.1" value="1" style="width: 100%; cursor: ew-resize;">
-                    </div>
+					
+					<div id="svg-options-container" style="display: block;">
+						<div style="margin-top: 10px; padding: 8px; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 4px; font-size: 11px; color: #c53030; margin-bottom: 15px;">
+							⚠️ <b>Note:</b> Math (KaTeX) is exported as HTML elements. Vector editors like Inkscape will not display them. For print quality, prefer <b>Standalone LaTeX</b>.
+						</div>
+						
+						<div style="margin-bottom: 5px; font-weight: 600;">Visual Options (SVG Only):</div>
+						<div style="background: #f8f9fa; border: 1px solid #dcdde1; padding: 10px; border-radius: 6px;">
+							<label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+								<input type="checkbox" id="exp-grid"> Show Canvas Grid
+							</label>
+							<label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+								<input type="checkbox" id="exp-pins"> Show Component Pins 
+							</label>
+							<label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+								<input type="checkbox" id="exp-pinnames" checked> Show Pin Names
+							</label>
+							<label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+								<input type="checkbox" id="exp-compnames" checked> Show Component Names
+							</label>
+							<label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 8px;">
+								<input type="checkbox" id="exp-freetext" checked> Show Free Text Labels
+							</label>
+							
+							<hr style="border-top: 1px dashed #bdc3c7; margin: 12px 0;">
+							
+							<div style="margin-bottom: 10px;">
+								<div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+									<label style="font-weight: 600;">Global Line Weight:</label>
+									<span id="weight-val" style="font-weight: bold; color: #e84393;">100%</span>
+								</div>
+								<input type="range" id="exp-weight-scale" min="0.5" max="3" step="0.1" value="1" style="width: 100%; cursor: ew-resize;">
+							</div>
 
-                    <div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 10px; text-align: center;">
-                        <div style="font-size: 10px; color: #7f8c8d; margin-bottom: 5px; text-transform: uppercase;">Preview</div>
-                        <svg viewBox="0 0 100 40" width="100%" height="60" style="max-width: 250px;">
-                            <path class="preview-stroke" data-base-width="1.5" d="M 10 20 L 30 20" stroke="#333" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path>
-                            <path class="preview-stroke" data-base-width="1.8" d="M 30 20 L 35 20 L 40 10 L 50 30 L 60 10 L 70 30 L 80 10 L 85 20 L 90 20" stroke="#2c3e50" stroke-width="1.8" fill="none" stroke-linejoin="miter" stroke-linecap="butt"></path>
-                        </svg>
-                    </div>
+							<div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 10px; text-align: center;">
+								<div style="font-size: 10px; color: #7f8c8d; margin-bottom: 5px; text-transform: uppercase;">Preview</div>
+								<svg viewBox="0 0 100 40" width="100%" height="60" style="max-width: 250px;">
+									<path class="preview-stroke" data-base-width="1.5" d="M 10 20 L 30 20" stroke="#333" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path>
+									<path class="preview-stroke" data-base-width="1.8" d="M 30 20 L 35 20 L 40 10 L 50 30 L 60 10 L 70 30 L 80 10 L 85 20 L 90 20" stroke="#2c3e50" stroke-width="1.8" fill="none" stroke-linejoin="miter" stroke-linecap="butt"></path>
+								</svg>
+							</div>
 
-                    <hr style="border-top: 1px dashed #bdc3c7; margin: 12px 0;">
-                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color: #c0392b; font-weight: bold;">
-                        <input type="checkbox" id="exp-mono"> Monochrome (Black & White)
-                    </label>
-                </div>
-            </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Export',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#e84393',
-        didOpen: () => {
-            // Σύνδεση του Slider με το Mini Preview
-            const slider = document.getElementById('exp-weight-scale');
-            const valDisplay = document.getElementById('weight-val');
-            const previewStrokes = document.querySelectorAll('.preview-stroke');
+							<hr style="border-top: 1px dashed #bdc3c7; margin: 12px 0;">
+							<label style="display:flex; align-items:center; gap:8px; cursor:pointer; color: #c0392b; font-weight: bold;">
+								<input type="checkbox" id="exp-mono"> Monochrome (Black & White)
+							</label>
+						</div>
+					</div>
+				</div>
+			`,
+			showCancelButton: true,
+			confirmButtonText: 'Export',
+			cancelButtonText: 'Cancel',
+			confirmButtonColor: '#e84393',
+			didOpen: () => {
+				// --- ΝΕΟ: Δυναμική απόκρυψη του SVG Container ---
+				const formatSelect = document.getElementById('export-format');
+				const svgOptions = document.getElementById('svg-options-container');
+				
+				formatSelect.addEventListener('change', (e) => {
+					if (e.target.value === 'svg') {
+						svgOptions.style.display = 'block';
+					} else {
+						svgOptions.style.display = 'none';
+					}
+				});
 
-            slider.addEventListener('input', (e) => {
-                const scale = parseFloat(e.target.value);
-                valDisplay.innerText = Math.round(scale * 100) + '%';
-                
-                previewStrokes.forEach(path => {
-                    const baseW = parseFloat(path.getAttribute('data-base-width'));
-                    path.setAttribute('stroke-width', baseW * scale);
-                });
-            });
-        },
-        preConfirm: () => {
-            return {
-                format: document.getElementById('export-format').value,
-                grid: document.getElementById('exp-grid').checked,
-                pins: document.getElementById('exp-pins').checked,
-                pinnames: document.getElementById('exp-pinnames').checked,
-                compnames: document.getElementById('exp-compnames').checked,
-                freetext: document.getElementById('exp-freetext').checked,
-                mono: document.getElementById('exp-mono').checked,
-                weightScale: parseFloat(document.getElementById('exp-weight-scale').value) || 1.0
-            };
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            if (result.value.format === 'svg') {
-                downloadAdvancedSVG(result.value);
-            } else if (result.value.format === 'tikz') {
-                downloadLatex(false);
-            } else if (result.value.format === 'standalone') {
-                downloadLatex(true);
-            }
-        }
-    });
-}
+				// Σύνδεση του Slider με το Mini Preview
+				const slider = document.getElementById('exp-weight-scale');
+				const valDisplay = document.getElementById('weight-val');
+				const previewStrokes = document.querySelectorAll('.preview-stroke');
+
+				slider.addEventListener('input', (e) => {
+					const scale = parseFloat(e.target.value);
+					valDisplay.innerText = Math.round(scale * 100) + '%';
+					
+					previewStrokes.forEach(path => {
+						const baseW = parseFloat(path.getAttribute('data-base-width'));
+						path.setAttribute('stroke-width', baseW * scale);
+					});
+				});
+			},
+			preConfirm: () => {
+				return {
+					format: document.getElementById('export-format').value,
+					grid: document.getElementById('exp-grid').checked,
+					pins: document.getElementById('exp-pins').checked,
+					pinnames: document.getElementById('exp-pinnames').checked,
+					compnames: document.getElementById('exp-compnames').checked,
+					freetext: document.getElementById('exp-freetext').checked,
+					mono: document.getElementById('exp-mono').checked,
+					weightScale: parseFloat(document.getElementById('exp-weight-scale').value) || 1.0
+				};
+			}
+		}).then((result) => {
+			if (result.isConfirmed) {
+				if (result.value.format === 'svg') {
+					downloadAdvancedSVG(result.value);
+				} else if (result.value.format === 'tikz') {
+					downloadLatex(false);
+				} else if (result.value.format === 'standalone') {
+					downloadLatex(true);
+				} else if (result.value.format === 'spice') {
+					downloadSpiceNetlist(); // <--- Καλεί την SPICE engine
+				}
+			}
+		});
+	}
 
 // --- ADVANCED SVG EXPORT (WITH FILTERS) ---
     function downloadAdvancedSVG(options) {
@@ -3251,7 +3633,17 @@ ${indentedTikz}
 // --- 10. PROPERTY EDITOR (DOUBLE CLICK) WITH DRAG, PREVIEW & REVERT ---
     paper.on('cell:pointerdblclick', function(cellView) {
         let el = cellView.model;
-        if (el.isLink() || el.get('latexMacro') === 'connectordot') return;
+        if (el.isLink()) return;
+
+        // --- GHOST TOGGLE ΓΙΑ ΤΑ CONNECTOR DOTS ---
+        if (el.get('latexMacro') === 'connectordot') {
+            el.set('isGhost', !el.get('isGhost')); // Εναλλαγή κατάστασης
+            updateGhostDotsVisibility();           // Ενημέρωση UI
+            exportLatex();                         // Ενημέρωση TikZ (για να κρυφτεί/φανεί)
+            saveState();
+            return; // Σταματάμε εδώ, μην ανοίξεις παράθυρο ιδιοτήτων!
+        }
+        // ------------------------------------------
 
         let macro = el.get('latexMacro');
         let data = JL_DATABASE[macro];
@@ -3265,7 +3657,8 @@ ${indentedTikz}
             angle: el.get('angle') || 0,
             flipH: el.get('flipH') || false,
             flipV: el.get('flipV') || false,
-            hideLbl: el.get('customHideLabel')
+            hideLbl: el.get('customHideLabel'),
+			spiceData: JSON.parse(JSON.stringify(el.get('spiceData') || {}))
         };
 
         let currentArgs = el.get('customArgs') || [];
@@ -3410,6 +3803,43 @@ ${indentedTikz}
                             Hide Component Auto-Label
                         </label>
                     </div>`;
+					
+		// --- ΝΕΟ: SPICE PARAMETERS GENERATOR ---
+        let spiceTemplate = data.spiceTemplate;
+        let spiceParams = [];
+        let savedSpiceData = el.get('spiceData') || {};
+
+        if (spiceTemplate) {
+            let matches = [...spiceTemplate.matchAll(/\{([^}]+)\}/g)];
+            let pinIds = (data.pins || []).map(p => p.id); // Λίστα με τα πραγματικά Pins
+            
+            matches.forEach(m => {
+                let varName = m[1];
+                // Αν ΔΕΝ είναι pin και ΔΕΝ είναι η δεσμευμένη λέξη NAME, είναι παράμετρος!
+                if (!pinIds.includes(varName) && !spiceParams.includes(varName) && varName !== 'NAME') {
+                    spiceParams.push(varName);
+                }
+            });
+        }
+
+        if (spiceParams.length > 0) {
+            htmlForm += `<div style="margin-top: 15px; border-top: 2px solid #8e44ad; padding-top: 12px; margin-bottom: 5px;">
+                            <label style="display:block; font-size:13px; font-weight:bold; color:#8e44ad; margin-bottom: 8px;">⚡ SPICE Parameters</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
+            
+            spiceParams.forEach(param => {
+                let currentVal = savedSpiceData[param] !== undefined ? savedSpiceData[param] : "";
+                htmlForm += `
+                    <div>
+                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 11px;">${param}</label>
+                        <input type="text" id="swal-spice-${param}" class="swal2-input" style="width: 100%; height: 32px; font-size: 13px; margin: 0; padding: 0 10px; border: 1px solid #bdc3c7; border-left: 3px solid #8e44ad;" value="${currentVal}">
+                    </div>`;
+            });
+            htmlForm += `</div></div>`;
+        }
+        // --- ΤΕΛΟΣ ΝΕΟΥ ΚΩΔΙΚΑ ---
+
+        htmlForm += '</div>'; // Το υπάρχον κλείσιμο του container
 
         htmlForm += '</div>';
 
@@ -3524,7 +3954,8 @@ ${indentedTikz}
                     scale: parseFloat(popup.querySelector('#swal-input-scale').value),
                     lblX: parseInt(popup.querySelector('#swal-input-lblx').value) || 0,
                     lblY: parseInt(popup.querySelector('#swal-input-lbly').value) || 0,
-                    hideLbl: popup.querySelector('#swal-input-hidelabel').checked
+                    hideLbl: popup.querySelector('#swal-input-hidelabel').checked,
+					spiceData: {}
                 };
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
@@ -3545,6 +3976,16 @@ ${indentedTikz}
                         }
                     }
                 }
+				
+				// --- ΝΕΟ: ΣΥΛΛΟΓΗ SPICE DATA ---
+                if (spiceParams.length > 0) {
+                    spiceParams.forEach(param => {
+                        let inputEl = popup.querySelector(`#swal-spice-${param}`);
+                        if (inputEl) results.spiceData[param] = inputEl.value.trim();
+                    });
+                }
+                // -------------------------------
+				
                 return results;
             }
         }).then((result) => {
@@ -3556,6 +3997,7 @@ ${indentedTikz}
                 el.set('labelOffsetX', result.value.lblX);
                 el.set('labelOffsetY', result.value.lblY);
                 el.set('customHideLabel', result.value.hideLbl);
+				el.set('spiceData', result.value.spiceData);
                 el.set('customArgs', newArgs);
 
                 assembleIcon(el, newArgs);
@@ -3590,6 +4032,7 @@ ${indentedTikz}
                 el.set('labelOffsetX', originalState.lblX);
                 el.set('labelOffsetY', originalState.lblY);
                 el.set('customHideLabel', originalState.hideLbl);
+				el.set('spiceData', originalState.spiceData);
                 el.set('customArgs', originalState.args);
 
                 let needsGeomUpdate = (originalState.angle !== (el.get('angle')||0)) || 
@@ -3904,6 +4347,7 @@ ${indentedTikz}
         // --- 2. NEW: Turn the highlights back on with the NEW rules ---
         selectedElements.forEach(el => { const v = paper.findViewByModel(el); if(v) v.highlight(); });
         selectedLinks.forEach(l => { const v = paper.findViewByModel(l); if(v) v.highlight(); });
+		updateGhostDotsVisibility();
     }
 
     // Attach event listener to the dropdown
@@ -4760,6 +5204,344 @@ ${indentedTikz}
 		
 	}
 	
+	// --- ⚙️ SIMULATION SETTINGS & ENGINE ---
+
+	// Default ρυθμίσεις προσομοίωσης (αποθηκεύονται στο window για την ώρα)
+	window.spiceSimulationCommands = ".tran 1us 1ms\n.end";
+
+	function openSimulationSettings() {
+		Swal.fire({
+			title: 'Simulation Directives',
+			html: `<div style="text-align:left; font-size:12px; color:#7f8c8d; margin-bottom:8px;">Enter SPICE commands (e.g. .tran, .ac, .include)</div>
+				   <textarea id="swal-sim-cmds" style="width: 100%; height: 150px; font-family: monospace; font-size: 13px; padding: 10px; box-sizing: border-box; background: #2c3e50; color: #ecf0f1; border-radius: 4px;" spellcheck="false">${window.spiceSimulationCommands}</textarea>`,
+			confirmButtonText: 'Save Settings',
+			confirmButtonColor: '#e67e22'
+		}).then((result) => {
+			if (result.isConfirmed) {
+				window.spiceSimulationCommands = document.getElementById('swal-sim-cmds').value;
+				Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Settings Saved', showConfirmButton: false, timer: 1500 });
+			}
+		});
+	}
+
+	// Μετατροπή αριθμών SPICE σε Engineering Notation (m, u, n, k, M)
+	function formatEng(val, unit = 'V') {
+		if (val === 0 || Math.abs(val) < 1e-15) return "0.00 " + unit;
+		let abs = Math.abs(val);
+		let sign = val < 0 ? "-" : "";
+		
+		if (abs >= 1e6) return sign + (abs / 1e6).toFixed(2) + " M" + unit;
+		if (abs >= 1e3) return sign + (abs / 1e3).toFixed(2) + " k" + unit;
+		if (abs >= 1) return sign + abs.toFixed(2) + " " + unit;
+		if (abs >= 1e-3) return sign + (abs * 1e3).toFixed(2) + " m" + unit;
+		if (abs >= 1e-6) return sign + (abs * 1e6).toFixed(2) + " u" + unit;
+		if (abs >= 1e-9) return sign + (abs * 1e9).toFixed(2) + " n" + unit;
+		if (abs >= 1e-12) return sign + (abs * 1e12).toFixed(2) + " p" + unit;
+		
+		return val.toExponential(2) + " " + unit;
+	}
+
+	// Η κεντρική μηχανή παραγωγής Netlist
+	function generateSpiceNetlistStr(customSim) {
+		let elements = graph.getElements();
+		if (elements.length === 0) return { errors: ["Empty Canvas"] };
+
+		let topo = extractTopology();
+		let getNetForPin = (pt) => {
+			let cluster = topo.terminals.find(t => Math.abs(t.x - pt.x) < 5 && Math.abs(t.y - pt.y) < 5);
+			if (!cluster) return null;
+			return topo.netMap.get(topo.uf.find(cluster.id));
+		};
+
+		let errors = [];
+		if (topo.gndNodes.size === 0) {
+			errors.push("<b>No Ground (GND) found!</b> SPICE requires a 'groundterminal' to establish Node 0.");
+		}
+
+		let netPopulation = {};
+		elements.forEach(el => {
+			let macro = el.get('latexMacro');
+			if (macro !== 'connectordot' && macro !== 'freetext') {
+				el.getPorts().forEach(port => {
+					let pt = getAbsolutePinCoord(el, port.id);
+					let netId = getNetForPin(pt);
+					if (netId) netPopulation[netId] = (netPopulation[netId] || 0) + 1;
+				});
+			}
+		});
+
+		let spiceCode = "* JL CAD Generated SPICE Netlist\n\n";
+		let includedModels = new Set();
+
+		elements.forEach(el => {
+			let macro = el.get('latexMacro');
+			if (macro === 'freetext' || macro === 'connectordot' || macro === 'groundterminal') return;
+
+			let dbData = JL_DATABASE[macro];
+			// Παίρνουμε το όνομα, αφαιρούμε τυχόν κενά, και κολλάμε 4 γράμματα από το μοναδικό ID!
+			let baseName = (el.get('displayedText') || "comp").replace(/\s+/g, '');
+			let name = baseName + "_" + el.id.split('-')[0].substring(0, 4);
+
+			if (!dbData || !dbData.spiceTemplate) {
+				errors.push(`Component <b>${name}</b> does not have a SPICE Template.`);
+				return;
+			}
+
+			let template = dbData.spiceTemplate;
+			let spiceData = el.get('spiceData') || {};
+			template = template.replace(/\{NAME\}/g, name);
+
+			el.getPorts().forEach(port => {
+				let pt = getAbsolutePinCoord(el, port.id);
+				let netId = getNetForPin(pt);
+
+				if (netId === null || netPopulation[netId] === 1) {
+					errors.push(`Component <b>${name}</b> has an unconnected/floating pin.`);
+				}
+				let pinRegex = new RegExp(`\\{${port.id}\\}`, 'g');
+				template = template.replace(pinRegex, netId || "NC");
+			});
+
+			Object.keys(spiceData).forEach(param => {
+				let val = spiceData[param] || "";
+				let paramRegex = new RegExp(`\\{${param}\\}`, 'g');
+				template = template.replace(paramRegex, val);
+			});
+
+			let missingMatches = template.match(/\{([^}]+)\}/g);
+			if (missingMatches) {
+				missingMatches.forEach(m => {
+					errors.push(`Component <b>${name}</b> is missing value for parameter: <b>${m}</b>.`);
+				});
+			}
+
+			spiceCode += template + "\n";
+			
+			if (dbData.spiceModel) {
+				includedModels.add(dbData.spiceModel);
+			}
+		});
+
+		if (includedModels.size > 0) {
+			spiceCode += "\n* --- Component Models & Subcircuits ---\n";
+			includedModels.forEach(modelCode => { spiceCode += modelCode + "\n\n"; });
+		}
+
+		spiceCode += "\n* --- Simulation Commands ---\n";
+		spiceCode += (customSim || ".op\n.end") + "\n";
+
+		return { code: spiceCode, topo: topo, errors: errors };
+	}
+
+	// Εξαγωγή σε Αρχείο (Χρησιμοποιεί τα Settings του χρήστη)
+	function downloadSpiceNetlist() {
+		let result = generateSpiceNetlistStr(window.spiceSimulationCommands);
+		
+		if (result.errors && result.errors.length > 0) {
+			let errorHtml = `<ul style="text-align: left; font-size: 13px; color: #c0392b;">` + 
+							result.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + 
+							`</ul>`;
+			Swal.fire({ icon: 'error', title: 'SPICE Netlist Errors', html: `Please fix the following issues:<br><br>${errorHtml}` });
+			return;
+		}
+		
+		saveFileAs(result.code, 'circuit.cir', 'text/plain', 'SPICE Netlist');
+	}
+
+	// --- ⚡ BACK-ANNOTATION (ΟΠΤΙΚΟΠΟΙΗΣΗ ΑΠΟ RAW FILE) ---
+
+	function clearSimAnnotations() {
+		let overlay = document.getElementById('dc-annotation-overlay');
+		if (overlay) overlay.innerHTML = '';
+	}
+
+	// Νέος Parser που διαβάζει το επίσημο αρχείο εξόδου (.raw) του SPICE
+	function annotateDCOperatingPointFromRaw(rawOutput, topo) {
+		let voltages = {};
+		
+		// 1. Parsing του .raw αρχείου (όπως πριν)
+		let lines = rawOutput.split('\n');
+		let inVars = false, inVals = false;
+		let vars = [];
+		let vals = [];
+
+		lines.forEach(line => {
+			let l = line.trim();
+			if (l.startsWith('Variables:')) { inVars = true; return; }
+			if (l.startsWith('Values:')) { inVars = false; inVals = true; return; }
+
+			if (inVars) {
+				let parts = l.split(/\s+/);
+				if (parts.length >= 3) vars.push(parts[1].toLowerCase());
+			} else if (inVals && l !== '') {
+				let parts = l.split(/\s+/);
+				if (vals.length === 0 && parts.length > 1) vals.push(parseFloat(parts[1]));
+				else if (parts.length > 0) vals.push(parseFloat(parts[0]));
+			}
+		});
+
+		for (let i = 0; i < vars.length; i++) {
+			let varMatch = vars[i].match(/^v\(([^)]+)\)$/);
+			if (varMatch) voltages[varMatch[1]] = vals[i];
+		}
+
+		// 2. Προετοιμασία Overlay
+		let overlay = document.getElementById('dc-annotation-overlay');
+		if (!overlay) {
+			overlay = document.createElement('div');
+			overlay.id = 'dc-annotation-overlay';
+			overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1100; overflow:hidden;';
+			document.getElementById('paper-container').appendChild(overlay);
+		}
+		
+		overlay.innerHTML = '<svg id="dc-lines-svg" style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:visible; pointer-events:none;"></svg>';
+		let linesSvg = overlay.querySelector('#dc-lines-svg');
+
+		let getNet = (id) => topo.netMap.get(topo.uf.find(id));
+		let drawnNets = new Set();
+		let matrix = paper.matrix(); 
+
+		// --- Α: ΕΜΦΑΝΙΣΗ ΤΑΣΕΩΝ ΚΟΜΒΩΝ (Μπλε Badges) ---
+		topo.terminals.forEach(term => {
+			let netId = getNet(term.id);
+			if (netId && !drawnNets.has(netId)) {
+				drawnNets.add(netId);
+				let v = netId === '0' ? 0.0 : voltages[netId];
+				if (v !== undefined) {
+					let text = formatEng(v, 'V');
+					let screenX = term.x * matrix.a + matrix.e;
+					let screenY = term.y * matrix.d + matrix.f;
+					let targetX = screenX + 25;
+					let targetY = screenY - 25;
+
+					let lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+					lineEl.setAttribute('x1', screenX); lineEl.setAttribute('y1', screenY);
+					lineEl.setAttribute('x2', targetX); lineEl.setAttribute('y2', targetY);
+					lineEl.setAttribute('stroke', '#2980b9'); lineEl.setAttribute('stroke-width', '1.5');
+					linesSvg.appendChild(lineEl);
+
+					let dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+					dotEl.setAttribute('cx', screenX); dotEl.setAttribute('cy', screenY);
+					dotEl.setAttribute('r', '3'); dotEl.setAttribute('fill', '#2980b9');
+					linesSvg.appendChild(dotEl);
+
+					let badge = document.createElement('div');
+					badge.style.cssText = `position:absolute; left:${targetX}px; top:${targetY - 10}px; background:#2980b9; color:white; padding:2px 5px; border-radius:4px; font-size:10px; font-family:monospace; font-weight:bold; border:1px solid #1f618d; box-shadow:0 2px 4px rgba(0,0,0,0.3);`;
+					badge.innerText = text;
+					overlay.appendChild(badge);
+				}
+			}
+		});
+
+		// --- Β: ΕΜΦΑΝΙΣΗ ΤΙΜΩΝ ΕΞΑΡΤΗΜΑΤΩΝ (Μοβ Badges) ---
+		graph.getElements().forEach(el => {
+			let macro = el.get('latexMacro');
+			// Αγνοούμε βοηθητικά στοιχεία
+			if (macro === 'connectordot' || macro === 'freetext' || macro === 'groundterminal') return;
+
+			let spiceData = el.get('spiceData');
+			if (!spiceData) return;
+
+			// Μαζεύουμε τις τιμές των παραμέτρων (π.χ. VALUE=10k -> "10k")
+			let valStr = Object.values(spiceData).filter(v => v && v.trim() !== "").join(', ');
+			if (!valStr) return;
+
+			let pos = el.position();
+			let size = el.size();
+			// Υπολογίζουμε το κέντρο του εξαρτήματος στην οθόνη
+			let cx = pos.x + size.width / 2;
+			let cy = pos.y + size.height / 2;
+
+			let screenX = cx * matrix.a + matrix.e;
+			let screenY = cy * matrix.d + matrix.f;
+
+			let valBadge = document.createElement('div');
+			valBadge.style.cssText = `position:absolute; left:${screenX}px; top:${screenY + 15}px; transform:translate(-50%, 0); background:#8e44ad; color:white; padding:1px 4px; border-radius:3px; font-size:9px; font-family:sans-serif; font-weight:bold; border:1px solid #7d3c98; white-space:nowrap; opacity:0.9; z-index:1105;`;
+			valBadge.innerText = valStr;
+			overlay.appendChild(valBadge);
+		});
+
+		// Επανασχεδιασμός στο Pan/Zoom
+		paper.off('translate scale', this._simUpdate);
+		this._simUpdate = () => annotateDCOperatingPointFromRaw(rawOutput, topo);
+		paper.on('translate scale', this._simUpdate);
+	}
+
+	// --- ⚙️ Η ΜΗΧΑΝΗ ΠΡΟΣΟΜΟΙΩΣΗΣ ---
+
+	// ΣΗΜΑΝΤΙΚΟ: Έξω από τη συνάρτηση για να αρχικοποιηθεί μόνο μία φορά!
+let isSpiceInitialized = false;
+
+async function runDCAnalysis() {
+    if (typeof Module === 'undefined') return;
+
+    Swal.fire({ title: 'Simulating...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    setTimeout(() => {
+        try {
+            // ⚡ Ο ΔΟΥΡΕΙΟΣ ΙΠΠΟΣ (32-BIT SAFE!) ⚡
+            try { 
+                Module.FS.mkdir('/tmp'); 
+            } catch(e) {}
+            
+            // Το μυστικό: Δίνουμε 512 MB (524288 kB). 
+            // Έτσι δεν "σκάει" η 32-bit μνήμη του WebAssembly!
+            let safeRam = "MemTotal:       524288 kB\nMemFree:        524288 kB\nMemAvailable:   524288 kB\n";
+            try { 
+                Module.FS.writeFile('/tmp/meminfo', safeRam); 
+            } catch(e) {}
+
+            // 1. ΑΡΧΙΚΟΠΟΙΗΣΗ
+            if (!isSpiceInitialized) {
+                let sendCharCallback = Module.addFunction(function(textPtr) {
+                    console.warn("[SPICE]:", Module.UTF8ToString(textPtr).trim());
+                    return 0; 
+                }, 'iiii'); 
+                Module.ccall('ngSpice_Init', 'number', ['number','number','number','number','number','number','number'], [sendCharCallback, 0, 0, 0, 0, 0, 0]);
+                isSpiceInitialized = true;
+            }
+
+            console.log("--- ΕΚΤΕΛΕΣΗ NGSPICE V4 ---");
+
+            // Παίρνουμε το καθαρό κύκλωμα από το CAD
+			let simCommands = "\n.end\n"; 
+			let netlistData = generateSpiceNetlistStr(simCommands); 
+
+			if (netlistData.errors && netlistData.errors.length > 0) {
+				Swal.fire('Σφάλμα', 'Υπάρχει λάθος στο σχέδιο.', 'error');
+				return;
+			}
+
+			let cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+			Module.FS.writeFile('/circuit.cir', cleanNetlist);
+
+            let r_source = Module.ccall('ngSpice_Command', 'number', ['string'], ['source /circuit.cir']);
+            console.log("-> source return:", r_source);
+
+            // ΤΩΡΑ ΘΑ ΔΙΑΒΑΣΕΙ 512MB ΚΑΙ ΘΑ ΛΥΣΕΙ ΤΟ ΚΥΚΛΩΜΑ!
+            let r_op = Module.ccall('ngSpice_Command', 'number', ['string'], ['op']);
+            console.log("-> op return (0!):", r_op);
+
+            Module.ccall('ngSpice_Command', 'number', ['string'], ['set filetype=ascii']);
+            try { Module.FS.unlink('/output.raw'); } catch(e) {}
+            Module.ccall('ngSpice_Command', 'number', ['string'], ['write /output.raw']);
+
+            try {
+                let rawOutput = Module.FS.readFile('/output.raw', { encoding: 'utf8' });
+                console.log("--- RAW SPICE OUTPUT ---");
+                console.log(rawOutput);
+                
+                // ⚡ Η ΣΤΙΓΜΗ ΤΗΣ ΑΛΗΘΕΙΑΣ: Καλούμε τη δική σου συνάρτηση! ⚡
+                annotateDCOperatingPointFromRaw(rawOutput, netlistData.topo);
+                
+                // Βάζουμε ένα διακριτικό Toast αντί για τεράστιο Popup για να μη μας κρύβει το κύκλωμα!
+                Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: 'Simulation Complete!', showConfirmButton: false, timer: 2000 });
+            } catch(e) {
+                Swal.fire({ icon: 'error', title: 'Απέτυχε', text: 'Δες τα SPICE LOGS.' });
+            }
+        } catch (error) { console.error(error); }
+    }, 100);
+}
 </script>
 </body>
 </html>

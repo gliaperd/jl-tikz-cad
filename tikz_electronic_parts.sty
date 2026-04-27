@@ -798,6 +798,7 @@
 % scales: 1, 2, 4
 % label_anchor: 40 7 B
 % flip: disabled
+% spice_template: R_{NAME} {pin1} {pin2} {VALUE}
 % preview_args: 4=fixed
 
 % arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
@@ -1111,6 +1112,7 @@
 % scales: 1, 2, 4
 % label_anchor: 20 11 B
 % flip: disabled
+% spice_template: V_{NAME} {pin2} {pin1} {VOLTAGE}
 % preview_args: 3=horizontal, 4=none, 5=0,none
 
 % arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
@@ -1442,6 +1444,7 @@
 % scales: 1, 2, 4
 % label_anchor: -10 -25 L
 % flip: enabled
+% spice_template: M_{NAME} {D} {G} {S} 0 {MODEL} W={W} L={L}
 % preview_args: 3=n, 4=case, arrow
 
 % arg_def: 3 | select | n/p | n | n,p
@@ -1543,9 +1546,9 @@
 						}
 						{
 						}
-            \coordinate (pin1) at (-4.00, 0.00); % left terminal (gate) [R]
-        \coordinate (pin2) at (1.00, 4.00); % top terminal (drain) [R]
-        \coordinate (pin3) at (1.00, -4.00); % bottom terminal (source) [R]
+            \coordinate (G) at (-4.00, 0.00); % left terminal (gate) [R]
+        \coordinate (D) at (1.00, 4.00); % top terminal (drain) [R]
+        \coordinate (S) at (1.00, -4.00); % bottom terminal (source) [R]
     \end{scope}
 }
 
