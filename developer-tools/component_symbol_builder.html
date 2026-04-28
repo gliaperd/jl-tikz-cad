@@ -535,6 +535,7 @@
             let previewAngle = 0;
             let previewFlipH = false;
             let previewFlipV = false;
+            let orientRot = null; // <--- NEW: Tracks explicit horizontal/vertical text
 
             // 1. ΔΙΑΒΑΣΜΑ ΤΩΝ GEOM PROPERTIES ΑΠΟ ΤΟ UI
             let argsList = getParsedArgs();
@@ -545,6 +546,14 @@
 
                 let customDef = argDefs.find(def => def.idx == a.idx);
                 let typeMatch = customDef ? customDef.type : '';
+
+                // --- THE FIX: Detect Horizontal/Vertical string arguments in the Preview! ---
+                if (a.name.toLowerCase().includes('horizontal') && a.name.toLowerCase().includes('vertical')) {
+                    let orientVal = val.toString().toLowerCase().trim();
+                    // Note: TikZ 90° (Up) is Web 270° (Counter-Clockwise SVG)
+                    if (orientVal === 'horizontal') orientRot = 0;
+                    else if (orientVal === 'vertical') orientRot = 270; 
+                }
 
                 if (typeMatch === 'rotflip' || (!customDef && a.name.toLowerCase().includes('rotation') && a.name.toLowerCase().includes('flip'))) {
                     let parts = val.split(',');
@@ -558,6 +567,11 @@
                     if (f==='h') previewFlipH = true; if (f==='v') previewFlipV = true; if (f==='hv'||f==='vh') { previewFlipH=true; previewFlipV=true; }
                 }
             });
+
+            // --- THE FIX: Explicit orientation overrides the base rotation! ---
+            if (orientRot !== null) {
+                previewAngle = orientRot;
+            }
 
             // 2. ΜΑΘΗΜΑΤΙΚΟΣ ΚΙΝΗΤΗΡΑΣ ΜΕΤΑΣΧΗΜΑΤΙΣΜΩΝ
             let sx = previewFlipH ? -1 : 1;
@@ -663,11 +677,32 @@
                 });
             }
 
-            // --- NEW: CAD READABILITY GLOBALS ---
+            // --- DETECT INTENT: Does this component use explicit orientation? ---
+            let isExplicitlyOriented = false;
+            argsList.forEach(a => {
+                let desc = a.name.toLowerCase();
+                if (desc.includes('horizontal') && desc.includes('vertical')) {
+                    // Check if the dropdown value in the preview panel is active
+                    let val = testValues[a.idx] ? testValues[a.idx].toString().toLowerCase().trim() : "";
+                    if (val === 'vertical' || val === 'horizontal') {
+                        isExplicitlyOriented = true;
+                    }
+                }
+            });
+
+            // --- CAD READABILITY GLOBALS ---
             let visualAngle = -previewAngle;
             let normalizedAngle = (visualAngle % 360 + 360) % 360;
-            let textRot = visualAngle;
-            if (normalizedAngle >= 90 && normalizedAngle < 270) textRot += 180;
+            
+            let textRot = 0;
+            if (isExplicitlyOriented) {
+                // Hybrid Behavior: Label stays perfectly horizontal (0 degrees relative to screen)
+                textRot = 0; 
+            } else {
+                // Standard rotation: Label spins with the symbol.
+                textRot = visualAngle;
+                if (normalizedAngle >= 90 && normalizedAngle < 270) textRot += 180;
+            }
 
             // 4. ΔΥΝΑΜΙΚΑ PINS & LABELS
             let activePins = (generatedDynamic && generatedDynamic.pins) ? generatedDynamic.pins : pins;
@@ -707,17 +742,43 @@
                 let ptText = trans(ox, oy);
                 
                 let pinAlign = "start";
-                if (dir === 'L') pinAlign = "end";
-                else if (dir === 'T' || dir === 'B') pinAlign = "middle";
                 
-                // Flip pin text alignment based on global rotation/flips for readability
-                if (previewFlipH) {
-                    if (pinAlign === "start") pinAlign = "end";
-                    else if (pinAlign === "end") pinAlign = "start";
-                }
-                if (normalizedAngle >= 90 && normalizedAngle < 270) {
-                    if (pinAlign === "start") pinAlign = "end";
-                    else if (pinAlign === "end") pinAlign = "start";
+                if (isExplicitlyOriented) {
+                    // Track where the pin orbited to visually on screen
+                    let visualDir = dir;
+                    if (normalizedAngle === 90) {
+                        if (dir === 'L') visualDir = 'T';
+                        else if (dir === 'R') visualDir = 'B';
+                        else if (dir === 'T') visualDir = 'R';
+                        else if (dir === 'B') visualDir = 'L';
+                    } else if (normalizedAngle === 180) {
+                        if (dir === 'L') visualDir = 'R';
+                        else if (dir === 'R') visualDir = 'L';
+                        else if (dir === 'T') visualDir = 'B';
+                        else if (dir === 'B') visualDir = 'T';
+                    } else if (normalizedAngle === 270) {
+                        if (dir === 'L') visualDir = 'B';
+                        else if (dir === 'R') visualDir = 'T';
+                        else if (dir === 'T') visualDir = 'L';
+                        else if (dir === 'B') visualDir = 'R';
+                    }
+
+                    if (visualDir === 'L') pinAlign = "end";
+                    else if (visualDir === 'R') pinAlign = "start";
+                    else pinAlign = "middle";
+                } else {
+                    if (dir === 'L') pinAlign = "end";
+                    else if (dir === 'T' || dir === 'B') pinAlign = "middle";
+                    
+                    // Flip pin text alignment based on global rotation/flips for readability
+                    if (previewFlipH) {
+                        if (pinAlign === "start") pinAlign = "end";
+                        else if (pinAlign === "end") pinAlign = "start";
+                    }
+                    if (normalizedAngle >= 90 && normalizedAngle < 270) {
+                        if (pinAlign === "start") pinAlign = "end";
+                        else if (pinAlign === "end") pinAlign = "start";
+                    }
                 }
 
                 textHtml += `<text x="${ptText.x}" y="${ptText.y}" transform="rotate(${textRot}, ${ptText.x}, ${ptText.y})" font-family="Arial" font-size="11" fill="${baseColor}" font-weight="bold" text-anchor="${pinAlign}" dominant-baseline="central" opacity="${textOpacity}">${displayText}</text>`;
@@ -799,12 +860,40 @@
 
             // Dynamic CAD Alignment
             let lblAlign = "middle";
-            if (effectiveDir === 'L') lblAlign = "end";
-            else if (effectiveDir === 'R') lblAlign = "start";
+            
+            if (isExplicitlyOriented) {
+                // Track where the anchor point orbited to visually on screen
+                let visualDir = effectiveDir;
+                if (normalizedAngle === 90) {
+                    if (effectiveDir === 'L') visualDir = 'T';
+                    else if (effectiveDir === 'R') visualDir = 'B';
+                    else if (effectiveDir === 'T') visualDir = 'R';
+                    else if (effectiveDir === 'B') visualDir = 'L';
+                } else if (normalizedAngle === 180) {
+                    if (effectiveDir === 'L') visualDir = 'R';
+                    else if (effectiveDir === 'R') visualDir = 'L';
+                    else if (effectiveDir === 'T') visualDir = 'B';
+                    else if (effectiveDir === 'B') visualDir = 'T';
+                } else if (normalizedAngle === 270) {
+                    if (effectiveDir === 'L') visualDir = 'B';
+                    else if (effectiveDir === 'R') visualDir = 'T';
+                    else if (effectiveDir === 'T') visualDir = 'L';
+                    else if (effectiveDir === 'B') visualDir = 'R';
+                }
 
-            if (normalizedAngle >= 90 && normalizedAngle < 270) {
-                if (lblAlign === "start") lblAlign = "end";
-                else if (lblAlign === "end") lblAlign = "start";
+                if (visualDir === 'L') lblAlign = "end";
+                else if (visualDir === 'R') lblAlign = "start";
+                else lblAlign = "middle";
+
+            } else {
+                if (effectiveDir === 'L') lblAlign = "end";
+                else if (effectiveDir === 'R') lblAlign = "start";
+                
+                // If CAD Readability flipped the text upright, swap start/end 
+                if (normalizedAngle >= 90 && normalizedAngle < 270) {
+                    if (lblAlign === "start") lblAlign = "end";
+                    else if (lblAlign === "end") lblAlign = "start";
+                }
             }
 
             // --- NEW: Respect Hide Label Property ---

@@ -546,6 +546,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "V_{NAME} {pin1} {pin2} {SIGNAL}",
         "previewArgs": {
             "3": "horizontal",
             "4": "standard"
@@ -554,9 +555,9 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
-                "options": "horizontal, vertical"
+                "options": "horizontal, vertical, none"
             },
             {
                 "idx": 4,
@@ -645,10 +646,12 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "auto": true,
+            "x": 0.0,
+            "y": 24.0,
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "I_{NAME} {pin1} {pin2} {SIGNAL}",
         "previewArgs": {
             "3": "horizontal",
             "4": "standard",
@@ -658,7 +661,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical"
             },
@@ -851,7 +854,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical"
             },
@@ -960,7 +963,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical"
             },
@@ -1084,7 +1087,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical, none"
             },
@@ -1181,6 +1184,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "L_{NAME} {pin1} {pin2} {VALUE}",
         "previewArgs": {
             "4": "fixed"
         },
@@ -1188,7 +1192,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical, none"
             },
@@ -1279,6 +1283,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "C_{NAME} {pin1} {pin2} {VALUE}",
         "previewArgs": {
             "3": "fixed",
             "4": "none"
@@ -1287,7 +1292,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical, none"
             },
@@ -1410,7 +1415,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical, none"
             },
@@ -1523,7 +1528,7 @@ const JL_DATABASE = {
                 "type": "select",
                 "label": "horizontal/vertical/none",
                 "defVal": "horizontal",
-                "options": "horizontal, vertical, none (LaTeX only)"
+                "options": "horizontal, vertical, none"
             },
             {
                 "idx": 3,
@@ -1629,6 +1634,7 @@ const JL_DATABASE = {
             "dir": "L"
         },
         "flippable": false,
+        "spiceTemplate": "Q_{NAME} {pin2} {pin1} {pin3} {MODEL}",
         "previewArgs": {
             "3": "n",
             "4": "case"
@@ -2026,6 +2032,7 @@ const JL_DATABASE = {
             "dir": "R"
         },
         "flippable": false,
+        "spiceTemplate": "X_{NAME} {pin1} {pin2} {pin3} {MODEL}",
         "argDefs": [
             {
                 "idx": 3,
@@ -2152,11 +2159,12 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "D_{NAME} {pin1} {pin2} {MODEL}",
         "argDefs": [
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical"
             },
@@ -2239,7 +2247,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "",
                 "options": "horizontal, vertical,"
             },
@@ -2322,7 +2330,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "",
                 "options": "horizontal, vertical,"
             },
@@ -2410,7 +2418,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTex only)",
+                "label": "horizontal/vertical",
                 "defVal": "",
                 "options": "horizontal, vertical,"
             },
@@ -6053,7 +6061,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical, none"
             },
@@ -6150,6 +6158,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "L_{NAME} {pin1} {pin2} {VALUE}",
         "previewArgs": {
             "4": "fixed"
         },
@@ -6157,7 +6166,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical, none"
             },
@@ -6248,6 +6257,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "C_{NAME} {pin1} {pin2} {VALUE}",
         "previewArgs": {
             "3": "fixed",
             "4": "none"
@@ -6256,7 +6266,7 @@ const JL_DATABASE = {
             {
                 "idx": 3,
                 "type": "select",
-                "label": "horizontal/vertical (LaTeX only)",
+                "label": "horizontal/vertical",
                 "defVal": "horizontal",
                 "options": "horizontal, vertical, none"
             },
@@ -6496,6 +6506,26 @@ const JL_DATABASE = {
                 "x": 10.0,
                 "y": 30.0,
                 "label": "source",
+                "dir": "R"
+            }
+        ]
+    },
+    "testprobe": {
+        "name": "testprobe",
+        "displayName": "testprobe",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Simulation/Solvers",
+        "spiceTemplate": "I_PROBE_{NAME} {pin1} 0 DC 0",
+        "iconBase": "M 0 0 L 0 15 M 0 15 L -12 27 L 0 39 L 12 27 Z M -5 32 L 5 32 M 0 32 L 0 22",
+        "filled": false,
+        "argNames": [],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 0.0,
+                "y": -0.0,
+                "label": "",
                 "dir": "R"
             }
         ]

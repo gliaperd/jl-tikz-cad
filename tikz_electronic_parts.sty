@@ -456,9 +456,10 @@
 % scales: 1, 2, 4
 % label_anchor: B
 % flip: disabled
+% spice_template: V_{NAME} {pin1} {pin2} {SIGNAL}
 % preview_args: 3=horizontal, 4=standard
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 4 | select | type | standard | standard, controlled
 % arg_def: 5 | rotation | Rotation | 0
 
@@ -524,11 +525,12 @@
 % enabled
 % category: Sources
 % scales: 1, 2, 4
-% label_anchor: B
+% label_anchor: 0 24 B
 % flip: disabled
+% spice_template: I_{NAME} {pin1} {pin2} {SIGNAL}
 % preview_args: 3=horizontal, 4=standard, 5=0
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical
 % arg_def: 4 | select | standard/controlled | standard | standard, controlled
 % arg_def: 5 | rotation | Rotation | 0
 
@@ -537,31 +539,48 @@
 % add_icon: 4==standard : [stroke-width=2.5] M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0
 % add_icon: 4==controlled : [stroke-width=2.5] M -20 0 L 0 -20 L 20 0 L 0 20 L -20 0
     \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
-				\getzoomfactor
-				% Draw body
-				\ifstrequal{#4}{controlled}
-					{
-						% Diamond shape for controlled source
-						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (0,2) -- (2,0) -- (0,-2) -- cycle;
-					}
-					{
-						% Circle shape for independent source
-						\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) circle (2);
-					}
-				% draw terminals
-					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-3,0) -- (-2,0);
-					\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (3,0);
-				% draw current arrow (the core of the current source)
-					\draw[->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,0) -- (1,0);
-				% draw name
+				\getzoomfactor			
 					\ifstrequal{#3}{horizontal}
 						{
+							% Draw body
+							\ifstrequal{#4}{controlled}
+								{
+									% Diamond shape for controlled source
+									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-2,0) -- (0,2) -- (2,0) -- (0,-2) -- cycle;
+								}
+								{
+									% Circle shape for independent source
+									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) circle (2);
+								}
+							% draw terminals
+								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-3,0) -- (-2,0);
+								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (3,0);
+							% draw current arrow (the core of the current source)
+								\draw[->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,0) -- (1,0);
+							% draw name
 							\node[draw=none, anchor=south] at (0,2.2) {#2};
 						}
 						{
 						}
 					\ifstrequal{#3}{vertical}
 						{
+							% Draw body
+							\ifstrequal{#4}{controlled}
+								{
+									% Diamond shape for controlled source
+									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-2) -- (2,0) -- (0,2) -- (-2,0) -- cycle;
+								}
+								{
+									% Circle shape for independent source
+									\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) circle (2);
+								}
+							% draw terminals
+								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-3) -- (0,-2);
+								\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,2) -- (0,3);
+							% draw current arrow (the core of the current source)
+								\draw[->, >=latex, line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,-1) -- (0,1);
+
+							% draw name
 							\node[draw=none, anchor=east] at (-2.2,0) {#2};
 						}
 						{
@@ -647,7 +666,7 @@
 % flip: disabled
 % preview_args: 3=horizontal, 4=sine, 5=0
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical
 % arg_def: 4 | select | waveform | sine | sine, square, triangle
 % arg_def: 5 | rotation | Rotation | 0
 
@@ -728,7 +747,7 @@
 % flip: disabled
 % preview_args: 3=horizontal, 4=25, 5=0
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical
 % arg_def: 5 | rotation | Rotation | 0
 % arg_def: 4 | select | value | 25 | 0, 25, 50, 75, 100
 
@@ -801,7 +820,7 @@
 % spice_template: R_{NAME} {pin1} {pin2} {VALUE}
 % preview_args: 4=fixed
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 4 | select | fixed/variable | fixed | fixed,variable
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
 
@@ -887,9 +906,10 @@
 % scales: 1, 2, 4
 % label_anchor: 40 0 B
 % flip: disabled
+% spice_template: L_{NAME} {pin1} {pin2} {VALUE}
 % preview_args: 4=fixed
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 4 | select | fixed/variable | fixed | fixed, variable
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
 
@@ -976,9 +996,10 @@
 % scales: 1, 2, 4
 % label_anchor: B
 % flip: disabled
+% spice_template: C_{NAME} {pin1} {pin2} {VALUE}
 % preview_args: 3=fixed, 4=none
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 3 | select | fixed/variable | fixed | fixed, variable
 % arg_def: 4 | select | sign | none | plus, minus, none
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
@@ -1115,7 +1136,7 @@
 % spice_template: V_{NAME} {pin2} {pin1} {VOLTAGE}
 % preview_args: 3=horizontal, 4=none, 5=0,none
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 3 | select | fixed/variable | fixed | fixed, variable
 % arg_def: 4 | select | plus sign | plus | plus, none
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
@@ -1234,7 +1255,7 @@
 % label_anchor: B
 % flip: disabled
 
-% arg_def: 3 | select | horizontal/vertical/none | horizontal | horizontal, vertical, none (LaTeX only)
+% arg_def: 3 | select | horizontal/vertical/none | horizontal | horizontal, vertical, none 
 % arg_def: 3 | select | fixed/variable | fixed | fixed, variable
 % arg_def: 4 | select | plus sign | none | plus, none
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
@@ -1354,6 +1375,7 @@
 % scales: 1, 2, 4
 % label_anchor: 10 33 L
 % flip: disabled
+% spice_template: Q_{NAME} {pin2} {pin1} {pin3} {MODEL}
 % preview_args: 3=n, 4=case
 
 % arg_def: 3 | select | n/p | n | n, p
@@ -1674,6 +1696,7 @@
 % scales: 1, 2, 4
 % label_anchor: 68 24 R
 % flip: disabled
+% spice_template: X_{NAME} {pin1} {pin2} {pin3} {MODEL}
 
 % arg_def: 3 | flags | flip |  | flip
 % arg_def: 4 | text | supplyvoltage | 
@@ -1745,8 +1768,9 @@
 % scales: 1, 2, 4
 % label_anchor: B
 % flip: disabled
+% spice_template: D_{NAME} {pin1} {pin2} {MODEL}
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical
 % arg_def: 4 | rotation | Rotation | 0
 
 
@@ -1818,7 +1842,7 @@
 % label_anchor: B
 % flip: disabled
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) |  | horizontal, vertical, 
+% arg_def: 3 | select | horizontal/vertical  |  | horizontal, vertical, 
 % arg_def: 4 | rotation | Rotation | 0
 
 
@@ -1890,7 +1914,7 @@
 % label_anchor: B
 % flip: disabled
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) |  | horizontal, vertical, 
+% arg_def: 3 | select | horizontal/vertical  |  | horizontal, vertical, 
 % arg_def: 4 | rotation | Rotation | 0
 
 
@@ -1971,7 +1995,7 @@
 % label_anchor: B
 % flip: disabled
 
-% arg_def: 3 | select | horizontal/vertical (LaTex only) |  | horizontal, vertical, 
+% arg_def: 3 | select | horizontal/vertical  |  | horizontal, vertical, 
 % arg_def: 4 | rotation | Rotation | 0
 
 
@@ -5321,7 +5345,7 @@
 % flip: disabled
 % preview_args: 4=fixed
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 4 | select | fixed/variable | fixed | fixed,variable
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
 
@@ -5407,9 +5431,10 @@
 % scales: 1, 2, 4
 % label_anchor: 40 0 B
 % flip: disabled
+% spice_template: L_{NAME} {pin1} {pin2} {VALUE}
 % preview_args: 4=fixed
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 4 | select | fixed/variable | fixed | fixed, variable
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
 
@@ -5496,9 +5521,10 @@
 % scales: 1, 2, 4
 % label_anchor: B
 % flip: disabled
+% spice_template: C_{NAME} {pin1} {pin2} {VALUE}
 % preview_args: 3=fixed, 4=none
 
-% arg_def: 3 | select | horizontal/vertical (LaTeX only) | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 3 | select | fixed/variable | fixed | fixed, variable
 % arg_def: 4 | select | sign | none | plus, minus, none
 % arg_def: 5 | rotflip | Rotation & Flip | 0,none
@@ -5735,5 +5761,32 @@
             \coordinate (pin1) at (-3.00, 0.00); % left terminal (gate) [R]
         \coordinate (pin2) at (1.00, 3.00); % top terminal (drain) [R]
         \coordinate (pin3) at (1.00, -3.00); % bottom terminal (source) [R]
+    \end{scope}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Simulation Components
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% ==========================================
+% Test Probe (For Thevenin/Norton Analysis)
+% ==========================================
+\newcommand{\testprobe}[7]{
+% enabled
+% category: Simulation/Solvers
+% spice_template: I_PROBE_{NAME} {pin1} 0 DC 0
+% icon_base: M 0 0 L 0 15 M 0 15 L -12 27 L 0 39 L 12 27 Z M -5 32 L 5 32 M 0 32 L 0 22
+	\begin{scope}[shift={#1}, rotate=#5]
+        \coordinate (pin1) at (0,0);
+        % The wire lead
+        \draw[thick, line cap=round, #6] (0,0) -- (0, 0.4);
+        % The probe body (Diamond shape parses universally)
+        \draw[thick, fill=white, #6] (-0.2, 0.6) -- (0, 0.8) -- (0.2, 0.6) -- (0, 0.4) -- cycle;
+        % A literal "T" drawn with lines
+        \draw[thick, line cap=round, #6] (-0.1, 0.65) -- (0.1, 0.65);
+        \draw[thick, line cap=round, #6] (0, 0.65) -- (0, 0.55);
     \end{scope}
 }

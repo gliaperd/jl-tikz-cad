@@ -129,6 +129,12 @@
         .swal2-container {
             z-index: 10000 !important;
         }
+
+        /* --- THE FIX: Prevent SweetAlert2 from breaking the fullscreen flex layout! --- */
+        html.swal2-height-auto, body.swal2-height-auto {
+            height: 100vh !important;
+        }
+		
 		#my-paper { 
             width: 100%; height: 100%; 
         }
@@ -216,18 +222,26 @@
 		
 		/* --- TOOLBAR DROPDOWN --- */
         .toolbar-dropdown { position: relative; display: inline-block; margin-left: 5px; }
+        
+        /* FIX: Invisible bridge to eliminate the dead zone! */
+        .toolbar-dropdown::after { 
+            content: ""; position: absolute; left: 0; top: 100%; width: 100%; height: 15px; 
+        }
+
         .toolbar-dropdown-content { 
             display: none; position: absolute; background-color: #ffffff; 
             min-width: 170px; box-shadow: 0px 8px 16px rgba(0,0,0,0.3); 
-            z-index: 5000; border-radius: 6px; margin-top: 2px; border: 1px solid #bdc3c7; overflow: hidden;
+            z-index: 5000; border-radius: 6px; border: 1px solid #bdc3c7; overflow: hidden;
+            /* FIX: Anchor strictly to the bottom of the button */
+            top: 100%; margin-top: 4px; 
         }
-        .toolbar-dropdown-content label { 
+        .toolbar-dropdown-content label, .toolbar-dropdown-content .menu-item { 
             color: #2c3e50; padding: 10px 12px; display: flex; align-items: center; 
             gap: 8px; cursor: pointer; font-size: 12px; font-weight: 500; 
             border-bottom: 1px solid #ecf0f1; margin: 0; transition: background 0.2s; user-select: none;
         }
-        .toolbar-dropdown-content label:last-child { border-bottom: none; }
-        .toolbar-dropdown-content label:hover { background-color: #ebf5fb; }
+        .toolbar-dropdown-content label:last-child, .toolbar-dropdown-content .menu-item:last-child { border-bottom: none; }
+        .toolbar-dropdown-content label:hover, .toolbar-dropdown-content .menu-item:hover { background-color: #ebf5fb; }
         .toolbar-dropdown:hover .toolbar-dropdown-content { display: block; }
         .toolbar-dropdown:hover .tool-btn { background: #4a6278; }
 		
@@ -264,11 +278,23 @@
 	<button onclick="undo()" class="tool-btn">↺ Undo</button>
     <button onclick="redo()" class="tool-btn">↻ Redo</button>
     <button onclick="clearCanvas()" class="tool-btn" style="color:#e74c3c;">🗑️ Clear Canvas</button> 
-    <div class="v-separator"></div>
-	
-	<button onclick="runDCAnalysis()" class="tool-btn" style="background:#8e44ad; font-weight:bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">⚡ Run DC</button>
-    <button onclick="clearSimAnnotations()" class="tool-btn" style="color:#bdc3c7;">🧹 Clear</button>
-    <button onclick="openSimulationSettings()" class="tool-btn" style="background:#e67e22;">⚙️ Sim Settings</button>
+    
+	<div class="v-separator"></div>
+    
+    <div class="toolbar-dropdown">
+        <button class="tool-btn" style="background:#8e44ad; font-weight:bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">⚡ Simulate ▼</button>
+        <div class="toolbar-dropdown-content" style="min-width: 190px;">
+            <div class="menu-item" onclick="runSimulation('op')">⚡ DC Operating Point</div>
+            <div class="menu-item" onclick="runSimulation('tran')">📈 Transient Analysis</div>
+            <div class="menu-item" onclick="runSimulation('ac')">🌊 AC Analysis</div>
+			<div class="menu-item" onclick="openSpiceNetlistEditor()">📄 View/Edit Netlist</div>
+            <div style="border-top: 1px solid #ecf0f1; margin: 4px 0;"></div>
+            <div class="menu-item" onclick="openSimulationSettings()">⚙️ Simulation Settings</div>
+            <div class="menu-item" onclick="clearSimAnnotations()" style="color: #e74c3c;">🧹 Clear Annotations</div>
+			<div class="menu-item" onclick="promptTheveninNode()" style="color: #8e44ad; font-weight: bold;">🪄 Thevenin/Norton Eq.</div>
+        </div>
+    </div>
+    
     <div class="v-separator"></div>
 	
     <button onclick="saveProject()" class="tool-btn" style="background:#8e44ad">💾 Save</button>
@@ -309,7 +335,7 @@
     </div>
 </div>
 
-<div id="output-panel">
+<div id="output-panel" class="collapsed">
 	<div class="floating-buttons">
         <button onclick="syncFromLatex()" class="tool-btn" style="background: #8e44ad; font-size: 11px;">🔄 Sync to Canvas</button>
         <button onclick="runLinterUI()" class="tool-btn" style="background: #e67e22; font-size: 11px;">🔍 Check Syntax</button>
@@ -321,7 +347,7 @@
 
 <div id="minimized-corner">
     <div id="tab-sidebar" class="min-tab" onclick="toggleSidebar()" title="Restore Palette">🎨</div>
-    <div id="tab-output" class="min-tab" onclick="toggleOutput()" title="Restore LaTeX Code Window">📝</div>
+    <div id="tab-output" class="min-tab" onclick="toggleOutput()" title="Restore LaTeX Code Window" style="display: flex;">📝</div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
@@ -329,9 +355,48 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/backbone.js/1.4.1/backbone-min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jointjs/3.7.0/joint.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="components_db.js"></script>
 
 <script>
+    // --- GLOBAL SWEETALERT FIX ---
+    // Intercepts every Swal.fire call in the app and forces heightAuto to false
+    const originalSwalFire = Swal.fire;
+    Swal.fire = function(...args) {
+        if (args.length > 0 && typeof args[0] === 'object') {
+            args[0].heightAuto = false;
+        } else if (args.length > 0) {
+            args = [{
+                title: args[0],
+                html: args[1],
+                icon: args[2],
+                heightAuto: false
+            }];
+        }
+        return originalSwalFire.apply(this, args);
+    };
+    // -----------------------------
+
+	// --- 📚 STANDARD SPICE MODEL LIBRARY (CATEGORIZED) ---
+	const SPICE_MODEL_LIBRARY = {
+		"D": { // Diodes
+			"1N4148": ".model 1N4148 D (IS=4.352n RS=0.6458 N=1.906 TT=3.48n CJO=2.595p VJ=0.6385 M=0.262 EG=1.11 XTI=3.0 BV=110 IBV=0.0001)",
+			"1N4004": ".model 1N4004 D (IS=18.8n RS=0 N=2 BV=400 IBV=5.00u CJO=30p VJ=0.333 M=0.333 TT=2.88u)"
+		},
+		"Q": { // Bipolar Transistors (NPN / PNP)
+			"2N3904": ".model 2N3904 NPN (IS=1E-14 VAF=100 BF=300 IKF=0.4 XTB=1.5 BR=4 CJC=4E-12 CJE=8E-12 RB=20 RC=0.1 RE=0.1 TR=250E-9 TF=350E-12 ITF=1 VTF=2 XTF=3 VJC=0.75 VJE=0.75)",
+			"2N3906": ".model 2N3906 PNP (IS=1E-14 VAF=100 BF=200 IKF=0.4 XTB=1.5 BR=4 CJC=4.5E-12 CJE=10E-12 RB=20 RC=0.1 RE=0.1 TR=250E-9 TF=350E-12 ITF=1 VTF=2 XTF=3 VJC=0.75 VJE=0.75)"
+		},
+		"M": { // MOSFETs
+			"2N7002": ".model 2N7002 VDMOS (Rg=120 Vto=1.6 Rd=1.5 Rs=0.5 Rb=0.1 Kp=0.17 mtri=1.2 Cgdmax=20p Cgdmin=2p Cgs=25p Cjo=25p Is=10p m=0.3 VJ=0.75)",
+			"BSS84": ".model BSS84 VDMOS (pchan Rg=120 Vto=-1.6 Rd=1.5 Rs=0.5 Rb=0.1 Kp=0.17 mtri=1.2 Cgdmax=20p Cgdmin=2p Cgs=25p Cjo=25p Is=10p m=0.3 VJ=0.75)"
+		},
+		"X": { // Subcircuits (Op-Amps, ICs)
+			"OPAMP_IDEAL": ".subckt OPAMP_IDEAL in_p in_n out\nE1 out 0 in_p in_n 1Meg\n.ends",
+			"LM741_MACRO": ".subckt LM741_MACRO in_p in_n out\n* Simplified 3-pin LM741 Macro\nRin in_p in_n 2Meg\nE1 out 0 in_p in_n 200k\nRout out 0 75\n.ends"
+		}
+	};
+
 	// --- ΟΡΙΣΜΟΣ CUSTOM CONNECTORDOT ---
     window.joint.shapes.jl = {}; 
     joint.shapes.jl.ConnectorDot = joint.dia.Element.define('jl.ConnectorDot', {
@@ -665,22 +730,49 @@
         let normalizedAngle = (rawAngle % 360 + 360) % 360;
         let localRot = 0;
         
-        // CAD Readability Standard: Keep text Left-to-Right or Bottom-to-Top
-        if (normalizedAngle >= 90 && normalizedAngle < 270) {
-            localRot = 180;
+        // --- DETECT INTENT: Does this component use explicit orientation? ---
+        let isExplicitlyOriented = false;
+        if (data && data.argNames) {
+            let customArgs = el.get('customArgs') || [];
+            for (let i = 0; i < data.argsCount; i++) {
+                let desc = data.argNames[i] ? data.argNames[i].name.toLowerCase() : "";
+                if (desc.includes('horizontal') && desc.includes('vertical')) {
+                    let val = customArgs[i] ? customArgs[i].toString().toLowerCase().trim() : "";
+                    // Only apply the "hanging label" trick if the dropdown is actively set to H or V
+                    if (val === 'vertical' || val === 'horizontal') {
+                        isExplicitlyOriented = true;
+                    }
+                    break;
+                }
+            }
         }
 
-        // --- NEW: Dynamic CAD Alignment (Matches Symbol Builder) ---
+        // --- APPLY ROTATION RULES ---
+        if (isExplicitlyOriented) {
+            // GOAL 2: Symbol rotates, but label stays perfectly horizontal
+            localRot = -rawAngle;
+        } else {
+            // GOAL 1: Standard rotation. Label spins with the symbol.
+            // CAD Readability: Just prevent text from being upside down.
+            if (normalizedAngle >= 90 && normalizedAngle < 270) {
+                localRot = 180;
+            }
+        }
+        
+        // Free text always stays upright unless manually rotated
+        if (isFreeText) {
+            localRot = 0;
+            if (normalizedAngle >= 90 && normalizedAngle < 270) localRot = 180;
+        }
+
         let lblAlign = "middle";
         let htmlTransformX = "-50%";
         
         if (data && data.labelAnchor) {
-            // Read the active flip states
             let flipH = el.get('flipH') || false;
             let flipV = el.get('flipV') || false;
             let effectiveDir = data.labelAnchor.dir;
 
-            // Reverse the anchor direction if flipped
             if (flipH) {
                 if (effectiveDir === 'L') effectiveDir = 'R';
                 else if (effectiveDir === 'R') effectiveDir = 'L';
@@ -690,19 +782,41 @@
                 else if (effectiveDir === 'B') effectiveDir = 'T';
             }
 
-            // Apply the flipped alignment
-            if (effectiveDir === 'L') { lblAlign = "end"; htmlTransformX = "-100%"; }
-            else if (effectiveDir === 'R') { lblAlign = "start"; htmlTransformX = "0%"; }
-            
-            // If CAD Readability flipped the text upright, swap start/end 
-            if (normalizedAngle >= 90 && normalizedAngle < 270) {
-                if (lblAlign === "start") { lblAlign = "end"; htmlTransformX = "-100%"; }
-                else if (lblAlign === "end") { lblAlign = "start"; htmlTransformX = "0%"; }
-            }
-        }
+            if (isExplicitlyOriented) {
+                // Because we counter-rotated the text, we must calculate its NEW visual anchor position
+                let visualDir = effectiveDir;
+                if (normalizedAngle === 90) {
+                    if (effectiveDir === 'L') visualDir = 'T';
+                    else if (effectiveDir === 'R') visualDir = 'B';
+                    else if (effectiveDir === 'T') visualDir = 'R';
+                    else if (effectiveDir === 'B') visualDir = 'L';
+                } else if (normalizedAngle === 180) {
+                    if (effectiveDir === 'L') visualDir = 'R';
+                    else if (effectiveDir === 'R') visualDir = 'L';
+                    else if (effectiveDir === 'T') visualDir = 'B';
+                    else if (effectiveDir === 'B') visualDir = 'T';
+                } else if (normalizedAngle === 270) {
+                    if (effectiveDir === 'L') visualDir = 'B';
+                    else if (effectiveDir === 'R') visualDir = 'T';
+                    else if (effectiveDir === 'T') visualDir = 'L';
+                    else if (effectiveDir === 'B') visualDir = 'R';
+                }
 
-        if (normalizedAngle >= 90 && normalizedAngle < 270) {
-            localRot = 180;
+                if (visualDir === 'L') { lblAlign = "end"; htmlTransformX = "-100%"; }
+                else if (visualDir === 'R') { lblAlign = "start"; htmlTransformX = "0%"; }
+                else { lblAlign = "middle"; htmlTransformX = "-50%"; }
+
+            } else {
+                // Standard rotation: The text orbits the shape naturally, so we just use the base direction
+                if (effectiveDir === 'L') { lblAlign = "end"; htmlTransformX = "-100%"; }
+                else if (effectiveDir === 'R') { lblAlign = "start"; htmlTransformX = "0%"; }
+                
+                // If CAD Readability flipped the text upright (180deg local spin), swap start/end so it grows outward
+                if (localRot === 180) {
+                    if (lblAlign === "start") { lblAlign = "end"; htmlTransformX = "-100%"; }
+                    else if (lblAlign === "end") { lblAlign = "start"; htmlTransformX = "0%"; }
+                }
+            }
         }
 
         // --- NEW: Check for user override, fallback to database default ---
@@ -1717,17 +1831,35 @@
                 el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y));
                 
                 // --- NEW: Sync visual rotation back to properties ---
-                if (dbData && dbData.argDefs) {
+                if (dbData) {
                     let customArgs = el.get('customArgs') || [];
-                    let rot = (360 - (el.get('angle') || 0)) % 360;
+                    let webAngle = el.get('angle') || 0;
+                    let rot = (360 - webAngle) % 360;
                     let flipH = el.get('flipH') ? 'h' : '';
                     let flipV = el.get('flipV') ? 'v' : '';
                     let flipStr = flipH && flipV ? 'hv' : (flipH || flipV || 'none');
                     
-                    dbData.argDefs.forEach(def => {
-                        if (def.type === 'rotflip') customArgs[def.idx - 1] = `${rot},${flipStr}`;
-                        else if (def.type === 'rotation') customArgs[def.idx - 1] = `${rot}`;
-                    });
+                    if (dbData.argDefs) {
+                        dbData.argDefs.forEach(def => {
+                            if (def.type === 'rotflip') customArgs[def.idx - 1] = `${rot},${flipStr}`;
+                            else if (def.type === 'rotation') customArgs[def.idx - 1] = `${rot}`;
+                        });
+                    }
+                    
+                    // --- THE FIX: Smart Sync for Horizontal/Vertical dropdowns ---
+                    for (let i = 0; i < dbData.argsCount; i++) {
+                        let argName = dbData.argNames[i] ? dbData.argNames[i].name.toLowerCase() : "";
+                        if (argName.includes('horizontal') && argName.includes('vertical')) {
+                             // If it's standing up or down, set the dropdown to vertical
+                             if (webAngle === 90 || webAngle === 270) {
+                                 customArgs[i] = 'vertical';
+                             } else if (webAngle === 0 || webAngle === 180) {
+                                 customArgs[i] = 'horizontal';
+                             } else {
+                                 customArgs[i] = 'none'; // Fallback to let the numeric rotation take over
+                             }
+                        }
+                    }
                     el.set('customArgs', customArgs);
                 }
             }
@@ -2678,10 +2810,12 @@
         const currentLatex = document.getElementById('latex-output').innerText;
         graph.set('customLatex', currentLatex);
         
+        // THE FIX: Embed the simulation settings into the graph metadata!
+        graph.set('spiceSimConfig', window.spiceSimConfig); 
+        
         const jsonString = JSON.stringify(graph.toJSON());
         saveFileAs(jsonString, 'circuit.json', 'application/json', 'JointJS Diagram');
         
-        // --- NEW: Wipe the auto-save memory after a successful manual save ---
         localStorage.removeItem('jlcad_autosave');
     }
 
@@ -2764,7 +2898,27 @@ ${indentedTikz}
 	function getAbsolutePinCoord(el, portId) {
 		let port = el.getPort(portId);
 		let pos = el.position();
-		return { x: pos.x + port.args.x, y: pos.y + port.args.y };
+		let size = el.size();
+		
+		// Base unrotated coordinates
+		let px = pos.x + port.args.x;
+		let py = pos.y + port.args.y;
+		
+		// Find the exact center of the component
+		let cx = pos.x + size.width / 2;
+		let cy = pos.y + size.height / 2;
+		
+		// Get the rotation angle and convert to radians
+		let angle = el.get('angle') || 0;
+		let rad = angle * Math.PI / 180;
+		let cos = Math.cos(rad);
+		let sin = Math.sin(rad);
+		
+		// Apply 2D rotation matrix around the center
+		let nx = cos * (px - cx) - sin * (py - cy) + cx;
+		let ny = sin * (px - cx) + cos * (py - cy) + cy;
+		
+		return { x: Math.round(nx), y: Math.round(ny) };
 	}
 
 	// Ο ΠΥΡΗΝΑΣ ΤΗΣ ΤΟΠΟΛΟΓΙΑΣ (Clustering & L vs T Junctions)
@@ -3459,7 +3613,30 @@ ${indentedTikz}
                 });
 
                 graph.fromJSON(parsedData); 
+				// BRANCH B: NATIVE JOINTJS CIRCUIT DETECTED
+                if (!parsedData || !Array.isArray(parsedData.cells)) throw new Error("Invalid project file format.");
+
+                // Phantom Dot Cleanup
+                parsedData.cells = parsedData.cells.filter(cell => {
+                    if (cell.type === 'standard.Link' && cell.source && cell.target) {
+                        if (cell.source.x === cell.target.x && cell.source.y === cell.target.y && (!cell.vertices || cell.vertices.length === 0)) return false; 
+                    }
+                    return true; 
+                });
+
+                graph.fromJSON(parsedData); 
                 syncVisibilityFromUI();
+                
+                // THE FIX: Restore the simulation settings if they exist in the file!
+                let loadedConfig = graph.get('spiceSimConfig');
+                if (loadedConfig) {
+                    window.spiceSimConfig = { ...window.spiceSimConfig, ...loadedConfig };
+                }
+                
+                // Route to the new unified finalizer!
+                setTimeout(() => finalizeCanvasAndMath('Project loaded successfully!'), 50);
+                
+				syncVisibilityFromUI();
                 
                 // Route to the new unified finalizer!
                 setTimeout(() => finalizeCanvasAndMath('Project loaded successfully!'), 50);
@@ -3603,6 +3780,7 @@ ${indentedTikz}
         let angle = 0;
         let flipH = false;
         let flipV = false;
+        let orientRot = null; // Tracks explicit horizontal/vertical text
 
         for (let i = 0; i < data.argsCount; i++) {
             let argDef = data.argNames[i] || { name: '' };
@@ -3612,6 +3790,14 @@ ${indentedTikz}
             let val = argsArray[i];
 
             if (!val) continue;
+
+            // --- THE FIX: Detect Horizontal/Vertical string arguments ---
+            if (desc.includes('horizontal') && desc.includes('vertical')) {
+                let orientVal = val.toString().toLowerCase().trim();
+                // Note: TikZ 90° (Up) is Web 270° (Counter-Clockwise SVG)
+                if (orientVal === 'horizontal') orientRot = 0;
+                else if (orientVal === 'vertical') orientRot = 270; 
+            }
 
             if (typeMatch === 'rotflip' || (!customDef && desc.includes('rotation') && desc.includes('flip'))) {
                 let parts = val.split(',');
@@ -3627,6 +3813,12 @@ ${indentedTikz}
                 if (f==='h') flipH = true; if (f==='v') flipV = true; if (f==='hv'||f==='vh') { flipH=true; flipV=true; }
             }
         }
+        
+        // Explicit "horizontal" or "vertical" text overrides the base rotation!
+        if (orientRot !== null) {
+            angle = orientRot;
+        }
+
         return { angle, flipH, flipV };
     }
 	
@@ -3811,11 +4003,9 @@ ${indentedTikz}
 
         if (spiceTemplate) {
             let matches = [...spiceTemplate.matchAll(/\{([^}]+)\}/g)];
-            let pinIds = (data.pins || []).map(p => p.id); // Λίστα με τα πραγματικά Pins
-            
+            let pinIds = (data.pins || []).map(p => p.id); 
             matches.forEach(m => {
                 let varName = m[1];
-                // Αν ΔΕΝ είναι pin και ΔΕΝ είναι η δεσμευμένη λέξη NAME, είναι παράμετρος!
                 if (!pinIds.includes(varName) && !spiceParams.includes(varName) && varName !== 'NAME') {
                     spiceParams.push(varName);
                 }
@@ -3829,11 +4019,191 @@ ${indentedTikz}
             
             spiceParams.forEach(param => {
                 let currentVal = savedSpiceData[param] !== undefined ? savedSpiceData[param] : "";
-                htmlForm += `
+                
+                // --- CUSTOM SIGNAL BUILDER FOR SOURCES ---
+                if (param === 'SIGNAL') {
+                    // Extract values if editing an existing signal
+                    let sigType = 'DC', dcVal = '0', acVal = '0', sineOffset = '0', sineAmp = '1', sineFreq = '1k', pulseV1 = '0', pulseV2 = '5', pulseTd = '0', pulseTr = '1n', pulseTf = '1n', pulsePw = '50u', pulsePer = '100u';
+                    
+                    // Safely extract AC magnitude if present
+                    let acMatch = currentVal.match(/AC\s+([^\s]+)/);
+                    if (acMatch) acVal = acMatch[1];
+
+                    if (currentVal.startsWith('SINE')) {
+                        sigType = 'SINE';
+                        let m = currentVal.match(/SINE\((.*?)\)/);
+                        if (m) { let p = m[1].split(' '); sineOffset = p[0]||'0'; sineAmp = p[1]||'1'; sineFreq = p[2]||'1k'; }
+                    } else if (currentVal.startsWith('PULSE')) {
+                        sigType = 'PULSE';
+                        let m = currentVal.match(/PULSE\((.*?)\)/);
+                        if (m) { let p = m[1].split(' '); pulseV1=p[0]||'0'; pulseV2=p[1]||'5'; pulseTd=p[2]||'0'; pulseTr=p[3]||'1n'; pulseTf=p[4]||'1n'; pulsePw=p[5]||'50u'; pulsePer=p[6]||'100u'; }
+                    } else if (currentVal.includes('DC') || currentVal.includes('AC')) {
+                        let parts = currentVal.split(' ');
+                        for (let i=0; i<parts.length; i++) {
+                            if (parts[i] === 'DC') dcVal = parts[i+1] || '0';
+                        }
+                    } else if (currentVal !== "") {
+                        dcVal = currentVal; 
+                    }
+
+                    // Store global updater function
+                    window.updateSignalBuilder = function() {
+                        let type = document.getElementById('sig-type').value;
+                        let finalStr = "";
+                        let globalAc = document.getElementById('sig-global-ac').value;
+                        let acStr = (globalAc && globalAc !== '0') ? ` AC ${globalAc}` : '';
+
+                        document.getElementById('sig-dc-fields').style.display = type === 'DC' ? 'block' : 'none';
+                        document.getElementById('sig-sine-fields').style.display = type === 'SINE' ? 'block' : 'none';
+                        document.getElementById('sig-pulse-fields').style.display = type === 'PULSE' ? 'block' : 'none';
+
+                        if (type === 'DC') {
+                            let d = document.getElementById('sig-dc').value; 
+                            if (d && d !== '0') finalStr += `DC ${d}`;
+                            finalStr += acStr;
+                            if (!finalStr && d === '0') finalStr = '0';
+                        } else if (type === 'SINE') {
+                            finalStr = `SINE(${document.getElementById('sig-sin-off').value} ${document.getElementById('sig-sin-amp').value} ${document.getElementById('sig-sin-freq').value})` + acStr;
+                        } else if (type === 'PULSE') {
+                            finalStr = `PULSE(${document.getElementById('sig-pul-v1').value} ${document.getElementById('sig-pul-v2').value} ${document.getElementById('sig-pul-td').value} ${document.getElementById('sig-pul-tr').value} ${document.getElementById('sig-pul-tf').value} ${document.getElementById('sig-pul-pw').value} ${document.getElementById('sig-pul-per').value})` + acStr;
+                        }
+                        document.getElementById('swal-spice-SIGNAL').value = finalStr.trim();
+                    };
+
+                    htmlForm += `
+                    <div style="grid-column: span 2; background: #fdfdfd; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:10px;">
+                            <div style="flex:1;">
+                                <label style="font-weight: bold; color: #e67e22; font-size: 11px;">Transient Waveform</label>
+                                <select id="sig-type" onchange="window.updateSignalBuilder()" style="width: 100%; padding: 4px; font-size: 12px; border: 1px solid #ccc; border-radius: 3px;">
+                                    <option value="DC" ${sigType==='DC'?'selected':''}>DC (Flat)</option>
+                                    <option value="SINE" ${sigType==='SINE'?'selected':''}>SINE Wave</option>
+                                    <option value="PULSE" ${sigType==='PULSE'?'selected':''}>PULSE Wave</option>
+                                </select>
+                            </div>
+                            <div style="flex:1;">
+                                <label style="font-weight: bold; color: #2980b9; font-size: 11px;">AC Amplitude (.ac sweep)</label>
+                                <input type="text" id="sig-global-ac" value="${acVal}" oninput="window.updateSignalBuilder()" style="width: 100%; padding: 4px; font-size: 12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;" placeholder="e.g. 1">
+                            </div>
+                        </div>
+                        <hr style="border-top:1px solid #eee; margin: 8px 0;">
+                        
+                        <div id="sig-dc-fields" style="display:${sigType==='DC'?'block':'none'};">
+                            <label style="font-size:10px; font-weight:bold; color:#7f8c8d;">DC Level (V/A)</label>
+                            <input type="text" id="sig-dc" value="${dcVal}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;">
+                        </div>
+
+                        <div id="sig-sine-fields" style="display:${sigType==='SINE'?'block':'none'};">
+                            <div style="display:flex; gap:5px; flex-wrap:wrap;">
+                                <div style="flex:1; min-width:30%;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Offset</label><input type="text" id="sig-sin-off" value="${sineOffset}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div style="flex:1; min-width:30%;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Amplitude</label><input type="text" id="sig-sin-amp" value="${sineAmp}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div style="flex:1; min-width:30%;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Freq (Hz)</label><input type="text" id="sig-sin-freq" value="${sineFreq}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            </div>
+                        </div>
+
+                        <div id="sig-pulse-fields" style="display:${sigType==='PULSE'?'block':'none'};">
+                            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px;">
+                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">V1 (Start)</label><input type="text" id="sig-pul-v1" value="${pulseV1}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">V2 (Peak)</label><input type="text" id="sig-pul-v2" value="${pulseV2}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Delay (Td)</label><input type="text" id="sig-pul-td" value="${pulseTd}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Rise (Tr)</label><input type="text" id="sig-pul-tr" value="${pulseTr}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Fall (Tf)</label><input type="text" id="sig-pul-tf" value="${pulseTf}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Width (Pw)</label><input type="text" id="sig-pul-pw" value="${pulsePw}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                                <div style="grid-column: span 3;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Period (Per)</label><input type="text" id="sig-pul-per" value="${pulsePer}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            </div>
+                        </div>
+                        
+                        <input type="hidden" id="swal-spice-SIGNAL" value="${currentVal}">
+                    </div>`;
+                // --- CUSTOM MODEL DROP-DOWN & WIZARD ---
+                } else if (param === 'MODEL') {
+                    let prefixMatch = spiceTemplate.match(/^([a-zA-Z])_/);
+                    let compType = prefixMatch ? prefixMatch[1].toUpperCase() : null;
+                    let availableModels = (compType && SPICE_MODEL_LIBRARY[compType]) ? SPICE_MODEL_LIBRARY[compType] : {};
+
+                    let isZener = macro.includes('zener');
+                    let isMOS = macro.includes('mos');
+                    let isBJT = macro.includes('bipolar');
+                    let isDiode = macro.includes('diode') && !isZener;
+                    
+                    let isWizard = currentVal.startsWith('WIZ_');
+                    let isCustom = !availableModels[currentVal] && currentVal !== "" && !isWizard;
+                    let selVal = isWizard ? "WIZARD" : (isCustom ? "CUSTOM" : currentVal);
+
+                    // Rehydrate saved wizard values
+                    let wVz = savedSpiceData['WIZ_VZ'] || '5.1';
+                    let wVto = savedSpiceData['WIZ_VTO'] || '1.0';
+                    let wKp = savedSpiceData['WIZ_KP'] || '20u';
+                    let wBf = savedSpiceData['WIZ_BF'] || '100';
+                    let wVj = savedSpiceData['WIZ_VJ'] || '0.7'; 
+					
+                    window.updateModelSelection = function() {
+                        let sel = document.getElementById('sig-model-sel').value;
+                        let txt = document.getElementById('swal-spice-MODEL');
+                        let wizDiv = document.getElementById('model-wizard-fields');
+                        
+                        txt.style.display = sel === 'CUSTOM' ? 'block' : 'none';
+                        if (wizDiv) wizDiv.style.display = sel === 'WIZARD' ? 'block' : 'none';
+                        
+                        if (sel === 'CUSTOM') {
+                            if (availableModels[txt.value] || txt.value.startsWith('WIZ_')) txt.value = ""; 
+                        } else if (sel === 'WIZARD') {
+                            // Assign a unique dummy name to trigger the Netlist engine later
+                            txt.value = "WIZ_" + (el.id || "123").replace(/-/g, '').substring(0, 6);
+                        } else {
+                            txt.value = sel;
+                        }
+                    };
+
+                    let optionsHtml = `<option value="" ${selVal===''?'selected':''}>Generic / Ideal</option>`;
+                    if (isZener || isMOS || isBJT || isDiode) {
+                        optionsHtml += `<option value="WIZARD" ${selVal==='WIZARD'?'selected':''}>✨ Basic Parameters...</option>`;
+                    }
+                    for (let m in availableModels) {
+                        optionsHtml += `<option value="${m}" ${selVal===m?'selected':''}>${m}</option>`;
+                    }
+                    optionsHtml += `<option value="CUSTOM" ${selVal==='CUSTOM'?'selected':''}>Other (Custom)</option>`;
+
+                    htmlForm += `
+                    <div style="grid-column: span 2;">
+                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 11px;">MODEL</label>
+                        <div style="display: flex; gap: 5px;">
+                            <select id="sig-model-sel" onchange="window.updateModelSelection()" style="flex: 1; height: 32px; font-size: 13px; padding: 0 10px; border: 1px solid #bdc3c7; border-left: 3px solid #8e44ad;">
+                                ${optionsHtml}
+                            </select>
+                            <input type="text" id="swal-spice-MODEL" style="flex: 1; height: 32px; font-size: 13px; padding: 0 10px; border: 1px solid #bdc3c7; display: ${selVal === 'CUSTOM' ? 'block' : 'none'};" value="${currentVal}" placeholder="Type custom model name...">
+                        </div>`;
+
+                    if (isZener || isMOS || isBJT || isDiode) {
+                        htmlForm += `<div id="model-wizard-fields" style="display: ${selVal === 'WIZARD' ? 'block' : 'none'}; margin-top: 8px; padding: 10px; background: #fdfdfd; border: 1px dashed #9b59b6; border-radius: 4px;">`;
+                        
+                        if (isZener) {
+                            htmlForm += `<div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Zener Breakdown (BV) in Volts</label>
+                                         <input type="text" id="wiz-vz" value="${wVz}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>`;
+                        } else if (isMOS) {
+                            htmlForm += `<div style="display:flex; gap:10px;">
+                                            <div style="flex:1;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Threshold (VTO)</label><input type="text" id="wiz-vto" value="${wVto}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
+                                            <div style="flex:1;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">k' (KP)</label><input type="text" id="wiz-kp" value="${wKp}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
+                                         </div>
+                                         <div style="font-size:10px; color:#e67e22; margin-top:5px; font-weight:bold;">💡 Note: Channel Length (L) and Width (W) are set in the boxes below!</div>`;
+                        } else if (isBJT) {
+                            htmlForm += `<div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Beta (β / BF)</label>
+                                         <input type="text" id="wiz-bf" value="${wBf}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>`;
+                        } else if (isDiode) {
+                            htmlForm += `<div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Threshold / Forward Drop (VJ)</label>
+                                         <input type="text" id="wiz-vj" value="${wVj}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>`;
+                        }
+                        htmlForm += `</div>`;
+                    }
+                    htmlForm += `</div>`;
+                } else {
+                    // Standard SPICE parameters (Resistors, Caps, Transistors)
+                    htmlForm += `
                     <div>
                         <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 11px;">${param}</label>
                         <input type="text" id="swal-spice-${param}" class="swal2-input" style="width: 100%; height: 32px; font-size: 13px; margin: 0; padding: 0 10px; border: 1px solid #bdc3c7; border-left: 3px solid #8e44ad;" value="${currentVal}">
                     </div>`;
+                }
             });
             htmlForm += `</div></div>`;
         }
@@ -3856,6 +4226,7 @@ ${indentedTikz}
             cancelButtonText: 'Cancel',
             confirmButtonColor: '#27ae60',
             backdrop: false,
+			heightAuto: false,
             didOpen: () => {
                 const popup = Swal.getPopup();
                 const handle = document.getElementById('swal-drag-handle');
@@ -3983,6 +4354,13 @@ ${indentedTikz}
                         let inputEl = popup.querySelector(`#swal-spice-${param}`);
                         if (inputEl) results.spiceData[param] = inputEl.value.trim();
                     });
+                    
+                    // THE FIX: Grab wizard inputs if they exist
+                    if (popup.querySelector('#wiz-vz')) results.spiceData['WIZ_VZ'] = popup.querySelector('#wiz-vz').value;
+                    if (popup.querySelector('#wiz-vto')) results.spiceData['WIZ_VTO'] = popup.querySelector('#wiz-vto').value;
+                    if (popup.querySelector('#wiz-kp')) results.spiceData['WIZ_KP'] = popup.querySelector('#wiz-kp').value;
+                    if (popup.querySelector('#wiz-bf')) results.spiceData['WIZ_BF'] = popup.querySelector('#wiz-bf').value;
+                    if (popup.querySelector('#wiz-vj')) results.spiceData['WIZ_VJ'] = popup.querySelector('#wiz-vj').value;
                 }
                 // -------------------------------
 				
@@ -4181,6 +4559,17 @@ ${indentedTikz}
                             else if (fStr === 'none') { newFlipH = false; newFlipV = false; }
                             applyGeom = true;
                         }
+                    }
+					else if (desc.includes('horizontal') && desc.includes('vertical')) {
+                        let orientVal = val.toLowerCase().trim();
+                        if (orientVal === 'vertical') {
+                            newAngle = 270;
+                            applyGeom = true;
+                        } else if (orientVal === 'horizontal') {
+                            newAngle = 0;
+                            applyGeom = true;
+                        }
+                        customArgs[i] = val;
                     }
                     else if (!desc.includes('position')) {
                         customArgs[i] = extractedArgs[i];
@@ -5209,19 +5598,124 @@ ${indentedTikz}
 	// Default ρυθμίσεις προσομοίωσης (αποθηκεύονται στο window για την ώρα)
 	window.spiceSimulationCommands = ".tran 1us 1ms\n.end";
 
+	// Global Config Storage
+	window.spiceSimConfig = window.spiceSimConfig || {
+		activeTab: 'tran',
+		tranStep: '1u', tranStop: '1m', tranStart: '0',
+		acType: 'dec', acPoints: '10', acStart: '1', acStop: '10k',
+		customCmds: ''
+	};
+
+	// Helper function to read uploaded .lib or .txt files
+	window.loadModelFile = function(e) {
+		let file = e.target.files[0];
+		if (!file) return;
+		let reader = new FileReader();
+		reader.onload = function(ev) {
+			let ta = document.getElementById('sim-models');
+			if (ta) {
+				ta.value += (ta.value.trim() ? "\n\n" : "") + ev.target.result;
+				window.spiceSimConfig.modelsContent = ta.value; // Auto-save to memory
+				Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Models Loaded!', showConfirmButton: false, timer: 1500 });
+			}
+		};
+		reader.readAsText(file);
+	};
+
 	function openSimulationSettings() {
+		let c = window.spiceSimConfig;
+
 		Swal.fire({
-			title: 'Simulation Directives',
-			html: `<div style="text-align:left; font-size:12px; color:#7f8c8d; margin-bottom:8px;">Enter SPICE commands (e.g. .tran, .ac, .include)</div>
-				   <textarea id="swal-sim-cmds" style="width: 100%; height: 150px; font-family: monospace; font-size: 13px; padding: 10px; box-sizing: border-box; background: #2c3e50; color: #ecf0f1; border-radius: 4px;" spellcheck="false">${window.spiceSimulationCommands}</textarea>`,
+			title: 'Simulation Settings',
+			width: '600px', // Made slightly wider to fit the code boxes better
+			heightAuto: false,
+			html: `
+				<div style="text-align:left; font-size:13px; color:#2c3e50;">
+					
+					<div style="display: flex; gap: 15px; margin-bottom: 15px;">
+						<div style="flex: 1; padding: 10px; border: 1px solid #3498db; border-radius: 6px; background: #ebf5fb;">
+							<div style="font-weight: bold; color: #2980b9; margin-bottom: 8px; font-size: 12px;">📈 Transient (.tran)</div>
+							<div style="display: flex; flex-direction: column; gap: 8px;">
+								<div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Step</label><input type="text" id="sim-tran-step" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" value="${c.tranStep}"></div>
+								<div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Stop</label><input type="text" id="sim-tran-stop" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" value="${c.tranStop}"></div>
+								<div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Start</label><input type="text" id="sim-tran-start" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" value="${c.tranStart}"></div>
+							</div>
+						</div>
+
+						<div style="flex: 1; padding: 10px; border: 1px solid #27ae60; border-radius: 6px; background: #e9f7ef;">
+							<div style="font-weight: bold; color: #1e8449; margin-bottom: 8px; font-size: 12px;">🌊 AC Sweep (.ac)</div>
+							<div style="display: flex; flex-direction: column; gap: 8px;">
+								<div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Type</label>
+									<select id="sim-ac-type" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;">
+										<option value="dec" ${c.acType==='dec'?'selected':''}>Decade</option>
+										<option value="oct" ${c.acType==='oct'?'selected':''}>Octave</option>
+										<option value="lin" ${c.acType==='lin'?'selected':''}>Linear</option>
+									</select>
+								</div>
+								<div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Points</label><input type="text" id="sim-ac-pts" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" value="${c.acPoints}"></div>
+								<div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Start (Hz)</label><input type="text" id="sim-ac-start" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" value="${c.acStart}"></div>
+								<div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Stop (Hz)</label><input type="text" id="sim-ac-stop" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" value="${c.acStop}"></div>
+							</div>
+						</div>
+					</div>
+
+					<div style="margin-bottom: 15px; padding: 10px; border: 1px solid #9b59b6; border-radius: 6px; background: #f4ecf7;">
+						<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+							<div style="font-weight: bold; color: #8e44ad; font-size: 12px;">📚 SPICE Models & Subcircuits</div>
+							<button type="button" onclick="document.getElementById('model-upload').click()" style="background: #8e44ad; color: white; border: none; padding: 4px 10px; border-radius: 3px; font-size: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Upload .lib / .txt</button>
+							<input type="file" id="model-upload" style="display: none;" accept=".txt,.lib,.mod,.cir" onchange="window.loadModelFile(event)">
+						</div>
+						<textarea id="sim-models" style="width: 100%; height: 120px; font-family: monospace; font-size: 11px; margin: 0; padding: 8px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" placeholder="Paste vendor models here, or upload a file above.\n\nExample:\n.model 1N4148 D (IS=4.35E-9 N=1.9 RS=0.645)\n.subckt OPAMP in+ in- out vcc vdd ...">${c.modelsContent || ''}</textarea>
+					</div>
+
+					<div style="padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; background: #fdfdfd;">
+						<div style="font-weight: bold; color: #7f8c8d; margin-bottom: 8px; font-size: 12px;">🛠️ Custom Directives (.options, .ic)</div>
+						<textarea id="sim-custom" style="width: 100%; height: 50px; font-family: monospace; font-size: 11px; margin: 0; padding: 8px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" placeholder=".options reltol=1e-5\n.ic v(out)=0">${c.customCmds}</textarea>
+					</div>
+				</div>
+			`,
 			confirmButtonText: 'Save Settings',
-			confirmButtonColor: '#e67e22'
+			confirmButtonColor: '#e67e22',
+			showCancelButton: true,
+			cancelButtonText: 'Cancel',
+			cancelButtonColor: '#95a5a6',
+			preConfirm: () => {
+				return {
+					tranStep: document.getElementById('sim-tran-step').value.trim(),
+					tranStop: document.getElementById('sim-tran-stop').value.trim(),
+					tranStart: document.getElementById('sim-tran-start').value.trim(),
+					acType: document.getElementById('sim-ac-type').value,
+					acPoints: document.getElementById('sim-ac-pts').value.trim(),
+					acStart: document.getElementById('sim-ac-start').value.trim(),
+					acStop: document.getElementById('sim-ac-stop').value.trim(),
+					modelsContent: document.getElementById('sim-models').value.trim(),
+					customCmds: document.getElementById('sim-custom').value.trim()
+				}
+			}
 		}).then((result) => {
 			if (result.isConfirmed) {
-				window.spiceSimulationCommands = document.getElementById('swal-sim-cmds').value;
+				window.spiceSimConfig = { ...window.spiceSimConfig, ...result.value };
 				Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Settings Saved', showConfirmButton: false, timer: 1500 });
 			}
 		});
+	}
+
+	function buildSpiceCommands(mode) {
+		let c = window.spiceSimConfig;
+		let cmds = "";
+		
+		// THE FIX: Inject User Models into the netlist
+		if (c.modelsContent) cmds += c.modelsContent + "\n\n";
+		if (c.customCmds) cmds += c.customCmds + "\n";
+		
+		if (mode === 'tran') {
+			cmds += `.tran ${c.tranStep} ${c.tranStop} ${c.tranStart}\n`;
+		} else if (mode === 'ac') {
+			cmds += `.ac ${c.acType} ${c.acPoints} ${c.acStart} ${c.acStop}\n`;
+		}
+		
+		cmds += ".end\n";
+		return cmds;
 	}
 
 	// Μετατροπή αριθμών SPICE σε Engineering Notation (m, u, n, k, M)
@@ -5302,11 +5796,79 @@ ${indentedTikz}
 				template = template.replace(pinRegex, netId || "NC");
 			});
 
-			Object.keys(spiceData).forEach(param => {
-				let val = spiceData[param] || "";
+			// --- THE FIX: Smart Parameter Resolution & Ideal Fallbacks ---
+			let remainingParams = [...template.matchAll(/\{([^}]+)\}/g)].map(m => m[1]);
+			
+			remainingParams.forEach(param => {
+				let val = spiceData[param] !== undefined ? spiceData[param] : "";
+
+				// 1. Auto-Generate IDEAL models if the user left it blank
+				if (param === 'MODEL' && val === "") {
+					let prefixMatch = dbData.spiceTemplate.match(/^([a-zA-Z])_/);
+					let compType = prefixMatch ? prefixMatch[1].toUpperCase() : null;
+					let isP = el.get('customArgs') && el.get('customArgs')[2] === 'p'; 
+					
+					if (compType === 'D') { val = "D_IDEAL"; includedModels.add(".model D_IDEAL D"); } 
+					else if (compType === 'Q') { val = isP ? "PNP_IDEAL" : "NPN_IDEAL"; includedModels.add(isP ? ".model PNP_IDEAL PNP" : ".model NPN_IDEAL NPN"); } 
+					else if (compType === 'M') { val = isP ? "PMOS_IDEAL" : "NMOS_IDEAL"; includedModels.add(isP ? ".model PMOS_IDEAL PMOS" : ".model NMOS_IDEAL NMOS"); }
+					else if (compType === 'X') { val = "OPAMP_IDEAL"; includedModels.add(".subckt OPAMP_IDEAL in_p in_n out\nE1 out 0 in_p in_n 1Meg\n.ends"); }
+				}
+
+				// 2. Auto-Generate WIZARD models or Inject Standard Library Models
+				if (param === 'MODEL' && val !== "") {
+					// Read what the user has manually pasted in the settings
+					let userModels = window.spiceSimConfig.modelsContent || "";
+
+					if (val.startsWith('WIZ_')) {
+						let isZener = macro.includes('zener');
+						let isMOS = macro.includes('mos');
+						let isBJT = macro.includes('bipolar');
+						let isDiode = macro.includes('diode') && !isZener;
+
+						let modelStr = `.model ${val} `;
+						if (isZener) modelStr += `D (BV=${spiceData['WIZ_VZ'] || '5.1'} IBV=1m IS=1e-14 N=1)`;
+						else if (isMOS) {
+							let isP = el.get('customArgs') && el.get('customArgs')[2] === 'p';
+							modelStr += (isP ? "PMOS" : "NMOS") + ` (VTO=${spiceData['WIZ_VTO'] || '1.0'} KP=${spiceData['WIZ_KP'] || '20u'})`;
+						} else if (isBJT) {
+							let isP = el.get('customArgs') && el.get('customArgs')[2] === 'p';
+							modelStr += (isP ? "PNP" : "NPN") + ` (BF=${spiceData['WIZ_BF'] || '100'} IS=1e-14)`;
+						} else if (isDiode) {
+							modelStr += `D (IS=1e-14 VJ=${spiceData['WIZ_VJ'] || '0.7'})`;
+						}
+						
+						// Only inject if the user hasn't overwritten it
+						if (!userModels.includes(val)) includedModels.add(modelStr);
+						
+					} else {
+						// Standard Library Logic
+						let prefixMatch = dbData.spiceTemplate.match(/^([a-zA-Z])_/);
+						let compType = prefixMatch ? prefixMatch[1].toUpperCase() : null;
+						
+						if (compType && SPICE_MODEL_LIBRARY[compType] && SPICE_MODEL_LIBRARY[compType][val]) {
+							// THE FIX: Check if the user already defined this model manually!
+							let searchStr1 = `.model ${val} `;
+							let searchStr2 = `.MODEL ${val} `;
+							
+							if (!userModels.includes(searchStr1) && !userModels.includes(searchStr2)) {
+								includedModels.add(SPICE_MODEL_LIBRARY[compType][val]);
+							}
+						}
+					}
+				}
+				
+				// 3. Failsafes for other unconfigured parameters so SPICE doesn't crash
+				if (val === "") {
+					if (param === 'SIGNAL') val = "0";
+					if (param === 'W') val = "1u";
+					if (param === 'L') val = "1u";
+				}
+
+				// Replace the parameter in the template
 				let paramRegex = new RegExp(`\\{${param}\\}`, 'g');
 				template = template.replace(paramRegex, val);
 			});
+			// -----------------------------------------------------------
 
 			let missingMatches = template.match(/\{([^}]+)\}/g);
 			if (missingMatches) {
@@ -5469,79 +6031,990 @@ ${indentedTikz}
 
 	// --- ⚙️ Η ΜΗΧΑΝΗ ΠΡΟΣΟΜΟΙΩΣΗΣ ---
 
-	// ΣΗΜΑΝΤΙΚΟ: Έξω από τη συνάρτηση για να αρχικοποιηθεί μόνο μία φορά!
-let isSpiceInitialized = false;
 
-async function runDCAnalysis() {
-    if (typeof Module === 'undefined') return;
+// Υποστηρικτική συνάρτηση για ανάγνωση μιγαδικών αριθμών (AC Analysis)
+	function parseSpiceValue(valStr) {
+		if (valStr.includes(',')) {
+			let parts = valStr.split(',');
+			let re = parseFloat(parts[0]);
+			let im = parseFloat(parts[1]);
+			let mag = Math.sqrt(re*re + im*im);
+			let phase = Math.atan2(im, re) * (180 / Math.PI); // Convert radians to degrees
+			return { mag: mag, phase: phase }; // Return complex object
+		}
+		return parseFloat(valStr); // Return plain number for Transient
+	}
 
-    Swal.fire({ title: 'Simulating...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+	// Διαβάζει το Time-Domain ή Frequency-Domain raw string από το SPICE
+	function parseSpiceRaw(rawOutput) {
+		let lines = rawOutput.split('\n');
+		let mode = '';
+		let vars = [];
+		let points = [];
+		let currentPoint = [];
 
-    setTimeout(() => {
-        try {
-            // ⚡ Ο ΔΟΥΡΕΙΟΣ ΙΠΠΟΣ (32-BIT SAFE!) ⚡
-            try { 
-                Module.FS.mkdir('/tmp'); 
-            } catch(e) {}
-            
-            // Το μυστικό: Δίνουμε 512 MB (524288 kB). 
-            // Έτσι δεν "σκάει" η 32-bit μνήμη του WebAssembly!
-            let safeRam = "MemTotal:       524288 kB\nMemFree:        524288 kB\nMemAvailable:   524288 kB\n";
-            try { 
-                Module.FS.writeFile('/tmp/meminfo', safeRam); 
-            } catch(e) {}
+		for (let i = 0; i < lines.length; i++) {
+			let l = lines[i].trim();
+			if (l.startsWith('Variables:')) { mode = 'vars'; continue; }
+			if (l.startsWith('Values:')) { mode = 'vals'; continue; }
 
-            // 1. ΑΡΧΙΚΟΠΟΙΗΣΗ
-            if (!isSpiceInitialized) {
-                let sendCharCallback = Module.addFunction(function(textPtr) {
-                    console.warn("[SPICE]:", Module.UTF8ToString(textPtr).trim());
-                    return 0; 
-                }, 'iiii'); 
-                Module.ccall('ngSpice_Init', 'number', ['number','number','number','number','number','number','number'], [sendCharCallback, 0, 0, 0, 0, 0, 0]);
-                isSpiceInitialized = true;
-            }
+			if (mode === 'vars') {
+				let parts = l.split(/\s+/);
+				if (parts.length >= 3 && !isNaN(parts[0])) {
+					vars.push({ idx: parseInt(parts[0]), name: parts[1], type: parts[2] });
+				}
+			} else if (mode === 'vals' && l !== '') {
+				let parts = l.split(/\s+/);
+				let startIndex = 0;
+				
+				// Παραλείπουμε το index του ngspice point
+				if (currentPoint.length === 0 && parts.length > 1 && !parts[0].includes('.') && !parts[0].includes('e')) {
+					startIndex = 1;
+				}
 
-            console.log("--- ΕΚΤΕΛΕΣΗ NGSPICE V4 ---");
+				for (let j = startIndex; j < parts.length; j++) {
+					currentPoint.push(parseSpiceValue(parts[j]));
+				}
 
-            // Παίρνουμε το καθαρό κύκλωμα από το CAD
-			let simCommands = "\n.end\n"; 
-			let netlistData = generateSpiceNetlistStr(simCommands); 
-
-			if (netlistData.errors && netlistData.errors.length > 0) {
-				Swal.fire('Σφάλμα', 'Υπάρχει λάθος στο σχέδιο.', 'error');
-				return;
+				// Όταν συγκεντρώσουμε όλες τις μεταβλητές, καταχωρούμε το σημείο
+				if (currentPoint.length === vars.length) {
+					points.push(currentPoint);
+					currentPoint = [];
+				}
 			}
+		}
+		return { vars, points };
+	}
+	
+	// --- SIMULATION DATA EXPORT ENGINE ---
+	window.exportSimImage = function() {
+		let canvas = document.getElementById('simChart');
+		if (!canvas) return;
+		
+		// Create a temporary canvas to fill the transparent background with white
+		let tempCanvas = document.createElement('canvas');
+		tempCanvas.width = canvas.width;
+		tempCanvas.height = canvas.height;
+		let ctx = tempCanvas.getContext('2d');
+		ctx.fillStyle = 'white';
+		ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+		ctx.drawImage(canvas, 0, 0);
+		
+		let url = tempCanvas.toDataURL('image/png');
+		let a = document.createElement('a');
+		a.href = url;
+		a.download = (window.currentSimTitle || 'Simulation').replace(/\s+/g, '_') + '_Plot.png';
+		a.click();
+	};
 
-			let cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-			Module.FS.writeFile('/circuit.cir', cleanNetlist);
+	window.exportSimData = function(format) {
+		if (!window.currentSimData) return;
+		let data = window.currentSimData;
+		let isAC = window.currentSimIsAC;
+		let sep = format === 'csv' ? ',' : '\t';
+		let txt = format === 'txt' ? `% ${window.currentSimTitle} Export\n` : '';
 
-            let r_source = Module.ccall('ngSpice_Command', 'number', ['string'], ['source /circuit.cir']);
-            console.log("-> source return:", r_source);
+		// 1. Build Headers
+		let headers = [data.vars[0].name]; // Time or Freq
+		for (let i = 1; i < data.vars.length; i++) {
+			if (isAC) {
+				headers.push(data.vars[i].name + ' (Mag)');
+				headers.push(data.vars[i].name + ' (Phase deg)');
+			} else {
+				headers.push(data.vars[i].name);
+			}
+		}
+		txt += (format === 'txt' ? '% ' : '') + headers.join(sep) + '\n';
 
-            // ΤΩΡΑ ΘΑ ΔΙΑΒΑΣΕΙ 512MB ΚΑΙ ΘΑ ΛΥΣΕΙ ΤΟ ΚΥΚΛΩΜΑ!
-            let r_op = Module.ccall('ngSpice_Command', 'number', ['string'], ['op']);
-            console.log("-> op return (0!):", r_op);
+		// 2. Build Data Rows (Export the FULL dataset, un-decimated!)
+		data.points.forEach(p => {
+			let xVal = typeof p[0] === 'object' ? p[0].mag : p[0];
+			let row = [xVal.toExponential(6)]; // X value
 
-            Module.ccall('ngSpice_Command', 'number', ['string'], ['set filetype=ascii']);
-            try { Module.FS.unlink('/output.raw'); } catch(e) {}
-            Module.ccall('ngSpice_Command', 'number', ['string'], ['write /output.raw']);
+			for (let i = 1; i < data.vars.length; i++) {
+				if (isAC && typeof p[i] === 'object') {
+					row.push(p[i].mag.toExponential(6));
+					row.push(p[i].phase.toExponential(6));
+				} else {
+					// Safety fallback if it's AC but a flat real number
+					let val = typeof p[i] === 'object' ? p[i].mag : p[i];
+					row.push(val.toExponential(6));
+					if (isAC) row.push((0).toExponential(6)); // Phase 0
+				}
+			}
+			txt += row.join(sep) + '\n';
+		});
 
-            try {
-                let rawOutput = Module.FS.readFile('/output.raw', { encoding: 'utf8' });
-                console.log("--- RAW SPICE OUTPUT ---");
-                console.log(rawOutput);
-                
-                // ⚡ Η ΣΤΙΓΜΗ ΤΗΣ ΑΛΗΘΕΙΑΣ: Καλούμε τη δική σου συνάρτηση! ⚡
-                annotateDCOperatingPointFromRaw(rawOutput, netlistData.topo);
-                
-                // Βάζουμε ένα διακριτικό Toast αντί για τεράστιο Popup για να μη μας κρύβει το κύκλωμα!
-                Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: 'Simulation Complete!', showConfirmButton: false, timer: 2000 });
-            } catch(e) {
-                Swal.fire({ icon: 'error', title: 'Απέτυχε', text: 'Δες τα SPICE LOGS.' });
-            }
-        } catch (error) { console.error(error); }
-    }, 100);
-}
+		let ext = format === 'csv' ? '.csv' : '.txt';
+		let mime = format === 'csv' ? 'text/csv' : 'text/plain';
+		saveFileAs(txt, (window.currentSimTitle || 'Simulation').replace(/\s+/g, '_') + '_Data' + ext, mime, format.toUpperCase() + ' Data');
+	};
+	
+	window.exportSimTikz = function() {
+		if (!window.currentSimData) return;
+
+		Swal.fire({
+			title: 'TikZ Export Resolution',
+			width: '450px',
+			html: `
+				<div style="font-size: 13px; color: #2c3e50; text-align: left;">
+					<p style="margin-top: 0; color: #7f8c8d;">
+						High-resolution SPICE datasets can create massive <code>.tex</code> files that cause LaTeX compilers to freeze or run out of memory. 
+					</p>
+					<div style="text-align: center; margin: 15px 0;">
+						<label style="font-weight: bold; color: #d35400; font-size: 12px; display: block; margin-bottom: 5px;">Max Data Points</label>
+						<input type="number" id="tikz-max-pts" value="1000" style="width: 120px; padding: 6px; font-size: 14px; text-align: center; border: 1px solid #bdc3c7; border-radius: 4px;">
+					</div>
+					<p style="font-size: 11px; color: #95a5a6; text-align: center; margin: 0;">(Enter <b>0</b> to export the raw, un-decimated dataset)</p>
+				</div>
+			`,
+			showCancelButton: true,
+			confirmButtonColor: '#d35400',
+			cancelButtonColor: '#95a5a6',
+			confirmButtonText: 'Export .tex',
+			preConfirm: () => {
+				let val = parseInt(document.getElementById('tikz-max-pts').value);
+				return isNaN(val) ? 1000 : val;
+			}
+		}).then((result) => {
+			if (result.isConfirmed) {
+				let maxPts = result.value;
+				let data = window.currentSimData;
+				let isAC = window.currentSimIsAC;
+				let title = window.currentSimTitle || 'Simulation';
+
+				// --- SMART DOWNSAMPLING FOR TIKZ ---
+				let exportPoints = data.points;
+				if (maxPts > 0 && exportPoints.length > maxPts) {
+					let step = Math.ceil(exportPoints.length / maxPts);
+					exportPoints = exportPoints.filter((_, index) => index % step === 0);
+				}
+
+				let tex = `% Compile with pdflatex or lualatex\n`;
+				tex += `\\documentclass[border=5mm]{standalone}\n`;
+				tex += `\\usepackage{pgfplots}\n`;
+				tex += `\\pgfplotsset{compat=1.18}\n\n`;
+				tex += `\\begin{document}\n`;
+				tex += `\\begin{tikzpicture}\n`;
+
+				let xLabel = isAC ? 'Frequency (Hz)' : 'Time (s)';
+				let xModeLine = isAC ? `    xmode=log,\n` : ``;
+
+				tex += `\\begin{axis}[\n`;
+				tex += `    title={${title}},\n`;
+				tex += `    xlabel={${xLabel}},\n`;
+				tex += `    ylabel={Magnitude},\n`;
+				tex += xModeLine;
+				tex += `    grid=both,\n`;
+				tex += `    width=12cm,\n`;
+				tex += `    height=8cm,\n`;
+				tex += `    legend style={at={(1.05,1)}, anchor=north west}\n`;
+				tex += `]\n\n`;
+
+				let colors = ['red', 'blue', 'green!70!black', 'orange', 'purple', 'brown', 'cyan', 'magenta'];
+
+				for (let i = 1; i < data.vars.length; i++) {
+					let color = colors[(i-1) % colors.length];
+					let safeVarName = data.vars[i].name.replace(/_/g, '\\_');
+
+					// 1. Plot Magnitude (or Transient)
+					tex += `\\addplot[color=${color}, thick, mark=none] table {\n`;
+					exportPoints.forEach(p => {
+						let xVal = typeof p[0] === 'object' ? p[0].mag : p[0];
+						let yVal = typeof p[i] === 'object' ? p[i].mag : p[i];
+						tex += `${xVal.toExponential(4)} ${yVal.toExponential(4)}\n`;
+					});
+					tex += `};\n`;
+					tex += `\\addlegendentry{${safeVarName}${isAC ? ' (Mag)' : ''}}\n\n`;
+
+					// 2. Plot Phase (If AC)
+					if (isAC && typeof exportPoints[0][i] === 'object') {
+						tex += `\\addplot[color=${color}, thick, dashed, mark=none] table {\n`;
+						exportPoints.forEach(p => {
+							let xVal = typeof p[0] === 'object' ? p[0].mag : p[0];
+							let yVal = p[i].phase;
+							tex += `${xVal.toExponential(4)} ${yVal.toExponential(4)}\n`;
+						});
+						tex += `};\n`;
+						tex += `\\addlegendentry{${safeVarName} (Phase)}\n\n`;
+					}
+				}
+
+				tex += `\\end{axis}\n`;
+				tex += `\\end{tikzpicture}\n`;
+				tex += `\\end{document}\n`;
+
+				saveFileAs(tex, title.replace(/\s+/g, '_') + '_PGFPlot.tex', 'text/plain', 'TikZ/PGFPlots');
+			}
+		});
+	};
+
+	// Engine Γραφικών (Chart.js)
+	function plotSimulationResults(parsedData, title) {
+		// Save global refs for the export buttons
+		window.currentSimData = parsedData;
+		window.currentSimTitle = title;
+		window.currentSimIsAC = title.includes('AC');
+		
+		if (!parsedData.vars || parsedData.vars.length < 2 || parsedData.points.length === 0) {
+			Swal.fire('Error', 'No plot data available. Check simulation settings.', 'error');
+			return;
+		}
+
+		let xVar = parsedData.vars[0];
+		let datasets = [];
+		let colors = ['#e74c3c', '#3498db', '#2ecc71', '#f1c40f', '#9b59b6', '#e67e22', '#1abc9c', '#34495e'];
+		let isAC = title.includes('AC');
+
+		// --- NEW HELPER: Extracts true value if ngspice makes the X-Axis a complex number! ---
+		const getX = (p) => typeof p[0] === 'object' ? p[0].mag : p[0];
+
+		// --- SMART DOWNSAMPLING ---
+		let MAX_POINTS = 3000;
+		let activePoints = parsedData.points;
+		
+		if (isAC) {
+			// THE FIX: Use getX() so the object comparison doesn't fail!
+			activePoints = activePoints.filter(p => getX(p) > 0);
+		}
+
+		// THE FIX: Use getX() so the object comparison doesn't fail!
+		if (isAC) {
+			activePoints = activePoints.filter(p => getX(p) > 0);
+		}
+
+		if (activePoints.length > MAX_POINTS) {
+			let step = Math.ceil(activePoints.length / MAX_POINTS);
+			activePoints = activePoints.filter((_, index) => index % step === 0);
+			title += ` <span style="font-size: 11px; color: #7f8c8d; font-weight: normal;">(Decimated)</span>`;
+		}
+
+		// --- NEW: CATCH EMPTY GRAPHS (Missing AC Params) ---
+		if (activePoints.length === 0) {
+			Swal.fire({
+				title: 'No Data Plotted',
+				html: 'The simulation ran successfully, but the resulting graph is empty.<br><br><b>💡 Tip for AC Analysis:</b><br>Make sure your Voltage/Current source has an <b>AC Amplitude</b> set in its properties (e.g., <code>1</code>). If it is zero, the graph will be completely flat!',
+				icon: 'warning',
+				confirmButtonColor: '#3498db'
+			});
+			return; // Abort drawing the blank chart!
+		}
+
+		// --- SMART AUTO-SCALING ENGINE ---
+		let maxX = 0, maxY = 0;
+		let isComplex = false;
+
+		for (let i = 1; i < parsedData.vars.length; i++) {
+			for (let p of activePoints) {
+				let xVal = getX(p);
+				let yVal = p[i];
+				let yMag = typeof yVal === 'object' ? yVal.mag : yVal;
+
+				if (Math.abs(xVal) > maxX) maxX = Math.abs(xVal);
+				if (Math.abs(yMag) > maxY) maxY = Math.abs(yMag);
+
+				if (typeof yVal === 'object') isComplex = true;
+			}
+		}
+
+		function getAxisScaling(maxVal) {
+			if (maxVal === 0) return { mult: 1, prefix: '' };
+			let abs = Math.abs(maxVal);
+			if (abs >= 1e9) return { mult: 1e-9, prefix: 'G' };
+			if (abs >= 1e6) return { mult: 1e-6, prefix: 'M' };
+			if (abs >= 1e3) return { mult: 1e-3, prefix: 'k' };
+			if (abs >= 1) return { mult: 1, prefix: '' };
+			if (abs >= 1e-3) return { mult: 1e3, prefix: 'm' };
+			if (abs >= 1e-6) return { mult: 1e6, prefix: 'µ' };
+			if (abs >= 1e-9) return { mult: 1e9, prefix: 'n' };
+			if (abs >= 1e-12) return { mult: 1e12, prefix: 'p' };
+			return { mult: 1e15, prefix: 'f' };
+		}
+
+		let xScale = getAxisScaling(maxX);
+		let yScale = getAxisScaling(maxY);
+
+		if (isAC) xScale = { mult: 1, prefix: '' }; 
+
+		let xUnit = isAC ? 'Hz' : 's';
+		let xTitle = `${xVar.name} (${xScale.prefix}${xUnit})`;
+
+		let isAllV = parsedData.vars.slice(1).every(v => v.name.toLowerCase().startsWith('v'));
+		let isAllI = parsedData.vars.slice(1).every(v => v.name.toLowerCase().startsWith('i'));
+		let yUnit = isAllV ? 'V' : (isAllI ? 'A' : '');
+		let yTitle = yUnit ? `Magnitude (${yScale.prefix}${yUnit})` : (yScale.prefix ? `Magnitude (${yScale.prefix})` : 'Magnitude');
+
+		// --- BUILD DATASETS (SPLIT MAGNITUDE & PHASE) ---
+		for (let i = 1; i < parsedData.vars.length; i++) {
+			let baseColor = colors[(i-1) % colors.length];
+
+			if (isComplex) {
+				// 1. Magnitude Line (Solid, Left Axis)
+				datasets.push({
+					label: parsedData.vars[i].name + ' (Mag)',
+					data: activePoints.map(p => ({ x: getX(p), y: (typeof p[i] === 'object' ? p[i].mag : p[i]) })),
+					borderColor: baseColor,
+					borderWidth: 2,
+					fill: false,
+					pointRadius: 0,
+					tension: 0.1,
+					yAxisID: 'y'
+				});
+				// 2. Phase Line (Dashed, Right Axis)
+				datasets.push({
+					label: parsedData.vars[i].name + ' (Phase)',
+					data: activePoints.map(p => ({ x: getX(p), y: (typeof p[i] === 'object' ? p[i].phase : 0) })),
+					borderColor: baseColor,
+					borderWidth: 2,
+					borderDash: [5, 5],
+					fill: false,
+					pointRadius: 0,
+					tension: 0.1,
+					yAxisID: 'y1'
+				});
+			} else {
+				// Standard Transient Line
+				datasets.push({
+					label: parsedData.vars[i].name,
+					data: activePoints.map(p => ({ x: getX(p), y: p[i] })),
+					borderColor: baseColor,
+					borderWidth: 2,
+					fill: false,
+					pointRadius: 0,
+					tension: 0.1,
+					yAxisID: 'y'
+				});
+			}
+		}
+
+		Swal.fire({
+			width: 'auto',
+			padding: '0',
+			background: 'transparent',
+			backdrop: false,
+			showConfirmButton: false,
+			heightAuto: false,
+			html: `
+				<div id="sim-true-window" style="width: 800px; height: 500px; min-width: 400px; min-height: 300px; resize: both; overflow: hidden; display: flex; flex-direction: column; background: #ffffff; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid #bdc3c7; pointer-events: auto;">
+					<div id="swal-drag-handle-sim" style="flex: 0 0 40px; cursor: move; background: #2c3e50; color: #ecf0f1; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+						<span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">📊 ${title}</span>
+						<div style="display:flex; gap: 5px; align-items: center;">
+							<button onclick="window.exportSimData('csv')" style="background: #27ae60; color: white; border: none; padding: 3px 8px; border-radius: 3px; font-size: 10px; cursor: pointer; font-weight: bold;">CSV</button>
+							<button onclick="window.exportSimData('txt')" style="background: #2980b9; color: white; border: none; padding: 3px 8px; border-radius: 3px; font-size: 10px; cursor: pointer; font-weight: bold;">MATLAB</button>
+							<button onclick="window.exportSimTikz()" style="background: #d35400; color: white; border: none; padding: 3px 8px; border-radius: 3px; font-size: 10px; cursor: pointer; font-weight: bold;">TikZ</button>
+							<button onclick="window.exportSimImage()" style="background: #8e44ad; color: white; border: none; padding: 3px 8px; border-radius: 3px; font-size: 10px; cursor: pointer; font-weight: bold;">PNG</button>
+							<div style="width: 1px; height: 14px; background: #7f8c8d; margin: 0 4px;"></div>
+							<button onclick="Swal.close()" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold; font-size: 16px; line-height: 1;" title="Close">✖</button>
+						</div>
+					</div>
+					<div style="flex: 1; min-height: 0; padding: 15px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden;">
+						<div style="flex: 1; position: relative; width: 100%; height: 100%;">
+							<canvas id="simChart"></canvas>
+						</div>
+					</div>
+				</div>
+			`,
+			didOpen: () => {
+				const popup = Swal.getPopup();
+				const htmlContainer = Swal.getHtmlContainer();
+				const handle = document.getElementById('swal-drag-handle-sim');
+				const windowContainer = document.getElementById('sim-true-window');
+				
+				popup.style.background = 'transparent';
+				popup.style.boxShadow = 'none';
+				
+				if (htmlContainer) {
+					htmlContainer.style.overflow = 'visible';
+					htmlContainer.style.padding = '0';
+					htmlContainer.style.margin = '0';
+				}
+				
+				let isDragging = false, startX, startY, initialLeft, initialTop;
+				const onMouseMove = (e) => {
+					if (!isDragging) return;
+					popup.style.left = (initialLeft + (e.clientX - startX)) + 'px';
+					popup.style.top = (initialTop + (e.clientY - startY)) + 'px';
+				};
+				const onMouseUp = () => {
+					isDragging = false;
+					document.removeEventListener('mousemove', onMouseMove);
+					document.removeEventListener('mouseup', onMouseUp);
+				};
+				handle.addEventListener('mousedown', (e) => {
+					if (e.target.tagName === 'BUTTON') return; 
+					isDragging = true;
+					const rect = popup.getBoundingClientRect();
+					popup.style.margin = '0';
+					popup.style.position = 'fixed'; 
+					popup.style.left = rect.left + 'px';
+					popup.style.top = rect.top + 'px';
+					popup.style.transform = 'none'; 
+					startX = e.clientX;
+					startY = e.clientY;
+					initialLeft = rect.left;
+					initialTop = rect.top;
+					document.addEventListener('mousemove', onMouseMove);
+					document.addEventListener('mouseup', onMouseUp);
+				});
+
+				let ctx = document.getElementById('simChart').getContext('2d');
+				window.simChartInstance = new Chart(ctx, {
+					type: 'line',
+					data: { datasets: datasets },
+					options: {
+						responsive: true,
+						maintainAspectRatio: false,
+						animation: false,
+						interaction: { mode: 'index', intersect: false },
+						plugins: {
+							tooltip: {
+								callbacks: {
+									title: function(context) {
+										let val = context[0].parsed.x;
+										if (isAC) {
+											if (val >= 1e9) return parseFloat((val / 1e9).toFixed(3)) + ' GHz';
+											if (val >= 1e6) return parseFloat((val / 1e6).toFixed(3)) + ' MHz';
+											if (val >= 1e3) return parseFloat((val / 1e3).toFixed(3)) + ' kHz';
+											return parseFloat(val.toFixed(3)) + ' Hz';
+										}
+										return 'Time: ' + parseFloat((val * xScale.mult).toFixed(3)) + ' ' + xScale.prefix + xUnit;
+									},
+									label: function(context) {
+										let label = context.dataset.label || '';
+										if (label) { label += ': '; }
+										if (context.parsed.y !== null) {
+											if (isComplex && context.dataset.yAxisID === 'y1') {
+												label += parseFloat(context.parsed.y.toFixed(2)) + '°'; 
+											} else {
+												label += parseFloat((context.parsed.y * yScale.mult).toFixed(3)) + ' ' + yScale.prefix + yUnit; 
+											}
+										}
+										return label;
+									}
+								}
+							}
+						},
+						scales: {
+							x: {
+								type: isAC ? 'logarithmic' : 'linear',
+								title: { display: true, text: xTitle, font: { weight: 'bold' } },
+								ticks: { 
+									callback: function(value) { 
+										if (isAC) {
+											if (value >= 1e9) return (value / 1e9) + ' G' + xUnit;
+											if (value >= 1e6) return (value / 1e6) + ' M' + xUnit;
+											if (value >= 1e3) return (value / 1e3) + ' k' + xUnit;
+											return value + ' ' + xUnit;
+										}
+										return parseFloat((value * xScale.mult).toFixed(3));
+									} 
+								}
+							},
+							y: {
+								type: 'linear',
+								position: 'left',
+								title: { display: true, text: yTitle, font: { weight: 'bold' } },
+								ticks: { 
+									callback: function(value) { return parseFloat((value * yScale.mult).toFixed(3)); } 
+								}
+							},
+							y1: {
+								type: 'linear',
+								display: isComplex, 
+								position: 'right',
+								title: { display: true, text: 'Phase (Degrees)', font: { weight: 'bold' }, color: '#7f8c8d' },
+								grid: { drawOnChartArea: false }, 
+								ticks: {
+									color: '#7f8c8d',
+									callback: function(value) { return value + '°'; }
+								}
+							}
+						}
+					}
+				});
+				
+				const resizeObserver = new ResizeObserver(() => {
+					if (window.simChartInstance) window.simChartInstance.resize();
+				});
+				resizeObserver.observe(windowContainer);
+			}
+		});
+	}
+	
+	// Helper to convert SPICE engineering notation to real JS numbers
+	function parseSpiceToNumber(valStr) {
+		if (!valStr) return 0;
+		let str = valStr.toString().toLowerCase().trim();
+		let mult = 1;
+		
+		if (str.endsWith('meg')) { mult = 1e6; str = str.replace('meg', ''); }
+		else if (str.endsWith('g')) { mult = 1e9; str = str.replace('g', ''); }
+		else if (str.endsWith('t')) { mult = 1e12; str = str.replace('t', ''); }
+		else if (str.endsWith('k')) { mult = 1e3; str = str.replace('k', ''); }
+		else if (str.endsWith('m')) { mult = 1e-3; str = str.replace('m', ''); }
+		else if (str.endsWith('u')) { mult = 1e-6; str = str.replace('u', ''); }
+		else if (str.endsWith('n')) { mult = 1e-9; str = str.replace('n', ''); }
+		else if (str.endsWith('p')) { mult = 1e-12; str = str.replace('p', ''); }
+		else if (str.endsWith('f')) { mult = 1e-15; str = str.replace('f', ''); }
+
+		let num = parseFloat(str);
+		return isNaN(num) ? 0 : num * mult;
+	}
+
+	// ΣΗΜΑΝΤΙΚΟ: Έξω από τη συνάρτηση για να αρχικοποιηθεί μόνο μία φορά!
+	let isSpiceInitialized = false;
+
+	async function runSimulation(mode, customNetlist = null) {
+		if (typeof Module === 'undefined') return;
+
+		// --- PRE-SIMULATION SAFETY NET (Skip if Expert Override) ---
+		if (!customNetlist) {
+			let c = window.spiceSimConfig;
+			let MAX_SAFE_POINTS = 200000; 
+			
+			if (mode === 'tran') {
+				let step = parseSpiceToNumber(c.tranStep);
+				let stop = parseSpiceToNumber(c.tranStop);
+				let start = parseSpiceToNumber(c.tranStart);
+				if (step > 0) {
+					let pts = (stop - start) / step;
+					if (pts > MAX_SAFE_POINTS) {
+						Swal.fire('Simulation Aborted', `You requested <b>${Math.round(pts).toLocaleString()}</b> data points.<br><br>This will cause your browser to run out of memory and crash. Please increase your Time Step or decrease your Stop Time.`, 'error');
+						return;
+					}
+				}
+			} else if (mode === 'ac') {
+				let pts = parseInt(c.acPoints);
+				let start = parseSpiceToNumber(c.acStart);
+				let stop = parseSpiceToNumber(c.acStop);
+				let totalPts = (c.acType === 'lin') ? pts : (pts * Math.log10(stop / start));
+				if (totalPts > MAX_SAFE_POINTS) {
+					Swal.fire('Simulation Aborted', `You requested <b>~${Math.round(totalPts).toLocaleString()}</b> data points.<br><br>This will cause your browser to run out of memory and crash.`, 'error');
+					return; 
+				}
+			}
+		}
+
+		Swal.fire({ title: 'Simulating...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+		setTimeout(() => {
+			try {
+				try { Module.FS.mkdir('/tmp'); } catch(e) {}
+				let safeRam = "MemTotal:       524288 kB\nMemFree:        524288 kB\nMemAvailable:   524288 kB\n";
+				try { Module.FS.writeFile('/tmp/meminfo', safeRam); } catch(e) {}
+
+				window.spiceErrorFlag = false;
+				window.spiceErrorMsg = "";
+
+				if (!isSpiceInitialized) {
+					let sendCharCallback = Module.addFunction(function(textPtr) {
+						let msg = Module.UTF8ToString(textPtr).trim();
+						console.warn("[SPICE]:", msg);
+						if (msg.startsWith('stderr Error')) {
+							window.spiceErrorFlag = true;
+							window.spiceErrorMsg = msg.replace('stderr Error', '').trim();
+						} else if (msg.startsWith('stderr') && msg.toLowerCase().includes('error')) {
+							window.spiceErrorFlag = true;
+						}
+						return 0; 
+					}, 'iiii'); 
+					Module.ccall('ngSpice_Init', 'number', ['number','number','number','number','number','number','number'], [sendCharCallback, 0, 0, 0, 0, 0, 0]);
+					isSpiceInitialized = true;
+				}
+
+				console.log(`--- ΕΚΤΕΛΕΣΗ NGSPICE V4 (${mode.toUpperCase()}) ---`);
+
+				// --- THE FIX: USE EXPERT OVERRIDE IF PROVIDED ---
+				let cleanNetlist = "";
+				let topo = null;
+
+				if (customNetlist) {
+					cleanNetlist = customNetlist.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+					topo = extractTopology(); // Keep topology for OP Back-Annotation
+				} else {
+					let simCommands = "\n" + buildSpiceCommands(mode);
+					let netlistData = generateSpiceNetlistStr(simCommands); 
+
+					if (netlistData.errors && netlistData.errors.length > 0) {
+						let errorHtml = `<ul style="text-align: left; font-size: 13px; color: #c0392b;">` + 
+										netlistData.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + 
+										`</ul>`;
+						Swal.fire('Error', 'There are errors in the schematic.<br><br>' + errorHtml, 'error');
+						return;
+					}
+					cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+					topo = netlistData.topo;
+				}
+
+				Module.FS.writeFile('/circuit.cir', cleanNetlist);
+
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['destroy all']);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['remcirc']);
+
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['source /circuit.cir']);
+
+				if (window.spiceErrorFlag) {
+					Swal.fire('SPICE Error', 'The engine encountered a fatal error:<br><br><b>' + window.spiceErrorMsg + '</b><br><br>Check the browser console for details.', 'error');
+					return;
+				}
+
+				if (mode === 'op') Module.ccall('ngSpice_Command', 'number', ['string'], ['op']);
+				else Module.ccall('ngSpice_Command', 'number', ['string'], ['run']);
+
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['set filetype=ascii']);
+				try { Module.FS.unlink('/output.raw'); } catch(e) {}
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['write /output.raw']);
+
+				try {
+					let rawOutput = Module.FS.readFile('/output.raw', { encoding: 'utf8' });
+					
+					if (mode === 'op') {
+						annotateDCOperatingPointFromRaw(rawOutput, topo);
+						Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: 'DC Simulation Complete!', showConfirmButton: false, timer: 2000 });
+					} else {
+						let parsedData = parseSpiceRaw(rawOutput);
+						let title = mode === 'tran' ? 'Transient Analysis' : 'AC Analysis';
+						plotSimulationResults(parsedData, title);
+					}
+				} catch(e) {
+					Swal.fire({ icon: 'error', title: 'Simulation error', text: "See SPICE LOGS in your browser's console." });
+				}
+			} catch (error) { console.error(error); }
+		}, 100);
+	}
+	
+	function openSpiceNetlistEditor() {
+		// Build the current baseline netlist so the user has a starting point
+		let mode = window.spiceSimConfig.activeTab || 'tran';
+		let simCommands = "\n" + buildSpiceCommands(mode);
+		let netlistData = generateSpiceNetlistStr(simCommands);
+
+		if (netlistData.errors && netlistData.errors.length > 0) {
+			let errorHtml = `<ul style="text-align: left; font-size: 13px; color: #c0392b;">` + 
+							netlistData.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + 
+							`</ul>`;
+			Swal.fire('Error', 'There are errors in the schematic.<br><br>' + errorHtml, 'error');
+			return;
+		}
+
+		let cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+		Swal.fire({
+			title: 'SPICE Netlist Editor',
+			width: '800px',
+			html: `
+				<div style="text-align:left; font-size:13px; color:#2c3e50;">
+					<p style="margin-top:0; color:#7f8c8d;">You can manually edit the generated netlist before running the simulation.<br><b>Note:</b> Edits made here are temporary and will not be saved back to the canvas.</p>
+					<textarea id="custom-netlist-editor" spellcheck="false" style="width: 100%; height: 400px; font-family: monospace; font-size: 13px; padding: 10px; box-sizing: border-box; border: 1px solid #bdc3c7; border-radius: 4px; white-space: pre; overflow: auto; background: #fdfdfd; color: #2c3e50;">${cleanNetlist}</textarea>
+				</div>
+			`,
+			showCancelButton: true,
+			showDenyButton: true,
+			confirmButtonText: '⚡ Run Simulation',
+			denyButtonText: '💾 Save to File',
+			cancelButtonText: 'Cancel',
+			confirmButtonColor: '#27ae60',
+			denyButtonColor: '#3498db',
+			preConfirm: () => {
+				return document.getElementById('custom-netlist-editor').value;
+			}
+		}).then((result) => {
+			if (result.isConfirmed) {
+				let customCode = result.value;
+				
+				// Smart Detection: Find out what type of simulation the expert typed in
+				let detectedMode = 'op';
+				let lowerCode = customCode.toLowerCase();
+				if (lowerCode.includes('.tran')) detectedMode = 'tran';
+				else if (lowerCode.includes('.ac')) detectedMode = 'ac';
+				
+				runSimulation(detectedMode, customCode);
+				
+			} else if (result.isDenied) {
+				let code = document.getElementById('custom-netlist-editor').value;
+				saveFileAs(code, 'circuit.cir', 'text/plain', 'SPICE Netlist');
+				Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Saved!', showConfirmButton: false, timer: 1500 });
+			}
+		});
+	}
+	
+	// --- 🪄 THEVENIN / NORTON SOLVER ENGINE ---
+	function promptTheveninNode() {
+		// 1. Let your spatial engine resolve all overlaps, dots, and bridges!
+		let netlistData = generateSpiceNetlistStr("\n.op\n.end\n");
+		if (netlistData.errors && netlistData.errors.length > 0) {
+			Swal.fire('Error', 'Fix schematic errors before running the solver.', 'error');
+			return;
+		}
+
+		let code = netlistData.code;
+
+		// 2. Search the finalized netlist for the probe
+		// Looking for: I_PROBE_xxxx <NODE> 0 DC 0
+		let probeRegex = /I_PROBE_[^\s]+\s+([^\s]+)\s+0\s+DC\s+0/i;
+		let match = code.match(probeRegex);
+
+		if (!match) {
+			Swal.fire({
+				title: 'Probe Not Connected', 
+				html: 'The <b>Test Probe (TP)</b> is either missing or not touching a valid wire/pin.<br><br><i>Ensure the top tip of the probe is visually overlapping a wire or connection dot!</i>', 
+				icon: 'info',
+				confirmButtonColor: '#3498db'
+			});
+			return;
+		}
+		
+		let allProbes = code.match(/I_PROBE_[^\s]+/gi);
+		if (allProbes && allProbes.length > 1) {
+			Swal.fire('Too Many Probes', 'Please leave only ONE Test Probe on the canvas.', 'warning');
+			return;
+		}
+
+		let targetNode = match[1];
+
+		// 3. Safety Checks
+		if (targetNode === '0') {
+			Swal.fire('Invalid Node', 'The probe is connected directly to Ground (Node 0). Please move it to a live circuit node!', 'error');
+			return;
+		}
+
+		// 4. Auto-trigger the solver!
+		executeTheveninSolver(targetNode);
+	}
+
+	function executeTheveninSolver(targetNode) {
+		if (typeof Module === 'undefined') return;
+		Swal.fire({ title: 'Calculating Vth and Rth...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+		setTimeout(() => {
+			try {
+				try { Module.FS.mkdir('/tmp'); } catch(e) {}
+				
+				// --- THE CRITICAL FIX: Feed ngspice its fake RAM file! ---
+				let safeRam = "MemTotal:       524288 kB\nMemFree:        524288 kB\nMemAvailable:   524288 kB\n";
+				try { Module.FS.writeFile('/tmp/meminfo', safeRam); } catch(e) {}
+				// ---------------------------------------------------------
+
+				if (!isSpiceInitialized) {
+					let sendCharCallback = Module.addFunction(function(textPtr) {
+						let msg = Module.UTF8ToString(textPtr).trim();
+						console.warn("[SPICE]:", msg);
+						if (msg.startsWith('stderr Error')) {
+							window.spiceErrorFlag = true;
+							window.spiceErrorMsg = msg.replace('stderr Error', '').trim();
+						} else if (msg.startsWith('stderr') && msg.toLowerCase().includes('error')) {
+							window.spiceErrorFlag = true;
+						}
+						return 0; 
+					}, 'iiii'); 
+					Module.ccall('ngSpice_Init', 'number', ['number','number','number','number','number','number','number'], [sendCharCallback, 0, 0, 0, 0, 0, 0]);
+					isSpiceInitialized = true;
+				}
+
+				let netlistData = generateSpiceNetlistStr("\n.op\n.end\n");
+				if (netlistData.errors && netlistData.errors.length > 0) {
+					Swal.fire('Error', 'Fix schematic errors before running the solver.', 'error');
+					return;
+				}
+				let baseNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+				// --- RUN 1: OPEN CIRCUIT VOLTAGE (Vth) ---
+				window.spiceErrorFlag = false;
+				window.spiceErrorMsg = "";
+
+				Module.FS.writeFile('/circuit_voc.cir', baseNetlist);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['destroy all']);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['remcirc']);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['source /circuit_voc.cir']);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['op']);
+
+				// Check if SPICE crashed on the base circuit
+				if (window.spiceErrorFlag) {
+					Swal.fire('Circuit Error', 'SPICE crashed on your base circuit:<br><br><b style="color:#c0392b;">' + window.spiceErrorMsg + '</b><br><br>Check your schematic for disconnected pins!', 'error');
+					return;
+				}
+
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['set filetype=ascii']);
+				try { Module.FS.unlink('/output_voc.raw'); } catch(e) {}
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['write /output_voc.raw']);
+				
+				let Vth = 0;
+				let vocExists = false;
+				try { vocExists = Module.FS.analyzePath('/output_voc.raw').exists; } catch(e) {}
+				
+				if (vocExists) {
+					let rawVoc = Module.FS.readFile('/output_voc.raw', { encoding: 'utf8' });
+					let parsedVoc = parseSpiceRaw(rawVoc);
+					let vIndex = parsedVoc.vars.findIndex(v => v.name === `v(${targetNode})`);
+					if (vIndex !== -1) Vth = parsedVoc.points[0][vIndex];
+					else {
+						Swal.fire('Error', `Node ${targetNode} not found in results.`, 'error');
+						return;
+					}
+				} else {
+					Swal.fire('Simulation Error', 'SPICE aborted during Open-Circuit calculation. Check the browser console.', 'error');
+					return;
+				}
+
+				// --- RUN 2: SHORT CIRCUIT CURRENT (Isc) ---
+				window.spiceErrorFlag = false; // Reset flag for run 2
+				let shortNetlist = baseNetlist.replace('.op', `V_THEV_SHORT ${targetNode} 0 DC 0\n.op`);
+				Module.FS.writeFile('/circuit_isc.cir', shortNetlist);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['destroy all']);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['remcirc']);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['source /circuit_isc.cir']);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['op']);
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['set filetype=ascii']);
+				try { Module.FS.unlink('/output_isc.raw'); } catch(e) {}
+				Module.ccall('ngSpice_Command', 'number', ['string'], ['write /output_isc.raw']);
+
+				let Isc = 0;
+				let iscExists = false;
+				try { iscExists = Module.FS.analyzePath('/output_isc.raw').exists; } catch(e) {}
+
+				if (iscExists) {
+					let rawIsc = Module.FS.readFile('/output_isc.raw', { encoding: 'utf8' });
+					let parsedIsc = parseSpiceRaw(rawIsc);
+					let iIndex = parsedIsc.vars.findIndex(v => v.name === `i(v_thev_short)`);
+					if (iIndex !== -1) Isc = parsedIsc.points[0][iIndex];
+				} else {
+					console.warn("[Thevenin] Singular Matrix detected. Assigning infinite short-circuit current (Rth = 0).");
+					Isc = Infinity;
+				}
+
+				// Calculate Rth
+				let Rth = 0;
+				if (Isc === Infinity) Rth = 0; 
+				else if (Math.abs(Isc) < 1e-12) Rth = 1e12; 
+				else Rth = Math.abs(Vth / Isc);
+				
+				if (Rth < 1e-6) Rth = 0;
+
+				drawTheveninEquivalent(Vth, Rth, targetNode);
+
+			} catch (error) { 
+				console.error("Thevenin Solver Exception:", error); 
+				Swal.fire('Simulation Error', 'An unexpected error occurred. See console.', 'error');
+			}
+		}, 100);
+	}
+	
+	function drawTheveninEquivalent(Vth, Rth, nodeName) {
+		// 1. Format Absolute Voltage
+		let absVth = Math.abs(Vth);
+		let vStr = absVth < 1e-6 ? "0" : absVth.toPrecision(3);
+		let isVthPos = (Vth >= 0);
+		let vTopSign = isVthPos ? "+" : "-";
+		let vBotSign = isVthPos ? "-" : "+";
+		
+		// 2. Format Resistance
+		let rStr = Rth >= 1e9 ? "∞" :
+		           Rth >= 1e6 ? (Rth/1e6).toPrecision(3) + ' M' : 
+		           Rth >= 1e3 ? (Rth/1e3).toPrecision(3) + ' k' : 
+				   Rth > 0 && Rth < 1 ? (Rth*1000).toPrecision(3) + ' m' : Math.round(Rth).toString();
+
+		// 3. Calculate and Format Absolute Norton Current
+		let Ino = Rth === 0 ? Infinity : (Vth / Rth);
+		let absIno = Math.abs(Ino);
+		let isInoPos = (Ino >= 0);
+		
+		let iStr = absIno === Infinity ? "∞" :
+		           absIno < 1e-12 ? "0" :
+		           absIno >= 1 ? absIno.toPrecision(3) :
+		           absIno >= 1e-3 ? (absIno * 1e3).toPrecision(3) + ' m' :
+		           absIno >= 1e-6 ? (absIno * 1e6).toPrecision(3) + ' µ' :
+		           absIno >= 1e-9 ? (absIno * 1e9).toPrecision(3) + ' n' : absIno.toExponential(2);
+		
+		let iArrowPath = isInoPos ? 
+			"M 60 170 L 60 130 M 55 140 L 60 130 L 65 140" :  // Up
+			"M 60 130 L 60 170 M 55 160 L 60 170 L 65 160";   // Down
+
+		// 4. Build Thevenin SVG (Expanded viewBox for text padding)
+		let theveninSvg = '';
+		if (Rth >= 1e9) {
+			theveninSvg = `<div style="width:340px; height:280px; background: #fdfdfd; border: 1px dashed #bdc3c7; border-radius: 8px; display:flex; align-items:center; justify-content:center; text-align:center; padding: 20px; box-sizing:border-box;"><span style="color:#7f8c8d; font-size:13px;">Thevenin Equivalent N/A<br>(Ideal Current Source / Rth = ∞)</span></div>`;
+		} else {
+			theveninSvg = `
+				<svg width="340" height="280" viewBox="-50 0 350 280" xmlns="http://www.w3.org/2000/svg" style="background: #fdfdfd; border: 1px dashed #bdc3c7; border-radius: 8px;">
+					<path d="M 100 200 L 100 220 M 80 220 L 120 220 M 87 228 L 113 228 M 94 236 L 106 236" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linecap="round"/>
+					
+					<circle cx="60" cy="150" r="30" stroke="#2c3e50" stroke-width="2" fill="#fff" />
+					<text x="60" y="135" font-family="monospace" font-size="20" font-weight="bold" text-anchor="middle" fill="#c0392b">${vTopSign}</text>
+					<text x="60" y="178" font-family="monospace" font-size="24" font-weight="bold" text-anchor="middle" fill="#2980b9">${vBotSign}</text>
+					<text x="25" y="155" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="end" fill="#2c3e50">${vStr} V</text>
+					<text x="25" y="135" font-family="sans-serif" font-size="11" text-anchor="end" fill="#7f8c8d">Vth</text>
+					
+					<path d="M 60 120 L 60 100 L 100 100" stroke="#2c3e50" stroke-width="2" fill="none" />
+					<path d="M 100 100 L 110 85 L 130 115 L 150 85 L 170 115 L 180 100" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linejoin="round" />
+					<text x="140" y="65" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2c3e50">${rStr} Ω</text>
+					<text x="140" y="45" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#7f8c8d">Rth</text>
+					
+					<line x1="180" y1="100" x2="230" y2="100" stroke="#2c3e50" stroke-width="2" />
+					
+					<path d="M 60 180 L 60 200 L 230 200" stroke="#2c3e50" stroke-width="2" fill="none" />
+					<circle cx="100" cy="200" r="3.5" fill="#2c3e50" /> <circle cx="235" cy="100" r="5" stroke="#8e44ad" stroke-width="2" fill="white" />
+					<circle cx="235" cy="200" r="5" stroke="#2c3e50" stroke-width="2" fill="white" />
+					<text x="245" y="105" font-family="sans-serif" font-size="14" font-weight="bold" fill="#8e44ad">Node ${nodeName}</text>
+				</svg>
+			`;
+		}
+
+		// 5. Build Norton SVG
+		let nortonSvg = '';
+		if (Rth === 0) {
+			nortonSvg = `<div style="width:340px; height:280px; background: #fdfdfd; border: 1px dashed #bdc3c7; border-radius: 8px; display:flex; align-items:center; justify-content:center; text-align:center; padding: 20px; box-sizing:border-box;"><span style="color:#7f8c8d; font-size:13px;">Norton Equivalent N/A<br>(Ideal Voltage Source / Rth = 0)</span></div>`;
+		} else {
+			nortonSvg = `
+				<svg width="340" height="280" viewBox="-50 0 350 280" xmlns="http://www.w3.org/2000/svg" style="background: #fdfdfd; border: 1px dashed #bdc3c7; border-radius: 8px;">
+					<path d="M 145 200 L 145 220 M 125 220 L 165 220 M 132 228 L 158 228 M 139 236 L 151 236" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linecap="round"/>
+					
+					<circle cx="60" cy="150" r="30" stroke="#2c3e50" stroke-width="2" fill="#fff" />
+					<path d="${iArrowPath}" stroke="#c0392b" stroke-width="2" fill="none" stroke-linejoin="round" />
+					<text x="25" y="155" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="end" fill="#2c3e50">${iStr} A</text>
+					<text x="25" y="135" font-family="sans-serif" font-size="11" text-anchor="end" fill="#7f8c8d">Ino</text>
+
+					<path d="M 145 100 L 145 120 L 130 130 L 160 150 L 130 170 L 145 180 L 145 200" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linejoin="round" />
+					<text x="175" y="155" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="start" fill="#2c3e50">${rStr} Ω</text>
+					<text x="175" y="135" font-family="sans-serif" font-size="11" text-anchor="start" fill="#7f8c8d">Rno</text>
+
+					<line x1="60" y1="100" x2="230" y2="100" stroke="#2c3e50" stroke-width="2" />
+					<line x1="60" y1="200" x2="230" y2="200" stroke="#2c3e50" stroke-width="2" />
+					<line x1="60" y1="120" x2="60" y2="100" stroke="#2c3e50" stroke-width="2" />
+					<line x1="60" y1="180" x2="60" y2="200" stroke="#2c3e50" stroke-width="2" />
+					
+					<circle cx="145" cy="100" r="3.5" fill="#2c3e50" />
+					<circle cx="145" cy="200" r="3.5" fill="#2c3e50" />
+					
+					<circle cx="235" cy="100" r="5" stroke="#8e44ad" stroke-width="2" fill="white" />
+					<circle cx="235" cy="200" r="5" stroke="#2c3e50" stroke-width="2" fill="white" />
+					<text x="245" y="105" font-family="sans-serif" font-size="14" font-weight="bold" fill="#8e44ad">Node ${nodeName}</text>
+				</svg>
+			`;
+		}
+
+		// 6. Combine and Display
+		let dualDiagram = `
+			<div style="display: flex; justify-content: space-around; gap: 15px; margin-top: 10px;">
+				<div>
+					<div style="text-align: center; margin-bottom: 8px; font-weight: bold; color: #2c3e50; font-size: 14px;">Thevenin</div>
+					${theveninSvg}
+				</div>
+				<div>
+					<div style="text-align: center; margin-bottom: 8px; font-weight: bold; color: #2c3e50; font-size: 14px;">Norton</div>
+					${nortonSvg}
+				</div>
+			</div>
+		`;
+
+		Swal.fire({
+			title: 'Equivalent Circuits',
+			html: dualDiagram,
+			confirmButtonText: 'Close',
+			confirmButtonColor: '#34495e',
+			width: '740px' // Widened to safely hold two 340px SVGs side-by-side
+		});
+	}
+
 </script>
 </body>
 </html>
