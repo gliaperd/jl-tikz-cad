@@ -256,10 +256,6 @@
                         </label>
                     </div>
                     <div style="grid-column: span 2;"><label>Palette Defaults (Preview Args)</label><input type="text" id="mPreview" value="" placeholder="e.g. 3=p, 4=dot" oninput="generateCode(); if(testModeActive && document.getElementById('chkPalettePreview')?.checked) updateTestPreview();" title="Defines which overlays appear in the Circuit Editor Palette"></div>
-					<div style="grid-column: span 2; margin-top: 5px;">
-						<label style="color: #8e44ad;">SPICE Template</label>
-						<input type="text" id="mSpice" value="" placeholder="e.g. R_{NAME} {pin1} {pin2} {VALUE} (Leave blank if not simulatable)" oninput="generateCode()" style="border-color: #9b59b6;">
-					</div>
                 </div>
                 <div style="display: flex; gap: 15px; margin-top: 4px; margin-bottom: 8px;">
                     <label style="color:#2c3e50; font-weight: normal; font-size: 11px; cursor: pointer;"><input type="checkbox" id="mEnabled" checked onchange="generateCode()"> Enabled in Palette</label>
@@ -301,6 +297,27 @@
             <div id="sec-dynamic" class="section-content collapsed">
                 <div id="argDefList" style="display: flex; flex-direction: column; gap: 5px; padding: 5px 0;">
                 </div>
+            </div>
+			<h2 class="section-header collapsed" onclick="toggleSection('sec-analogprops', this)" style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; border: 1px solid #9b59b6; background: #fcf9fd;">
+                <span style="display: flex; align-items: center; gap: 4px; color: #8e44ad;"><span class="toggle-icon">▼</span> ⚡ SPICE Simulation Properties</span>
+            </h2>
+            <div id="sec-analogprops" class="section-content collapsed" style="padding: 8px 5px;">
+                <label style="color: #8e44ad; font-size: 10px; font-weight: bold;">SPICE TEMPLATE MACRO</label>
+                <input type="text" id="mSpice" value="" placeholder="e.g. R_{NAME} {pin1} {pin2} {VALUE}" oninput="generateCode()" style="border-color: #9b59b6; width: 100%; margin-top: 4px;">
+                <div style="font-size: 10px; color: #7f8c8d; margin-top: 4px;">Leave blank if the component is purely visual or digital.</div>
+            </div>
+
+            <h2 class="section-header collapsed" onclick="toggleSection('sec-simprops', this)" style="display: flex; justify-content: space-between; align-items: center; margin-top: 5px; border: 1px solid #2ecc71; background: #f9fdfa;">
+                <span style="display: flex; align-items: center; gap: 4px; color: #27ae60;"><span class="toggle-icon">▼</span> ⏱️ Logic Simulation Properties</span>
+                <div class="header-controls">
+                    <button class="tool-btn" onclick="event.stopPropagation(); addPropDef()" style="padding: 2px 6px; font-size: 9px; background: #27ae60; border-color: #2ecc71;" title="Add new simulation property">+</button>
+                </div>
+            </h2>
+            <div id="sec-simprops" class="section-content collapsed">
+                <div id="propDefList" style="display: flex; flex-direction: column; gap: 5px; padding: 5px 0;"></div>
+            </div>
+            <div id="sec-simprops" class="section-content collapsed">
+                <div id="propDefList" style="display: flex; flex-direction: column; gap: 5px; padding: 5px 0;"></div>
             </div>
 
             <style>
@@ -464,7 +481,41 @@
 
     <script>
 	
-		let argDefs = []; // Θα αποθηκεύει αντικείμενα { idx, type, label, defVal, options }
+		let argDefs = []; 
+        let propDefs = []; // NEW: Simulation Properties
+
+        function renderPropDefList() {
+            const list = document.getElementById('propDefList');
+            list.innerHTML = '';
+            
+            if (propDefs.length === 0) {
+                list.innerHTML = '<div style="font-size:10px; color:#7f8c8d; text-align:center; padding:5px;">No simulation properties defined.</div>';
+                return;
+            }
+
+            propDefs.forEach((prop, i) => {
+                let html = `
+                <div style="background: #fff; border: 1px solid #27ae60; border-radius: 4px; padding: 6px; position: relative;">
+                    <button onclick="removePropDef(${i})" style="position: absolute; top: 4px; right: 4px; background: none; border: none; color: #e74c3c; cursor: pointer; font-size: 10px;" title="Remove">✖</button>
+                    
+                    <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                        <div style="flex: 1;"><label style="font-size:9px; color:#27ae60;">Property ID (e.g. DELAY)</label>
+                            <input type="text" value="${prop.id}" onchange="updatePropDef(${i}, 'id', this.value)" style="padding: 2px; font-size:10px; height: 18px; width: 100%;">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 4px; margin-bottom: 4px;">
+                        <div style="flex: 2;"><label style="font-size:9px;">Label</label><input type="text" value="${prop.label}" onchange="updatePropDef(${i}, 'label', this.value)" placeholder="e.g. Gate Delay" style="padding: 2px; font-size:10px; width: 100%;"></div>
+                        <div style="flex: 1;"><label style="font-size:9px;">Default Val</label><input type="text" value="${prop.defVal}" onchange="updatePropDef(${i}, 'defVal', this.value)" placeholder="e.g. 10n" style="padding: 2px; font-size:10px; width: 100%;"></div>
+                    </div>
+                </div>`;
+                list.innerHTML += html;
+            });
+        }
+
+        function addPropDef() { propDefs.push({ id: 'DELAY', label: 'Gate Delay', defVal: '10n' }); renderPropDefList(); generateCode(); }
+        function removePropDef(index) { propDefs.splice(index, 1); renderPropDefList(); generateCode(); }
+        function updatePropDef(index, field, value) { propDefs[index][field] = value; generateCode(); }
 		
 		// --- NEW: Helper to highlight text in the expert editor ---
         window.highlightPathText = (startIdx, endIdx) => {
@@ -2371,7 +2422,7 @@
             }
             // --- END SHAPE GEN IMPORT ---
             
-            // --- IMPORT DYNAMIC PROPERTIES ---
+			// --- IMPORT DYNAMIC PROPERTIES ---
             // Use .* to strictly grab only the current line, then split by pipe.
             // This mathematically prevents it from ever bleeding into the next line!
             let argDefRegex = /% arg_def:\s*(.*)/g;
@@ -2389,6 +2440,22 @@
                 }
             }
             renderArgDefList();
+			
+			// --- IMPORT (LOGIC) SIMULATION PROPERTIES (NEW) ---
+            propDefs = [];
+            let propDefRegex = /% property_def:\s*(.*)/g;
+            let propMatch;
+            while ((propMatch = propDefRegex.exec(code)) !== null) {
+                let parts = propMatch[1].split('|');
+                if (parts.length >= 3) {
+                    propDefs.push({
+                        id: parts[0].trim(),
+                        label: parts[1].trim(),
+                        defVal: parts[2].trim()
+                    });
+                }
+            }
+            renderPropDefList();
             
             let mPreview = code.match(/% preview_args:\s*([^\n]+)/); 
             let previewInput = document.getElementById('mPreview');
@@ -3986,10 +4053,17 @@
                     let optPart = (arg.type === 'select' || arg.type === 'flags') ? ` | ${arg.options}` : '';
                     lines.push(`% arg_def: ${arg.idx} | ${arg.type} | ${arg.label} | ${arg.defVal}${optPart}`);
                 });
-                lines.push(``);
             }
-            
+			
+			// --- NEW: EXPORT SIMULATION PROPERTIES ---
+            if (propDefs.length > 0) {
+                lines.push(``);
+                propDefs.forEach(prop => {
+                    lines.push(`% property_def: ${prop.id} | ${prop.label} | ${prop.defVal}`);
+                });
+            }
             lines.push(``);
+            
             layers.forEach((l, idx) => {
                 let cleanPath = l.pathStr.replace(/\s+/g, ' ').trim();
                 let desc = l.description ? ` // ${l.description.trim()}` : "";
@@ -4946,6 +5020,7 @@
         };
 	
 	renderArgDefList(); // stays always at end!
+	renderPropDefList(); // stays always at end!
 	
     </script>
 </body>

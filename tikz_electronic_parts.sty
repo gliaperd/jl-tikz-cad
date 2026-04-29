@@ -738,6 +738,31 @@
 			\end{scope}
 }
 
+%% Clock Source
+\newcommand{\clocksource}[7]{%{position}{name}{period}{initial state}{rotation}{grid}{show (0,0)}
+% enabled
+% category: Sources
+% scales: 1, 2, 4
+% label_anchor: B
+% flip: disabled
+% preview_args: 3=4, 4=0
+
+% property_def: FREQ | Frequency (Hz) | 1Meg
+% property_def: INIT | Initial State (0/1) | 0
+
+% icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M 20 0 L 30 0 M -10 -5 L -5 -5 L -5 5 L 5 5 L 5 -5 L 10 -5
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+        \getzoomfactor
+        \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0) circle (2);
+        \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (2,0) -- (3,0);
+        \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (-1,-0.5) -- (-0.5,-0.5) -- (-0.5,0.5) -- (0.5,0.5) -- (0.5,-0.5) -- (1,-0.5);
+        \node[draw=none, anchor=south] at (0,2) {#2};
+        \ifstrequal{#6}{gridon}{\draw[step=1cm,color=gray] (-3,-3) grid (3,3);}{}
+        \ifstrequal{#7}{show}{\node[draw=none, align=center, color=red] at (0,0) {#1};}{}
+        \coordinate (pin1) at (3.00, 0.00); % output terminal [R]
+    \end{scope}
+}
+
 %% Multimeter
 \newcommand{\multimeter}[7]{%{position}{name}{horizontal/vertical}{value (0 to 100)}{rotation}{grid}{show (0,0)}
 % enabled
@@ -2638,6 +2663,8 @@
 % arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
 % arg_def: 4 | rotation | Rotation | 0
 
+% property_def: DELAY | Gate Delay (s) | 5n
+
 
 % icon_base: M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20 // base
 % add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
@@ -3487,14 +3514,16 @@
 
 % arg_def: 3 | rotation | Rotation | 0
 % arg_def: 4 | select | reset | noreset | reset, resetn, noreset
-% arg_def: 5 | select | negative, positive trigger | negative | negative, positive
+% arg_def: 5 | select | negative, positive trigger | positive | negative, positive
+
+% property_def: DELAY | Gate Delay (s) | 5n
 
 
 % icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 // base
 % add_icon: 1~= : M 15 -80 L 15 -80 /*TEXT:10,normal,J*/ M 15 -20 L 15 -20 /*TEXT:10,normal,K*/ M 30 -50 L 30 -50 /*TEXT:10,normal,CLK*/ M 50 -80 L 50 -80 /*TEXT:10,normal,Q*/ M 50 -20 L 50 -20 /*TEXT:10,normal,Q*/ M 46.50 -26.50 L 53.50 -26.50 // terminals
 % add_icon: 1== && 4==reset : M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ // clr
-% add_icon: 5==positive : M 6.50 -50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -50 L 3.5 -50 // positive trigger
-% add_icon: 5==negative : M 0 -50 L 10 -50 // negative trigger
+% add_icon: 5==negative : M 6.50 -50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -50 L 3.5 -50 // negative trigger
+% add_icon: 5==positive : M 0 -50 L 10 -50 // positive trigger
 % add_icon: 4==resetn : M 35 -5 L 35 -5 /*TEXT:10,normal,clrn*/ M 35 3 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 35 10 L 35 5 // clrn
     \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
 				\getzoomfactor
@@ -5771,22 +5800,31 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% ==========================================
-% Test Probe (For Thevenin/Norton Analysis)
-% ==========================================
-\newcommand{\testprobe}[7]{
+% ==========================================================
+% Test Probe (For Thevenin/Norton/Digital Logic Analysis)
+% ==========================================================
+\newcommand{\testprobe}[5]{%{position}{name}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Simulation/Solvers
+% scales: 1, 2, 4
+% label_anchor: 0 45 T
+% flip: disabled
 % spice_template: I_PROBE_{NAME} {pin1} 0 DC 0
+
+% arg_def: 3 | rotflip | Rotation & Flip | 0,none
+
 % icon_base: M 0 0 L 0 15 M 0 15 L -12 27 L 0 39 L 12 27 Z M -5 32 L 5 32 M 0 32 L 0 22
-	\begin{scope}[shift={#1}, rotate=#5]
+	\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+        \getzoomfactor
         \coordinate (pin1) at (0,0);
         % The wire lead
-        \draw[thick, line cap=round, #6] (0,0) -- (0, 0.4);
-        % The probe body (Diamond shape parses universally)
-        \draw[thick, fill=white, #6] (-0.2, 0.6) -- (0, 0.8) -- (0.2, 0.6) -- (0, 0.4) -- cycle;
+        \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round] (0,0) -- (0, 1.5);
+        % The probe body
+        \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, fill=white] (-1.2, 2.7) -- (0, 3.9) -- (1.2, 2.7) -- (0, 1.5) -- cycle;
         % A literal "T" drawn with lines
-        \draw[thick, line cap=round, #6] (-0.1, 0.65) -- (0.1, 0.65);
-        \draw[thick, line cap=round, #6] (0, 0.65) -- (0, 0.55);
+        \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round] (-0.5, 3.2) -- (0.5, 3.2);
+        \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round] (0, 3.2) -- (0, 2.2);
+        \node[draw=none, anchor=south] at (0,4.5) {#2};
     \end{scope}
 }
+

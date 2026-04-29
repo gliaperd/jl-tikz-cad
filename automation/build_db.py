@@ -116,6 +116,22 @@ def generate_db(sty_file):
                         comp_data['argDefs'].append(arg_def)
                 except Exception as e:
                     print(f"Error parsing arg_def in {name}: {e}")
+                    
+            # --- NEW: SIMULATION PROPERTIES (property_def) ---
+            elif line.startswith('% property_def:'):
+                try:
+                    parts = line.replace('% property_def:', '').split('|')
+                    if len(parts) >= 3:
+                        if 'propDefs' not in comp_data:
+                            comp_data['propDefs'] = []
+                        
+                        comp_data['propDefs'].append({
+                            "id": parts[0].strip(),
+                            "label": parts[1].strip(),
+                            "defVal": parts[2].strip()
+                        })
+                except Exception as e:
+                    print(f"Error parsing property_def in {name}: {e}")
 
             elif re.match(r'%\s*icon_base\s*:', line, re.IGNORECASE):
                 path_data = re.sub(r'%\s*icon_base\s*:', '', line, flags=re.IGNORECASE).strip()

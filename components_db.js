@@ -938,6 +938,80 @@ const JL_DATABASE = {
             }
         ]
     },
+    "clocksource": {
+        "name": "clocksource",
+        "displayName": "Clock Source",
+        "argsCount": 7,
+        "enabled": "true",
+        "category": "Sources",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "previewArgs": {
+            "3": "4",
+            "4": "0"
+        },
+        "propDefs": [
+            {
+                "id": "FREQ",
+                "label": "Frequency (Hz)",
+                "defVal": "1Meg"
+            },
+            {
+                "id": "INIT",
+                "label": "Initial State (0/1)",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M 20 0 L 30 0 M -10 -5 L -5 -5 L -5 5 L 5 5 L 5 -5 L 10 -5",
+        "filled": false,
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "period",
+                "optional": false
+            },
+            {
+                "name": "initial state",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 30.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
     "multimeter": {
         "name": "multimeter",
         "displayName": "Multimeter",
@@ -3235,6 +3309,13 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "propDefs": [
+            {
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "5n"
+            }
+        ],
         "iconBase": "M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20",
         "filled": false,
         "iconLayers": [
@@ -4464,8 +4545,15 @@ const JL_DATABASE = {
                 "idx": 5,
                 "type": "select",
                 "label": "negative, positive trigger",
-                "defVal": "negative",
+                "defVal": "positive",
                 "options": "negative, positive"
+            }
+        ],
+        "propDefs": [
+            {
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "5n"
             }
         ],
         "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20",
@@ -4482,12 +4570,12 @@ const JL_DATABASE = {
                 "path": "M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/"
             },
             {
-                "condition": "5==positive",
+                "condition": "5==negative",
                 "style": "",
                 "path": "M 6.50 -50 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 0 -50 L 3.5 -50"
             },
             {
-                "condition": "5==negative",
+                "condition": "5==positive",
                 "style": "",
                 "path": "M 0 -50 L 10 -50"
             },
@@ -6513,13 +6601,53 @@ const JL_DATABASE = {
     "testprobe": {
         "name": "testprobe",
         "displayName": "testprobe",
-        "argsCount": 7,
+        "argsCount": 5,
         "enabled": "true",
         "category": "Simulation/Solvers",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "x": 0.0,
+            "y": 45.0,
+            "dir": "T"
+        },
+        "flippable": false,
         "spiceTemplate": "I_PROBE_{NAME} {pin1} 0 DC 0",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
         "iconBase": "M 0 0 L 0 15 M 0 15 L -12 27 L 0 39 L 12 27 Z M -5 32 L 5 32 M 0 32 L 0 22",
         "filled": false,
-        "argNames": [],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "rotation,flip(h, v, hv, or none)",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
         "pins": [
             {
                 "id": "pin1",
