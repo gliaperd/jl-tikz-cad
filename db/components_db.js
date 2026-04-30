@@ -4299,6 +4299,13 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "propDefs": [
+            {
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "5n"
+            }
+        ],
         "argDefs": [
             {
                 "idx": 3,

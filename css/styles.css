@@ -1,0 +1,69 @@
+body { font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; height: 100vh; margin: 0; background: #f0f2f5; overflow: hidden; }
+#toolbar { background: #2c3e50; color: white; padding: 10px; display: flex; gap: 8px; align-items: center; z-index: 2000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); flex-wrap: wrap; }
+.tool-btn { background: #34495e; color: white; border: 1px solid #5d6d7e; padding: 6px 12px; cursor: pointer; border-radius: 4px; font-size: 13px; transition: all 0.2s; }
+.tool-btn:hover { background: #4a6278; }
+.tool-btn.active { background: #3498db; border-color: #2980b9; }
+.v-separator { width: 1px; height: 20px; background: #5d6d7e; margin: 0 4px; }
+#main { display: flex; flex: 1; overflow: hidden; position: relative; }
+#sidebar { width: 220px; border-right: 1px solid #bdc3c7; background: #fff; z-index: 10; flex-shrink: 0; display: flex; flex-direction: column; }
+#items-container { flex: 1; overflow-y: auto; padding: 15px; }
+#paper-container { flex: 1; background: #cbd5e0; overflow: hidden; position: relative; outline: none; cursor: grab; }
+#paper-container:active { cursor: grabbing; }
+#my-paper { width: 100%; height: 100%; background: white; }
+#draw-glasspane { position: absolute; top: 0; left: 0; right: 0; bottom: 0; z-index: 1500; cursor: crosshair; display: none; background: rgba(255,255,255,0.01); }
+
+#output-panel { height: 160px; background: #1e1e1e; border-top: 3px solid #3498db; display: flex; flex-direction: column; padding: 10px; resize: vertical; overflow: hidden; min-height: 100px; max-height: 80vh; position: relative; }
+.floating-buttons { position: absolute; top: 10px; right: 35px; display: flex; gap: 8px; z-index: 10; }
+#latex-output { color: #d4d4d4; font-family: 'Consolas', monospace; font-size: 13px; white-space: pre; flex: 1; overflow-y: auto; padding-top: 30px; }
+#output-panel::-webkit-resizer { background-color: #3498db; border: 3px solid #1e1e1e; outline: 1px solid #3498db; }
+#latex-output:focus { outline: none; background: #1a252f; box-shadow: inset 0 0 5px rgba(0,0,0,0.5); }
+
+.highlight { background: rgba(52, 152, 219, 0.4); border-left: 3px solid #3498db; margin-left: -3px; border-radius: 2px; }
+.joint-selection-rect { border: 2px dashed #3498db; background: rgba(52, 152, 219, 0.2); position: absolute; pointer-events: none; z-index: 3000; }
+.joint-highlighted[magnitude="0"] rect { stroke: #3498db !important; stroke-width: 1px !important; stroke-dasharray: 5,5 !important; fill: rgba(52, 152, 219, 0.05) !important; }
+
+.comp-item { padding: 8px; margin-bottom: 6px; background: #ecf0f1; cursor: pointer; border-radius: 6px; font-size: 12px; border-left: 4px solid #3498db; display: flex; align-items: center; min-height: 44px; overflow: hidden; transition: all 0.2s ease; }	
+.comp-item:hover { background: #dff9fb; border-left: 4px solid #2980b9; transform: translateX(5px); }
+
+.tex-cmd { color: #c678dd; font-weight: bold; }
+.tex-brace { color: #56b6c2; }
+.tex-place { color: #e06c75; font-style: italic; }
+
+.swal2-container { z-index: 10000 !important; }
+html.swal2-height-auto, body.swal2-height-auto { height: 100vh !important; }
+
+.sync-id { color: transparent; font-size: 1px; user-select: none; pointer-events: none; }
+:root { --selection-color: #3498db; }
+
+#my-paper.theme-cadence .joint-highlighted path[joint-selector="icon"] { stroke: #FFFFFF !important; }
+#my-paper.theme-cadence .joint-highlighted text[joint-selector="label"] { fill: #FFFFFF !important; }
+#my-paper.theme-cadence .joint-highlighted path[joint-selector="line"] { stroke: #FFFFFF !important; }
+#my-paper.theme-cadence .joint-highlighted rect[joint-selector="portBody"] { fill: #FFFFFF !important; }
+#my-paper.theme-cadence .joint-highlighted text[joint-selector="portLabel"] { fill: #FFFFFF !important; }
+#my-paper.theme-cadence .joint-highlighted circle[joint-selector="dot"] { fill: #FFFFFF !important; }
+
+.category-header { font-size: 11px; font-weight: bold; color: #7f8c8d; margin: 18px 0 8px 4px; padding-bottom: 4px; border-bottom: 1px solid #e0e6ed; letter-spacing: 0.5px; text-transform: uppercase; }
+.category-header:first-child { margin-top: 0; }
+
+#sidebar { transition: width 0.3s ease, padding 0.3s ease; overflow: hidden; }
+#sidebar.collapsed { width: 0 !important; border: none; padding: 0; }
+#sidebar.collapsed > * { opacity: 0; pointer-events: none; }
+#output-panel { transition: height 0.3s ease, min-height 0.3s ease, padding 0.3s ease; }
+#output-panel.collapsed { height: 0 !important; min-height: 0 !important; border-top: none; padding-top: 0; padding-bottom: 0; }
+#output-panel.collapsed > * { opacity: 0; pointer-events: none; }
+
+#minimized-corner { position: absolute; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 4000; }
+.min-tab { background: #2c3e50; color: white; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.4); display: none; align-items: center; gap: 8px; border: 2px solid #3498db; transition: transform 0.2s, background 0.2s; }
+.min-tab:hover { background: #34495e; transform: scale(1.05); }
+
+.tool-btn:disabled { opacity: 0.4; cursor: not-allowed; background: #7f8c8d !important; border-color: #555 !important; transform: none !important; }
+#palette-search:focus { border-color: #3498db !important; }
+
+.toolbar-dropdown { position: relative; display: inline-block; margin-left: 5px; }
+.toolbar-dropdown::after { content: ""; position: absolute; left: 0; top: 100%; width: 100%; height: 15px; }
+.toolbar-dropdown-content { display: none; position: absolute; background-color: #ffffff; min-width: 170px; box-shadow: 0px 8px 16px rgba(0,0,0,0.3); z-index: 5000; border-radius: 6px; border: 1px solid #bdc3c7; overflow: hidden; top: 100%; margin-top: 4px; }
+.toolbar-dropdown-content label, .toolbar-dropdown-content .menu-item { color: #2c3e50; padding: 10px 12px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 500; border-bottom: 1px solid #ecf0f1; margin: 0; transition: background 0.2s; user-select: none; }
+.toolbar-dropdown-content label:last-child, .toolbar-dropdown-content .menu-item:last-child { border-bottom: none; }
+.toolbar-dropdown-content label:hover, .toolbar-dropdown-content .menu-item:hover { background-color: #ebf5fb; }
+.toolbar-dropdown:hover .toolbar-dropdown-content { display: block; }
+.toolbar-dropdown:hover .tool-btn { background: #4a6278; }
