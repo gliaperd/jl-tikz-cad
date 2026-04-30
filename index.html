@@ -10,75 +10,93 @@
     
     <!-- Our Clean CSS -->
     <link rel="stylesheet" href="css/styles.css">
+	
+	<!-- Professional Typography Stack -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+	
+	<!-- Add Lucide Icons -->
+	<script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- UI Icon Alignment Patch -->
+    <style>
+        .lucide { width: 16px; height: 16px; }
+        .tool-btn, .menu-item, .min-tab { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .toolbar-dropdown-content label { display: flex; align-items: center; gap: 8px; }
+    </style>
 </head>
 <body>
 
 <div id="toolbar">
-    <button id="tool-pan" class="tool-btn active">🖐️ Select</button>
-    <button id="tool-draw" class="tool-btn">✏️ Wire</button>
+    <!-- Notice there is NO space between </i> and the text now! -->
+    <button id="tool-pan" class="tool-btn active"><i data-lucide="mouse-pointer-2"></i>Select</button>
+    <button id="tool-draw" class="tool-btn"><i data-lucide="pencil"></i>Wire</button>
     <div class="v-separator"></div>
     
-    <button id="btn-copy" class="tool-btn" style="color:#f39c12">📋 Copy</button>
-    <button id="btn-paste" class="tool-btn" style="color:#f1c40f">📝 Paste</button>
-    <button id="btn-delete" class="tool-btn" style="color:#ff7675">✖ Delete</button>
-    <button id="btn-rotate" class="tool-btn">↻ Rotate</button>
-    <button id="btn-flip-h" class="tool-btn">↔ Flip H</button>
-    <button id="btn-flip-v" class="tool-btn">↕ Flip V</button>
+    <button id="btn-copy" class="tool-btn"><i data-lucide="copy"></i>Copy</button>
+    <button id="btn-paste" class="tool-btn"><i data-lucide="clipboard-paste"></i>Paste</button>
+    <button id="btn-delete" class="tool-btn"><i data-lucide="trash-2"></i>Delete</button>
+    <button id="btn-rotate" class="tool-btn"><i data-lucide="rotate-cw"></i>Rotate</button>
+    <button id="btn-flip-h" class="tool-btn"><i data-lucide="flip-horizontal"></i>Flip H</button>
+    <button id="btn-flip-v" class="tool-btn"><i data-lucide="flip-vertical"></i>Flip V</button>
     
     <div class="toolbar-dropdown">
-        <button class="tool-btn">👁️ View ▼</button>
+        <button class="tool-btn"><i data-lucide="eye"></i>View ▼</button>
         <div class="toolbar-dropdown-content">
-            <label><input type="checkbox" id="toggle-pins" checked> 📌 Show Pins</label>
-            <label><input type="checkbox" id="toggle-pin-names" checked> 🏷️ Show Pin Names</label>
-            <label style="color: #27ae60;"><input type="checkbox" id="chkShowNets"> ⚡ Show Net Names</label>
-            <label style="color: #e74c3c;"><input type="checkbox" id="toggle-ghost-dots" checked> 👻 Show Ghost Dots</label>
+            <label><input type="checkbox" id="toggle-pins" checked> <i data-lucide="map-pin" style="width: 14px; height: 14px;"></i>Pins</label>
+            <label><input type="checkbox" id="toggle-pin-names" checked> <i data-lucide="tag" style="width: 14px; height: 14px;"></i>Pin Names</label>
+            <label><input type="checkbox" id="chkShowNets"> <i data-lucide="zap" style="width: 14px; height: 14px;"></i>Net Names</label>
+            <label><input type="checkbox" id="toggle-ghost-dots" checked> <i data-lucide="ghost" style="width: 14px; height: 14px;"></i>Ghost Dots</label>
         </div>
     </div>
     
     <div class="v-separator"></div>
-    <button id="btn-fit" class="tool-btn" style="background:#2980b9; font-weight:bold;">🎯 Fit</button>
+    <button id="btn-fit" class="tool-btn" style="font-weight:bold;"><i data-lucide="maximize"></i>Fit</button>
     <span id="zoom-level" style="font-size: 11px; min-width: 40px; text-align:center;">100%</span>
 
     <div class="v-separator"></div>
-    <button id="btn-undo" class="tool-btn">↺ Undo</button>
-    <button id="btn-redo" class="tool-btn">↻ Redo</button>
-    <button id="btn-clear" class="tool-btn" style="color:#e74c3c;">🗑️ Clear Canvas</button> 
+    <button id="btn-undo" class="tool-btn"><i data-lucide="undo"></i>Undo</button>
+    <button id="btn-redo" class="tool-btn"><i data-lucide="redo"></i>Redo</button>
+    <button id="btn-clear" class="tool-btn"><i data-lucide="trash"></i>Clear</button> 
     
     <div class="v-separator"></div>
     
     <div class="toolbar-dropdown">
-        <button class="tool-btn" style="background:#8e44ad; font-weight:bold; box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);">⚡ Simulate ▼</button>
+        <button class="tool-btn" style="font-weight:bold;"><i data-lucide="zap"></i>Simulate ▼</button>
         <div class="toolbar-dropdown-content" style="min-width: 190px;">
-            <div class="menu-item" id="btn-sim-op">⚡ DC Operating Point</div>
-            <div class="menu-item" id="btn-sim-tran">📈 Transient Analysis</div>
-            <div class="menu-item" id="btn-sim-ac">🌊 AC Analysis</div>
-            <div class="menu-item" id="btn-sim-netlist">📄 View/Edit Netlist</div>
-            <div class="menu-item" id="btn-sim-logic" style="color: #27ae60; font-weight: bold;">⏱️ Run Digital Timing Analysis</div>
+            <div class="menu-item" id="btn-sim-op"><i data-lucide="zap"></i>DC Operating Point</div>
+            <div class="menu-item" id="btn-sim-tran"><i data-lucide="activity"></i>Transient Analysis</div>
+            <div class="menu-item" id="btn-sim-ac"><i data-lucide="waves"></i>AC Analysis</div>
+            <div class="menu-item" id="btn-sim-netlist"><i data-lucide="file-code"></i>View/Edit Netlist</div>
+            <div class="menu-item" id="btn-sim-logic"><i data-lucide="clock"></i>Digital Timing Analysis</div>
             <div style="border-top: 1px solid #ecf0f1; margin: 4px 0;"></div>
-            <div class="menu-item" id="btn-sim-settings">⚙️ Simulation Settings</div>
-            <div class="menu-item" id="btn-sim-clear" style="color: #e74c3c;">🧹 Clear Annotations</div>
-            <div class="menu-item" id="btn-sim-thevenin" style="color: #8e44ad; font-weight: bold;">🪄 Thevenin/Norton Eq.</div>
+            <div class="menu-item" id="btn-sim-settings"><i data-lucide="settings"></i>Simulation Settings</div>
+            <div class="menu-item" id="btn-sim-clear"><i data-lucide="eraser"></i>Clear Annotations</div>
+            <div class="menu-item" id="btn-sim-thevenin"><i data-lucide="wand-2"></i>Thevenin/Norton Eq.</div>
         </div>
     </div>
     
     <div class="v-separator"></div>
     
-    <button id="btn-save" class="tool-btn" style="background:#8e44ad">💾 Save</button>
-    <button id="btn-open" class="tool-btn" style="background:#d35400">📂 Open File</button>
+    <button id="btn-save" class="tool-btn"><i data-lucide="save"></i>Save</button>
+    <button id="btn-open" class="tool-btn"><i data-lucide="folder-open"></i>Open</button>
     <input type="file" id="importFile" style="display:none" accept=".json,.tex,.txt">
     
     <div class="v-separator"></div>
     
     <label style="color:white; font-size:12px; display:flex; align-items:center; gap:5px; cursor:pointer; user-select:none; margin-left: 8px;">
-        Display Mode:
-        <select id="theme-selector" style="background:#34495e; color:white; border:none; border-radius:4px; font-size:12px; padding: 2px 6px;">
+        Theme:
+        <select id="theme-selector" style="background:var(--bg-btn); color:white; border:none; border-radius:4px; font-size:12px; padding: 2px 6px; outline: none;">
             <option value="standard" selected>Standard</option>
-            <option value="cadence">Cadence Virtuoso</option>
+            <option value="cadence">Cadence</option>
         </select>
     </label>
     
     <div style="margin-left:auto; display:flex; gap:8px;">
-        <button id="btn-export-dialog" style="background: #e84393; font-weight: bold; color:white; padding: 6px 16px;" class="tool-btn">📤 Export</button>
+        <!-- NEW OUTPUT TOGGLE BUTTON -->
+        <button id="btn-toggle-output" class="tool-btn"><i data-lucide="code"></i>TikZ Code</button>
+        <button id="btn-export-dialog" class="tool-btn" style="font-weight: bold; background: var(--primary);"><i data-lucide="download"></i>Export</button>
     </div>
 </div>
 
@@ -87,34 +105,35 @@
         <div id="draw-glasspane"></div>
         <div id="my-paper"></div>
     </div>
+    
+    <!-- RESTRUCTURED SIDEBAR -->
     <div id="sidebar">
-        <div style="padding: 15px 10px; border-bottom: 1px solid #bdc3c7; background: #ecf0f1; box-shadow: 0 2px 4px rgba(0,0,0,0.05); z-index: 2; display: flex; justify-content: space-between; align-items: center;">
-            <strong style="color:#2c3e50; font-size: 13px; letter-spacing: 1px;">COMPONENTS</strong>
-            <button id="btn-toggle-sidebar" style="background:none; border:none; cursor:pointer; font-size: 14px; color:#7f8c8d; padding:0; margin:0;" title="Minimize Palette">🗕</button>
+        <!-- Persistent Vertical Toggle -->
+        <div id="sidebar-toggle" title="Toggle Components Palette">
+            <i data-lucide="palette"></i>COMPONENTS
         </div>
         
-        <div style="padding: 10px; border-bottom: 1px solid #bdc3c7; background: #fdfdfd; flex-shrink: 0;">
-            <input type="text" id="palette-search" placeholder="Search parts..." style="width: 100%; padding: 6px 10px; box-sizing: border-box; border: 1px solid #d1d8e0; border-radius: 4px; font-size: 12px; outline: none; transition: border-color 0.2s;">
+        <!-- Expandable Content -->
+        <div id="sidebar-content">
+            <div style="padding: 10px; border-bottom: 1px solid var(--border-main); background: var(--bg-panel); flex-shrink: 0;">
+                <input type="text" id="palette-search" placeholder="Search parts..." style="width: 100%; padding: 6px 10px; box-sizing: border-box; border: 1px solid var(--border-main); border-radius: 4px; font-size: 12px; outline: none;">
+            </div>
+            <div id="items-container"></div>
         </div>
-
-        <div id="items-container"></div>
     </div>
 </div>
 
 <div id="output-panel" class="collapsed">
     <div class="floating-buttons">
-        <button id="btn-sync-latex" class="tool-btn" style="background: #8e44ad; font-size: 11px;">🔄 Sync to Canvas</button>
-        <button id="btn-check-syntax" class="tool-btn" style="background: #e67e22; font-size: 11px;">🔍 Check Syntax</button>
-        <button id="btn-copy-latex" class="tool-btn" style="background: #34495e; font-size: 11px;">📋 Copy TikZ Code</button>
-        <button id="btn-toggle-output" class="tool-btn" style="background: #c0392b; font-size: 11px;" title="Minimize Code">🗕</button>
+        <!-- Removed the minimize button from here -->
+        <button id="btn-sync-latex" class="tool-btn" style="font-size: 11px;"><i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>Sync</button>
+        <button id="btn-check-syntax" class="tool-btn" style="font-size: 11px;"><i data-lucide="check-circle" style="width: 14px; height: 14px;"></i>Check Syntax</button>
+        <button id="btn-copy-latex" class="tool-btn" style="font-size: 11px;"><i data-lucide="copy" style="width: 14px; height: 14px;"></i>Copy</button>
     </div>
     <div id="latex-output" contenteditable="true" spellcheck="false"></div>
 </div>
 
-<div id="minimized-corner">
-    <div id="tab-sidebar" class="min-tab" title="Restore Palette">🎨</div>
-    <div id="tab-output" class="min-tab" title="Restore LaTeX Code Window" style="display: flex;">📝</div>
-</div>
+<!-- REMOVED THE minimized-corner DIV COMPLETELY -->
 
 <!-- External Scripts -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
@@ -135,60 +154,52 @@
 
 <!-- TEMPLATES FOR DIALOGS -->
 <template id="tpl-export-dialog">
-    <div style="text-align: left; font-size: 14px; color: #2c3e50;">
+    <div style="text-align: left; font-size: 13px; color: var(--text-main);">
         <div style="margin-bottom: 15px;">
-            <label style="font-weight: 600;">File Format:</label>
-            <select id="export-format" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin-top: 5px;">
-                <option value="svg">🖼️ SVG (Vector Graphic)</option>
-                <option value="tikz">📄 TikZ Code Snippet (.tex)</option>
-                <option value="standalone">📦 Standalone LaTeX (.tex)</option>
-                <option value="spice">⚡ SPICE Netlist (.cir)</option>
+            <label style="font-weight: 600; margin-bottom: 6px; display: block;">File Format:</label>
+            <select id="export-format" style="width: 100%; height: 35px; font-size: 13px; outline: none; border: 1px solid var(--border-main); border-radius: 4px; padding: 4px; background: var(--bg-panel); color: var(--text-main);">
+                <option value="svg">SVG (Vector Graphic)</option>
+                <option value="tikz">TikZ Code Snippet (.tex)</option>
+                <option value="standalone">Standalone LaTeX (.tex)</option>
+                <option value="spice">SPICE Netlist (.cir)</option>
             </select>
         </div>
         
         <div id="svg-options-container" style="display: block;">
-            <div style="margin-top: 10px; padding: 8px; background: #fff5f5; border: 1px solid #feb2b2; border-radius: 4px; font-size: 11px; color: #c53030; margin-bottom: 15px;">
-                ⚠️ <b>Note:</b> Math (KaTeX) is exported as HTML elements. Vector editors like Inkscape will not display them. For print quality, prefer <b>Standalone LaTeX</b>.
+            <div style="margin-top: 10px; padding: 10px; background: var(--bg-app); border: 1px solid var(--border-main); border-radius: 4px; font-size: 11px; color: var(--text-muted); margin-bottom: 15px;">
+                <i data-lucide="info" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i> <b>Note:</b> Math (KaTeX) is exported as HTML elements. Vector editors like Inkscape will not display them. For print quality, prefer <b>Standalone LaTeX</b>.
             </div>
             
-            <div style="margin-bottom: 5px; font-weight: 600;">Visual Options (SVG Only):</div>
-            <div style="background: #f8f9fa; border: 1px solid #dcdde1; padding: 10px; border-radius: 6px;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+            <div style="margin-bottom: 8px; font-weight: 600;">Visual Options (SVG Only):</div>
+            <div style="background: var(--bg-app); border: 1px solid var(--border-main); padding: 12px; border-radius: 6px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 8px;">
                     <input type="checkbox" id="exp-grid"> Show Canvas Grid
                 </label>
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 8px;">
                     <input type="checkbox" id="exp-pins"> Show Component Pins 
                 </label>
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 8px;">
                     <input type="checkbox" id="exp-pinnames" checked> Show Pin Names
                 </label>
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 6px;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 8px;">
                     <input type="checkbox" id="exp-compnames" checked> Show Component Names
                 </label>
                 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom: 8px;">
                     <input type="checkbox" id="exp-freetext" checked> Show Free Text Labels
                 </label>
                 
-                <hr style="border-top: 1px dashed #bdc3c7; margin: 12px 0;">
+                <hr style="border-top: 1px solid var(--border-main); margin: 12px 0;">
                 
-                <div style="margin-bottom: 10px;">
-                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <div style="margin-bottom: 15px;">
+                    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <label style="font-weight: 600;">Global Line Weight:</label>
-                        <span id="weight-val" style="font-weight: bold; color: #e84393;">100%</span>
+                        <span id="weight-val" style="font-weight: bold; color: var(--text-main);">100%</span>
                     </div>
                     <input type="range" id="exp-weight-scale" min="0.5" max="3" step="0.1" value="1" style="width: 100%; cursor: ew-resize;">
                 </div>
 
-                <div style="background: #fff; border: 1px solid #ccc; border-radius: 4px; padding: 10px; text-align: center;">
-                    <div style="font-size: 10px; color: #7f8c8d; margin-bottom: 5px; text-transform: uppercase;">Preview</div>
-                    <svg viewBox="0 0 100 40" width="100%" height="60" style="max-width: 250px;">
-                        <path class="preview-stroke" data-base-width="1.5" d="M 10 20 L 30 20" stroke="#333" stroke-width="1.5" fill="none" stroke-linejoin="round" stroke-linecap="round"></path>
-                        <path class="preview-stroke" data-base-width="1.8" d="M 30 20 L 35 20 L 40 10 L 50 30 L 60 10 L 70 30 L 80 10 L 85 20 L 90 20" stroke="#2c3e50" stroke-width="1.8" fill="none" stroke-linejoin="miter" stroke-linecap="butt"></path>
-                    </svg>
-                </div>
-
-                <hr style="border-top: 1px dashed #bdc3c7; margin: 12px 0;">
-                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color: #c0392b; font-weight: bold;">
+                <hr style="border-top: 1px solid var(--border-main); margin: 12px 0;">
+                <label style="display:flex; align-items:center; gap:8px; cursor:pointer; color: var(--text-main); font-weight: 600;">
                     <input type="checkbox" id="exp-mono"> Monochrome (Black &amp; White)
                 </label>
             </div>
@@ -198,46 +209,60 @@
 
 <!-- SIMULATION SETTINGS TEMPLATE -->
 <template id="tpl-sim-settings">
-    <div style="text-align:left; font-size:13px; color:#2c3e50;">
-        <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-            <div style="flex: 1; padding: 10px; border: 1px solid #3498db; border-radius: 6px; background: #ebf5fb;">
-                <div style="font-weight: bold; color: #2980b9; margin-bottom: 8px; font-size: 12px;">📈 Transient (.tran)</div>
+    <div style="text-align:left; font-size:13px; color:var(--text-main);">
+        <!-- Changed to CSS Grid to strictly enforce 50/50 columns -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            
+            <!-- TRANSIENT -->
+            <div style="padding: 12px; border: 1px solid var(--border-main); border-radius: 6px; background: var(--bg-app); min-width: 0;">
+                <div style="font-weight: 600; color: var(--text-main); margin-bottom: 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-main); padding-bottom: 6px;">
+                    <i data-lucide="activity" style="width: 14px; height: 14px;"></i> Transient (.tran)
+                </div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Step</label><input type="text" id="sim-tran-step" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Stop</label><input type="text" id="sim-tran-stop" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Start</label><input type="text" id="sim-tran-start" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Step</label><input type="text" id="sim-tran-step" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Stop</label><input type="text" id="sim-tran-stop" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Start</label><input type="text" id="sim-tran-start" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
                 </div>
             </div>
 
-            <div style="flex: 1; padding: 10px; border: 1px solid #27ae60; border-radius: 6px; background: #e9f7ef;">
-                <div style="font-weight: bold; color: #1e8449; margin-bottom: 8px; font-size: 12px;">🌊 AC Sweep (.ac)</div>
+            <!-- AC SWEEP -->
+            <div style="padding: 12px; border: 1px solid var(--border-main); border-radius: 6px; background: var(--bg-app); min-width: 0;">
+                <div style="font-weight: 600; color: var(--text-main); margin-bottom: 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-main); padding-bottom: 6px;">
+                    <i data-lucide="waves" style="width: 14px; height: 14px;"></i> AC Sweep (.ac)
+                </div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Type</label>
-                        <select id="sim-ac-type" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;">
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Type</label>
+                        <select id="sim-ac-type" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);">
                             <option value="dec">Decade</option>
                             <option value="oct">Octave</option>
                             <option value="lin">Linear</option>
                         </select>
                     </div>
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Points</label><input type="text" id="sim-ac-pts" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Start (Hz)</label><input type="text" id="sim-ac-start" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:65px; font-size:10px; font-weight:bold; color:#7f8c8d;">Stop (Hz)</label><input type="text" id="sim-ac-stop" style="flex:1; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Points</label><input type="text" id="sim-ac-pts" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Start</label><input type="text" id="sim-ac-start" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Stop</label><input type="text" id="sim-ac-stop" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
                 </div>
             </div>
         </div>
 
-        <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #9b59b6; border-radius: 6px; background: #f4ecf7;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div style="font-weight: bold; color: #8e44ad; font-size: 12px;">📚 SPICE Models & Subcircuits</div>
-                <button type="button" id="btn-upload-model" style="background: #8e44ad; color: white; border: none; padding: 4px 10px; border-radius: 3px; font-size: 10px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">Upload .lib / .txt</button>
+        <!-- SPICE MODELS -->
+        <div style="margin-bottom: 15px; padding: 12px; border: 1px solid var(--border-main); border-radius: 6px; background: var(--bg-app);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid var(--border-main); padding-bottom: 6px;">
+                <div style="font-weight: 600; color: var(--text-main); font-size: 12px; display: flex; align-items: center; gap: 6px;">
+                    <i data-lucide="library" style="width: 14px; height: 14px;"></i> SPICE Models
+                </div>
+                <button type="button" id="btn-upload-model" style="background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border-main); padding: 2px 8px; border-radius: 3px; font-size: 10px; cursor: pointer; font-weight: 600;">Upload .lib</button>
                 <input type="file" id="model-upload" style="display: none;" accept=".txt,.lib,.mod,.cir">
             </div>
-            <textarea id="sim-models" style="width: 100%; height: 120px; font-family: monospace; font-size: 11px; margin: 0; padding: 8px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" placeholder="Paste vendor models here, or upload a file above.&#10;&#10;Example:&#10;.model 1N4148 D (IS=4.35E-9 N=1.9 RS=0.645)&#10;.subckt OPAMP in+ in- out vcc vdd ..."></textarea>
+            <textarea id="sim-models" style="width: 100%; height: 100px; font-family: var(--font-code); font-size: 12px; margin: 0; padding: 8px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);" placeholder=".model 1N4148 D (IS=4.35E-9 N=1.9 RS=0.645)"></textarea>
         </div>
 
-        <div style="padding: 10px; border: 1px solid #bdc3c7; border-radius: 6px; background: #fdfdfd;">
-            <div style="font-weight: bold; color: #7f8c8d; margin-bottom: 8px; font-size: 12px;">🛠️ Custom Directives (.options, .ic)</div>
-            <textarea id="sim-custom" style="width: 100%; height: 50px; font-family: monospace; font-size: 11px; margin: 0; padding: 8px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;" placeholder=".options reltol=1e-5&#10;.ic v(out)=0"></textarea>
+        <!-- CUSTOM DIRECTIVES -->
+        <div style="padding: 12px; border: 1px solid var(--border-main); border-radius: 6px; background: var(--bg-app);">
+            <div style="font-weight: 600; color: var(--text-main); margin-bottom: 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-main); padding-bottom: 6px;">
+                <i data-lucide="settings-2" style="width: 14px; height: 14px;"></i> Directives (.options, .ic)
+            </div>
+            <textarea id="sim-custom" style="width: 100%; height: 50px; font-family: var(--font-code); font-size: 12px; margin: 0; padding: 8px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);" placeholder=".options reltol=1e-5"></textarea>
         </div>
     </div>
 </template>

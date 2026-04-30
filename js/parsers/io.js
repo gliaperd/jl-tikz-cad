@@ -3,6 +3,7 @@ import { AppState, THEME_COLORS } from '../state.js';
 import { generateSpiceNetlistStr } from '../engines/spice.js';
 import { clearSelection } from '../ui/actions.js';
 import { syncFromLatex, exportLatex } from './latex.js';
+import { clearSimAnnotations } from '../engines/spice.js';
 
 // --- UNIVERSAL SAVE FUNCTION (With Native Folder Picker) ---
 export async function saveFileAs(suggestedName, content, mimeType, description, extension) {
@@ -65,6 +66,7 @@ export function loadProjectFromFile(file) {
                     if (el.get('latexMacro') !== 'connectordot') el.set('customScale', el.get('customScale') || 1); 
                 });
 
+				clearSimAnnotations();
                 exportLatex();
                 Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: 'Project Loaded', showConfirmButton: false, timer: 2000, background: '#f8f9fa' });
             } catch (err) {
@@ -97,8 +99,8 @@ export function openExportDialog() {
         showCancelButton: true,
         confirmButtonText: 'Export',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#e84393',
         didOpen: () => {
+			lucide.createIcons();
             // Dynamic display of SVG options based on dropdown
             const formatSelect = document.getElementById('export-format');
             const svgOptions = document.getElementById('svg-options-container');

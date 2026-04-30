@@ -42,7 +42,7 @@ export function exportLatex() {
             </label>
         `,
         icon: 'warning',
-        showCancelButton: true, confirmButtonColor: '#e74c3c', cancelButtonColor: '#95a5a6',
+        showCancelButton: true, 
         confirmButtonText: 'Yes, Overwrite', cancelButtonText: 'Keep my changes',
         preConfirm: () => ({ isChecked: document.getElementById('swal-dont-ask').checked })
     }).then((result) => {
@@ -376,8 +376,7 @@ export function runLinterUI(onSuccessCallback = null) {
         Swal.fire({
             icon: 'error', title: 'Errors found', html: errorHtml,
             showCancelButton: onSuccessCallback ? true : false,
-            confirmButtonText: onSuccessCallback ? "Ignore & Continue" : "OK, I'll fix them",
-            confirmButtonColor: '#e74c3c'
+            confirmButtonText: onSuccessCallback ? "Ignore & Continue" : "OK, I'll fix them"
         }).then((result) => { if (result.isConfirmed && onSuccessCallback) onSuccessCallback(cleanText); });
     }
 }

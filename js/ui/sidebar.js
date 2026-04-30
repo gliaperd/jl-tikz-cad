@@ -131,7 +131,7 @@ function populateSidebar() {
                 let textsHtml = allPaletteTexts.map(t => {
                     let fw = t.style === 'bold' ? 'bold' : 'normal';
                     let fs = t.style === 'italic' ? 'italic' : 'normal';
-                    return `<text x="${t.x}" y="${t.y}" font-family="Arial" font-size="${t.size}" font-weight="${fw}" font-style="${fs}" fill="#2c3e50" text-anchor="middle" dominant-baseline="central">${t.str}</text>`;
+                    return `<text x="${t.x}" y="${t.y}" font-family="var(--font-ui)" font-size="${t.size}" font-weight="${fw}" font-style="${fs}" fill="#2c3e50" text-anchor="middle" dominant-baseline="central">${t.str}</text>`;
                 }).join('\n');
 
                 iconSvg = `

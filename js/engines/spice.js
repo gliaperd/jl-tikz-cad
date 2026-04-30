@@ -207,7 +207,7 @@ export function runSimulation(mode, customNetlist = null) {
                 let netlistData = generateSpiceNetlistStr(simCommands); 
 
                 if (netlistData.errors && netlistData.errors.length > 0) {
-                    let errorHtml = `<ul style="text-align: left; font-size: 13px; color: #c0392b;">` + netlistData.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + `</ul>`;
+                    let errorHtml = `<ul style="text-align: left; font-size: 13px; color: var(--danger);">` + netlistData.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + `</ul>`;
                     Swal.fire('Error', 'There are errors in the schematic.<br><br>' + errorHtml, 'error');
                     return;
                 }
@@ -301,7 +301,7 @@ function plotSimulationResults(parsedData, title) {
     if (activePoints.length > 3000) {
         let step = Math.ceil(activePoints.length / 3000);
         activePoints = activePoints.filter((_, index) => index % step === 0);
-        title += ` <span style="font-size: 11px; color: #7f8c8d; font-weight: normal;">(Decimated)</span>`;
+        title += ` <span style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(Decimated)</span>`;
     }
 
     let maxX = 0, maxY = 0, isComplex = false;
@@ -344,9 +344,9 @@ function plotSimulationResults(parsedData, title) {
     Swal.fire({
         width: 'auto', padding: '0', background: 'transparent', backdrop: false, showConfirmButton: false, heightAuto: false,
         html: `
-            <div id="sim-true-window" style="width: 800px; height: 500px; min-width: 400px; min-height: 300px; resize: both; overflow: hidden; display: flex; flex-direction: column; background: #ffffff; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid #bdc3c7; pointer-events: auto;">
-                <div id="swal-drag-handle-sim" style="flex: 0 0 40px; cursor: move; background: #2c3e50; color: #ecf0f1; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none;">
-                    <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">📊 ${title}</span>
+            <div id="sim-true-window" style="width: 800px; height: 500px; min-width: 400px; min-height: 300px; resize: both; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-main); pointer-events: auto;">
+                <div id="swal-drag-handle-sim" style="flex: 0 0 40px; cursor: move; background: var(--bg-toolbar); color: var(--text-inverse); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+                    <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;"> <i data-lucide="line-chart" style="width: 18px; height: 18px;"></i> ${title} </span>
                     <div style="display:flex; gap: 5px; align-items: center;">
                         <button onclick="Swal.close()" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold; font-size: 16px;" title="Close">✖</button>
                     </div>
@@ -357,6 +357,7 @@ function plotSimulationResults(parsedData, title) {
             </div>
         `,
         didOpen: () => {
+			lucide.createIcons();
             const popup = Swal.getPopup(); const handle = document.getElementById('swal-drag-handle-sim');
             popup.style.background = 'transparent'; popup.style.boxShadow = 'none';
             let isDragging = false, startX, startY, initialLeft, initialTop;
@@ -434,12 +435,12 @@ function annotateDCOperatingPointFromRaw(rawOutput, topo) {
 
                 let lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                 lineEl.setAttribute('x1', screenX); lineEl.setAttribute('y1', screenY); lineEl.setAttribute('x2', targetX); lineEl.setAttribute('y2', targetY);
-                lineEl.setAttribute('stroke', '#2980b9'); lineEl.setAttribute('stroke-width', '1.5'); linesSvg.appendChild(lineEl);
+                lineEl.setAttribute('stroke', 'var(--primary)'); lineEl.setAttribute('stroke-width', '1.5'); linesSvg.appendChild(lineEl);
                 let dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                dotEl.setAttribute('cx', screenX); dotEl.setAttribute('cy', screenY); dotEl.setAttribute('r', '3'); dotEl.setAttribute('fill', '#2980b9'); linesSvg.appendChild(dotEl);
+                dotEl.setAttribute('cx', screenX); dotEl.setAttribute('cy', screenY); dotEl.setAttribute('r', '3'); dotEl.setAttribute('fill', 'var(--primary)'); linesSvg.appendChild(dotEl);
 
                 let badge = document.createElement('div');
-                badge.style.cssText = `position:absolute; left:${targetX}px; top:${targetY - 10}px; background:#2980b9; color:white; padding:2px 5px; border-radius:4px; font-size:10px; font-family:monospace; font-weight:bold; border:1px solid #1f618d;`;
+                badge.style.cssText = `position:absolute; left:${targetX}px; top:${targetY - 10}px; background:var(--primary); color:white; padding:2px 5px; border-radius:4px; font-size:10px; font-family:var(--font-code); font-weight:bold; border:1px solid var(--primary-hover);`;
                 badge.innerText = text; overlay.appendChild(badge);
             }
         }
@@ -455,7 +456,7 @@ export function openSpiceNetlistEditor() {
     let netlistData = generateSpiceNetlistStr(simCommands);
 
     if (netlistData.errors && netlistData.errors.length > 0) {
-        let errorHtml = `<ul style="text-align: left; font-size: 13px; color: #c0392b;">` + 
+        let errorHtml = `<ul style="text-align: left; font-size: 13px; color: var(--danger);">` + 
                         netlistData.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + 
                         `</ul>`;
         Swal.fire('Error', 'There are errors in the schematic.<br><br>' + errorHtml, 'error');
@@ -465,21 +466,23 @@ export function openSpiceNetlistEditor() {
     let cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     Swal.fire({
-        title: 'SPICE Netlist Editor',
+        title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px;"><i data-lucide="file-code" style="width: 20px; height: 20px;"></i> SPICE Netlist Editor</div>',
         width: '800px',
         html: `
-            <div style="text-align:left; font-size:13px; color:#2c3e50;">
-                <p style="margin-top:0; color:#7f8c8d;">You can manually edit the generated netlist before running the simulation.<br><b>Note:</b> Edits made here are temporary and will not be saved back to the canvas.</p>
-                <textarea id="custom-netlist-editor" spellcheck="false" style="width: 100%; height: 400px; font-family: monospace; font-size: 13px; padding: 10px; box-sizing: border-box; border: 1px solid #bdc3c7; border-radius: 4px; white-space: pre; overflow: auto; background: #fdfdfd; color: #2c3e50;">${cleanNetlist}</textarea>
+            <div style="text-align:left; font-size:13px; color:var(--text-main);">
+                <p style="margin-top:0; color:var(--text-muted); font-size: 12px;">You can manually edit the generated netlist before running the simulation.<br><b>Note:</b> Edits made here are temporary and will not be saved back to the canvas.</p>
+                <textarea id="custom-netlist-editor" spellcheck="false" style="width: 100%; height: 400px; font-family: var(--font-code); font-size: 13px; padding: 10px; box-sizing: border-box; border: 1px solid var(--border-main); border-radius: 4px; white-space: pre; overflow: auto; background: var(--bg-app); color: var(--text-main); outline: none;">${cleanNetlist}</textarea>
             </div>
         `,
         showCancelButton: true,
         showDenyButton: true,
-        confirmButtonText: '⚡ Run Simulation',
-        denyButtonText: '💾 Save to File',
+		denyButtonColor: 'var(--bg-btn)',
+        confirmButtonText: '<div style="display:flex; align-items:center; gap:6px;"><i data-lucide="play" style="width:14px; height:14px;"></i> Run Simulation</div>',
+        denyButtonText: '<div style="display:flex; align-items:center; gap:6px;"><i data-lucide="save" style="width:14px; height:14px;"></i> Save to File</div>',
         cancelButtonText: 'Cancel',
-        confirmButtonColor: '#27ae60',
-        denyButtonColor: '#3498db',
+        didOpen: () => {
+            lucide.createIcons();
+        },
         preConfirm: () => {
             return document.getElementById('custom-netlist-editor').value;
         }
@@ -522,8 +525,7 @@ export function promptTheveninNode() {
         Swal.fire({
             title: 'Probe Not Connected', 
             html: 'The <b>Test Probe (TP)</b> is either missing or not touching a valid wire/pin.<br><br><i>Ensure the top tip of the probe is visually overlapping a wire or connection dot!</i>', 
-            icon: 'info',
-            confirmButtonColor: '#3498db'
+            icon: 'info'
         });
         return;
     }
@@ -588,7 +590,7 @@ function executeTheveninSolver(targetNode) {
             Module.ccall('ngSpice_Command', 'number', ['string'], ['op']);
 
             if (window.spiceErrorFlag) {
-                Swal.fire('Circuit Error', 'SPICE crashed on your base circuit:<br><br><b style="color:#c0392b;">' + window.spiceErrorMsg + '</b><br><br>Check your schematic for disconnected pins!', 'error');
+                Swal.fire('Circuit Error', 'SPICE crashed on your base circuit:<br><br><b style="color:var(--danger);">' + window.spiceErrorMsg + '</b><br><br>Check your schematic for disconnected pins!', 'error');
                 return;
             }
 
@@ -689,61 +691,62 @@ function drawTheveninEquivalent(Vth, Rth, nodeName) {
 
     let theveninSvg = '';
     if (Rth >= 1e9) {
-        theveninSvg = `<div style="width:340px; height:280px; background: #fdfdfd; border: 1px dashed #bdc3c7; border-radius: 8px; display:flex; align-items:center; justify-content:center; text-align:center; padding: 20px; box-sizing:border-box;"><span style="color:#7f8c8d; font-size:13px;">Thevenin Equivalent N/A<br>(Ideal Current Source / Rth = ∞)</span></div>`;
+        theveninSvg = `<div style="width:340px; height:280px; background: var(--bg-app); border: 1px dashed var(--border-main); border-radius: 8px; display:flex; align-items:center; justify-content:center; text-align:center; padding: 20px; box-sizing:border-box;"><span style="color:var(--text-muted); font-size:13px;">Thevenin Equivalent N/A<br>(Ideal Current Source / Rth = ∞)</span></div>`;
     } else {
         theveninSvg = `
-            <svg width="340" height="280" viewBox="-50 0 350 280" xmlns="http://www.w3.org/2000/svg" style="background: #fdfdfd; border: 1px dashed #bdc3c7; border-radius: 8px;">
-                <path d="M 100 200 L 100 220 M 80 220 L 120 220 M 87 228 L 113 228 M 94 236 L 106 236" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <svg width="340" height="280" viewBox="-50 0 350 280" xmlns="http://www.w3.org/2000/svg" style="background: var(--bg-app); border: 1px dashed var(--border-main); border-radius: 8px;">
+                <path d="M 100 200 L 100 220 M 80 220 L 120 220 M 87 228 L 113 228 M 94 236 L 106 236" stroke="var(--text-main)" stroke-width="2" fill="none" stroke-linecap="round"/>
                 
-                <circle cx="60" cy="150" r="30" stroke="#2c3e50" stroke-width="2" fill="#fff" />
-                <text x="60" y="135" font-family="monospace" font-size="20" font-weight="bold" text-anchor="middle" fill="#c0392b">${vTopSign}</text>
-                <text x="60" y="178" font-family="monospace" font-size="24" font-weight="bold" text-anchor="middle" fill="#2980b9">${vBotSign}</text>
-                <text x="25" y="155" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="end" fill="#2c3e50">${vStr} V</text>
-                <text x="25" y="135" font-family="sans-serif" font-size="11" text-anchor="end" fill="#7f8c8d">Vth</text>
+                <circle cx="60" cy="150" r="30" stroke="var(--text-main)" stroke-width="2" fill="var(--bg-panel)" />
+                <text x="60" y="135" font-family="var(--font-code)" font-size="20" font-weight="bold" text-anchor="middle" fill="var(--danger)">${vTopSign}</text>
+                <text x="60" y="178" font-family="var(--font-code)" font-size="24" font-weight="bold" text-anchor="middle" fill="var(--primary)">${vBotSign}</text>
+                <text x="25" y="155" font-family="var(--font-ui)" font-size="14" font-weight="bold" text-anchor="end" fill="var(--text-main)">${vStr} V</text>
+                <text x="25" y="135" font-family="var(--font-ui)" font-size="11" text-anchor="end" fill="var(--text-muted)">Vth</text>
                 
-                <path d="M 60 120 L 60 100 L 100 100" stroke="#2c3e50" stroke-width="2" fill="none" />
-                <path d="M 100 100 L 110 85 L 130 115 L 150 85 L 170 115 L 180 100" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linejoin="round" />
-                <text x="140" y="65" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="middle" fill="#2c3e50">${rStr} Ω</text>
-                <text x="140" y="45" font-family="sans-serif" font-size="11" text-anchor="middle" fill="#7f8c8d">Rth</text>
+                <path d="M 60 120 L 60 100 L 100 100" stroke="var(--text-main)" stroke-width="2" fill="none" />
+                <path d="M 100 100 L 110 85 L 130 115 L 150 85 L 170 115 L 180 100" stroke="var(--text-main)" stroke-width="2" fill="none" stroke-linejoin="round" />
+                <text x="140" y="65" font-family="var(--font-ui)" font-size="14" font-weight="bold" text-anchor="middle" fill="var(--text-main)">${rStr} Ω</text>
+                <text x="140" y="45" font-family="var(--font-ui)" font-size="11" text-anchor="middle" fill="var(--text-muted)">Rth</text>
                 
-                <line x1="180" y1="100" x2="230" y2="100" stroke="#2c3e50" stroke-width="2" />
+                <line x1="180" y1="100" x2="230" y2="100" stroke="var(--text-main)" stroke-width="2" />
                 
-                <path d="M 60 180 L 60 200 L 230 200" stroke="#2c3e50" stroke-width="2" fill="none" />
-                <circle cx="100" cy="200" r="3.5" fill="#2c3e50" /> <circle cx="235" cy="100" r="5" stroke="#8e44ad" stroke-width="2" fill="white" />
-                <circle cx="235" cy="200" r="5" stroke="#2c3e50" stroke-width="2" fill="white" />
-                <text x="245" y="105" font-family="sans-serif" font-size="14" font-weight="bold" fill="#8e44ad">Node ${nodeName}</text>
+                <path d="M 60 180 L 60 200 L 230 200" stroke="var(--text-main)" stroke-width="2" fill="none" />
+                <circle cx="100" cy="200" r="3.5" fill="var(--text-main)" /> 
+                <circle cx="235" cy="100" r="5" stroke="var(--purple)" stroke-width="2" fill="var(--bg-panel)" />
+                <circle cx="235" cy="200" r="5" stroke="var(--text-main)" stroke-width="2" fill="var(--bg-panel)" />
+                <text x="245" y="105" font-family="var(--font-ui)" font-size="14" font-weight="bold" fill="var(--purple)">Node ${nodeName}</text>
             </svg>
         `;
     }
 
     let nortonSvg = '';
     if (Rth === 0) {
-        nortonSvg = `<div style="width:340px; height:280px; background: #fdfdfd; border: 1px dashed #bdc3c7; border-radius: 8px; display:flex; align-items:center; justify-content:center; text-align:center; padding: 20px; box-sizing:border-box;"><span style="color:#7f8c8d; font-size:13px;">Norton Equivalent N/A<br>(Ideal Voltage Source / Rth = 0)</span></div>`;
+        nortonSvg = `<div style="width:340px; height:280px; background: var(--bg-app); border: 1px dashed var(--border-main); border-radius: 8px; display:flex; align-items:center; justify-content:center; text-align:center; padding: 20px; box-sizing:border-box;"><span style="color:var(--text-muted); font-size:13px;">Norton Equivalent N/A<br>(Ideal Voltage Source / Rth = 0)</span></div>`;
     } else {
         nortonSvg = `
-            <svg width="340" height="280" viewBox="-50 0 350 280" xmlns="http://www.w3.org/2000/svg" style="background: #fdfdfd; border: 1px dashed #bdc3c7; border-radius: 8px;">
-                <path d="M 145 200 L 145 220 M 125 220 L 165 220 M 132 228 L 158 228 M 139 236 L 151 236" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linecap="round"/>
+            <svg width="340" height="280" viewBox="-50 0 350 280" xmlns="http://www.w3.org/2000/svg" style="background: var(--bg-app); border: 1px dashed var(--border-main); border-radius: 8px;">
+                <path d="M 145 200 L 145 220 M 125 220 L 165 220 M 132 228 L 158 228 M 139 236 L 151 236" stroke="var(--text-main)" stroke-width="2" fill="none" stroke-linecap="round"/>
                 
-                <circle cx="60" cy="150" r="30" stroke="#2c3e50" stroke-width="2" fill="#fff" />
-                <path d="${iArrowPath}" stroke="#c0392b" stroke-width="2" fill="none" stroke-linejoin="round" />
-                <text x="25" y="155" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="end" fill="#2c3e50">${iStr} A</text>
-                <text x="25" y="135" font-family="sans-serif" font-size="11" text-anchor="end" fill="#7f8c8d">Ino</text>
+                <circle cx="60" cy="150" r="30" stroke="var(--text-main)" stroke-width="2" fill="var(--bg-panel)" />
+                <path d="${iArrowPath}" stroke="var(--danger)" stroke-width="2" fill="none" stroke-linejoin="round" />
+                <text x="25" y="155" font-family="var(--font-ui)" font-size="14" font-weight="bold" text-anchor="end" fill="var(--text-main)">${iStr} A</text>
+                <text x="25" y="135" font-family="var(--font-ui)" font-size="11" text-anchor="end" fill="var(--text-muted)">Ino</text>
 
-                <path d="M 145 100 L 145 120 L 130 130 L 160 150 L 130 170 L 145 180 L 145 200" stroke="#2c3e50" stroke-width="2" fill="none" stroke-linejoin="round" />
-                <text x="175" y="155" font-family="sans-serif" font-size="14" font-weight="bold" text-anchor="start" fill="#2c3e50">${rStr} Ω</text>
-                <text x="175" y="135" font-family="sans-serif" font-size="11" text-anchor="start" fill="#7f8c8d">Rno</text>
+                <path d="M 145 100 L 145 120 L 130 130 L 160 150 L 130 170 L 145 180 L 145 200" stroke="var(--text-main)" stroke-width="2" fill="none" stroke-linejoin="round" />
+                <text x="175" y="155" font-family="var(--font-ui)" font-size="14" font-weight="bold" text-anchor="start" fill="var(--text-main)">${rStr} Ω</text>
+                <text x="175" y="135" font-family="var(--font-ui)" font-size="11" text-anchor="start" fill="var(--text-muted)">Rno</text>
 
-                <line x1="60" y1="100" x2="230" y2="100" stroke="#2c3e50" stroke-width="2" />
-                <line x1="60" y1="200" x2="230" y2="200" stroke="#2c3e50" stroke-width="2" />
-                <line x1="60" y1="120" x2="60" y2="100" stroke="#2c3e50" stroke-width="2" />
-                <line x1="60" y1="180" x2="60" y2="200" stroke="#2c3e50" stroke-width="2" />
+                <line x1="60" y1="100" x2="230" y2="100" stroke="var(--text-main)" stroke-width="2" />
+                <line x1="60" y1="200" x2="230" y2="200" stroke="var(--text-main)" stroke-width="2" />
+                <line x1="60" y1="120" x2="60" y2="100" stroke="var(--text-main)" stroke-width="2" />
+                <line x1="60" y1="180" x2="60" y2="200" stroke="var(--text-main)" stroke-width="2" />
                 
-                <circle cx="145" cy="100" r="3.5" fill="#2c3e50" />
-                <circle cx="145" cy="200" r="3.5" fill="#2c3e50" />
+                <circle cx="145" cy="100" r="3.5" fill="var(--text-main)" />
+                <circle cx="145" cy="200" r="3.5" fill="var(--text-main)" />
                 
-                <circle cx="235" cy="100" r="5" stroke="#8e44ad" stroke-width="2" fill="white" />
-                <circle cx="235" cy="200" r="5" stroke="#2c3e50" stroke-width="2" fill="white" />
-                <text x="245" y="105" font-family="sans-serif" font-size="14" font-weight="bold" fill="#8e44ad">Node ${nodeName}</text>
+                <circle cx="235" cy="100" r="5" stroke="var(--purple)" stroke-width="2" fill="var(--bg-panel)" />
+                <circle cx="235" cy="200" r="5" stroke="var(--text-main)" stroke-width="2" fill="var(--bg-panel)" />
+                <text x="245" y="105" font-family="var(--font-ui)" font-size="14" font-weight="bold" fill="var(--purple)">Node ${nodeName}</text>
             </svg>
         `;
     }
@@ -751,21 +754,23 @@ function drawTheveninEquivalent(Vth, Rth, nodeName) {
     let dualDiagram = `
         <div style="display: flex; justify-content: space-around; gap: 15px; margin-top: 10px;">
             <div>
-                <div style="text-align: center; margin-bottom: 8px; font-weight: bold; color: #2c3e50; font-size: 14px;">Thevenin</div>
+                <div style="text-align: center; margin-bottom: 8px; font-weight: 600; color: var(--text-main); font-size: 14px;">Thevenin</div>
                 ${theveninSvg}
             </div>
             <div>
-                <div style="text-align: center; margin-bottom: 8px; font-weight: bold; color: #2c3e50; font-size: 14px;">Norton</div>
+                <div style="text-align: center; margin-bottom: 8px; font-weight: 600; color: var(--text-main); font-size: 14px;">Norton</div>
                 ${nortonSvg}
             </div>
         </div>
     `;
 
     Swal.fire({
-        title: 'Equivalent Circuits',
+        title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px;"><i data-lucide="zap" style="width: 20px; height: 20px;"></i> Equivalent Circuits</div>',
         html: dualDiagram,
         confirmButtonText: 'Close',
-        confirmButtonColor: '#34495e',
-        width: '740px' 
+        width: '740px',
+        didOpen: () => {
+            lucide.createIcons();
+        }
     });
 }

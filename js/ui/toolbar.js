@@ -7,7 +7,7 @@ import { syncFromLatex, runLinterUI, copyLatexToClipboard } from '../parsers/lat
 import { saveProjectToFile, loadProjectFromFile } from '../parsers/io.js';
 import { openExportDialog } from '../parsers/io.js';
 import { runSimulation, clearSimAnnotations, openSpiceNetlistEditor, promptTheveninNode } from '../engines/spice.js';
-import { refreshComponentViews, updateGhostDotsVisibility, toggleNetLabels, applyTheme } from './canvas.js'; 
+import { refreshComponentViews, updateGhostDotsVisibility, applyTheme } from './canvas.js'; 
 
 export function initializeToolbar() {
     // Editing Tools
@@ -33,16 +33,12 @@ export function initializeToolbar() {
         AppState.viewOptions.showPinNames = e.target.checked;
         refreshComponentViews();
     });   
-    document.getElementById('chkShowNets').addEventListener('change', (e) => {
-        AppState.viewOptions.showNetNames = e.target.checked;
-        toggleNetLabels();
-    });    
+  
     document.getElementById('toggle-ghost-dots').addEventListener('change', (e) => {
         AppState.viewOptions.showGhostDots = e.target.checked;
         updateGhostDotsVisibility();
     });
     // Failsafe: Expose to window just in case your HTML still has inline onclick handlers
-    window.toggleNetLabels = toggleNetLabels;
     window.updateGhostDotsVisibility = updateGhostDotsVisibility;
 	
 	// --- DISPLAY MODE (THEME SWITCHER) ---
@@ -95,13 +91,28 @@ export function initializeToolbar() {
         document.getElementById('tab-output').style.display = output.classList.contains('collapsed') ? 'flex' : 'none';
     };
 
-    // Bind the "Minimize" buttons inside the panels
-    document.getElementById('btn-toggle-sidebar').addEventListener('click', toggleSidebar);
-    document.getElementById('btn-toggle-output').addEventListener('click', toggleOutput);
+	// --- TOGGLE LATEX OUTPUT (FROM TOOLBAR) ---
+	const btnToggleOutput = document.getElementById('btn-toggle-output');
+	const outputPanel = document.getElementById('output-panel');
 
-    // Bind the "Restore" floating tabs in the corner
-    document.getElementById('tab-sidebar').addEventListener('click', toggleSidebar);
-    document.getElementById('tab-output').addEventListener('click', toggleOutput);
+	btnToggleOutput.addEventListener('click', () => {
+		outputPanel.classList.toggle('collapsed');
+		
+		// Make the toolbar button turn blue when the panel is open
+		if (outputPanel.classList.contains('collapsed')) {
+			btnToggleOutput.classList.remove('active');
+		} else {
+			btnToggleOutput.classList.add('active');
+		}
+	});
+
+	// --- TOGGLE COMPONENTS PALETTE (VERTICAL BAR) ---
+	const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+	const sidebarContent = document.getElementById('sidebar-content');
+
+	sidebarToggleBtn.addEventListener('click', () => {
+		sidebarContent.classList.toggle('collapsed');
+	});
 	
 	document.getElementById('btn-sync-latex').addEventListener('click', syncFromLatex);
     document.getElementById('btn-check-syntax').addEventListener('click', () => runLinterUI());

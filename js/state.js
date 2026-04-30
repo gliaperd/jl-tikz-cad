@@ -4,8 +4,10 @@ export const THEME_COLORS = {
     standard: {
         background: '#ffffff', grid: '#bdc3c7', wire: '#333333',
         componentBody: 'none', componentIcon: '#2c3e50', componentLabel: '#34495e',
-        freeText: '#2c3e50', portBody: '#ff9800', portLabel: '#c0392b',
-        dot: '#000000', selection: '#3498db', highlight: '#f39c12',
+        freeText: '#2c3e50', 
+        portBody: '#2980b9',     // <-- Changed from orange to mid-tone blue
+        portLabel: '#7f8c8d',    // <-- Changed from red to a clean, muted grey
+        dot: '#000000', selection: '#3498db', highlight: '#2980b9',
         gridBase: 1.5, gridZoom: 2.5  
     },
     cadence: {

@@ -10,11 +10,10 @@ export function openSimulationSettings() {
         width: '600px',
         html: templateHtml,
         confirmButtonText: 'Save Settings',
-        confirmButtonColor: '#e67e22',
         showCancelButton: true,
         cancelButtonText: 'Cancel',
-        cancelButtonColor: '#95a5a6',
         didOpen: () => {
+			lucide.createIcons();
             // 1. Populate the UI with current state values
             document.getElementById('sim-tran-step').value = c.tranStep || '';
             document.getElementById('sim-tran-stop').value = c.tranStop || '';

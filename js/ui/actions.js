@@ -2,6 +2,7 @@
 import { AppState, THEME_COLORS } from '../state.js';
 import { getVisualOrigin, applyRobustScale, updateDynamicGrid } from './canvas.js';
 import { exportLatex } from '../parsers/latex.js';
+import { clearSimAnnotations } from '../engines/spice.js';
 
 export function saveState() {
     if (AppState.isHistoryOperating) return;
@@ -22,6 +23,7 @@ export function undo() {
     AppState.historyIndex--;
     AppState.graph.fromJSON(JSON.parse(AppState.historyStack[AppState.historyIndex]));
     clearSelection();
+	clearSimAnnotations();
     exportLatex();
     AppState.isHistoryOperating = false;
 }
@@ -32,6 +34,7 @@ export function redo() {
     AppState.historyIndex++;
     AppState.graph.fromJSON(JSON.parse(AppState.historyStack[AppState.historyIndex]));
     clearSelection();
+	clearSimAnnotations();
     exportLatex();
     AppState.isHistoryOperating = false;
 }
@@ -236,8 +239,6 @@ export function clearCanvas() {
         text: "This will delete everything on the canvas. You can undo this action.",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: '#e74c3c',
-        cancelButtonColor: '#95a5a6',
         confirmButtonText: 'Yes, clear it!'
     }).then((result) => {
         if (result.isConfirmed) {

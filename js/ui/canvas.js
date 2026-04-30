@@ -82,11 +82,13 @@ export function initializeCanvas() {
     AppState.paper.scale(1 / AppState.PPU_MULT, 1 / AppState.PPU_MULT);
     AppState.paper.on('translate scale', () => {
         updateDynamicGrid();
-        if (AppState.viewOptions.showNetNames) toggleNetLabels();
+        // CALL THE NEW FUNCTION
+        updateNetNamesVisibility(); 
     });
-	AppState.graph.on('change add remove reset', () => {
+    AppState.graph.on('change add remove reset', () => {
         clearSimAnnotations();
-        if (AppState.viewOptions.showNetNames) toggleNetLabels();
+        // CALL THE NEW FUNCTION
+        updateNetNamesVisibility(); 
     });
     updateDynamicGrid();
 
@@ -452,7 +454,7 @@ export function assembleIcon(el, argsArray) {
                     markup: [ { tagName: 'rect', selector: 'portBody' }, { tagName: 'text', selector: 'portLabel' } ],
                     attrs: {
                         portBody: { width: 8 * AppState.PPU_MULT, height: 8 * AppState.PPU_MULT, x: -4 * AppState.PPU_MULT, y: -4 * AppState.PPU_MULT, fill: theme.portBody },
-                        portLabel: { text: labelText, display: 'block', fontSize: 9 * AppState.PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'monospace', x: 6 * AppState.PPU_MULT, y: -6 * AppState.PPU_MULT, textAnchor: 'start' }
+                        portLabel: { text: labelText, display: 'block', fontSize: 9 * AppState.PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'var(--font-code)', x: 6 * AppState.PPU_MULT, y: -6 * AppState.PPU_MULT, textAnchor: 'start' }
                     }
                 };
             });
@@ -786,7 +788,7 @@ export function addComponent(type, dropX = null, dropY = null) {
                 portLabel: { 
                     text: p.label || '', 
                     display: (AppState.viewOptions.showPinNames && p.label) ? 'block' : 'none', // CHECK STATE
-                    fontSize: 9 * AppState.PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'monospace', x: 6 * AppState.PPU_MULT, y: -6 * AppState.PPU_MULT, textAnchor: 'start' 
+                    fontSize: 9 * AppState.PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'var(--font-code)', x: 6 * AppState.PPU_MULT, y: -6 * AppState.PPU_MULT, textAnchor: 'start' 
                 }
             } 
         }));
@@ -996,52 +998,6 @@ export function updateGhostDotsVisibility() {
     });
 }
 
-export function toggleNetLabels() {
-    let overlay = document.getElementById('net-labels-overlay');
-    if (!overlay) {
-        overlay = document.createElement('div');
-        overlay.id = 'net-labels-overlay';
-        overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:hidden; z-index:1000;';
-        document.getElementById('paper-container').appendChild(overlay);
-    }
-    
-    overlay.innerHTML = '';
-    if (!AppState.viewOptions.showNetNames) return;
-
-    let topo = extractTopology();
-    let getNet = (id) => topo.netMap.get(topo.uf.find(id));
-    let drawnNets = new Set();
-    let matrix = AppState.paper.matrix(); 
-
-    let drawBadge = (netId, cx, cy) => {
-        if (drawnNets.has(netId)) return;
-        drawnNets.add(netId);
-        
-        let isGnd = (netId === '0');
-        let text = isGnd ? 'GND' : 'N' + netId;
-        
-        let screenX = cx * matrix.a + matrix.e;
-        let screenY = cy * matrix.d + matrix.f;
-
-        let badge = document.createElement('div');
-        badge.style.cssText = `position:absolute; left:${screenX + 10}px; top:${screenY - 20}px; background:${isGnd ? '#e74c3c' : '#27ae60'}; color:white; padding:2px 6px; border-radius:4px; font-size:10px; font-family:monospace; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.2);`;
-        badge.innerText = text;
-        overlay.appendChild(badge);
-    };
-
-    topo.terminals.forEach(term => {
-        let netId = getNet(term.id);
-        if (netId) drawBadge(netId, term.x, term.y);
-    });
-
-    AppState.graph.getLinks().forEach(link => {
-        let netId = getNet(link.id);
-        if (netId && !drawnNets.has(netId)) {
-            let pt = link.getSourcePoint();
-            drawBadge(netId, pt.x, pt.y);
-        }
-    });
-}
 
 // --- THEME ENGINE ---
 export function applyTheme(themeName) {
@@ -1113,3 +1069,78 @@ export function applyTheme(themeName) {
     updateGhostDotsVisibility();
 }
 
+
+
+export function updateNetNamesVisibility() {
+    let overlay = document.getElementById('net-names-overlay');
+    let chk = document.getElementById('chkShowNets');
+    
+    // Safety check in case the DOM isn't fully loaded yet
+    if (!chk) return;
+
+    // If turned off, clear the overlay and exit
+    if (!chk.checked) {
+        if (overlay) overlay.innerHTML = '';
+        return;
+    }
+
+    // Create the overlay if it doesn't exist
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'net-names-overlay';
+        overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1050; overflow:hidden;';
+        document.getElementById('paper-container').appendChild(overlay);
+    }
+
+    // Reset the SVG container (This instantly deletes any existing net badges to prevent duplicates)
+    overlay.innerHTML = '<svg id="net-lines-svg" style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:visible; pointer-events:none;"></svg>';
+    let linesSvg = overlay.querySelector('#net-lines-svg');
+
+    // Extract the active circuit topology
+    let topo = window.extractTopology();
+    if (!topo) return;
+
+    let getNet = (id) => topo.netMap.get(topo.uf.find(id));
+    let drawnNets = new Set();
+    let matrix = AppState.paper.matrix();
+
+    topo.terminals.forEach(term => {
+        let netId = getNet(term.id);
+        
+        // Only draw one badge per net
+        if (netId && !drawnNets.has(netId)) {
+            drawnNets.add(netId);
+            
+            let isGnd = (netId === '0');
+            let color = isGnd ? 'var(--text-main)' : 'var(--primary)';
+            
+            // --- UPDATED: Shortened Text ---
+            let text = isGnd ? '0' : netId;
+
+            let screenX = term.x * matrix.a + matrix.e, screenY = term.y * matrix.d + matrix.f;
+            // Shortened the target distance slightly so they sit tighter to the pins
+            let targetX = screenX + 20, targetY = screenY - 20;
+
+            // Draw SVG Line
+            let lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            lineEl.setAttribute('x1', screenX); lineEl.setAttribute('y1', screenY); 
+            lineEl.setAttribute('x2', targetX); lineEl.setAttribute('y2', targetY);
+            lineEl.setAttribute('stroke', color); 
+            lineEl.setAttribute('stroke-width', '1.5'); 
+            linesSvg.appendChild(lineEl);
+
+            // Draw SVG Dot
+            let dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dotEl.setAttribute('cx', screenX); dotEl.setAttribute('cy', screenY); 
+            dotEl.setAttribute('r', '3'); 
+            dotEl.setAttribute('fill', color); 
+            linesSvg.appendChild(dotEl);
+
+            // Draw the CSS Badge
+            let badge = document.createElement('div');
+            badge.style.cssText = `position:absolute; left:${targetX}px; top:${targetY - 10}px; background:${color}; color:white; padding:2px 5px; border-radius:4px; font-size:10px; font-family:var(--font-code); font-weight:bold; border:1px solid var(--border-main); box-shadow:0 2px 4px rgba(0,0,0,0.1);`;
+            badge.innerText = text; 
+            overlay.appendChild(badge);
+        }
+    });
+}

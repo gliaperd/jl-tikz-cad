@@ -39,7 +39,7 @@ export function initializeProperties() {
         };
 
         let currentArgs = el.get('customArgs') || [];
-        let htmlForm = '<div style="text-align: left; max-height: 60vh; overflow-y: auto; overflow-x: hidden; padding: 5px 10px;">';
+        let htmlForm = '<div style="text-align: left; max-height: 60vh; overflow-y: auto; overflow-x: hidden; padding: 5px 10px; color: var(--text-main);">';
 
         let currentScale = el.get('customScale') || 1;
         let currentLblX = el.get('labelOffsetX') || 0;
@@ -51,21 +51,24 @@ export function initializeProperties() {
             return `<option value="${val}" ${isSelected}>${val}x</option>`;
         }).join('\n');
 
-        htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Scale factor</label>
-                        <select id="swal-input-scale" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;">
+        // Standardized Input CSS String to keep code clean
+        const inputCSS = "width: 100%; height: 32px; font-size: 13px; margin: 0; padding: 0 8px; box-sizing: border-box; border: 1px solid var(--border-main); border-radius: 4px; background: var(--bg-panel); color: var(--text-main); outline: none;";
+
+        htmlForm += `<div style="margin-bottom: 12px; border-bottom: 1px solid var(--border-main); padding-bottom: 10px;">
+                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 12px;">Scale factor</label>
+                        <select id="swal-input-scale" class="swal2-input" style="${inputCSS}">
                             ${scaleOptionsHtml}
                         </select>
                     </div>`;
 
-        htmlForm += `<div style="margin-bottom: 15px; border-bottom: 1px solid #ccc; padding-bottom: 10px; display: flex; gap: 10px;">
+        htmlForm += `<div style="margin-bottom: 15px; border-bottom: 1px solid var(--border-main); padding-bottom: 10px; display: flex; gap: 10px;">
                         <div style="flex: 1;">
-                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Component Name Offset X</label>
-                            <input type="number" id="swal-input-lblx" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${currentLblX}">
+                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 12px;">Name Offset X</label>
+                            <input type="number" id="swal-input-lblx" class="swal2-input" style="${inputCSS}" value="${currentLblX}">
                         </div>
                         <div style="flex: 1;">
-                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 12px;">Component Name Offset Y</label>
-                            <input type="number" id="swal-input-lbly" class="swal2-input" style="width: 100%; height: 35px; font-size: 14px; margin: 0; padding: 0 10px;" value="${currentLblY}">
+                            <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 12px;">Name Offset Y</label>
+                            <input type="number" id="swal-input-lbly" class="swal2-input" style="${inputCSS}" value="${currentLblY}">
                         </div>
                     </div>`;
 
@@ -92,12 +95,12 @@ export function initializeProperties() {
                     let labelText = customDef.label;
                     let inputId = customDefs.length > 1 ? `swal-input-${i}-sub-${subIdx}` : `swal-input-${i}`;
 
-                    htmlForm += `<div style="margin-bottom: 12px; background: #fdfdfd; border: 1px solid #ecf0f1; padding: 8px; border-radius: 6px;">`;
-                    htmlForm += `<label style="display:block; margin-bottom: 6px; font-weight: 700; color: #2c3e50; font-size: 11px; letter-spacing: 0.5px;">${labelText}</label>`;
+                    htmlForm += `<div style="margin-bottom: 12px; background: var(--bg-app); border: 1px solid var(--border-light); padding: 10px; border-radius: 6px;">`;
+                    htmlForm += `<label style="display:block; margin-bottom: 6px; font-weight: 600; color: var(--text-main); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;">${labelText}</label>`;
 
                     if (customDef.type === 'select') {
                         let options = customDef.options.split(',').map(o => o.trim());
-                        htmlForm += `<select id="${inputId}" class="swal2-input" style="width:100%; height:32px; font-size:13px; margin:0; padding:2px 8px;">`;
+                        htmlForm += `<select id="${inputId}" class="swal2-input" style="${inputCSS}">`;
                         options.forEach(opt => {
                             let selected = (activeVal === opt) ? 'selected' : '';
                             htmlForm += `<option value="${opt}" ${selected}>${opt}</option>`;
@@ -107,10 +110,10 @@ export function initializeProperties() {
                     else if (customDef.type === 'flags') {
                         let allFlags = customDef.options.split(',').map(o => o.trim());
                         let activeFlags = activeVal.split('-').map(o => o.trim());
-                        htmlForm += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">`;
+                        htmlForm += `<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">`;
                         allFlags.forEach(flag => {
                             let checked = activeFlags.includes(flag) ? 'checked' : '';
-                            htmlForm += `<label style="font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer;"><input type="checkbox" class="${inputId}-flag" value="${flag}" ${checked} onchange="window.updateEditorFlags('${inputId}')"> ${flag}</label>`;
+                            htmlForm += `<label style="font-size:12px; display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" class="${inputId}-flag" value="${flag}" ${checked} onchange="window.updateEditorFlags('${inputId}')" style="margin:0; width:14px; height:14px;"> ${flag}</label>`;
                         });
                         htmlForm += `</div><input type="hidden" id="${inputId}" value="${activeVal}">`;
                     }
@@ -118,9 +121,9 @@ export function initializeProperties() {
                         let [r, f] = (activeVal || "0,none").split(',');
                         if (!f) f = "none";
                         htmlForm += `
-                            <div style="display: flex; gap: 5px;">
-                                <input type="number" id="${inputId}-rot" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" value="${r}" oninput="window.syncRotFlip('${inputId}', 'rot')">
-                                <select id="${inputId}-flip" class="swal2-input" style="flex:1; margin:0; height:32px; padding:2px 8px;" onchange="window.syncRotFlip('${inputId}', 'flip')">
+                            <div style="display: flex; gap: 8px;">
+                                <input type="number" id="${inputId}-rot" class="swal2-input" style="${inputCSS}" value="${r}" oninput="window.syncRotFlip('${inputId}', 'rot')">
+                                <select id="${inputId}-flip" class="swal2-input" style="${inputCSS}" onchange="window.syncRotFlip('${inputId}', 'flip')">
                                     <option value="none" ${f==='none'?'selected':''}>None</option>
                                     <option value="h" ${f==='h'?'selected':''}>Flip H</option>
                                     <option value="v" ${f==='v'?'selected':''}>Flip V</option>
@@ -130,12 +133,12 @@ export function initializeProperties() {
                             <input type="hidden" id="${inputId}" value="${activeVal || '0,none'}">`;
                     }
                     else if (customDef.type === 'rotation') {
-                        htmlForm += `<input type="number" id="${inputId}" class="swal2-input rot-input-field" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${activeVal || '0'}">`;
+                        htmlForm += `<input type="number" id="${inputId}" class="swal2-input rot-input-field" style="${inputCSS}" value="${activeVal || '0'}">`;
                     }
                     else if (customDef.type === 'flip') {
                         let f = activeVal || 'none';
                         htmlForm += `
-                            <select id="${inputId}" data-old-val="${f}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" onchange="window.syncSeparateFlip('${inputId}', this)">
+                            <select id="${inputId}" data-old-val="${f}" class="swal2-input" style="${inputCSS}" onchange="window.syncSeparateFlip('${inputId}', this)">
                                 <option value="none" ${f==='none'?'selected':''}>None</option>
                                 <option value="h" ${f==='h'?'selected':''}>Flip H</option>
                                 <option value="v" ${f==='v'?'selected':''}>Flip V</option>
@@ -143,18 +146,18 @@ export function initializeProperties() {
                             </select>`;
                     }
                     else { 
-                        htmlForm += `<input id="${inputId}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${activeVal}">`;
+                        htmlForm += `<input id="${inputId}" class="swal2-input" style="${inputCSS}" value="${activeVal}">`;
                     }
                     htmlForm += `</div>`;
                 });
             } else {
-                htmlForm += `<div style="margin-bottom: 12px; background: #fdfdfd; border: 1px solid #ecf0f1; padding: 8px; border-radius: 6px;">`;
-                htmlForm += `<label style="display:block; margin-bottom: 6px; font-weight: 700; color: #2c3e50; font-size: 11px; letter-spacing: 0.5px;">${argDef.name}</label>`;
+                htmlForm += `<div style="margin-bottom: 12px; background: var(--bg-app); border: 1px solid var(--border-light); padding: 10px; border-radius: 6px;">`;
+                htmlForm += `<label style="display:block; margin-bottom: 6px; font-weight: 600; color: var(--text-main); font-size: 11px; letter-spacing: 0.5px; text-transform: uppercase;">${argDef.name}</label>`;
                 
                 let inputId = `swal-input-${i}`;
                 if (argDef.name.includes('/')) {
                     let options = argDef.name.split('/'); 
-                    htmlForm += `<select id="${inputId}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;">`;
+                    htmlForm += `<select id="${inputId}" class="swal2-input" style="${inputCSS}">`;
                     options.forEach(opt => {
                         let cleanOpt = opt.trim();
                         let selected = (val === cleanOpt || (!val && cleanOpt === options[0].trim())) ? 'selected' : '';
@@ -162,7 +165,7 @@ export function initializeProperties() {
                     });
                     htmlForm += `</select>`;
                 } else {
-                    htmlForm += `<input id="${inputId}" class="swal2-input" style="width:100%; height:32px; margin:0; padding:2px 8px;" value="${val}">`;
+                    htmlForm += `<input id="${inputId}" class="swal2-input" style="${inputCSS}" value="${val}">`;
                 }
                 htmlForm += `</div>`;
             }
@@ -171,8 +174,8 @@ export function initializeProperties() {
         let currentHideLabel = el.get('customHideLabel');
         if (currentHideLabel === undefined) currentHideLabel = data.hideLabel === true;
         
-        htmlForm += `<div style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 12px; margin-bottom: 5px;">
-                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:bold; color:#2c3e50;">
+        htmlForm += `<div style="margin-top: 15px; border-top: 1px solid var(--border-main); padding-top: 12px; margin-bottom: 5px;">
+                        <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:12px; font-weight:600; color:var(--text-main);">
                             <input type="checkbox" id="swal-input-hidelabel" ${currentHideLabel ? 'checked' : ''} style="width:16px; height:16px; margin:0;">
                             Hide Component Auto-Label
                         </label>
@@ -195,8 +198,10 @@ export function initializeProperties() {
         }
 
         if (spiceParams.length > 0) {
-            htmlForm += `<div style="margin-top: 15px; border-top: 2px solid #8e44ad; padding-top: 12px; margin-bottom: 5px;">
-                            <label style="display:block; font-size:13px; font-weight:bold; color:#8e44ad; margin-bottom: 8px;">⚡ SPICE Parameters</label>
+            htmlForm += `<div style="margin-top: 15px; border-top: 2px solid var(--purple); padding-top: 12px; margin-bottom: 5px;">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--purple); margin-bottom: 10px;">
+                                <i data-lucide="zap" style="width:14px; height:14px;"></i> SPICE Parameters
+                            </label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
             
             spiceParams.forEach(param => {
@@ -227,45 +232,45 @@ export function initializeProperties() {
                     }
 
                     htmlForm += `
-                    <div style="grid-column: span 2; background: #fdfdfd; padding: 10px; border: 1px solid #bdc3c7; border-radius: 4px;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; gap:10px;">
+                    <div style="grid-column: span 2; background: var(--bg-app); padding: 12px; border: 1px solid var(--border-main); border-radius: 6px;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px;">
                             <div style="flex:1;">
-                                <label style="font-weight: bold; color: #e67e22; font-size: 11px;">Transient Waveform</label>
-                                <select id="sig-type" onchange="window.updateSignalBuilder()" style="width: 100%; padding: 4px; font-size: 12px; border: 1px solid #ccc; border-radius: 3px;">
+                                <label style="font-weight: 600; color: var(--text-main); font-size: 11px; margin-bottom: 4px; display: block;">Transient Waveform</label>
+                                <select id="sig-type" onchange="window.updateSignalBuilder()" style="${inputCSS}">
                                     <option value="DC" ${sigType==='DC'?'selected':''}>DC (Flat)</option>
                                     <option value="SINE" ${sigType==='SINE'?'selected':''}>SINE Wave</option>
                                     <option value="PULSE" ${sigType==='PULSE'?'selected':''}>PULSE Wave</option>
                                 </select>
                             </div>
                             <div style="flex:1;">
-                                <label style="font-weight: bold; color: #2980b9; font-size: 11px;">AC Amplitude (.ac sweep)</label>
-                                <input type="text" id="sig-global-ac" value="${acVal}" oninput="window.updateSignalBuilder()" style="width: 100%; padding: 4px; font-size: 12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;" placeholder="e.g. 1">
+                                <label style="font-weight: 600; color: var(--text-main); font-size: 11px; margin-bottom: 4px; display: block;">AC Amplitude (.ac sweep)</label>
+                                <input type="text" id="sig-global-ac" value="${acVal}" oninput="window.updateSignalBuilder()" style="${inputCSS}" placeholder="e.g. 1">
                             </div>
                         </div>
-                        <hr style="border-top:1px solid #eee; margin: 8px 0;">
+                        <hr style="border-top:1px solid var(--border-main); margin: 12px 0;">
                         
                         <div id="sig-dc-fields" style="display:${sigType==='DC'?'block':'none'};">
-                            <label style="font-size:10px; font-weight:bold; color:#7f8c8d;">DC Level (V/A)</label>
-                            <input type="text" id="sig-dc" value="${dcVal}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;">
+                            <label style="font-size:11px; font-weight:600; color:var(--text-muted); display: block; margin-bottom: 4px;">DC Level (V/A)</label>
+                            <input type="text" id="sig-dc" value="${dcVal}" oninput="window.updateSignalBuilder()" style="${inputCSS}">
                         </div>
 
                         <div id="sig-sine-fields" style="display:${sigType==='SINE'?'block':'none'};">
-                            <div style="display:flex; gap:5px; flex-wrap:wrap;">
-                                <div style="flex:1; min-width:30%;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Offset</label><input type="text" id="sig-sin-off" value="${sineOffset}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <div style="flex:1; min-width:30%;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Amplitude</label><input type="text" id="sig-sin-amp" value="${sineAmp}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <div style="flex:1; min-width:30%;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Freq (Hz)</label><input type="text" id="sig-sin-freq" value="${sineFreq}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                                <div style="flex:1; min-width:30%;"><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Offset</label><input type="text" id="sig-sin-off" value="${sineOffset}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
+                                <div style="flex:1; min-width:30%;"><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Amplitude</label><input type="text" id="sig-sin-amp" value="${sineAmp}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
+                                <div style="flex:1; min-width:30%;"><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Freq (Hz)</label><input type="text" id="sig-sin-freq" value="${sineFreq}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
                             </div>
                         </div>
 
                         <div id="sig-pulse-fields" style="display:${sigType==='PULSE'?'block':'none'};">
-                            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:5px;">
-                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">V1 (Start)</label><input type="text" id="sig-pul-v1" value="${pulseV1}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">V2 (Peak)</label><input type="text" id="sig-pul-v2" value="${pulseV2}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Delay (Td)</label><input type="text" id="sig-pul-td" value="${pulseTd}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Rise (Tr)</label><input type="text" id="sig-pul-tr" value="${pulseTr}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Fall (Tf)</label><input type="text" id="sig-pul-tf" value="${pulseTf}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Width (Pw)</label><input type="text" id="sig-pul-pw" value="${pulsePw}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
-                                <div style="grid-column: span 3;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Period (Per)</label><input type="text" id="sig-pul-per" value="${pulsePer}" oninput="window.updateSignalBuilder()" style="width:100%; padding:4px; font-size:12px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 3px;"></div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px;">
+                                <div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">V1 (Start)</label><input type="text" id="sig-pul-v1" value="${pulseV1}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
+                                <div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">V2 (Peak)</label><input type="text" id="sig-pul-v2" value="${pulseV2}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
+                                <div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Delay (Td)</label><input type="text" id="sig-pul-td" value="${pulseTd}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
+                                <div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Rise (Tr)</label><input type="text" id="sig-pul-tr" value="${pulseTr}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
+                                <div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Fall (Tf)</label><input type="text" id="sig-pul-tf" value="${pulseTf}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
+                                <div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Width (Pw)</label><input type="text" id="sig-pul-pw" value="${pulsePw}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
+                                <div style="grid-column: span 3;"><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Period (Per)</label><input type="text" id="sig-pul-per" value="${pulsePer}" oninput="window.updateSignalBuilder()" style="${inputCSS}"></div>
                             </div>
                         </div>
                         
@@ -277,7 +282,6 @@ export function initializeProperties() {
                     let prefixMatch = spiceTemplate.match(/^([a-zA-Z])_/);
                     let compType = prefixMatch ? prefixMatch[1].toUpperCase() : null;
                     
-                    // We pull SPICE_MODEL_LIBRARY from the global window or define a fallback empty object
                     let lib = window.SPICE_MODEL_LIBRARY || {};
                     let availableModels = (compType && lib[compType]) ? lib[compType] : {};
 
@@ -298,7 +302,7 @@ export function initializeProperties() {
                     
                     let optionsHtml = `<option value="" ${selVal===''?'selected':''}>Generic / Ideal</option>`;
                     if (isZener || isMOS || isBJT || isDiode) {
-                        optionsHtml += `<option value="WIZARD" ${selVal==='WIZARD'?'selected':''}>✨ Basic Parameters...</option>`;
+                        optionsHtml += `<option value="WIZARD" ${selVal==='WIZARD'?'selected':''}>[ Wizard ] Basic Parameters...</option>`;
                     }
                     for (let m in availableModels) {
                         optionsHtml += `<option value="${m}" ${selVal===m?'selected':''}>${m}</option>`;
@@ -307,32 +311,34 @@ export function initializeProperties() {
 
                     htmlForm += `
                     <div style="grid-column: span 2;">
-                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 11px;">MODEL</label>
-                        <div style="display: flex; gap: 5px;">
-                            <select id="sig-model-sel" onchange="window.updateModelSelection('${el.id}')" style="flex: 1; height: 32px; font-size: 13px; padding: 0 10px; border: 1px solid #bdc3c7; border-left: 3px solid #8e44ad;">
+                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 11px;">MODEL</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="sig-model-sel" onchange="window.updateModelSelection('${el.id}')" style="${inputCSS} border-left: 3px solid var(--purple);">
                                 ${optionsHtml}
                             </select>
-                            <input type="text" id="swal-spice-MODEL" style="flex: 1; height: 32px; font-size: 13px; padding: 0 10px; border: 1px solid #bdc3c7; display: ${selVal === 'CUSTOM' ? 'block' : 'none'};" value="${currentVal}" placeholder="Type custom model name...">
+                            <input type="text" id="swal-spice-MODEL" style="${inputCSS} display: ${selVal === 'CUSTOM' ? 'block' : 'none'};" value="${currentVal}" placeholder="Type custom model name...">
                         </div>`;
 
                     if (isZener || isMOS || isBJT || isDiode) {
-                        htmlForm += `<div id="model-wizard-fields" style="display: ${selVal === 'WIZARD' ? 'block' : 'none'}; margin-top: 8px; padding: 10px; background: #fdfdfd; border: 1px dashed #9b59b6; border-radius: 4px;">`;
+                        htmlForm += `<div id="model-wizard-fields" style="display: ${selVal === 'WIZARD' ? 'block' : 'none'}; margin-top: 8px; padding: 12px; background: var(--bg-app); border: 1px dashed var(--purple); border-radius: 4px;">`;
                         
                         if (isZener) {
-                            htmlForm += `<div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Zener Breakdown (BV) in Volts</label>
-                                         <input type="text" id="wiz-vz" value="${wVz}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>`;
+                            htmlForm += `<div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Zener Breakdown (BV) in Volts</label>
+                                         <input type="text" id="wiz-vz" value="${wVz}" style="${inputCSS}"></div>`;
                         } else if (isMOS) {
                             htmlForm += `<div style="display:flex; gap:10px;">
-                                            <div style="flex:1;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Threshold (VTO)</label><input type="text" id="wiz-vto" value="${wVto}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
-                                            <div style="flex:1;"><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">k' (KP)</label><input type="text" id="wiz-kp" value="${wKp}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>
+                                            <div style="flex:1;"><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Threshold (VTO)</label><input type="text" id="wiz-vto" value="${wVto}" style="${inputCSS}"></div>
+                                            <div style="flex:1;"><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">k' (KP)</label><input type="text" id="wiz-kp" value="${wKp}" style="${inputCSS}"></div>
                                          </div>
-                                         <div style="font-size:10px; color:#e67e22; margin-top:5px; font-weight:bold;">💡 Note: Channel Length (L) and Width (W) are set in the boxes below!</div>`;
+                                         <div style="font-size:11px; color:var(--text-main); margin-top:8px; font-weight:600; display:flex; align-items:center; gap:6px;">
+                                            <i data-lucide="info" style="width:14px; height:14px;"></i> Note: Channel Length (L) and Width (W) are set in the boxes below!
+                                         </div>`;
                         } else if (isBJT) {
-                            htmlForm += `<div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Beta (β / BF)</label>
-                                         <input type="text" id="wiz-bf" value="${wBf}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>`;
+                            htmlForm += `<div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Beta (β / BF)</label>
+                                         <input type="text" id="wiz-bf" value="${wBf}" style="${inputCSS}"></div>`;
                         } else if (isDiode) {
-                            htmlForm += `<div><label style="font-size:10px; font-weight:bold; color:#7f8c8d;">Threshold / Forward Drop (VJ)</label>
-                                         <input type="text" id="wiz-vj" value="${wVj}" style="width:100%; padding:4px; font-size:12px; box-sizing:border-box; border:1px solid #ccc; border-radius:3px;"></div>`;
+                            htmlForm += `<div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Threshold / Forward Drop (VJ)</label>
+                                         <input type="text" id="wiz-vj" value="${wVj}" style="${inputCSS}"></div>`;
                         }
                         htmlForm += `</div>`;
                     }
@@ -340,8 +346,8 @@ export function initializeProperties() {
                 } else {
                     htmlForm += `
                     <div>
-                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 11px;">${param}</label>
-                        <input type="text" id="swal-spice-${param}" class="swal2-input" style="width: 100%; height: 32px; font-size: 13px; margin: 0; padding: 0 10px; border: 1px solid #bdc3c7; border-left: 3px solid #8e44ad;" value="${currentVal}">
+                        <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 11px;">${param}</label>
+                        <input type="text" id="swal-spice-${param}" class="swal2-input" style="${inputCSS} border-left: 3px solid var(--purple);" value="${currentVal}">
                     </div>`;
                 }
             });
@@ -352,16 +358,18 @@ export function initializeProperties() {
         let savedSimData = el.get('simData') || {};
 
         if (propDefs.length > 0) {
-            htmlForm += `<div style="margin-top: 15px; border-top: 2px solid #27ae60; padding-top: 12px; margin-bottom: 5px;">
-                            <label style="display:block; font-size:13px; font-weight:bold; color:#27ae60; margin-bottom: 8px;">⏱️ Simulation Properties</label>
+            htmlForm += `<div style="margin-top: 15px; border-top: 2px solid var(--success); padding-top: 12px; margin-bottom: 5px;">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--success); margin-bottom: 10px;">
+                                <i data-lucide="clock" style="width:14px; height:14px;"></i> Simulation Properties
+                            </label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
             
             propDefs.forEach(prop => {
                 let currentVal = savedSimData[prop.id] !== undefined ? savedSimData[prop.id] : prop.defVal;
                 htmlForm += `
                 <div>
-                    <label style="display:block; margin-bottom: 4px; font-weight: 600; color: #2c3e50; font-size: 11px;">${prop.label}</label>
-                    <input type="text" id="swal-simprop-${prop.id}" class="swal2-input" style="width: 100%; height: 32px; font-size: 13px; margin: 0; padding: 0 10px; border: 1px solid #bdc3c7; border-left: 3px solid #27ae60;" value="${currentVal}">
+                    <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 11px;">${prop.label}</label>
+                    <input type="text" id="swal-simprop-${prop.id}" class="swal2-input" style="${inputCSS} border-left: 3px solid var(--success);" value="${currentVal}">
                 </div>`;
             });
             htmlForm += `</div></div>`;
@@ -371,19 +379,23 @@ export function initializeProperties() {
 
         Swal.fire({
             html: `
-                <div id="swal-drag-handle" style="cursor: grab; background: #ecf0f1; padding: 6px; border-radius: 4px; font-size: 12px; color: #7f8c8d; margin-top: 0; margin-bottom: 12px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px dashed #bdc3c7;">
-                    <span>⠿</span> Drag to move <span>⠿</span>
+                <div id="swal-drag-handle" style="cursor: grab; background: var(--bg-app); padding: 6px; border-radius: 4px; font-size: 12px; color: var(--text-muted); margin-top: 0; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px solid var(--border-main);">
+                    <i data-lucide="grip-horizontal" style="width: 16px; height: 16px;"></i> Drag to move
                 </div>
-                <div style="font-size: 18px; font-weight: 600; user-select: none; margin-bottom: 15px; color: #2c3e50;">Properties: ${data.name}</div>
+                <div style="font-size: 16px; font-weight: 600; user-select: none; margin-bottom: 15px; color: var(--text-main); border-bottom: 1px solid var(--border-main); padding-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <i data-lucide="sliders-horizontal" style="width: 18px; height: 18px;"></i> Properties: ${data.name}
+                </div>
                 ${htmlForm}
             `,
             showCancelButton: true,
             confirmButtonText: 'Save',
             cancelButtonText: 'Cancel',
-            confirmButtonColor: '#27ae60',
             backdrop: false,
             heightAuto: false,
             didOpen: () => {
+                // Initialize the Lucide Icons for the popup
+                lucide.createIcons();
+
                 const popup = Swal.getPopup();
                 const handle = document.getElementById('swal-drag-handle');
                 
@@ -429,7 +441,6 @@ export function initializeProperties() {
                         }
                     }
 
-                    // A helper to mimic parseGeomArgs
                     let geomAngle = el.get('angle') || 0;
                     let geomFlipH = el.get('flipH') || false;
                     let geomFlipV = el.get('flipV') || false;

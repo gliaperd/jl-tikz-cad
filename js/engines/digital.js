@@ -87,23 +87,28 @@ export function runDigitalSimulation() {
     let defStep = c.logicStep || "Auto";
     let defMaxSteps = c.maxSteps || "200000";
 
+    const inputCSS = "width:100%; height:32px; font-size:13px; margin:0; padding:0 10px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:4px; background:var(--bg-panel); color:var(--text-main); outline:none;";
+
     Swal.fire({
-        title: '<span style="color:#2c3e50;">Digital Timing Analysis</span>',
+        title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px;"><i data-lucide="clock" style="width: 20px; height: 20px;"></i> Digital Timing Analysis</div>',
         html: `
-            <div style="text-align: left; font-size: 13px; background: #f8f9fa; padding: 15px; border: 1px solid #bdc3c7; border-radius: 6px;">
-                <label style="font-weight:bold; color:#8e44ad;">Simulation Duration</label>
-                <input type="text" id="logic-stop" class="swal2-input" value="${defStop}" style="height:32px; font-size:13px;" placeholder="e.g. 10u (10 microseconds)">
+            <div style="text-align: left; font-size: 13px; background: var(--bg-app); padding: 15px; border: 1px solid var(--border-main); border-radius: 6px;">
+                <label style="font-weight:600; color:var(--text-main); display:block; margin-bottom:4px;">Simulation Duration</label>
+                <input type="text" id="logic-stop" class="swal2-input" value="${defStop}" style="${inputCSS}" placeholder="e.g. 10u (10 microseconds)">
                 
-                <label style="font-weight:bold; color:#2980b9; margin-top:10px; display:block;">Engine Time Step (Resolution)</label>
-                <input type="text" id="logic-step" class="swal2-input" value="${defStep}" style="height:32px; font-size:13px;" placeholder="Type 'Auto' or a value like 1n">
+                <label style="font-weight:600; color:var(--text-main); margin-top:12px; display:block; margin-bottom:4px;">Engine Time Step (Resolution)</label>
+                <input type="text" id="logic-step" class="swal2-input" value="${defStep}" style="${inputCSS}" placeholder="Type 'Auto' or a value like 1n">
                 
-                <label style="font-weight:bold; color:#e67e22; margin-top:10px; display:block;">Safety Limit (Max Steps)</label>
-                <input type="number" id="logic-max-steps" class="swal2-input" value="${defMaxSteps}" style="height:32px; font-size:13px;" placeholder="e.g. 200000">
+                <label style="font-weight:600; color:var(--text-main); margin-top:12px; display:block; margin-bottom:4px;">Safety Limit (Max Steps)</label>
+                <input type="number" id="logic-max-steps" class="swal2-input" value="${defMaxSteps}" style="${inputCSS}" placeholder="e.g. 200000">
             </div>
         `,
         showCancelButton: true,
-        confirmButtonText: 'Run Analysis',
-        confirmButtonColor: '#27ae60',
+        confirmButtonText: '<div style="display:flex; align-items:center; gap:6px;"><i data-lucide="play" style="width:14px; height:14px;"></i> Run Analysis</div>',
+        cancelButtonText: 'Cancel',
+        didOpen: () => {
+            lucide.createIcons();
+        },
         preConfirm: () => {
             return { 
                 stop: document.getElementById('logic-stop').value.trim(), 
@@ -405,9 +410,9 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
         let densityNum = parseInt(gridDensity) || 0;
         let minorStep = densityNum > 0 ? chosenStep / densityNum : chosenStep;
 
-        let html = `<div style="display: flex; min-width: min-content; position: relative; background: #ffffff; min-height: 100%;">`;
+        let html = `<div style="display: flex; min-width: min-content; position: relative; background: var(--bg-panel); min-height: 100%;">`;
         
-        html += `<div style="position: sticky; left: 0; z-index: 10; width: ${labelWidth}px; background: #ffffff; border-right: 2px solid #bdc3c7; flex-shrink: 0; box-shadow: 2px 0 5px rgba(0,0,0,0.1);">`;
+        html += `<div style="position: sticky; left: 0; z-index: 10; width: ${labelWidth}px; background: var(--bg-panel); border-right: 2px solid var(--border-main); flex-shrink: 0; box-shadow: 2px 0 5px rgba(0,0,0,0.1);">`;
         html += `<div style="height: 20px;"></div>`; 
         
         for (let i = 0; i < numRows; i++) {
@@ -420,19 +425,19 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
                 content = probes[netId];
                 colorStyle = `color: ${color}; border-left: 4px solid ${color};`;
             }
-            html += `<div style="height: ${rowHeight}px; display: flex; align-items: center; padding-left: 10px; background: ${i % 2 === 0 ? '#fdfdfd' : '#f4f6f7'}; font-weight: bold; font-size: 13px; box-sizing: border-box; ${colorStyle}">${content}</div>`;
+            html += `<div style="height: ${rowHeight}px; display: flex; align-items: center; padding-left: 10px; background: ${i % 2 === 0 ? 'var(--bg-panel)' : 'var(--bg-app)'}; font-weight: bold; font-size: 13px; box-sizing: border-box; ${colorStyle}">${content}</div>`;
         }
         html += `</div>`;
 
-        html += `<div style="flex-grow: 1; background: #ffffff;">`;
-        html += `<svg width="${svgWidth}" height="${svgHeight}" style="font-family: monospace; background: #ffffff; display: block;">`;
+        html += `<div style="flex-grow: 1; background: var(--bg-panel);">`;
+        html += `<svg width="${svgWidth}" height="${svgHeight}" style="font-family: var(--font-code); background: var(--bg-panel); display: block;">`;
         
         for (let i = 0; i < numRows; i++) {
             let baseY = 20 + (i * rowHeight);
-            html += `<rect x="0" y="${baseY}" width="${svgWidth}" height="${rowHeight}" fill="${i % 2 === 0 ? '#fdfdfd' : '#f4f6f7'}" stroke="none" />`;
+            html += `<rect x="0" y="${baseY}" width="${svgWidth}" height="${rowHeight}" fill="${i % 2 === 0 ? 'var(--bg-panel)' : 'var(--bg-app)'}" stroke="none" />`;
         }
 
-        html += `<g stroke="#ecf0f1" stroke-width="1">`;
+        html += `<g stroke="var(--border-light)" stroke-width="1">`;
         let firstGridMark = Math.ceil(startNs / minorStep) * minorStep;
         
         for (let t = firstGridMark; t <= stopNs; t += minorStep) {
@@ -446,13 +451,13 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
             }
             
             if (isMajor) {
-                html += `<line x1="${x}" y1="20" x2="${x}" y2="${svgHeight}" stroke="#bdc3c7" stroke-width="1" />`;
+                html += `<line x1="${x}" y1="20" x2="${x}" y2="${svgHeight}" stroke="var(--border-main)" stroke-width="1" />`;
                 let tLabel = t; let unit = "ns";
                 if (t >= 1e6) { tLabel = t / 1e6; unit = "ms"; }
                 else if (t >= 1e3) { tLabel = t / 1e3; unit = "µs"; }
-                html += `<text x="${x}" y="14" font-size="11" font-weight="bold" fill="#34495e" stroke="none" text-anchor="middle">${parseFloat(tLabel.toFixed(2))} ${unit}</text>`;
+                html += `<text x="${x}" y="14" font-size="11" font-weight="bold" fill="var(--text-main)" stroke="none" text-anchor="middle">${parseFloat(tLabel.toFixed(2))} ${unit}</text>`;
             } else {
-                html += `<line x1="${x}" y1="20" x2="${x}" y2="${svgHeight}" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="2 4" opacity="0.6" />`;
+                html += `<line x1="${x}" y1="20" x2="${x}" y2="${svgHeight}" stroke="var(--border-main)" stroke-width="1" stroke-dasharray="2 4" opacity="0.6" />`;
             }
         }
         html += `</g>`;
@@ -468,7 +473,7 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
             let lowY  = baseY + rowHeight - padY;
             let midY  = baseY + (rowHeight / 2);
 
-            html += `<line x1="0" y1="${lowY}" x2="${svgWidth}" y2="${lowY}" stroke="#bdc3c7" stroke-width="0.5" stroke-dasharray="2 2"/>`;
+            html += `<line x1="0" y1="${lowY}" x2="${svgWidth}" y2="${lowY}" stroke="var(--border-main)" stroke-width="0.5" stroke-dasharray="2 2"/>`;
 
             let initialState = getStateAtTime(h, startNs);
             let lastState = initialState;
@@ -503,50 +508,53 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
 
     let filterChecksHtml = '';
     allProbeNetIds.forEach(id => {
-        filterChecksHtml += `<label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 12px; margin:0; transition:background 0.2s; font-size:12px; color:#2c3e50;"><input type="checkbox" class="timing-filter-chk" value="${id}" checked style="margin:0;"> ${probes[id]}</label>`;
+        filterChecksHtml += `<label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 12px; margin:0; transition:background 0.2s; font-size:12px; color:var(--text-main);"><input type="checkbox" class="timing-filter-chk" value="${id}" checked style="margin:0;"> ${probes[id]}</label>`;
     });
 
     Swal.fire({
         width: 'auto', padding: '0', background: 'transparent', backdrop: false, showConfirmButton: false, heightAuto: false,
         html: `
-            <div id="timing-true-window" style="width: 1000px; max-width: 95vw; height: auto; min-height: 200px; max-height: 80vh; resize: both; overflow: hidden; display: flex; flex-direction: column; background: #ffffff; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid #bdc3c7; pointer-events: auto;">
-                <div id="timing-drag-handle" style="flex: 0 0 40px; cursor: move; background: #2c3e50; color: #ecf0f1; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none;">
-                    <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;">⏱️ Digital Timing Diagram</span>
+            <div id="timing-true-window" style="width: 1000px; max-width: 95vw; height: auto; min-height: 200px; max-height: 80vh; resize: both; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-main); pointer-events: auto;">
+                <div id="timing-drag-handle" style="flex: 0 0 40px; cursor: move; background: var(--bg-toolbar); color: var(--text-inverse); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none;">
+                    <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;"><i data-lucide="clock" style="width: 18px; height: 18px;"></i> Digital Timing Diagram </span>
                     <div style="display:flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                         <div style="display:flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 4px;">
                             <span style="font-size: 11px; font-weight: bold;">Crop (ns):</span>
-                            <input type="number" id="timing-start" value="0" min="0" step="1" style="width: 60px; font-size: 11px; padding: 1px 4px; border-radius: 3px; border: none; outline: none;">
+                            <input type="number" id="timing-start" value="0" min="0" step="1" style="width: 60px; font-size: 11px; padding: 1px 4px; border-radius: 3px; border: none; outline: none; background: var(--bg-panel); color: var(--text-main);">
                             <span style="font-size: 11px; font-weight: bold;">to</span>
-                            <input type="number" id="timing-stop" value="${totalNs}" min="0" step="1" style="width: 60px; font-size: 11px; padding: 1px 4px; border-radius: 3px; border: none; outline: none;">
+                            <input type="number" id="timing-stop" value="${totalNs}" min="0" step="1" style="width: 60px; font-size: 11px; padding: 1px 4px; border-radius: 3px; border: none; outline: none; background: var(--bg-panel); color: var(--text-main);">
                         </div>
                         <div class="toolbar-dropdown" style="margin: 0;">
-                            <button class="tool-btn" style="padding: 2px 10px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.2); border: none; color: white;">👁️ Filter ▼</button>
-                            <div class="toolbar-dropdown-content" style="right: 0; left: auto; max-height: 250px; overflow-y: auto; background: #fdfdfd; box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 4px; padding: 5px 0;">
+                            <button class="tool-btn" style="padding: 2px 10px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.2); border: none; color: var(--text-inverse); display: flex; align-items: center; gap: 4px;">
+                                <i data-lucide="filter" style="width: 12px; height: 12px;"></i> Filter ▼
+                            </button>
+                            <div class="toolbar-dropdown-content" style="right: 0; left: auto; max-height: 250px; overflow-y: auto; background: var(--bg-panel); box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 4px; padding: 5px 0;">
                                 ${filterChecksHtml}
                             </div>
                         </div>
                         <div style="display:flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 4px;">
                             <span style="font-size: 11px; font-weight: bold;">Grid:</span>
-                            <select id="timing-grid" style="font-size: 11px; margin: 0; padding: 1px; border-radius: 3px; border: none; background: #ecf0f1; color: #2c3e50; outline: none; cursor: pointer;">
+                            <select id="timing-grid" style="font-size: 11px; margin: 0; padding: 1px; border-radius: 3px; border: none; background: var(--bg-panel); color: var(--text-main); outline: none; cursor: pointer;">
                                 <option value="0">Off</option> <option value="1">Coarse</option> <option value="2" selected>Medium</option> <option value="4">Fine</option> <option value="10">Ultra</option>
                             </select>
                         </div>
                         <div style="display:flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 4px;" title="Vertical Zoom">
-                            <span style="font-size: 11px; font-weight: bold;">↕</span>
+                            <i data-lucide="move-vertical" style="width: 12px; height: 12px;"></i>
                             <input type="range" id="timing-vzoom" min="20" max="120" step="5" value="45" style="width: 50px; cursor: ew-resize; margin: 0;">
                         </div>
                         <div style="display:flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 4px;" title="Horizontal Zoom">
-                            <span style="font-size: 11px; font-weight: bold;">↔</span>
+                            <i data-lucide="move-horizontal" style="width: 12px; height: 12px;"></i>
                             <input type="range" id="timing-zoom" min="1" max="100" step="1" value="1" style="width: 60px; cursor: ew-resize; margin: 0;">
                             <span id="timing-zoom-val" style="font-size: 11px; font-weight: bold; width: 25px; text-align: right;">1x</span>
                         </div>
                         <button onclick="Swal.close()" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold; font-size: 16px; line-height: 1; padding: 0 0 0 5px;" title="Close">✖</button>
                     </div>
                 </div>
-                <div id="timing-diagram-container" style="flex: 1; overflow: auto; background: #ffffff; position: relative; display: flex; flex-direction: column;"></div>
+                <div id="timing-diagram-container" style="flex: 1; overflow: auto; background: var(--bg-panel); position: relative; display: flex; flex-direction: column;"></div>
             </div>
         `,
         didOpen: () => {
+			lucide.createIcons();
             const popup = Swal.getPopup(); const htmlContainer = Swal.getHtmlContainer(); const handle = document.getElementById('timing-drag-handle');
             const container = document.getElementById('timing-diagram-container'); const windowContainer = document.getElementById('timing-true-window');
             const zoomSlider = document.getElementById('timing-zoom'); const vZoomSlider = document.getElementById('timing-vzoom');
