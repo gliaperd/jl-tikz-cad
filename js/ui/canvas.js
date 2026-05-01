@@ -245,7 +245,7 @@ export function updateElementLabel(el, newText) {
             ax = (rawX * scale) + shiftX; ay = (rawY * scale) + shiftY;
         }
 
-        let gap = 40;
+        let gap = 10 * AppState.PPU_MULT;
         if (currentDir === 'T') ay -= gap;
         if (currentDir === 'B') ay += gap;
         if (currentDir === 'L') ax -= gap;
@@ -253,15 +253,15 @@ export function updateElementLabel(el, newText) {
 
         centerX = ax + lblOffsetX; centerY = ay + lblOffsetY;
     } else {
-        let bottomY = el.size().height / 2; 
-        if (!isFreeText) {
-            let ports = el.getPorts();
-            if (ports && ports.length > 0) bottomY = Math.max(...ports.map(p => el.portProp(p.id, 'args/y')));
-            else bottomY = el.size().height; 
+            let bottomY = el.size().height / 2; 
+            if (!isFreeText) {
+                let ports = el.getPorts();
+                if (ports && ports.length > 0) bottomY = Math.max(...ports.map(p => el.portProp(p.id, 'args/y')));
+                else bottomY = el.size().height; 
+            }
+            centerX = (el.size().width / 2) + lblOffsetX;
+            centerY = (isFreeText ? el.size().height / 2 : bottomY + (10 * AppState.PPU_MULT)) + lblOffsetY;
         }
-        centerX = (el.size().width / 2) + lblOffsetX;
-        centerY = (isFreeText ? el.size().height / 2 : bottomY + 40) + lblOffsetY;
-    }
 
     let themeObj = THEME_COLORS[AppState.theme] || THEME_COLORS.standard;
     let txtColor = isFreeText ? themeObj.freeText : themeObj.componentLabel;
@@ -707,6 +707,15 @@ export function addComponent(type, dropX = null, dropY = null) {
         });
 
         let measurePath = iconPath;
+        
+        // Safely append all overlay layers to get the true maximum bounding box
+        if (data.iconLayers) {
+            data.iconLayers.forEach(layer => {
+                if (layer.path) {
+                    measurePath += " " + extractStaticTexts(layer.path).cleanPath;
+                }
+            });
+        }
         let bbox = { x: 0, y: 0, width: 0, height: 0 };
         if (measurePath) {
             const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');

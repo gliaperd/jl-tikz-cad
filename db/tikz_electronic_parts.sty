@@ -260,14 +260,13 @@
 % enabled
 % category: Switches
 % scales: 1, 2, 4
-% label_anchor: B
+% label_anchor: 24 5 B
 % flip: disabled
-% preview_args: 4=n
+% preview_args: 4=n, 5=0
 
 % arg_def: 3 | text | control value | 
 % arg_def: 4 | select | type | n | n, p
 % arg_def: 5 | rotation | Rotation | 0
-
 
 % icon_base: [fill=solid] M 0 0 L 10 0 M 30 0 L 40 0 M 10 0 L 28 -11 M 10 0 m -0.5 0 a 0.5 0.5 0 1 0 1 0 a 0.5 0.5 0 1 0 -1 0 // Base terminals and angled bridge
 % add_icon: 1~= : M 9 -13 L 32 -13 L 32 4 L 9 4 Z // The thick main box
@@ -457,12 +456,11 @@
 % label_anchor: B
 % flip: disabled
 % spice_template: V_{NAME} {pin1} {pin2} {SIGNAL}
-% preview_args: 3=horizontal, 4=standard
+% preview_args: 3=none, 4=standard, 5=0
 
-% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
+% arg_def: 3 | select | horizontal/vertical | none | horizontal, vertical, none
 % arg_def: 4 | select | type | standard | standard, controlled
 % arg_def: 5 | rotation | Rotation | 0
-
 
 % icon_base: M -30 0 L -20 0 M 20 0 L 30 0 M -12 0 L -4 0 M -8 -4 L -8 4 M 4 0 L 12 0 // Leads and internal +/- polarity
 % add_icon: 4==standard : [stroke-width=2.5] M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 // Thicker circular shell

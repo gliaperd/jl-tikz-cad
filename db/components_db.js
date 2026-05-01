@@ -337,12 +337,14 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "auto": true,
+            "x": 24.0,
+            "y": 5.0,
             "dir": "B"
         },
         "flippable": false,
         "previewArgs": {
-            "4": "n"
+            "4": "n",
+            "5": "0"
         },
         "argDefs": [
             {
@@ -548,15 +550,16 @@ const JL_DATABASE = {
         "flippable": false,
         "spiceTemplate": "V_{NAME} {pin1} {pin2} {SIGNAL}",
         "previewArgs": {
-            "3": "horizontal",
-            "4": "standard"
+            "3": "none",
+            "4": "standard",
+            "5": "0"
         },
         "argDefs": [
             {
                 "idx": 3,
                 "type": "select",
                 "label": "horizontal/vertical",
-                "defVal": "horizontal",
+                "defVal": "none",
                 "options": "horizontal, vertical, none"
             },
             {
@@ -3378,7 +3381,7 @@ const JL_DATABASE = {
                 "id": "pin2",
                 "x": 0.0,
                 "y": -10.0,
-                "label": "input-3",
+                "label": "input-2",
                 "dir": "R"
             },
             {

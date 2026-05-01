@@ -625,11 +625,11 @@
             }
 
             // 2. ΜΑΘΗΜΑΤΙΚΟΣ ΚΙΝΗΤΗΡΑΣ ΜΕΤΑΣΧΗΜΑΤΙΣΜΩΝ
-            let sx = previewFlipH ? -1 : 1;
-            let sy = previewFlipV ? -1 : 1;
-            let transformStr = `rotate(${-previewAngle}, 0, 0) scale(${sx}, ${sy})`;
+			let sx = previewFlipH ? -1 : 1;
+			let sy = previewFlipV ? -1 : 1;
+			let transformStr = `rotate(${previewAngle}, 0, 0) scale(${sx}, ${sy})`;
 
-            let rad = -previewAngle * Math.PI / 180;
+			let rad = previewAngle * Math.PI / 180;
             function trans(x, y) {
                 let x1 = x * sx; let y1 = y * sy;
                 return {
@@ -639,15 +639,15 @@
             }
 
             function transDir(d) {
-                if (sx === -1) { if (d==='L') d='R'; else if (d==='R') d='L'; }
-                if (sy === -1) { if (d==='T') d='B'; else if (d==='B') d='T'; }
-                
-                let ang = (previewAngle % 360 + 360) % 360; 
-                if (ang === 90) { if (d==='R') d='T'; else if (d==='T') d='L'; else if (d==='L') d='B'; else if (d==='B') d='R'; } 
-                else if (ang === 180) { if (d==='R') d='L'; else if (d==='L') d='R'; else if (d==='T') d='B'; else if (d==='B') d='T'; } 
-                else if (ang === 270) { if (d==='R') d='B'; else if (d==='T') d='R'; else if (d==='L') d='T'; else if (d==='B') d='L'; }
-                return d;
-            }
+				if (sx === -1) { if (d==='L') d='R'; else if (d==='R') d='L'; }
+				if (sy === -1) { if (d==='T') d='B'; else if (d==='B') d='T'; }
+				
+				let ang = (previewAngle % 360 + 360) % 360; 
+				if (ang === 90) { if (d==='R') d='B'; else if (d==='T') d='R'; else if (d==='L') d='T'; else if (d==='B') d='L'; } 
+				else if (ang === 180) { if (d==='R') d='L'; else if (d==='L') d='R'; else if (d==='T') d='B'; else if (d==='B') d='T'; } 
+				else if (ang === 270) { if (d==='R') d='T'; else if (d==='T') d='L'; else if (d==='L') d='B'; else if (d==='B') d='R'; }
+				return d;
+			}
 
             // --- NEW: DYNAMIC JS SHAPE EXECUTION ---
             let jsCode = document.getElementById('cShapeGen') ? document.getElementById('cShapeGen').value.trim() : "";
@@ -742,8 +742,8 @@
             });
 
             // --- CAD READABILITY GLOBALS ---
-            let visualAngle = -previewAngle;
-            let normalizedAngle = (visualAngle % 360 + 360) % 360;
+			let visualAngle = previewAngle;
+			let normalizedAngle = (visualAngle % 360 + 360) % 360;
             
             let textRot = 0;
             if (isExplicitlyOriented) {
@@ -903,11 +903,11 @@
             else if (effectiveDir === 'R') origLx += gap;
 
             // Apply rotation ONLY (Because flips were handled explicitly above)
-            let radLabel = -previewAngle * Math.PI / 180;
-            let ptLabel = {
-                x: origLx * Math.cos(radLabel) - origLy * Math.sin(radLabel),
-                y: origLx * Math.sin(radLabel) + origLy * Math.cos(radLabel)
-            };
+			let radLabel = previewAngle * Math.PI / 180;
+			let ptLabel = {
+				x: origLx * Math.cos(radLabel) - origLy * Math.sin(radLabel),
+				y: origLx * Math.sin(radLabel) + origLy * Math.cos(radLabel)
+			};
 
             // Dynamic CAD Alignment
             let lblAlign = "middle";

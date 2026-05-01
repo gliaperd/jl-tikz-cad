@@ -69,7 +69,10 @@ export function forceExportLatex() {
             if (el.get('isGhost')) return; 
             let cleanDotLine = "  \\connectordot{(" + ((p.x + 20) / AppState.EXPORT_DIV).toFixed(2) + "," + (-(p.y + 20) / AppState.EXPORT_DIV).toFixed(2) + ")}";
             let idStr = ` % id:${el.id}`;
-            let htmlIdSpan = `<span class="sync-id" contenteditable="false">${idStr}</span>`;
+            
+            // THE FIX: The Invisibility Cloak! We force display:none right here.
+            let htmlIdSpan = `<span class="sync-id" contenteditable="false" style="display: none; user-select: none; pointer-events: none;">${idStr}</span>`;
+            
             line = cleanDotLine + idStr + "\n";
             htmlBlock = highlightLatex(escapeHTML(cleanDotLine)) + htmlIdSpan + "\n";
         } else {
@@ -117,7 +120,10 @@ export function forceExportLatex() {
             let currentScale = el.get('customScale') || 1;
             let cleanMacroLine = "  \\" + macro + args.join("");
             let idStr = ` % id:${el.id}`;
-            let htmlIdSpan = `<span class="sync-id" contenteditable="false">${idStr}</span>`;
+            
+            // THE FIX: The Invisibility Cloak! We force display:none right here.
+            let htmlIdSpan = `<span class="sync-id" contenteditable="false" style="display: none; user-select: none; pointer-events: none;">${idStr}</span>`;
+            
             let finalRawLine = cleanMacroLine + idStr + "\n";
             let finalHtmlLine = highlightLatex(escapeHTML(cleanMacroLine)) + htmlIdSpan + "\n";
 
@@ -207,7 +213,19 @@ function parseLatexArgs(argsStr) {
 }
 
 export function syncFromLatex() {
-    const text = document.getElementById('latex-output').innerText;
+    const outputEl = document.getElementById('latex-output');
+    if (!outputEl) return;
+    
+    // THE FIX: Unhide the IDs for exactly 1 millisecond so innerText can read them
+    const syncSpans = outputEl.querySelectorAll('.sync-id');
+    syncSpans.forEach(span => span.style.display = 'inline');
+    
+    // Read the text while they are exposed
+    const text = outputEl.innerText;
+    
+    // Immediately hide them again so the user never sees them
+    syncSpans.forEach(span => span.style.display = 'none');
+
     const lines = text.split('\n');
 
     lines.forEach(line => {
@@ -244,7 +262,6 @@ export function syncFromLatex() {
                 let val = extractedArgs[i];
                 if (typeof val === 'string' && val.includes('vertical')) isVertical = true; 
                 
-                // NEW: Actually move the component if the user typed new coordinates!
                 if (desc.includes('position')) {
                     let coordMatch = val.match(/\(([-+]?[\d\.]+)\s*,\s*([-+]?[\d\.]+)\)/);
                     if (coordMatch) {
@@ -253,7 +270,6 @@ export function syncFromLatex() {
                         
                         let oldVis = getVisualOrigin(cell);
                         let p = cell.position();
-                        // Shift the SVG bounding box by the difference between the old and new visual origin
                         cell.position(p.x + (px - oldVis.x), p.y + (py - oldVis.y));
                     }
                 }
@@ -365,7 +381,14 @@ export function validateLatexSyntax(rawText) {
 }
 
 export function runLinterUI(onSuccessCallback = null) {
-    let rawText = document.getElementById('latex-output').innerText;
+    const outputEl = document.getElementById('latex-output');
+    
+    // THE FIX: Unhide the IDs to read them into innerText so we can strip them for export!
+    const syncSpans = outputEl.querySelectorAll('.sync-id');
+    syncSpans.forEach(span => span.style.display = 'inline');
+    let rawText = outputEl.innerText;
+    syncSpans.forEach(span => span.style.display = 'none');
+    
     let cleanText = rawText.replace(/ % id:[a-zA-Z0-9-]+/g, '');
     const errors = validateLatexSyntax(cleanText);
     
