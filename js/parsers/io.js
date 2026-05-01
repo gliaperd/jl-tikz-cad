@@ -1,301 +1,979 @@
 // js/parsers/io.js
+import { downloadLatex } from './latex.js';
+import { downloadSpiceNetlist } from '../engines/spice.js';
 import { AppState, THEME_COLORS } from '../state.js';
-import { generateSpiceNetlistStr } from '../engines/spice.js';
-import { clearSelection } from '../ui/actions.js';
-import { syncFromLatex, exportLatex } from './latex.js';
+import { exportLatex } from './latex.js';
+import { getVisualOrigin, applyRobustScale, assembleIcon, updateElementLabel, applyTheme, updateGhostDotsVisibility, updateNetNamesVisibility } from '../ui/canvas.js';
+import { extractStaticTexts } from './helpers.js';
+import { saveState, clearSelection, zoomFit } from '../ui/actions.js';
 import { clearSimAnnotations } from '../engines/spice.js';
+import { forceExportLatex } from './latex.js';
 
-// --- UNIVERSAL SAVE FUNCTION (With Native Folder Picker) ---
-export async function saveFileAs(suggestedName, content, mimeType, description, extension) {
+export async function saveFileAs(content, defaultFilename, mimeType, description) {
     if (window.showSaveFilePicker) {
         try {
             const handle = await window.showSaveFilePicker({
-                suggestedName: suggestedName,
-                types: [{ description: description, accept: { [mimeType]: [extension] } }],
+                suggestedName: defaultFilename,
+                types: [{ description: description, accept: { [mimeType]: [defaultFilename.substring(defaultFilename.lastIndexOf('.'))] } }],
             });
             const writable = await handle.createWritable();
             await writable.write(content);
             await writable.close();
-            Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: 'Saved Successfully', showConfirmButton: false, timer: 2000, background: '#f8f9fa' });
         } catch (err) {
-            if (err.name !== 'AbortError') {
-                console.error("Save error:", err);
-                Swal.fire('Error', 'Could not save the file.', 'error');
-            }
+            if (err.name !== 'AbortError') console.error('Save failed:', err);
         }
     } else {
         const blob = new Blob([content], { type: mimeType });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = suggestedName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        Swal.fire({ toast: true, position: 'bottom-end', icon: 'info', title: 'Saved to Downloads', showConfirmButton: false, timer: 2000 });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = defaultFilename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
     }
 }
 
-// --- NATIVE PROJECT SAVE/LOAD ---
-export async function saveProjectToFile() {
-    clearSelection();
-    const projectData = {
-        version: "2.0",
-        state: AppState.graph.toJSON(),
-        zoom: AppState.zoom,
-        theme: AppState.theme
-    };
-    const jsonStr = JSON.stringify(projectData, null, 2);
-    await saveFileAs('circuit.json', jsonStr, 'application/json', 'JL CAD Project File', '.json');
-	localStorage.removeItem('jlcad_autosave');
+// --- PROJECT FILE EXPORT (.json) ---
+export function saveProjectToFile() { 
+    const latexOutput = document.getElementById('latex-output');
+    const currentLatex = latexOutput ? latexOutput.innerText : "";
+    
+    // Save the LaTeX and Simulation Config into the graph metadata
+    AppState.graph.set('customLatex', currentLatex);
+    AppState.graph.set('spiceSimConfig', AppState.spiceSimConfig || window.spiceSimConfig); 
+    
+    // Convert the entire JointJS graph to a JSON string
+    const jsonString = JSON.stringify(AppState.graph.toJSON());
+    
+    // Trigger the actual download (using the saveFileAs function already in io.js)
+    saveFileAs(jsonString, 'circuit.json', 'application/json', 'JointJS Diagram');
+    
+    // Clear the autosave since we just did a hard save!
+    localStorage.removeItem('jlcad_autosave');
 }
 
-export function loadProjectFromFile(file) {
-    if (!file) return;
-    const reader = new FileReader();
+export function importProject(e) { 
+    // Bulletproof: check if 'e' is the Event, or the actual <input> element
+    const inputElement = e.target || e;
+    const f = inputElement.files ? inputElement.files[0] : null; 
     
-    reader.onload = function(e) {
-        const contents = e.target.result;
-        if (file.name.endsWith('.json')) {
-            try {
-                const data = JSON.parse(contents);
-                const graphData = data.state ? data.state : data; 
-                AppState.graph.clear();
-                AppState.graph.fromJSON(graphData);
+    if(!f) return; 
+    
+    const r = new FileReader(); 
+    r.onload = ev => {
+        const fileContent = ev.target.result.trim();
+        const isJSON = fileContent.startsWith('{'); 
+
+        try {
+            // =========================================================
+            // BRANCH C: RAW LATEX CODE DETECTED
+            // =========================================================
+            if (!isJSON && fileContent.includes('\\begin{tikzpictureJL}')) {
+                executeLatexConversion(fileContent);
+                return; 
+            }
+
+            // =========================================================
+            // JSON PARSING
+            // =========================================================
+            let parsedData = JSON.parse(fileContent);
+
+            // =========================================================
+            // BRANCH A: VIRTUOSO SCHEMATIC DETECTED
+            // =========================================================
+            if (parsedData.instances && parsedData.wires) {
+                const uniqueCells = new Set();
                 
-                AppState.graph.getElements().forEach(el => {
-                    if (el.get('latexMacro') !== 'connectordot') el.set('customScale', el.get('customScale') || 1); 
+                // Fallback check in case VIRTUOSO_MAP isn't strictly imported
+                let vMap = window.VIRTUOSO_MAP || (typeof VIRTUOSO_MAP !== 'undefined' ? VIRTUOSO_MAP : {});
+                
+                parsedData.instances.forEach(inst => { 
+                    if (vMap[inst.cell] || true) uniqueCells.add(inst.cell); 
                 });
 
-				clearSimAnnotations();
-                exportLatex();
-                Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: 'Project Loaded', showConfirmButton: false, timer: 2000, background: '#f8f9fa' });
-            } catch (err) {
-                Swal.fire('Error', 'Failed to parse JSON project file.', 'error');
-            }
-        } else if (file.name.endsWith('.tex') || file.name.endsWith('.txt')) {
-            const outputBox = document.getElementById('latex-output');
-            if (outputBox) {
-                let cleanTex = contents;
-                let match = contents.match(/\\begin\{tikzpictureJL\}([\s\S]*?)\\end\{tikzpictureJL\}/);
-                if (match) cleanTex = "\\begin{tikzpictureJL}" + match[1] + "\\end{tikzpictureJL}";
+                // Build a clean, styled HTML string for the checkboxes
+                let checkboxesHtml = '<div style="font-size: 13px; color: var(--text-main); margin-bottom: 12px;">Select which components should display their parameter values on the canvas:</div>';
                 
-                outputBox.innerText = cleanTex;
-                AppState.graph.clear();
-                syncFromLatex();
+                checkboxesHtml += '<div style="display:flex; flex-direction:column; gap:10px; text-align:left; background:var(--bg-app); border: 1px solid var(--border-light); padding:15px; border-radius:6px; max-height:250px; overflow-y:auto;">';
+                
+                // Fixed I/O Pins option
+                checkboxesHtml += `<label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:not-allowed; font-weight:600; color:var(--text-muted);">
+                                       <input type="checkbox" id="v-opt-pins" checked disabled style="margin:0; width:14px; height:14px;"> 
+                                       I/O Pins (Always Show Names)
+                                   </label>`;
+                
+                checkboxesHtml += `<hr style="margin:2px 0; border:none; border-top:1px solid var(--border-main);">`;
+                
+                // Dynamic Component Options
+                uniqueCells.forEach(cell => {
+                    if (!['ipin', 'opin', 'iopin'].includes(cell)) {
+                        checkboxesHtml += `<label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-main);">
+                                               <input type="checkbox" class="v-val-toggle" value="${cell}" checked style="margin:0; width:14px; height:14px;"> 
+                                               Display values for <b style="font-weight:600;">${cell}</b>
+                                           </label>`;
+                    }
+                });
+                checkboxesHtml += '</div>';
+
+                Swal.fire({
+                    title: '<div style="font-size: 18px;">Virtuoso Schematic Detected!</div>',
+                    html: checkboxesHtml, // <--- Now just passing the styled variable
+                    showCancelButton: true, 
+                    confirmButtonText: 'Import to Canvas', 
+                    confirmButtonColor: 'var(--primary)',
+                    background: 'var(--bg-panel)', // Ensures the popup body matches your theme
+                    color: 'var(--text-main)'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const allowedCells = new Set(['ipin', 'opin', 'iopin']);
+                        document.querySelectorAll('.v-val-toggle').forEach(cb => { if (cb.checked) allowedCells.add(cb.value); });
+                        
+                        // Fire the Virtuoso parser
+                        if (typeof executeVirtuosoConversion === 'function') {
+                            executeVirtuosoConversion(parsedData, allowedCells);
+                        } else if (window.executeVirtuosoConversion) {
+                            window.executeVirtuosoConversion(parsedData, allowedCells);
+                        } else {
+                            Swal.fire('Error', 'Virtuoso conversion engine is missing!', 'error');
+                        }
+                    }
+                });
+                return;
             }
+
+            // =========================================================
+            // BRANCH B: NATIVE JOINTJS CIRCUIT DETECTED
+            // =========================================================
+            if (!parsedData || !Array.isArray(parsedData.cells)) throw new Error("Invalid project file format.");
+
+            // Phantom Dot Cleanup
+            parsedData.cells = parsedData.cells.filter(cell => {
+                if (cell.type === 'standard.Link' && cell.source && cell.target) {
+                    if (cell.source.x === cell.target.x && cell.source.y === cell.target.y && (!cell.vertices || cell.vertices.length === 0)) return false; 
+                }
+                return true; 
+            });
+
+            // Use the Modular AppState to load the graph!
+            AppState.graph.fromJSON(parsedData); 
+            if (window.syncVisibilityFromUI) window.syncVisibilityFromUI();
+            
+            // Restore the simulation settings
+            let loadedConfig = AppState.graph.get('spiceSimConfig');
+            if (loadedConfig) {
+                window.spiceSimConfig = { ...window.spiceSimConfig, ...loadedConfig };
+                AppState.spiceSimConfig = window.spiceSimConfig; // Keep modules in sync
+            }
+            
+            // Route to the new unified finalizer!
+            if (window.finalizeCanvasAndMath) {
+                setTimeout(() => window.finalizeCanvasAndMath('Project loaded successfully!'), 50);
+            }
+			
+			// Force the LaTeX window to populate instantly!
+			setTimeout(() => {
+				forceExportLatex();
+			}, 50);
+
+        } catch (err) {
+            console.error("Import Error:", err);
+            Swal.fire({ icon: 'error', title: 'Import Failed', text: err.message || "Failed to load the circuit file." });
         }
-    };
-    reader.readAsText(file);
+    }; 
+    r.readAsText(f); 
+    
+    // Clear the input so the same file can be loaded twice
+    if (inputElement) inputElement.value = '';
 }
 
-// --- CENTRALIZED EXPORT DIALOG ---
+// THE MISSING LINK: Smart LaTeX Argument Parser
+function parseLatexArgs(argsStr) {
+    let args = [], currentArg = '', depth = 0, inArg = false;
+    for (let i = 0; i < argsStr.length; i++) {
+        let char = argsStr[i];
+        if (char === '{' || char === '[') {
+            if (depth === 0) { inArg = true; currentArg = ''; } 
+            else { currentArg += char; }
+            depth++;
+        } else if (char === '}' || char === ']') {
+            depth--;
+            if (depth === 0) { args.push(currentArg); inArg = false; } 
+            else { currentArg += char; }
+        } else {
+            if (inArg) currentArg += char;
+        }
+    }
+    return args;
+}
+
+function executeLatexConversion(latexStr) {
+    let jointjs_cells = [];
+    const GRID_SIZE = 40;
+    const ORIGIN_X = 2000;
+    const ORIGIN_Y = 2000;
+    const PPU_MULT = AppState.PPU_MULT;
+    
+    let themeSelector = document.getElementById('theme-selector');
+    const theme = THEME_COLORS[themeSelector ? themeSelector.value : 'standard'] || THEME_COLORS.standard;
+
+    const lines = latexStr.split('\n')
+        .map(l => l.trim())
+        .filter(l => l.length > 0 && !l.startsWith('%') && !l.startsWith('\\begin') && !l.startsWith('\\end') && !l.startsWith('\\settikz'));
+
+    let wire_counter = 0;
+    let comp_counter = 0;
+
+    lines.forEach(line => {
+        if (line.startsWith('\\draw')) {
+            const pointsRegex = /\(([-0-9.]+),\s*([-0-9.]+)\)/g;
+            let match;
+            const points = [];
+            
+            while ((match = pointsRegex.exec(line)) !== null) {
+                points.push({
+                    x: ORIGIN_X + (parseFloat(match[1]) * GRID_SIZE),
+                    y: ORIGIN_Y - (parseFloat(match[2]) * GRID_SIZE)
+                });
+            }
+
+            for (let i = 0; i < points.length - 1; i++) {
+                jointjs_cells.push({
+                    type: "standard.Link",
+                    id: `wire-lx-${wire_counter++}`,
+                    source: { x: points[i].x, y: points[i].y },
+                    target: { x: points[i+1].x, y: points[i+1].y },
+                    attrs: {
+                        line: { stroke: "var(--text-main)", strokeWidth: 1.8, targetMarker: null, sourceMarker: null, "vector-effect": "non-scaling-stroke" }
+                    }
+                });
+            }
+        } 
+        else if (line.startsWith('\\')) {
+            const macroRegex = /^\\([a-zA-Z0-9_]+)\{\(([-0-9.]+),\s*([-0-9.]+)\)\}(.*)/;
+            const match = line.match(macroRegex);
+            
+            if (match) {
+                const macroName = match[1];
+                const baseX = ORIGIN_X + (parseFloat(match[2]) * GRID_SIZE);
+                const baseY = ORIGIN_Y - (parseFloat(match[3]) * GRID_SIZE);
+                const restOfLine = match[4];
+
+                let extractedArgs = parseLatexArgs(restOfLine);
+                const parsedArgs = ["", ...extractedArgs];
+
+                const dbData = JL_DATABASE[macroName];
+                
+                if (macroName === 'connectordot') {
+                    jointjs_cells.push({
+                        type: "jl.ConnectorDot",
+                        id: `dot-lx-${comp_counter++}`,
+                        position: { x: baseX - 20, y: baseY - 20 },
+                        latexMacro: "connectordot",
+                        offsetX: -20, offsetY: -20
+                    });
+                    return; 
+                }
+
+                if (!dbData) {
+                    console.warn(`Unrecognized LaTeX macro: ${macroName}`);
+                    return;
+                }
+
+                let angle = 0, flipH = false, flipV = false;
+                let isVertical = false;
+                let explicitOrientAngle = null; // <--- NEW: Track explicit orientation
+
+                for (let i = 0; i < (dbData.argsCount || 7); i++) {
+                    let desc = (dbData.argNames && dbData.argNames[i] ? dbData.argNames[i].name.toLowerCase() : '');
+                    let val = parsedArgs[i+1] || "";
+
+                    // Track legacy raw string
+                    if (typeof val === 'string' && val.includes('vertical')) isVertical = true;
+
+                    // NEW: Strict capture of horizontal/vertical dropdown args
+                    if (desc.includes('horizontal') && desc.includes('vertical')) {
+                        let orientVal = val.toLowerCase().trim();
+                        if (orientVal === 'vertical') explicitOrientAngle = 270;
+                        else if (orientVal === 'horizontal') explicitOrientAngle = 0;
+                    }
+
+                    if (desc.includes('rotation') && desc.includes('flip')) {
+                        let parts = val.split(',');
+                        let tikzRot = parseFloat(parts[0]) || 0;
+                        angle = (360 - tikzRot) % 360;
+                        if (parts.length > 1) {
+                            let fStr = parts[1].trim();
+                            if (fStr === 'hv' || fStr === 'vh') { flipH = true; flipV = true; }
+                            else if (fStr === 'h') flipH = true;
+                            else if (fStr === 'v') flipV = true;
+                        }
+                    } 
+                    else if (desc.includes('rotation') || desc.includes('angle')) {
+                        let tikzRot = parseFloat(val) || 0;
+                        angle = (360 - tikzRot) % 360;
+                    }
+                    else if (desc.includes('flip')) {
+                        let fStr = val.trim();
+                        if (fStr === 'hv' || fStr === 'vh') { flipH = true; flipV = true; }
+                        else if (fStr === 'h') flipH = true;
+                        else if (fStr === 'v') flipV = true;
+                    }
+                }
+
+                // Apply explicit orientation (overrides standard rotation)
+                if (explicitOrientAngle !== null) {
+                    angle = explicitOrientAngle;
+                } else if (isVertical && angle === 0) {
+                    angle = 270; 
+                }
+
+                if (isVertical && angle === 0) angle = 270; 
+
+                let display_text = parsedArgs[1] || "";
+                
+                // --- NEW: Process Dynamic Shapes exactly like Drop ---
+                let generatedDynamic = null;
+                let rawIconPath = dbData.icon || dbData.iconBase || '';
+                
+                if (dbData.shapeGenerator) {
+                    try {
+                        const buildShape = new Function('args', dbData.shapeGenerator);
+                        generatedDynamic = buildShape(parsedArgs);
+                        rawIconPath = generatedDynamic.pathStr;
+                        if (generatedDynamic.pins) {
+                            generatedDynamic.pins.forEach(p => { p.x *= PPU_MULT; p.y *= PPU_MULT; });
+                        }
+                    } catch(e) { console.error("Shape Gen Error on Import:", e); }
+                }
+
+                let extractedInit = extractStaticTexts(rawIconPath);
+                let iconPath = extractedInit.cleanPath;
+
+                let bbox = { x: 0, y: 0, width: 0, height: 0 };
+                if (iconPath) {
+                    const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                    const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    tempPath.setAttribute('d', iconPath);
+                    tempSvg.appendChild(tempPath);
+                    Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
+                    document.body.appendChild(tempSvg);
+                    try { bbox = tempPath.getBBox(); } catch(e){}
+                    document.body.removeChild(tempSvg);
+                }
+
+                const sourcePins = (generatedDynamic && generatedDynamic.pins) ? generatedDynamic.pins : (dbData.pins || []);
+                const uniquePins = [];
+                const seenIds = new Set();
+                sourcePins.forEach(p => {
+                    let isDynamicText = p.id && p.id.includes('$'); 
+                    if (isDynamicText || !seenIds.has(p.id)) { 
+                        if (!isDynamicText) seenIds.add(p.id); 
+                        uniquePins.push({ ...p });
+                    }
+                });
+
+                const xs = uniquePins.map(p => p.x), ys = uniquePins.map(p => p.y);
+                const minPinX = xs.length ? Math.min(...xs) : 0; const maxPinX = xs.length ? Math.max(...xs) : 0;
+                const minPinY = ys.length ? Math.min(...ys) : 0; const maxPinY = ys.length ? Math.max(...ys) : 0;
+
+                let hasBounds = bbox.width > 0 || bbox.height > 0;
+                const absMinX = hasBounds ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
+                const absMaxX = hasBounds ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
+                const absMinY = hasBounds ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
+                const absMaxY = hasBounds ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
+                    
+                const pad = 10; 
+                const boxOriginX = Math.floor((absMinX - pad) / 40) * 40;
+                const boxOriginY = Math.floor((absMinY - pad) / 40) * 40;
+                const boxMaxX = Math.ceil((absMaxX + pad) / 40) * 40;
+                const boxMaxY = Math.ceil((absMaxY + pad) / 40) * 40;
+
+                const boxWidth = Math.max(boxMaxX - boxOriginX, 40);
+                const boxHeight = Math.max(boxMaxY - boxOriginY, 40);
+                const shiftX = -boxOriginX;
+                const shiftY = -boxOriginY;
+
+                const realPins = [];
+                const dynamicLabels = [];
+                uniquePins.forEach(p => {
+                    if ((p.label || p.id).includes('$')) dynamicLabels.push(p);
+                    else realPins.push(p);
+                });
+
+                const portsJson = {
+                    groups: { 'absolute': { position: { name: 'absolute' } } },
+                    items: realPins.map(p => ({
+                        id: p.id, group: 'absolute',
+                        args: { x: p.x + shiftX, y: p.y + shiftY },
+                        condition: p.condition,
+                        markup: [ { tagName: 'rect', selector: 'portBody' }, { tagName: 'title', selector: 'portTitle' }, { tagName: 'text', selector: 'portLabel' } ],
+                        attrs: { 
+                            portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: theme.portBody, display: 'block' },
+                            portTitle: { text: p.label || p.id },
+                            portLabel: { text: p.label || '', display: 'block', fontSize: 9 * PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'var(--font-code)', x: 6 * PPU_MULT, y: -6 * PPU_MULT, textAnchor: 'start' }
+                        }
+                    }))
+                };
+
+                let basePorts = {};
+                portsJson.items.forEach(p => { basePorts[p.id] = { x: p.args.x - shiftX, y: p.args.y - shiftY }; });
+
+                jointjs_cells.push({
+                    type: "jl.Component",
+                    id: `cell-lx-${comp_counter++}`,
+                    position: { x: baseX - shiftX, y: baseY - shiftY },
+                    size: { width: boxWidth, height: boxHeight },
+                    ports: portsJson,
+                    latexMacro: macroName,
+                    customArgs: parsedArgs,
+                    angle: 0,             
+                    flipH: false,
+                    flipV: false,
+                    intendedAngle: angle, 
+                    intendedFlipH: flipH,
+                    intendedFlipV: flipV,
+                    displayedText: display_text,
+                    customScale: 1.0,
+                    offsetX: boxOriginX, offsetY: boxOriginY, shiftX: shiftX, shiftY: shiftY,
+                    baseWidth: boxWidth, baseHeight: boxHeight, baseOffsetX: boxOriginX, baseOffsetY: boxOriginY, baseShiftX: shiftX, baseShiftY: shiftY,
+                    basePorts: basePorts, baseVisualTop: absMinY - boxOriginY, baseVisualBottom: absMaxY - boxOriginY, baseVisualLeft: absMinX - boxOriginX, baseVisualRight: absMaxX - boxOriginX,
+                    dynamicLabels: dynamicLabels
+                });
+            }
+        }
+    });
+
+    AppState.graph.fromJSON({ cells: jointjs_cells });
+    setTimeout(() => { finalizeCanvasAndMath('LaTeX code imported successfully!'); }, 50);
+}
+
+// Virtuoso map and execution remains the same, assuming it was working correctly
+const VIRTUOSO_SCALE_FACTOR = 640;
+const VIRTUOSO_MAP = {
+    "nch_lvt": { macro: "mostransistorcds", args: ["", "$NAME$", "n", "dot", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:120, y:0} },
+    "pch_lvt": { macro: "mostransistorcds", args: ["", "$NAME$", "p", "dot", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:120, y:0} },
+    "gnd":     { macro: "groundterminal", args: ["", "$NAME$", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} },
+    "vdd":     { macro: "supplyterminal", args: ["", "$NAME$", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} },
+    "res":     { macro: "resistorcds", args: ["", "$NAME$", "none", "fixed", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-120, y:120} },
+    "cap":     { macro: "capacitorcds", args: ["", "$NAME$", "none", "none", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-80, y:120} },
+    "ind":     { macro: "inductorcds", args: ["", "$NAME$", "none", "fixed", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:-120, y:120} },
+    "isource": { macro: "currentsource", args: ["", "$NAME$", "none", "standard", "{ROT}", "", ""], intrinsicAngle: 90, scale: 1.0, offset: {x:0, y:120} },
+    "ipin":    { macro: "ioport", args: ["", "$NAME$", "input", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:-40, y:0} },
+    "opin":    { macro: "ioport", args: ["", "$NAME$", "output", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:40, y:0} },
+    "iopin":   { macro: "ioport", args: ["", "$NAME$", "input", "{ROT}", "", ""], intrinsicAngle: 0, scale: 1.0, offset: {x:0, y:0} }
+};
+
+function parseVirtuosoOrient(orientStr, intrinsicAngle) {
+    let angle = 0, flipH = false, flipV = false;
+    if (orientStr === "R90") angle = 90;
+    else if (orientStr === "R180") angle = 180;
+    else if (orientStr === "R270") angle = 270;
+    else if (orientStr === "MX") flipV = true;
+    else if (orientStr === "MY") flipH = true;
+    else if (orientStr === "MXR90") { flipV = true; angle = 90; }
+    else if (orientStr === "MYR90") { flipH = true; angle = 90; }
+    
+    angle = (angle + intrinsicAngle) % 360;
+    
+    let flipStr = "none";
+    if (flipH && flipV) flipStr = "hv";
+    else if (flipH) flipStr = "h";
+    else if (flipV) flipStr = "v";
+    
+    return { angle, flipH, flipV, rotFlipArg: `${angle},${flipStr}` };
+}
+
+function convertVirtuosoCoords(x, y) {
+    return { x: Math.round(x * VIRTUOSO_SCALE_FACTOR) + 2000, y: Math.round(-y * VIRTUOSO_SCALE_FACTOR) + 2000 };
+}
+
+function executeVirtuosoConversion(rawData, allowedValueCells) {
+			let jointjs_cells = [];
+			let bulk_pins = new Set();
+			const PPU_MULT = 4;
+			const theme = THEME_COLORS[document.getElementById('theme-selector').value] || THEME_COLORS.standard;
+
+			// 1. PROCESS INSTANCES
+			rawData.instances.forEach(inst => {
+				const cell_type = inst.cell;
+				if (!VIRTUOSO_MAP[cell_type]) return;
+
+				const mapping = VIRTUOSO_MAP[cell_type];
+				const dbData = JL_DATABASE[mapping.macro];
+				if (!dbData) return;
+
+				const basePos = convertVirtuosoCoords(inst.x, inst.y);
+				const orient = parseVirtuosoOrient(inst.orient, mapping.intrinsicAngle);
+				
+				const final_x = basePos.x + mapping.offset.x;
+				const final_y = basePos.y + mapping.offset.y;
+
+				// Display Value Logic
+				let val = (inst.value || "").trim();
+				let display_text = inst.name;
+
+				if (val && allowedValueCells.has(cell_type)) {
+					if (['ipin', 'opin', 'iopin'].includes(cell_type)) display_text = val; 
+					else if (['nch_lvt', 'pch_lvt'].includes(cell_type)) display_text = `${inst.name} (${val})`;
+					else display_text = `${inst.name}=${val}`;
+				}
+
+				const custom_args = mapping.args.map(v => v.replace("{ROT}", orient.rotFlipArg).replace("$NAME$", display_text));
+
+				// --- NATIVE CAD GEOMETRY & PIN ENGINE ---
+				let rawIconPath = dbData.icon || dbData.iconBase || '';
+				let extractedInit = extractStaticTexts(rawIconPath);
+				let iconPath = extractedInit.cleanPath;
+
+				// Measure true Bounding Box
+				let bbox = { x: 0, y: 0, width: 0, height: 0 };
+				if (iconPath) {
+					const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+					const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+					tempPath.setAttribute('d', iconPath);
+					tempSvg.appendChild(tempPath);
+					Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
+					document.body.appendChild(tempSvg);
+					try { bbox = tempPath.getBBox(); } catch(e){}
+					document.body.removeChild(tempSvg);
+				}
+
+				// Separate dynamic labels from physical pins
+				const sourcePins = dbData.pins || [];
+				const uniquePins = [];
+				const seenIds = new Set();
+				sourcePins.forEach(p => {
+					let isDynamicText = p.id && p.id.includes('$'); 
+					if (isDynamicText || !seenIds.has(p.id)) { 
+						if (!isDynamicText) seenIds.add(p.id); 
+						uniquePins.push({ ...p });
+					}
+				});
+
+				// Calculate Box padding and mathematical offsets (shiftX / shiftY)
+				const xs = uniquePins.map(p => p.x), ys = uniquePins.map(p => p.y);
+				const minPinX = xs.length ? Math.min(...xs) : 0; const maxPinX = xs.length ? Math.max(...xs) : 0;
+				const minPinY = ys.length ? Math.min(...ys) : 0; const maxPinY = ys.length ? Math.max(...ys) : 0;
+
+				let hasBounds = bbox.width > 0 || bbox.height > 0;
+				const absMinX = hasBounds ? Math.min(minPinX, bbox.x * PPU_MULT) : minPinX;
+				const absMaxX = hasBounds ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU_MULT) : maxPinX;
+				const absMinY = hasBounds ? Math.min(minPinY, bbox.y * PPU_MULT) : minPinY;
+				const absMaxY = hasBounds ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU_MULT) : maxPinY;
+					
+				const pad = 10; 
+				const boxOriginX = Math.floor((absMinX - pad) / 40) * 40;
+				const boxOriginY = Math.floor((absMinY - pad) / 40) * 40;
+				const boxMaxX = Math.ceil((absMaxX + pad) / 40) * 40;
+				const boxMaxY = Math.ceil((absMaxY + pad) / 40) * 40;
+
+				const boxWidth = Math.max(boxMaxX - boxOriginX, 40);
+				const boxHeight = Math.max(boxMaxY - boxOriginY, 40);
+
+				const shiftX = -boxOriginX;
+				const shiftY = -boxOriginY;
+
+				const realPins = [];
+				const dynamicLabels = [];
+				uniquePins.forEach(p => {
+					if ((p.label || p.id).includes('$')) dynamicLabels.push(p);
+					else realPins.push(p);
+				});
+
+				// Build the JointJS Ports Object!
+				const portsJson = {
+					groups: { 'absolute': { position: { name: 'absolute' } } },
+					items: realPins.map(p => ({
+						id: p.id, group: 'absolute',
+						args: { x: p.x + shiftX, y: p.y + shiftY },
+						condition: p.condition,
+						markup: [
+							{ tagName: 'rect', selector: 'portBody' },
+							{ tagName: 'title', selector: 'portTitle' }, 
+							{ tagName: 'text', selector: 'portLabel' }   
+						],
+						attrs: { 
+							portBody: { width: 8 * PPU_MULT, height: 8 * PPU_MULT, x: -4 * PPU_MULT, y: -4 * PPU_MULT, fill: theme.portBody, display: 'block' },
+							portTitle: { text: p.label || p.id },
+							portLabel: { text: p.label || '', display: 'block', fontSize: 9 * PPU_MULT, fill: theme.portLabel, fontWeight: 'bold', fontFamily: 'monospace', x: 6 * PPU_MULT, y: -6 * PPU_MULT, textAnchor: 'start' }
+						}
+					}))
+				};
+
+				let basePorts = {};
+				portsJson.items.forEach(p => { basePorts[p.id] = { x: p.args.x - shiftX, y: p.args.y - shiftY }; });
+				// --- END NATIVE GEOMETRY ENGINE ---
+
+				// Inject everything into the component object
+                jointjs_cells.push({
+                    type: "jl.Component",
+                    id: `cell-${inst.name}`,
+                    position: { x: final_x - shiftX, y: final_y - shiftY }, // Offset so the 0,0 anchors properly
+                    size: { width: boxWidth, height: boxHeight },
+                    ports: portsJson,
+                    latexMacro: mapping.macro,
+                    customArgs: custom_args,
+                    angle: 0,                    // <--- FORCE 0 FOR PERFECT ANCHOR
+                    flipH: false,
+                    flipV: false,
+                    intendedAngle: orient.angle, // <--- SAVE INTENDED GEOMETRY
+                    intendedFlipH: orient.flipH,
+                    intendedFlipV: orient.flipV,
+                    displayedText: display_text,
+					customScale: mapping.scale,
+					offsetX: boxOriginX,
+					offsetY: boxOriginY,
+					shiftX: shiftX,
+					shiftY: shiftY,
+					baseWidth: boxWidth,
+					baseHeight: boxHeight,
+					baseOffsetX: boxOriginX,
+					baseOffsetY: boxOriginY,
+					baseShiftX: shiftX,
+					baseShiftY: shiftY,
+					basePorts: basePorts,
+					baseVisualTop: absMinY - boxOriginY,
+					baseVisualBottom: absMaxY - boxOriginY,
+					baseVisualLeft: absMinX - boxOriginX,
+					baseVisualRight: absMaxX - boxOriginX,
+					dynamicLabels: dynamicLabels
+				});
+
+				// Bulk Pin Logic
+				if (['nch_lvt', 'pch_lvt'].includes(cell_type)) {
+					let bx = 0.25, by = 0.0;
+					if (inst.orient === "R90") { bx = 0.0; by = 0.25; }
+					else if (inst.orient === "R180") { bx = -0.25; by = 0.0; }
+					else if (inst.orient === "R270") { bx = 0.0; by = -0.25; }
+					else if (inst.orient === "MX") { bx = 0.25; by = 0.0; }
+					else if (inst.orient === "MY") { bx = -0.25; by = 0.0; }
+					
+					let bPos = convertVirtuosoCoords(inst.x + bx, inst.y + by);
+					bulk_pins.add(`${bPos.x},${bPos.y}`);
+				}
+			});
+
+			// 2. PRUNE BULK WIRES
+			let adj = {};
+			let wire_segments = [];
+			
+			rawData.wires.forEach((w, i) => {
+				if (w.length !== 2) return;
+				let p1 = convertVirtuosoCoords(w[0][0], w[0][1]);
+				let p2 = convertVirtuosoCoords(w[1][0], w[1][1]);
+				let p1Str = `${p1.x},${p1.y}`;
+				let p2Str = `${p2.x},${p2.y}`;
+				
+				wire_segments.push({p1, p2, p1Str, p2Str});
+				if (!adj[p1Str]) adj[p1Str] = [];
+				if (!adj[p2Str]) adj[p2Str] = [];
+				adj[p1Str].push(i);
+				adj[p2Str].push(i);
+			});
+
+			let to_remove = new Set();
+			bulk_pins.forEach(bpStr => {
+				if (!adj[bpStr]) return;
+				let queue = [bpStr];
+				let visited = new Set([bpStr]);
+				
+				while (queue.length > 0) {
+					let curr = queue.shift();
+					let active_segs = adj[curr].filter(i => !to_remove.has(i));
+					
+					active_segs.forEach(seg_idx => {
+						to_remove.add(seg_idx);
+						let seg = wire_segments[seg_idx];
+						let other = (seg.p1Str === curr) ? seg.p2Str : seg.p1Str;
+						
+						if (adj[other].length < 3 && !visited.has(other)) {
+							visited.add(other);
+							queue.push(other);
+						}
+					});
+				}
+			});
+
+			// 3. GENERATE WIRES AND DOTS
+			let point_counts = {};
+			let wire_counter = 0;
+
+			wire_segments.forEach((seg, i) => {
+				if (to_remove.has(i)) return;
+				
+				point_counts[seg.p1Str] = (point_counts[seg.p1Str] || 0) + 1;
+				point_counts[seg.p2Str] = (point_counts[seg.p2Str] || 0) + 1;
+
+				jointjs_cells.push({
+					type: "standard.Link",
+					id: `wire-${wire_counter++}`,
+					source: { x: seg.p1.x, y: seg.p1.y },
+					target: { x: seg.p2.x, y: seg.p2.y },
+					attrs: {
+						line: { stroke: "#333333", strokeWidth: 1.8, targetMarker: null, sourceMarker: null, "vector-effect": "non-scaling-stroke" }
+					}
+				});
+			});
+
+			for (let ptStr in point_counts) {
+				if (point_counts[ptStr] >= 3) {
+					let [x, y] = ptStr.split(',').map(Number);
+					jointjs_cells.push({
+						type: "jl.ConnectorDot",
+						id: `dot-${x}-${y}`,
+						position: { x: x - 20, y: y - 20 },
+						latexMacro: "connectordot",
+						offsetX: -20, offsetY: -20
+					});
+				}
+			}
+
+			// 4. LOAD INTO CANVAS
+			AppState.graph.fromJSON({ cells: jointjs_cells });
+			
+			// 5. ASSEMBLE ICONS AND ROTATE
+            AppState.graph.getElements().forEach(el => {
+                if (el.get('type') === 'jl.Component') {
+                    // 1. Draw the actual SVG shapes based on the database
+                    assembleIcon(el, el.get('customArgs') || []);
+                    
+                    // 2. Apply the intended Virtuoso rotation safely
+                    let intendedAngle = el.get('intendedAngle');
+                    if (intendedAngle) {
+                        el.set('angle', intendedAngle);
+                    }
+                    
+                    // 3. Apply intended flips
+                    if (el.get('intendedFlipH')) el.set('flipH', true);
+                    if (el.get('intendedFlipV')) el.set('flipV', true);
+
+                    // 4. THE FIX: Force the label to render on the canvas!
+                    let labelText = el.get('displayedText');
+                    if (labelText) {
+                        updateElementLabel(el, labelText);
+                    }
+                }
+            });
+			
+			// Trigger the UI updates and math engine
+			if (window.syncVisibilityFromUI) window.syncVisibilityFromUI();
+			
+			if (window.finalizeCanvasAndMath) {
+				setTimeout(() => window.finalizeCanvasAndMath('Virtuoso Schematic imported!'), 50);
+			}
+	}
+
+// Master UI Cleanup Function for all import paths
+export function finalizeCanvasAndMath(successMessage) {
+    let themeSelector = document.getElementById('theme-selector');
+    if (themeSelector) applyTheme(themeSelector.value);
+
+    AppState.graph.getElements().forEach(el => {
+        if (el.get('latexMacro') && el.get('latexMacro') !== 'connectordot') {
+            let intendedAngle = el.get('intendedAngle');
+            if (intendedAngle !== undefined) {
+                let oldPin = getVisualOrigin(el);
+                el.rotate(intendedAngle, true);
+                el.set('flipH', el.get('intendedFlipH'));
+                el.set('flipV', el.get('intendedFlipV'));
+                applyRobustScale(el, el.get('customScale') || 1);
+                let newPin = getVisualOrigin(el);
+                let p = el.position();
+                el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
+                el.unset('intendedAngle'); el.unset('intendedFlipH'); el.unset('intendedFlipV');
+            } else {
+                assembleIcon(el, el.get('customArgs') || []);
+                updateElementLabel(el, el.get('displayedText'));
+            }
+        }
+    });
+
+    AppState.graph.getElements().forEach(el => {
+        let view = AppState.paper.findViewByModel(el);
+        if (view) view.render();
+    });
+
+    AppState.graph.getLinks().forEach(link => {
+        link.toBack();
+        link.attr('line/strokeWidth', 1.8);
+        link.attr('line/vector-effect', 'non-scaling-stroke');
+        link.attr('line/targetMarker', null);
+        link.attr('line/sourceMarker', null);
+    });
+
+    zoomFit(); 
+    clearSelection();
+    exportLatex(); 
+    saveState(); 
+
+    // Update floating overlays immediately
+    if (typeof updateGhostDotsVisibility === 'function') updateGhostDotsVisibility();
+    if (typeof updateNetNamesVisibility === 'function') updateNetNamesVisibility();
+
+    if (successMessage) Swal.fire({ title: 'Success', text: successMessage, icon: 'success', timer: 2000, showConfirmButton: false });
+
+    const renderMath = () => {
+        if (typeof renderMathInElement !== 'undefined') {
+            renderMathInElement(document.body, {
+                delimiters: [
+                    {left: '$$', right: '$$', display: true},
+                    {left: '$', right: '$', display: false}, 
+                    {left: '\\(', right: '\\)', display: false},
+                    {left: '\\[', right: '\\]', display: true}
+                ],
+                throwOnError: false 
+            });
+        }
+    };
+
+    requestAnimationFrame(() => {
+        renderMath();
+        setTimeout(renderMath, 100);
+        setTimeout(renderMath, 500);
+    });
+}
+
+// --- EXPORT DIALOG (USING HTML TEMPLATE) ---
 export function openExportDialog() {
-    // 1. Grab the HTML cleanly from the DOM template
-    const templateHtml = document.getElementById('tpl-export-dialog').innerHTML;
+    // 1. Fetch the template from index.html
+    const template = document.getElementById('tpl-export-dialog');
+    
+    if (!template) {
+        Swal.fire('Error', 'Export template (#tpl-export-dialog) not found in index.html!', 'error');
+        return;
+    }
 
     Swal.fire({
         title: '<span style="font-size: 20px;">Export</span>',
-        html: templateHtml, // 2. Inject it
+        html: template.innerHTML, // Grab the HTML directly from your template!
         showCancelButton: true,
         confirmButtonText: 'Export',
         cancelButtonText: 'Cancel',
+        confirmButtonColor: 'var(--primary)',
         didOpen: () => {
-			lucide.createIcons();
-            // Dynamic display of SVG options based on dropdown
             const formatSelect = document.getElementById('export-format');
             const svgOptions = document.getElementById('svg-options-container');
             
-            formatSelect.addEventListener('change', (e) => {
-                svgOptions.style.display = e.target.value === 'svg' ? 'block' : 'none';
-            });
+            if (formatSelect && svgOptions) {
+                formatSelect.addEventListener('change', (e) => {
+                    if (e.target.value === 'svg') svgOptions.style.display = 'block';
+                    else svgOptions.style.display = 'none';
+                });
+            }
 
-            // Sync Slider with Live Preview
             const slider = document.getElementById('exp-weight-scale');
             const valDisplay = document.getElementById('weight-val');
             const previewStrokes = document.querySelectorAll('.preview-stroke');
 
-            slider.addEventListener('input', (e) => {
-                const scale = parseFloat(e.target.value);
-                valDisplay.innerText = Math.round(scale * 100) + '%';
-                previewStrokes.forEach(path => {
-                    const baseW = parseFloat(path.getAttribute('data-base-width'));
-                    path.setAttribute('stroke-width', baseW * scale);
+            if (slider && valDisplay) {
+                slider.addEventListener('input', (e) => {
+                    const scale = parseFloat(e.target.value);
+                    valDisplay.innerText = Math.round(scale * 100) + '%';
+                    
+                    previewStrokes.forEach(path => {
+                        const baseW = parseFloat(path.getAttribute('data-base-width'));
+                        if (baseW) path.setAttribute('stroke-width', baseW * scale);
+                    });
                 });
-            });
+            }
         },
         preConfirm: () => {
+            // Safely fetch all values from the DOM
             return {
-                format: document.getElementById('export-format').value,
-                grid: document.getElementById('exp-grid').checked,
-                ports: document.getElementById('exp-pins').checked,
-                pinnames: document.getElementById('exp-pinnames').checked,
-                compnames: document.getElementById('exp-compnames').checked,
-                freetext: document.getElementById('exp-freetext').checked,
-                bw: document.getElementById('exp-mono').checked,
-                lw: parseFloat(document.getElementById('exp-weight-scale').value) || 1.0,
-                sel: AppState.selectedElements.length > 0 || AppState.selectedLinks.length > 0
+                format: document.getElementById('export-format') ? document.getElementById('export-format').value : 'svg',
+                grid: document.getElementById('exp-grid') ? document.getElementById('exp-grid').checked : false,
+                pins: document.getElementById('exp-pins') ? document.getElementById('exp-pins').checked : false,
+                pinnames: document.getElementById('exp-pinnames') ? document.getElementById('exp-pinnames').checked : false,
+                compnames: document.getElementById('exp-compnames') ? document.getElementById('exp-compnames').checked : false,
+                freetext: document.getElementById('exp-freetext') ? document.getElementById('exp-freetext').checked : false,
+                mono: document.getElementById('exp-mono') ? document.getElementById('exp-mono').checked : false,
+                weightScale: document.getElementById('exp-weight-scale') ? parseFloat(document.getElementById('exp-weight-scale').value) : 1.0
             };
         }
-    }).then(async (result) => {
+    }).then((result) => {
         if (result.isConfirmed) {
-            const vals = result.value;
-            
-            if (vals.format === 'svg') {
-                await exportToSVG(vals);
-            } 
-            else if (vals.format === 'tikz' || vals.format === 'standalone') {
-                clearSelection();
-                let texCode = window.rawLatexCode || document.getElementById('latex-output').innerText;
-                texCode = texCode.replace(/ % id:[a-zA-Z0-9-]+/g, ''); 
-                
-                if (vals.format === 'tikz') {
-                    await saveFileAs("circuit.tex", texCode, "text/plain", "TikZ Code", ".tex");
-                } else {
-                    const standalone = `\\documentclass[border=3mm]{standalone}\n\\usepackage{tikz}\n\\usepackage{tikz_electronic_parts}\n\n\\begin{document}\n\n${texCode}\n\n\\end{document}`;
-                    await saveFileAs("circuit_standalone.tex", standalone, "text/plain", "Standalone LaTeX", ".tex");
-                }
-            } 
-            else if (vals.format === 'spice') {
-                clearSelection();
-                const simCommands = "\n.op\n.end"; 
-                const netlistData = generateSpiceNetlistStr(simCommands);
-                if (netlistData.errors && netlistData.errors.length > 0) {
-                    Swal.fire('Warning', 'Netlist contains floating pins or missing parameters, but exporting anyway.', 'warning');
-                }
-                await saveFileAs("circuit.cir", netlistData.code, "text/plain", "SPICE Netlist", ".cir");
+            if (result.value.format === 'svg') {
+                downloadAdvancedSVG(result.value);
+            } else if (result.value.format === 'tikz') {
+                downloadLatex(false);
+            } else if (result.value.format === 'standalone') {
+                downloadLatex(true);
+            } else if (result.value.format === 'spice') {
+                downloadSpiceNetlist(); 
             }
         }
     });
 }
 
-
-async function exportToSVG(opts) {
-    const paperSvg = document.querySelector('#my-paper > svg');
-    if (!paperSvg) return;
-    
-    // 1. Create a safe clone to modify
-    const clone = paperSvg.cloneNode(true);
-    const viewport = clone.querySelector('.joint-viewport') || clone.querySelector('.viewport');
-    if (viewport) viewport.removeAttribute('transform');
-
-    const getSafeRef = () => (viewport && viewport.parentNode === clone) ? viewport : clone.firstChild;
-
-    // 2. Calculate precise bounding box manually (Bypasses JointJS bugs and NaN crashes)
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    
-    const targetCells = (opts.sel && (AppState.selectedElements.length > 0 || AppState.selectedLinks.length > 0)) 
-        ? [...AppState.selectedElements, ...AppState.selectedLinks] 
-        : [...AppState.graph.getElements(), ...AppState.graph.getLinks()];
-
-    targetCells.forEach(cell => {
-        // Query the 'View' instead of the 'Model'. The View knows the exact rendered pixels on the screen!
-        let view = AppState.paper.findViewByModel(cell);
-        if (view) {
-            let b = view.getBBox({ useModelGeometry: true });
-            // Strict validation to prevent NaN from corrupting the viewBox
-            if (b && !isNaN(b.x) && !isNaN(b.width) && b.width >= 0) {
-                if (b.x < minX) minX = b.x; 
-                if (b.y < minY) minY = b.y;
-                if (b.x + b.width > maxX) maxX = b.x + b.width;
-                if (b.y + b.height > maxY) maxY = b.y + b.height;
-            }
-        }
-    });
-
-    // Failsafe if the canvas is absolutely empty
-    if (minX === Infinity || isNaN(minX)) {
-        minX = 0; minY = 0; maxX = 800; maxY = 600;
+// --- ADVANCED SVG EXPORT (WITH FILTERS) ---
+function downloadAdvancedSVG(options) {
+    const bbox = AppState.paper.getContentBBox({ useModelGeometry: true }); 
+    if (!bbox || bbox.width === 0 || bbox.height === 0) {
+        Swal.fire({ icon: 'info', title: 'Empty Canvas', text: 'There is nothing to export.'});
+        return;
     }
 
-    let bbox = { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-    
-    if (opts.sel && (AppState.selectedElements.length > 0 || AppState.selectedLinks.length > 0)) {
-        const selectedIds = new Set(targetCells.map(c => c.id));
-        clone.querySelectorAll('.joint-cell').forEach(cellNode => {
-            const modelId = cellNode.getAttribute('model-id');
-            if (modelId && !selectedIds.has(modelId)) cellNode.remove();
-        });
-    }
-
-    // Add a mandatory 60px safe buffer to guarantee floating text/labels are never cropped out
-    const safeTextBuffer = 60; 
-    const expPadding = (opts.pad !== undefined ? opts.pad : 0) + safeTextBuffer;
-    
+    const expPadding = 120;
     const x = bbox.x - expPadding;
     const y = bbox.y - expPadding;
     const width = bbox.width + expPadding * 2;
     const height = bbox.height + expPadding * 2;
 
-    clone.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
-    clone.setAttribute('width', width);
-    clone.setAttribute('height', height);
+    const svgNode = AppState.paper.svg.cloneNode(true);
+    const viewport = svgNode.querySelector('.viewport');
+    if (viewport) viewport.removeAttribute('transform');
 
-    // 3. Remove unwanted UI layers
-    clone.querySelectorAll('.joint-highlighted, .joint-selection-rect, [class*="highlight"]').forEach(el => el.remove());
-    clone.querySelectorAll('.joint-selection-layer, .joint-tools-layer').forEach(el => el.remove());
+    svgNode.setAttribute('viewBox', `${x} ${y} ${width} ${height}`);
+    svgNode.setAttribute('width', width);
+    svgNode.setAttribute('height', height);
 
-    // --- THE UNIFIED FIX: GLUE EVERYTHING TOGETHER ---
-    const scaleFactor = opts.lw || 1.0;
-    const baseThickness = 1.8;
-    const PPU = AppState.PPU_MULT || 4; 
+    svgNode.querySelectorAll('.joint-highlighted, .joint-selection-rect, [class*="highlight"]').forEach(el => el.remove());
 
-    clone.querySelectorAll('path, line, polyline, polygon, rect, circle, ellipse').forEach(n => {
-        // Skip text elements safely
+    const scaleFactor = options.weightScale;
+    const baseThickness = 1.8; 
+
+    svgNode.querySelectorAll('path[joint-selector="line"]').forEach(n => {
+        n.setAttribute('stroke-width', (baseThickness * AppState.PPU_MULT) * scaleFactor);
+        n.setAttribute('stroke', '#000000'); 
+        n.setAttribute('stroke-linejoin', 'round');
+        n.setAttribute('stroke-linecap', 'round');
+        n.removeAttribute('vector-effect');
+        if (n.style.vectorEffect) n.style.vectorEffect = '';
+    });
+
+    svgNode.querySelectorAll('path, rect, circle, ellipse, polygon, polyline').forEach(n => {
+        if (n.getAttribute('joint-selector') === 'line') return; 
         if (n.tagName.toLowerCase() === 'text' || n.closest('text') || n.closest('foreignObject')) return;
 
-        // Eradicate non-scaling-stroke so native scale takes over
         n.removeAttribute('vector-effect');
-        n.style.setProperty('vector-effect', 'none', 'important');
+        if (n.style.vectorEffect) n.style.vectorEffect = '';
 
-        // Parse the existing stroke-width (defaults to 1.8 if missing)
-        let currentWidthAttr = n.getAttribute('stroke-width');
-        let parsedWidth = currentWidthAttr && currentWidthAttr !== 'none' && currentWidthAttr !== '0' 
-            ? parseFloat(currentWidthAttr) 
-            : baseThickness; 
-
-        // THE FIX: Wires do not have a scale() transform on their parent like components do.
-        // Therefore, we must manually multiply wire thickness by the PPU.
-        let isWire = n.getAttribute('joint-selector') === 'line' || n.classList.contains('connection') || n.closest('.joint-link');
-        let targetWidth = isWire ? (parsedWidth * PPU) : parsedWidth;
-            
-        n.setAttribute('stroke-width', targetWidth * scaleFactor);
-        
-        if (opts.bw && n.getAttribute('stroke') && n.getAttribute('stroke') !== 'none') {
+        if (n.getAttribute('stroke') && n.getAttribute('stroke') !== 'none' && n.getAttribute('stroke') !== 'transparent') {
             n.setAttribute('stroke', '#000000');
         }
+        
+        if (n.getAttribute('fill') && n.getAttribute('fill') !== 'none' && n.getAttribute('fill') !== 'transparent' && n.getAttribute('fill') !== '#ffffff' && n.getAttribute('fill-opacity') !== '0.01') {
+            n.setAttribute('fill', '#000000');
+        }
 
-        // Apply caps conditionally
-        if (n.getAttribute('stroke') && n.getAttribute('stroke') !== 'none') {
-            
-            // Apply 'square' ONLY if the line isn't intentionally defined as 'round' by the component
-            let isRound = n.getAttribute('stroke-linecap') === 'round' || n.style.strokeLinecap === 'round';
-            if (!isRound) {
-                n.setAttribute('stroke-linecap', 'square');
-                n.style.setProperty('stroke-linecap', 'square', 'important');
-            }
-            
-            let isJoinRound = n.getAttribute('stroke-linejoin') === 'round' || n.style.strokeLinejoin === 'round';
-            if (!isJoinRound) {
-                n.setAttribute('stroke-linejoin', 'miter');
-                n.style.setProperty('stroke-linejoin', 'miter', 'important');
-            }
+        let currentWidthAttr = n.getAttribute('stroke-width');
+        if (currentWidthAttr && currentWidthAttr !== 'none' && currentWidthAttr !== '0') {
+            let currentWidth = parseFloat(currentWidthAttr);
+            n.setAttribute('stroke-width', currentWidth * scaleFactor);
         }
     });
-	
-    // --- APPLY VISUAL FILTERS ---
-    
-    // 1. Free Text
-    if (!opts.freetext) {
+
+    if (!options.freetext) {
         AppState.graph.getElements().filter(e => e.get('latexMacro') === 'freetext').forEach(e => {
-            let node = clone.querySelector(`[model-id="${e.id}"]`);
+            let node = svgNode.querySelector(`[model-id="${e.id}"]`);
             if (node) node.remove();
         });
     }
 
-    // 2. Component Names (Label and KaTeX foreignObject)
-    if (!opts.compnames) {
+    if (!options.compnames) {
         AppState.graph.getElements().filter(e => e.get('latexMacro') !== 'freetext' && e.get('latexMacro') !== 'connectordot').forEach(e => {
-            let node = clone.querySelector(`[model-id="${e.id}"]`);
+            let node = svgNode.querySelector(`[model-id="${e.id}"]`);
             if (node) {
                 let label = node.querySelector('text[joint-selector="label"]');
                 if (label) label.remove();
@@ -305,19 +983,16 @@ async function exportToSVG(opts) {
         });
     }
 
-    // 3. Pins
-    if (!opts.ports) {
-        clone.querySelectorAll('[joint-selector="portBody"]').forEach(n => n.remove());
+    if (!options.pins) {
+        svgNode.querySelectorAll('[joint-selector="portBody"]').forEach(n => n.remove());
     }
 
-    // 4. Pin Names
-    if (!opts.pinnames) {
-        clone.querySelectorAll('[joint-selector="portLabel"]').forEach(n => n.remove());
+    if (!options.pinnames) {
+        svgNode.querySelectorAll('[joint-selector="portLabel"]').forEach(n => n.remove());
     }
 
-    // 5. Monochrome (Black & White)
-    if (opts.bw) {
-        clone.querySelectorAll('*').forEach(n => {
+    if (options.mono) {
+        svgNode.querySelectorAll('*').forEach(n => {
             let stroke = n.getAttribute('stroke');
             let fill = n.getAttribute('fill');
             
@@ -326,17 +1001,14 @@ async function exportToSVG(opts) {
             if (fill && fill !== 'none' && fill !== 'transparent' && fill.toLowerCase() !== '#ffffff' && n.getAttribute('fill-opacity') !== '0.01') {
                 n.setAttribute('fill', '#000000');
             }
+            
             if (n.tagName === 'div' || n.tagName === 'span') n.style.color = '#000000'; 
         });
     }
 
-    // Grid 
-    if (opts.grid) {
-        let defs = clone.querySelector('defs');
-        if (!defs) {
-            defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-            clone.prepend(defs); 
-        }
+    if (options.grid) {
+        let defs = svgNode.querySelector('defs') || document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        if (!svgNode.querySelector('defs')) svgNode.prepend(defs);
         
         let pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern");
         pattern.setAttribute("id", "exportGrid");
@@ -348,7 +1020,7 @@ async function exportToSVG(opts) {
         circle.setAttribute("cx", "0");
         circle.setAttribute("cy", "0");
         circle.setAttribute("r", "1.5");
-        circle.setAttribute("fill", opts.bw ? "#cccccc" : "#bdc3c7"); 
+        circle.setAttribute("fill", options.mono ? "#cccccc" : "#bdc3c7"); 
         
         pattern.appendChild(circle);
         defs.appendChild(pattern);
@@ -360,28 +1032,14 @@ async function exportToSVG(opts) {
         gridRect.setAttribute("height", height);
         gridRect.setAttribute("fill", "url(#exportGrid)");
         
-        clone.insertBefore(gridRect, getSafeRef()); 
-    } else {
-        clone.querySelectorAll('.joint-grid, .joint-paper-background').forEach(el => el.remove());
+        svgNode.insertBefore(gridRect, viewport); 
     }
-
-    // Background Color
-    if (opts.bg && THEME_COLORS && THEME_COLORS[AppState.theme]) {
-        const bgRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        bgRect.setAttribute("x", x); bgRect.setAttribute("y", y);
-        bgRect.setAttribute("width", "100%"); bgRect.setAttribute("height", "100%");
-        bgRect.setAttribute("fill", THEME_COLORS[AppState.theme].background);
-        clone.insertBefore(bgRect, getSafeRef());
-    } else {
-        clone.style.backgroundColor = 'transparent';
-    }
-
-    // Math/KaTeX Support
+    
     let styleTag = document.createElementNS("http://www.w3.org/2000/svg", "style");
     styleTag.textContent = "@import url('https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css');";
-    clone.insertBefore(styleTag, clone.firstChild); 
+    svgNode.insertBefore(styleTag, svgNode.firstChild);
 
-    clone.querySelectorAll('foreignObject').forEach(fo => {
+    svgNode.querySelectorAll('foreignObject').forEach(fo => {
         fo.setAttribute('width', '500'); 
         fo.setAttribute('height', '500');
         fo.style.overflow = 'visible';
@@ -394,15 +1052,63 @@ async function exportToSVG(opts) {
         }
     });
 
-    // 8. Serialize and clean up
-    let svgString = new XMLSerializer().serializeToString(clone);
+    let svgString = new XMLSerializer().serializeToString(svgNode);
     if (!svgString.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
         svgString = svgString.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
     }
+    
+    saveFileAs(svgString, 'circuit.svg', 'image/svg+xml', 'SVG Vector Graphic');
+}
 
-    svgString = svgString.replace(/fill="transparent"/gi, 'fill="none"'); 
-    svgString = '<?xml version="1.0" standalone="no"?>\r\n' + svgString;
+// --- SIMULATION EXPORTS ---
+export function attachSimulationExports(plotDivId, simData, simType) {
+    const toolbarHtml = `
+        <div style="display: flex; gap: 10px; justify-content: center; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-main);">
+            <button id="btn-exp-csv" class="swal2-confirm swal2-styled" style="background: var(--success); font-size: 13px;"><i data-lucide="file-spreadsheet"></i> Export CSV</button>
+            <button id="btn-exp-svg" class="swal2-confirm swal2-styled" style="background: var(--primary); font-size: 13px;"><i data-lucide="image"></i> Export SVG</button>
+            <button id="btn-exp-matlab" class="swal2-confirm swal2-styled" style="background: var(--warning); color: #000; font-size: 13px;"><i data-lucide="code"></i> MATLAB / Python</button>
+        </div>
+    `;
+    
+    // Append to the Swal popup or plot container
+    const container = document.getElementById(plotDivId).parentElement;
+    container.insertAdjacentHTML('beforeend', toolbarHtml);
+    if (window.lucide) lucide.createIcons();
 
-    await saveFileAs("circuit_schematic.svg", svgString, "image/svg+xml", "SVG Vector Image", ".svg");
-    clearSelection();
+    // 1. CSV Export
+    document.getElementById('btn-exp-csv').onclick = () => {
+        let csvContent = "data:text/csv;charset=utf-8,Time/Freq,";
+        let traces = simData.traces || [];
+        csvContent += traces.map(t => t.name).join(",") + "\n";
+        
+        let length = traces[0].x.length;
+        for (let i = 0; i < length; i++) {
+            let row = [traces[0].x[i]];
+            traces.forEach(t => row.push(t.y[i]));
+            csvContent += row.join(",") + "\n";
+        }
+        downloadFile(csvContent, `simulation_${simType}.csv`);
+    };
+
+    // 2. SVG Export (via Plotly)
+    document.getElementById('btn-exp-svg').onclick = () => {
+        Plotly.downloadImage(plotDivId, {format: 'svg', width: 800, height: 600, filename: `plot_${simType}`});
+    };
+
+    // 3. MATLAB/Python Data Export
+    document.getElementById('btn-exp-matlab').onclick = () => {
+        let rawJson = JSON.stringify(simData, null, 2);
+        let blob = new Blob([rawJson], { type: "application/json" });
+        downloadFile(URL.createObjectURL(blob), `sim_data_${simType}.json`, true);
+    };
+}
+
+function downloadFile(content, fileName, isUrl = false) {
+    const encodedUri = isUrl ? content : encodeURI(content);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }

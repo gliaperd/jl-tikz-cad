@@ -1144,3 +1144,70 @@ export function updateNetNamesVisibility() {
         }
     });
 }
+
+let currentAnnotations = [];
+
+export function clearDCAnnotations() {
+    currentAnnotations.forEach(el => el.remove());
+    currentAnnotations = [];
+}
+
+export function drawDCOperatingPoint(opData) {
+    clearDCAnnotations(); // Clean up old ones first
+
+    // 1. Draw Currents on Components
+    AppState.graph.getElements().forEach(el => {
+        let nameMatch = el.get('displayedText');
+        if (!nameMatch) return;
+        
+        // Extract base name (e.g. "R1" from "R1=1k")
+        let baseName = nameMatch.split('=')[0].trim(); 
+        
+        let currentVal = opData.currents[baseName];
+        if (currentVal !== undefined) {
+            let valStr = parseFloat(currentVal).toExponential(2) + "A";
+            
+            // Create a temporary text block with an arrow!
+            let isNegative = currentVal < 0;
+            let arrow = isNegative ? "←" : "→"; // Simplified: assuming horizontal for now. 
+            // Pro-tip: If el.get('angle') === 90, change arrow to ↑ or ↓
+            
+            let annotation = new joint.shapes.standard.Rectangle();
+            annotation.position(el.position().x, el.position().y - 25);
+            annotation.resize(60, 20);
+            annotation.attr({
+                body: { fill: 'var(--bg-app)', stroke: 'var(--primary)', strokeWidth: 1, rx: 4, ry: 4 },
+                label: { text: `${arrow} ${valStr}`, fill: 'var(--primary)', fontSize: 10, fontWeight: 'bold' }
+            });
+            
+            // Mark it so it doesn't get saved to the project file
+            annotation.set('isDCAnnotation', true); 
+            annotation.addTo(AppState.graph);
+            currentAnnotations.push(annotation);
+        }
+    });
+
+    // 2. Draw Voltages on Connector Dots (Nodes)
+    AppState.graph.getElements().forEach(el => {
+        if (el.get('latexMacro') === 'connectordot') {
+            // Note: You will need to map SPICE node names to dot IDs. 
+            // Assuming you stored the SPICE node name in the dot's properties during netlisting:
+            let nodeName = el.get('spiceNode'); 
+            let volVal = opData.nodes[nodeName];
+            
+            if (volVal !== undefined) {
+                let vStr = parseFloat(volVal).toExponential(2) + "V";
+                let annotation = new joint.shapes.standard.Rectangle();
+                annotation.position(el.position().x + 10, el.position().y - 15);
+                annotation.resize(50, 16);
+                annotation.attr({
+                    body: { fill: 'var(--warning)', stroke: 'none', rx: 3, ry: 3 },
+                    label: { text: vStr, fill: '#000', fontSize: 9, fontWeight: 'bold' }
+                });
+                annotation.set('isDCAnnotation', true);
+                annotation.addTo(AppState.graph);
+                currentAnnotations.push(annotation);
+            }
+        }
+    });
+}

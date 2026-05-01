@@ -4,6 +4,53 @@ import { saveState } from './actions.js';
 import { exportLatex } from '../parsers/latex.js';
 import { getVisualOrigin, applyRobustScale, updateElementLabel, assembleIcon, updateGhostDotsVisibility } from './canvas.js';
 
+// --- NATIVE GEOMETRY PARSER ---
+export function parseGeomArgs(data, argsArray) {
+    let angle = 0;
+    let flipH = false;
+    let flipV = false;
+    let explicitAngle = null;
+
+    for (let i = 0; i < data.argsCount; i++) {
+        let argDef = data.argNames && data.argNames[i] ? data.argNames[i] : { name: '' };
+        let desc = argDef.name.toLowerCase();
+        let customDef = data.argDefs ? data.argDefs.find(d => d.idx === i + 1) : null;
+        let typeMatch = customDef ? customDef.type : '';
+        let val = (argsArray[i] || '').toString().toLowerCase().trim();
+
+        if (!val) continue;
+
+        // 1. Strict capture for Horizontal/Vertical dropdowns
+        if (desc.includes('horizontal') && desc.includes('vertical')) {
+            if (val === 'vertical') explicitAngle = 270;
+            else if (val === 'horizontal') explicitAngle = 0;
+        }
+
+        // 2. Standard TikZ rotation/flip parsing
+        if (typeMatch === 'rotflip' || (!customDef && desc.includes('rotation') && desc.includes('flip'))) {
+            let parts = val.split(',');
+            let tikzRot = parseFloat(parts[0]) || 0;
+            angle = (360 - tikzRot) % 360;
+            let f = parts[1] ? parts[1].trim() : '';
+            if (f === 'h' || f === 'hv' || f === 'vh') flipH = true;
+            if (f === 'v' || f === 'hv' || f === 'vh') flipV = true;
+        } else if (typeMatch === 'rotation' || (!customDef && (desc.includes('rotation') || desc.includes('angle')))) {
+            let tikzRot = parseFloat(val) || 0;
+            angle = (360 - tikzRot) % 360;
+        } else if (typeMatch === 'flip' || (!customDef && desc.includes('flip'))) {
+            if (val === 'h' || val === 'hv' || val === 'vh') flipH = true;
+            if (val === 'v' || val === 'hv' || val === 'vh') flipV = true;
+        }
+    }
+
+    // Explicit orientation ALWAYS wins over the numeric rotation field
+    if (explicitAngle !== null) {
+        angle = explicitAngle;
+    }
+
+    return { angle, flipH, flipV };
+}
+
 export function initializeProperties() {
     // Expose HTML-bound helpers to the global window object
     setupGlobalHelpers();
@@ -198,8 +245,8 @@ export function initializeProperties() {
         }
 
         if (spiceParams.length > 0) {
-            htmlForm += `<div style="margin-top: 15px; border-top: 2px solid var(--purple); padding-top: 12px; margin-bottom: 5px;">
-                            <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--purple); margin-bottom: 10px;">
+            htmlForm += `<div style="margin-top: 15px; border-top: 2px solid var(--primary); padding-top: 12px; margin-bottom: 5px;">
+                            <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--primary); margin-bottom: 10px;">
                                 <i data-lucide="zap" style="width:14px; height:14px;"></i> SPICE Parameters
                             </label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
@@ -313,14 +360,14 @@ export function initializeProperties() {
                     <div style="grid-column: span 2;">
                         <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 11px;">MODEL</label>
                         <div style="display: flex; gap: 8px;">
-                            <select id="sig-model-sel" onchange="window.updateModelSelection('${el.id}')" style="${inputCSS} border-left: 3px solid var(--purple);">
+                            <select id="sig-model-sel" onchange="window.updateModelSelection('${el.id}')" style="${inputCSS} border-left: 3px solid var(--primary);">
                                 ${optionsHtml}
                             </select>
                             <input type="text" id="swal-spice-MODEL" style="${inputCSS} display: ${selVal === 'CUSTOM' ? 'block' : 'none'};" value="${currentVal}" placeholder="Type custom model name...">
                         </div>`;
 
                     if (isZener || isMOS || isBJT || isDiode) {
-                        htmlForm += `<div id="model-wizard-fields" style="display: ${selVal === 'WIZARD' ? 'block' : 'none'}; margin-top: 8px; padding: 12px; background: var(--bg-app); border: 1px dashed var(--purple); border-radius: 4px;">`;
+                        htmlForm += `<div id="model-wizard-fields" style="display: ${selVal === 'WIZARD' ? 'block' : 'none'}; margin-top: 8px; padding: 12px; background: var(--bg-app); border: 1px dashed var(--primary); border-radius: 4px;">`;
                         
                         if (isZener) {
                             htmlForm += `<div><label style="font-size:11px; font-weight:600; color:var(--text-muted); display:block; margin-bottom:4px;">Zener Breakdown (BV) in Volts</label>
@@ -347,7 +394,7 @@ export function initializeProperties() {
                     htmlForm += `
                     <div>
                         <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 11px;">${param}</label>
-                        <input type="text" id="swal-spice-${param}" class="swal2-input" style="${inputCSS} border-left: 3px solid var(--purple);" value="${currentVal}">
+                        <input type="text" id="swal-spice-${param}" class="swal2-input" style="${inputCSS} border-left: 3px solid var(--primary);" value="${currentVal}">
                     </div>`;
                 }
             });
@@ -441,9 +488,14 @@ export function initializeProperties() {
                         }
                     }
 
-                    let geomAngle = el.get('angle') || 0;
-                    let geomFlipH = el.get('flipH') || false;
-                    let geomFlipV = el.get('flipV') || false;
+                    // 1. Capture the exact anchor pin BEFORE we rotate or scale
+                    let oldPin = getVisualOrigin(el);
+
+                    // 2. Apply Geometry
+                    let geom = parseGeomArgs(data, previewArgs);
+                    el.set('angle', geom.angle);
+                    el.set('flipH', geom.flipH);
+                    el.set('flipV', geom.flipV);
 
                     el.set('labelOffsetX', previewLblX);
                     el.set('labelOffsetY', previewLblY);
@@ -452,14 +504,16 @@ export function initializeProperties() {
                     
                     assembleIcon(el, previewArgs);
 
+                    // 3. Apply Scale
                     if (previewScale !== currentScale) {
-                        let oldPin = getVisualOrigin(el);
                         applyRobustScale(el, previewScale);
                         currentScale = previewScale; 
-                        let newPin = getVisualOrigin(el);
-                        let p = el.position();
-                        el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
                     }
+
+                    // 4. Shift the component back so the anchor pin NEVER moves
+                    let newPin = getVisualOrigin(el);
+                    let p = el.position();
+                    el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
 
                     for (let i = 0; i < data.argsCount; i++) {
                         let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
@@ -536,15 +590,26 @@ export function initializeProperties() {
                 el.set('simData', result.value.simData);
                 el.set('customArgs', newArgs);
 
+                // 1. Capture anchor pin
+                let oldPin = getVisualOrigin(el);
+
+                // 2. Apply Geometry
+                let geom = parseGeomArgs(data, newArgs);
+                el.set('angle', geom.angle);
+                el.set('flipH', geom.flipH);
+                el.set('flipV', geom.flipV);
+
                 assembleIcon(el, newArgs);
 
+                // 3. Apply Scale
                 if (newScale !== currentScale) {
-                    let oldPin = getVisualOrigin(el);
                     applyRobustScale(el, newScale);
-                    let newPin = getVisualOrigin(el);
-                    let p = el.position();
-                    el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
                 }
+
+                // 4. Shift back to origin
+                let newPin = getVisualOrigin(el);
+                let p = el.position();
+                el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
 
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();
@@ -562,16 +627,26 @@ export function initializeProperties() {
                 el.set('spiceData', originalState.spiceData);
                 el.set('customArgs', originalState.args);
 
+                // 1. Capture anchor pin
+                let oldPin = getVisualOrigin(el);
+
+                // 2. Revert Geometry
+                el.set('angle', originalState.angle);
+                el.set('flipH', originalState.flipH);
+                el.set('flipV', originalState.flipV);
+
                 assembleIcon(el, originalState.args);
 
+                // 3. Revert Scale
                 if (originalState.scale !== currentScale) {
-                    let oldPin = getVisualOrigin(el);
                     applyRobustScale(el, originalState.scale);
                     currentScale = originalState.scale; 
-                    let newPin = getVisualOrigin(el);
-                    let p = el.position();
-                    el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
                 }
+
+                // 4. Shift back to origin
+                let newPin = getVisualOrigin(el);
+                let p = el.position();
+                el.position(p.x + (oldPin.x - newPin.x), p.y + (oldPin.y - newPin.y), { snapping: true });
 
                 for (let i = 0; i < data.argsCount; i++) {
                     let desc = (data.argNames[i] || { name: '' }).name.toLowerCase();

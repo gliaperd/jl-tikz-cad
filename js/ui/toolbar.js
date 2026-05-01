@@ -4,9 +4,8 @@ import { openSimulationSettings } from './dialogs.js';
 import { copySelected, pasteCopied, deleteSelected, rotateSelected, flipHorizontal, flipVertical, zoomFit, undo, redo, clearCanvas } from './actions.js';
 import { runDigitalSimulation } from '../engines/digital.js';
 import { syncFromLatex, runLinterUI, copyLatexToClipboard } from '../parsers/latex.js';
-import { saveProjectToFile, loadProjectFromFile } from '../parsers/io.js';
-import { openExportDialog } from '../parsers/io.js';
-import { runSimulation, clearSimAnnotations, openSpiceNetlistEditor, promptTheveninNode } from '../engines/spice.js';
+import { importProject, openExportDialog, saveProjectToFile } from '../parsers/io.js';
+import { runSimulation, clearSimAnnotations, openSpiceNetlistEditor, promptTheveninNode, promptTransferFunction } from '../engines/spice.js';
 import { refreshComponentViews, updateGhostDotsVisibility, applyTheme } from './canvas.js'; 
 
 export function initializeToolbar() {
@@ -40,6 +39,9 @@ export function initializeToolbar() {
     });
     // Failsafe: Expose to window just in case your HTML still has inline onclick handlers
     window.updateGhostDotsVisibility = updateGhostDotsVisibility;
+	window.importProject = importProject;
+	window.openExportDialog = openExportDialog;
+	window.saveProject = saveProjectToFile;
 	
 	// --- DISPLAY MODE (THEME SWITCHER) ---
     document.getElementById('theme-selector').addEventListener('change', (e) => {
@@ -60,6 +62,7 @@ export function initializeToolbar() {
     document.getElementById('btn-sim-settings').addEventListener('click', openSimulationSettings);
     document.getElementById('btn-sim-clear').addEventListener('click', clearSimAnnotations);
     document.getElementById('btn-sim-thevenin').addEventListener('click', promptTheveninNode);
+	document.getElementById('btn-sim-xferfnc').addEventListener('click', promptTransferFunction);
 
     // --- FILE MANAGEMENT ---
     document.getElementById('btn-save').addEventListener('click', saveProjectToFile);
@@ -70,10 +73,8 @@ export function initializeToolbar() {
     
     // Listen for when the user actually selects a file
     fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            loadProjectFromFile(e.target.files[0]);
-            e.target.value = ''; // Reset input so you can load the same file twice if needed
-        }
+        // Just pass the raw event! io.js will extract the file and reset the input automatically.
+        importProject(e); 
     });
 
     document.getElementById('btn-export-dialog').addEventListener('click', openExportDialog);

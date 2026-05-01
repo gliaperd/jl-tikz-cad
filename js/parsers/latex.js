@@ -2,6 +2,7 @@
 import { AppState, THEME_COLORS } from '../state.js';
 import { getVisualOrigin, applyRobustScale, updateElementLabel, assembleIcon } from '../ui/canvas.js';
 import { saveState } from '../ui/actions.js';
+import { saveFileAs } from './io.js';
 
 let latexEdited = false;
 let suppressWarning = false;
@@ -54,7 +55,7 @@ export function exportLatex() {
     });
 }
 
-function forceExportLatex() {
+export function forceExportLatex() {
     latexEdited = false;
     let outText = "\\begin{tikzpictureJL}\n";
     let outHTML = "\\begin{tikzpictureJL}\n";
@@ -384,5 +385,51 @@ export function runLinterUI(onSuccessCallback = null) {
 export function copyLatexToClipboard() {
     runLinterUI((textToCopy) => {
         navigator.clipboard.writeText(textToCopy).then(() => { Swal.fire({ icon: 'success', title: 'Copied!', timer: 1000, showConfirmButton: false }); });
+    });
+}
+
+export function downloadLatex(isStandalone = false) {
+    // Uses the existing runLinterUI function in latex.js
+    runLinterUI((textToDownload) => {
+        let finalOutput = textToDownload;
+        let filename = 'circuit.tex';
+
+        if (isStandalone) {
+            filename = 'circuit_standalone.tex';
+            
+            // 1. Add scale to tikzpicture
+            let scaledTikz = textToDownload.replace('\\begin{tikzpictureJL}', '\\begin{tikzpictureJL}[scale=0.245]');
+            
+            // 2. Indent for formatting
+            let indentedTikz = scaledTikz.split('\n').map(line => '\t' + line).join('\n');
+
+            // 3. Create the standalone document wrapper
+            finalOutput = `\\documentclass{standalone}
+
+\t% Required packages for the style file
+\t\\usepackage{amsmath}
+\t\\usepackage{tikz}
+\t\\usepackage{xstring}
+\t\\usepackage{xparse}
+\t\\usepackage{etoolbox}
+\t\\usepackage{calculator}
+\t\\usepackage{accents}
+\t\\usepackage{xcolor}
+
+\t% Load your specific electronic parts style file
+\t\\usepackage{tikz_electronic_parts}
+\t\\standaloneenv{tikzpictureJL} 
+
+\t\\begin{document}
+\t\\settikzlinewidth{1.2}
+\t\\tikzset{every picture/.style={line width=\\tikzlinewidth}}
+
+${indentedTikz}
+
+\t\\end{document}`;
+        }
+
+        // Trigger the smart Save Dialog
+        saveFileAs(finalOutput, filename, 'text/plain', 'LaTeX Document');
     });
 }
