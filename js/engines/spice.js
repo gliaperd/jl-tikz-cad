@@ -508,6 +508,12 @@ function parseSpiceRaw(rawOutput) {
 }
 
 function plotSimulationResults(parsedData, title) {
+	// --- THE FIX: Nuke lingering Chart.js instances before proceeding! ---
+    if (window.simChartInstance) {
+        window.simChartInstance.destroy();
+        window.simChartInstance = null;
+    }
+	
     window.currentSimData = parsedData;
     window.currentSimTitle = title;
     window.currentSimIsAC = title.includes('AC');
@@ -570,42 +576,100 @@ function plotSimulationResults(parsedData, title) {
         }
     }
 	
-	const btnStyle = "border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: #ffffff; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;";
+	// Helper for high-contrast export button hover effects
+    const btnHover = `onmouseover="this.style.background='var(--primary)'; this.style.color='#ffffff'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-main)'"`;
 
     Swal.fire({
-        width: 'auto', padding: '0', background: 'transparent', backdrop: false, showConfirmButton: false, heightAuto: false,
+        width: 'auto', padding: 0, background: 'transparent', backdrop: false, showConfirmButton: false, heightAuto: false,
+        customClass: { popup: 'spice-modal-override', htmlContainer: 'spice-modal-override' },
+        
+        // --- THE FIX: Nuke Chart.js when the window closes to prevent hover crashes ---
+        willClose: () => {
+            if (window.simChartInstance) {
+                window.simChartInstance.destroy();
+                window.simChartInstance = null;
+            }
+        },
+        // ------------------------------------------------------------------------------
+
         html: `
-            <div id="sim-true-window" style="width: 800px; height: 500px; min-width: 400px; min-height: 300px; resize: both; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-main); pointer-events: auto;">
-                <div id="swal-drag-handle-sim" style="flex: 0 0 40px; cursor: move; background: var(--bg-toolbar); color: var(--text-inverse); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none;">
-                    <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;"> <i data-lucide="line-chart" style="width: 18px; height: 18px;"></i> ${title} </span>
-                    <div style="display:flex; gap: 15px; align-items: center;">
-                        <button id="btn-export-csv" title="Export CSV" style="${btnStyle}"><i data-lucide="file-spreadsheet" style="width:14px;height:14px;"></i> CSV</button>
-                        <button id="btn-export-json" title="Export MATLAB/Python JSON" style="${btnStyle}"><i data-lucide="code" style="width:14px;height:14px;"></i> JSON</button>
-                        <button id="btn-export-tikz" title="Export LaTeX/TikZ" style="${btnStyle}"><i data-lucide="pen-tool" style="width:14px;height:14px;"></i> TikZ</button>
+            <style>
+                .swal2-popup.spice-modal-override { padding: 0 !important; background: transparent !important; border: none !important; }
+                .swal2-html-container.spice-modal-override { padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+            </style>
+            <div id="sim-true-window" style="width: 800px; height: 500px; min-width: 400px; min-height: 300px; resize: both; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-main); pointer-events: auto;">
+                
+                <div id="swal-drag-handle-sim" style="flex: 0 0 42px; cursor: move; background: var(--bg-toolbar); color: var(--text-inverse); padding: 0 10px; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 1px solid var(--border-main);">
+                    
+                    <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:6px; flex-shrink: 0; white-space: nowrap;">
+                        <i data-lucide="line-chart" style="width: 16px; height: 16px; color: var(--primary);"></i> ${title} 
+                    </span>
+                    
+                    <div style="display:flex; gap: 8px; align-items: center; flex-grow: 1; justify-content: flex-end; overflow: visible;">
                         
-                        <!-- NEW PNG EXPORT BUTTON -->
-                        <button id="btn-export-png" title="Export PNG Image" style="${btnStyle}"><i data-lucide="image" style="width:14px;height:14px;"></i> PNG</button>
-                        
-                        <div style="width:1px; height:15px; background:var(--border-main);"></div>
-                        <button onclick="Swal.close()" style="${btnStyle}" title="Close">✖</button>
+                        <!-- EXPORT DROPDOWN -->
+                        <div style="position: relative; margin: 0; white-space: nowrap;">
+                            <button id="btn-export-sim-toggle" style="padding: 3px 8px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.2); border: none; border-radius: 4px; color: var(--text-inverse); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <i data-lucide="download" style="width: 12px; height: 12px;"></i> Export ▼
+                            </button>
+                            <div id="menu-export-sim" style="display: none; position: absolute; right: 0; top: calc(100% + 5px); background: var(--bg-panel); box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid var(--border-main); border-radius: 4px; padding: 5px 0; z-index: 10000; min-width: 180px;">
+                                <button id="btn-export-csv" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export CSV</button>
+                                <button id="btn-export-json" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export JSON</button>
+                                <button id="btn-export-tikz" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export TikZ (.tex)</button>
+                                <button id="btn-export-png" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export PNG</button>
+                            </div>
+                        </div>
+
                     </div>
+                    <button onclick="Swal.close()" style="flex-shrink: 0; background: none; border: none; color: var(--text-inverse); cursor: pointer; font-weight: bold; font-size: 18px; line-height: 1; padding: 0 0 0 10px; margin-left: 10px;" title="Close Window">✖</button>
                 </div>
-                <div style="flex: 1; padding: 15px; box-sizing: border-box; overflow: hidden;">
+                
+                <div style="flex: 1; padding: 15px; box-sizing: border-box; overflow: hidden; background: var(--bg-panel);">
                     <div style="position: relative; width: 100%; height: 100%;"><canvas id="simChart"></canvas></div>
                 </div>
             </div>
         `,
         didOpen: () => {
             lucide.createIcons();
-            const popup = Swal.getPopup(); const handle = document.getElementById('swal-drag-handle-sim');
-            popup.style.background = 'transparent'; popup.style.boxShadow = 'none';
+            const popup = Swal.getPopup(); 
+            const htmlContainer = Swal.getHtmlContainer();
+            const handle = document.getElementById('swal-drag-handle-sim');
             
-            // 1. SMART CSV EXPORT (Now handles AC Phase and Full Data Resolution!)
+            // THE FIX: Surgical padding overrides
+            popup.style.background = 'transparent'; 
+            popup.style.boxShadow = 'none';
+            popup.style.setProperty('padding', '0', 'important');
+            if (htmlContainer) {
+                htmlContainer.style.setProperty('padding', '0', 'important');
+                htmlContainer.style.setProperty('margin', '0', 'important');
+                htmlContainer.style.overflow = 'hidden';
+            }
+
+            // --- JAVASCRIPT DROPDOWN TOGGLE LOGIC ---
+            const btnExportToggle = document.getElementById('btn-export-sim-toggle');
+            const menuExport = document.getElementById('menu-export-sim');
+
+            const closeMenu = () => { if(menuExport) menuExport.style.display = 'none'; };
+
+            if (btnExportToggle) {
+                btnExportToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    let isVis = menuExport.style.display === 'block';
+                    closeMenu();
+                    if (!isVis) menuExport.style.display = 'block';
+                });
+            }
+
+            popup.addEventListener('click', closeMenu);
+            document.querySelectorAll('#menu-export-sim button').forEach(btn => {
+                btn.addEventListener('click', closeMenu);
+            });
+
+            // 1. SMART CSV EXPORT 
             document.getElementById('btn-export-csv').onclick = async () => {
                 let isAC = window.currentSimIsAC;
                 let csvContent = isAC ? "Frequency (Hz)," : "Time (s),";
                 
-                // Build Headers dynamically based on AC/TRAN
                 let headers = [];
                 for (let i = 1; i < parsedData.vars.length; i++) {
                     if (isAC) {
@@ -617,7 +681,6 @@ function plotSimulationResults(parsedData, title) {
                 }
                 csvContent += headers.join(",") + "\n";
                 
-                // Export FULL dataset, not just the decimated visual points
                 for (let i = 0; i < parsedData.points.length; i++) {
                     let pt = parsedData.points[i];
                     let row = [ getX(pt) ];
@@ -633,7 +696,6 @@ function plotSimulationResults(parsedData, title) {
                     csvContent += row.join(",") + "\n";
                 }
 
-                // Native Save Dialog
                 if (window.showSaveFilePicker) {
                     try {
                         const fileHandle = await window.showSaveFilePicker({
@@ -843,9 +905,7 @@ export function showDCOperatingPointTable(opData, topo) {
     }
 
     for (let [compId, data] of Object.entries(opData.currents || {})) {
-        // Construct the item name string, inserting the (value) if it exists
         let displayName = data.compVal ? `${data.name} <span style="color:var(--text-muted); font-weight:normal;">(${data.compVal})</span>` : data.name;
-
         tableHtml += `<tr style="border-bottom: 1px solid var(--border-main); cursor: pointer; transition: background 0.15s;" data-comp-id="${compId}" class="dc-table-row">
             <td style="padding: 8px; font-weight: 600;">${displayName}</td>
             <td style="padding: 8px; color: var(--text-muted);">Current</td>
@@ -858,8 +918,13 @@ export function showDCOperatingPointTable(opData, topo) {
     const btnStyle = "border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: #ffffff; border-radius: 4px; padding: 4px 10px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; transition: opacity 0.2s;";
 
     Swal.fire({
-        width: 500, padding: '0', background: 'transparent', backdrop: false, showConfirmButton: false, heightAuto: false,
+        width: 500, padding: 0, background: 'transparent', backdrop: false, showConfirmButton: false, heightAuto: false,
+        customClass: { popup: 'spice-modal-override', htmlContainer: 'spice-modal-override' },
         html: `
+            <style>
+                .swal2-popup.spice-modal-override { padding: 0 !important; background: transparent !important; border: none !important; }
+                .swal2-html-container.spice-modal-override { padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+            </style>
             <div id="sim-dc-window" style="display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-main); pointer-events: auto;">
                 <div id="swal-drag-handle-dc" style="flex: 0 0 45px; cursor: move; background: #2c3e50; padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none; border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom: 2px solid #3498db;">
                     <span style="font-size: 15px; font-weight: bold; display:flex; align-items:center; gap:8px; color: #ffffff;"> 
@@ -884,43 +949,37 @@ export function showDCOperatingPointTable(opData, topo) {
         didOpen: () => {
             if (typeof lucide !== 'undefined') lucide.createIcons();
             const popup = Swal.getPopup(); 
+            const htmlContainer = Swal.getHtmlContainer();
             const handle = document.getElementById('swal-drag-handle-dc');
+            
+            // THE FIX: Surgical padding overrides
             popup.style.background = 'transparent'; 
             popup.style.boxShadow = 'none';
+            popup.style.setProperty('padding', '0', 'important');
+            if (htmlContainer) {
+                htmlContainer.style.setProperty('padding', '0', 'important');
+                htmlContainer.style.setProperty('margin', '0', 'important');
+                htmlContainer.style.overflow = 'hidden';
+            }
 
-            let activeBadges = []; 
-            let activeGlowElements = [];
-            let activeRow = null;
+            let activeBadges = []; let activeGlowElements = []; let activeRow = null;
 
             const clearCanvas = () => {
                 let currentHlLayer = document.getElementById('net-highlight-layer') || document.querySelector('#net-highlight-layer');
                 if (currentHlLayer) currentHlLayer.innerHTML = ''; 
-                
-                activeGlowElements.forEach(el => {
-                    if (el && el.style) el.style.filter = '';
-                }); 
+                activeGlowElements.forEach(el => { if (el && el.style) el.style.filter = ''; }); 
                 activeGlowElements = [];
-                
-                activeBadges.forEach(b => {
-                    if (b && b.remove) b.remove();
-                });
+                activeBadges.forEach(b => { if (b && b.remove) b.remove(); });
                 activeBadges = [];
             };
 
             popup.addEventListener('mousemove', (e) => {
                 let row = e.target.closest('.dc-table-row');
-                
                 if (row !== activeRow) {
-                    if (activeRow) {
-                        activeRow.style.background = 'transparent';
-                        clearCanvas();
-                    }
-                    
+                    if (activeRow) { activeRow.style.background = 'transparent'; clearCanvas(); }
                     activeRow = row;
-                    
                     if (activeRow) {
                         activeRow.style.background = 'rgba(52, 152, 219, 0.15)'; 
-                        
                         try {
                             let currentOverlay = document.getElementById('dc-annotation-overlay');
                             if (!currentOverlay) {
@@ -939,30 +998,22 @@ export function showDCOperatingPointTable(opData, topo) {
 
                             let matrix = AppState.paper.matrix();
                             let getNet = (id) => topo.netMap.get(topo.uf.find(id));
-
                             let net = activeRow.getAttribute('data-net');
                             let compId = activeRow.getAttribute('data-comp-id');
 
-                            // --- DRAW NET VOLTAGE ---
                             if (net) {
                                 let v = String(net) === '0' ? 0.0 : opData.nodes[net];
-                                
                                 topo.terminals.forEach(term => {
                                     let termNet = getNet(term.id);
                                     if (termNet !== null && termNet !== undefined && String(termNet) === String(net)) {
-                                        let cx = term.x * matrix.a + matrix.e;
-                                        let cy = term.y * matrix.d + matrix.f;
-                                        
+                                        let cx = term.x * matrix.a + matrix.e; let cy = term.y * matrix.d + matrix.f;
                                         let glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                                         glow.setAttribute('cx', cx); glow.setAttribute('cy', cy);
-                                        glow.setAttribute('r', '15'); 
-                                        glow.setAttribute('fill', '#3498db'); 
-                                        glow.setAttribute('opacity', '0.5');
+                                        glow.setAttribute('r', '15'); glow.setAttribute('fill', '#3498db'); glow.setAttribute('opacity', '0.5');
                                         currentHlLayer.appendChild(glow);
 
                                         if (v !== undefined) {
                                             let targetX = cx + 25, targetY = cy - 35; 
-
                                             let lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                                             lineEl.setAttribute('x1', cx); lineEl.setAttribute('y1', cy); 
                                             lineEl.setAttribute('x2', targetX); lineEl.setAttribute('y2', targetY);
@@ -977,14 +1028,12 @@ export function showDCOperatingPointTable(opData, topo) {
                                             let badge = document.createElement('div');
                                             badge.style.cssText = `position:absolute; left:${targetX}px; top:${targetY}px; transform:translate(-50%, -50%); background:#3498db; color:#ffffff; padding:4px 7px; border-radius:4px; font-size:11px; font-family:monospace; font-weight:bold; border:1px solid #2980b9; pointer-events:none; z-index:1105; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space:nowrap;`;
                                             badge.innerText = formatEng(v, 'V'); 
-                                            currentOverlay.appendChild(badge);
-                                            activeBadges.push(badge); 
+                                            currentOverlay.appendChild(badge); activeBadges.push(badge); 
                                         }
                                     }
                                 });
                             }
 
-                            // --- DRAW COMPONENT CURRENT ---
                             if (compId) {
                                 let el = AppState.graph.getCell(compId);
                                 if (el) {
@@ -997,27 +1046,16 @@ export function showDCOperatingPointTable(opData, topo) {
 
                                     let compData = opData.currents[compId];
                                     if (compData && compData.val !== undefined) {
-                                        let currentVal = compData.val;
-                                        let arrowStr = "";
-                                        
+                                        let currentVal = compData.val; let arrowStr = "";
                                         if (Math.abs(currentVal) > 1e-12) {
                                             let pt1 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, 'pin1') : null;
                                             let pt2 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, 'pin2') : null;
-                                            
                                             if (pt1 && pt2) {
-                                                let dx = pt2.x - pt1.x;
-                                                let dy = pt2.y - pt1.y;
-                                                
-                                                if (Math.abs(dx) > Math.abs(dy)) {
-                                                    if (currentVal > 0) arrowStr = (dx > 0) ? "→ " : "← ";
-                                                    else arrowStr = (dx > 0) ? "← " : "→ ";
-                                                } else {
-                                                    if (currentVal > 0) arrowStr = (dy > 0) ? "↓ " : "↑ ";
-                                                    else arrowStr = (dy > 0) ? "↑ " : "↓ ";
-                                                }
+                                                let dx = pt2.x - pt1.x; let dy = pt2.y - pt1.y;
+                                                if (Math.abs(dx) > Math.abs(dy)) arrowStr = (dx > 0) ? (currentVal > 0 ? "→ " : "← ") : (currentVal > 0 ? "← " : "→ ");
+                                                else arrowStr = (dy > 0) ? (currentVal > 0 ? "↓ " : "↑ ") : (currentVal > 0 ? "↑ " : "↓ ");
                                             } else {
-                                                let isNegative = currentVal < 0;
-                                                let arrow = isNegative ? "←" : "→"; 
+                                                let isNegative = currentVal < 0; let arrow = isNegative ? "←" : "→"; 
                                                 let angle = el.get('angle') || 0;
                                                 if (angle === 90 || angle === 270) arrow = isNegative ? "↑" : "↓";
                                                 arrowStr = arrow + " ";
@@ -1027,8 +1065,7 @@ export function showDCOperatingPointTable(opData, topo) {
                                         let bbox = el.getBBox();
                                         let screenX = (bbox.x + bbox.width/2) * matrix.a + matrix.e;
                                         let screenY = (bbox.y + bbox.height/2) * matrix.d + matrix.f;
-                                        let targetX = screenX;
-                                        let targetY = screenY - 45; 
+                                        let targetX = screenX; let targetY = screenY - 45; 
 
                                         let lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
                                         lineEl.setAttribute('x1', screenX); lineEl.setAttribute('y1', screenY - 15);
@@ -1044,49 +1081,30 @@ export function showDCOperatingPointTable(opData, topo) {
                                         let badgeArr = document.createElement('div');
                                         badgeArr.style.cssText = `position:absolute; left:${targetX}px; top:${targetY}px; transform:translate(-50%, -50%); background:#3498db; color:#ffffff; padding:4px 7px; border-radius:4px; font-size:11px; font-family:monospace; font-weight:bold; border:1px solid #2980b9; z-index:1105; pointer-events:none; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space:nowrap;`;
                                         badgeArr.innerText = arrowStr + formatEng(Math.abs(currentVal), 'A'); 
-                                        currentOverlay.appendChild(badgeArr);
-                                        activeBadges.push(badgeArr);
+                                        currentOverlay.appendChild(badgeArr); activeBadges.push(badgeArr);
                                     }
                                 }
                             }
-                        } catch (e) {
-                            console.error("DOM Error during drawing:", e);
-                        }
+                        } catch (e) { console.error("DOM Error during drawing:", e); }
                     }
                 }
             });
 
             popup.addEventListener('mouseleave', () => {
-                if (activeRow) {
-                    activeRow.style.background = 'transparent';
-                    activeRow = null;
-                    clearCanvas();
-                }
+                if (activeRow) { activeRow.style.background = 'transparent'; activeRow = null; clearCanvas(); }
             });
 
             document.getElementById('btn-export-dc-csv').onclick = async () => {
-                // I added a dedicated 'Parameter' column so it's super easy to plot in Excel!
                 let csv = "Item,Parameter,Type,Value\n";
-                for (let [n, v] of Object.entries(opData.nodes||{})) {
-                    csv += `Net ${n},,Voltage,${formatEng(v, 'V')}\n`;
-                }
-                for (let [c, data] of Object.entries(opData.currents||{})) {
-                    csv += `"${data.name}","${data.compVal || ''}",Current,${formatEng(data.val, 'A')}\n`;
-                }
-                
+                for (let [n, v] of Object.entries(opData.nodes||{})) csv += `Net ${n},,Voltage,${formatEng(v, 'V')}\n`;
+                for (let [c, data] of Object.entries(opData.currents||{})) csv += `"${data.name}","${data.compVal || ''}",Current,${formatEng(data.val, 'A')}\n`;
                 if (window.showSaveFilePicker) {
                     try {
-                        const fileHandle = await window.showSaveFilePicker({
-                            suggestedName: 'dc_operating_point.csv',
-                            types: [{ description: 'CSV Data', accept: { 'text/csv': ['.csv'] } }],
-                        });
-                        const writable = await fileHandle.createWritable();
-                        await writable.write(csv);
-                        await writable.close();
+                        const fileHandle = await window.showSaveFilePicker({ suggestedName: 'dc_operating_point.csv', types: [{ description: 'CSV Data', accept: { 'text/csv': ['.csv'] } }] });
+                        const writable = await fileHandle.createWritable(); await writable.write(csv); await writable.close();
                     } catch (err) { if (err.name !== 'AbortError') console.error(err); }
                 } else {
-                    const blob = new Blob([csv], { type: 'text/csv' });
-                    downloadFile(URL.createObjectURL(blob), 'dc_operating_point.csv', true);
+                    const blob = new Blob([csv], { type: 'text/csv' }); downloadFile(URL.createObjectURL(blob), 'dc_operating_point.csv', true);
                 }
             };
 
@@ -1095,11 +1113,8 @@ export function showDCOperatingPointTable(opData, topo) {
             const onMouseUp = () => { isDragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
             handle.addEventListener('mousedown', (e) => {
                 if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return; 
-                isDragging = true; 
-                const rect = popup.getBoundingClientRect(); 
-                popup.style.margin = '0'; popup.style.position = 'fixed'; 
-                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; 
-                startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
+                isDragging = true; const rect = popup.getBoundingClientRect(); popup.style.margin = '0'; popup.style.position = 'fixed'; 
+                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             });
         }
@@ -1429,7 +1444,12 @@ export function drawTheveninEquivalent(Vth, Rth, nodeName) {
 
     Swal.fire({
         width: 760, padding: 0, background: 'none', backdrop: true, showConfirmButton: false, heightAuto: false,
+        customClass: { popup: 'spice-modal-override', htmlContainer: 'spice-modal-override' },
         html: `
+            <style>
+                .swal2-popup.spice-modal-override { padding: 0 !important; background: transparent !important; border: none !important; }
+                .swal2-html-container.spice-modal-override { padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+            </style>
             <div id="sim-thev-res-window" style="display: flex; flex-direction: column; background: var(--bg-app); border-radius: 6px; box-shadow: 0 4px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-main); pointer-events: auto; overflow: hidden;">
                 
                 <div id="swal-drag-handle-thev-res" style="cursor: move; background: #2c3e50; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 2px solid #3498db;">
@@ -1444,17 +1464,15 @@ export function drawTheveninEquivalent(Vth, Rth, nodeName) {
         didOpen: () => {
             if (typeof lucide !== 'undefined') lucide.createIcons();
             const popup = Swal.getPopup(); 
+            const htmlContainer = Swal.getHtmlContainer();
             const handle = document.getElementById('swal-drag-handle-thev-res');
             
-            // THE FIX: Nuke all Swal wrapper whitespace
             popup.style.background = 'transparent'; 
             popup.style.boxShadow = 'none';
-            popup.style.padding = '0';
-            
-            const htmlContainer = Swal.getHtmlContainer();
+            popup.style.setProperty('padding', '0', 'important');
             if (htmlContainer) {
-                htmlContainer.style.margin = '0';
-                htmlContainer.style.padding = '0';
+                htmlContainer.style.setProperty('padding', '0', 'important');
+                htmlContainer.style.setProperty('margin', '0', 'important');
                 htmlContainer.style.overflow = 'hidden';
             }
 
@@ -1463,11 +1481,8 @@ export function drawTheveninEquivalent(Vth, Rth, nodeName) {
             const onMouseUp = () => { isDragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
             handle.addEventListener('mousedown', (e) => {
                 if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return; 
-                isDragging = true; 
-                const rect = popup.getBoundingClientRect(); 
-                popup.style.margin = '0'; popup.style.position = 'fixed'; 
-                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; 
-                startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
+                isDragging = true; const rect = popup.getBoundingClientRect(); popup.style.margin = '0'; popup.style.position = 'fixed'; 
+                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             });
         }
@@ -1722,20 +1737,12 @@ export function promptTransferFunction() {
     lines.forEach(line => {
         let l = line.trim();
         if (!l || l.startsWith('*') || l.startsWith('.')) return;
-        
         let parts = l.split(/\s+/);
         if (parts.length < 3) return;
-
         let compName = parts[0].toUpperCase();
         if (compName.startsWith('V') || compName.startsWith('I')) sources.push(compName);
-
-        let possibleNodes = (compName.startsWith('Q') || compName.startsWith('M') || compName.startsWith('J')) 
-            ? [parts[1], parts[2], parts[3]] 
-            : [parts[1], parts[2]];
-
-        possibleNodes.forEach(n => {
-            if (n && String(n) !== '0' && n.toUpperCase() !== 'GND') nodes.add(n);
-        });
+        let possibleNodes = (compName.startsWith('Q') || compName.startsWith('M') || compName.startsWith('J')) ? [parts[1], parts[2], parts[3]] : [parts[1], parts[2]];
+        possibleNodes.forEach(n => { if (n && String(n) !== '0' && n.toUpperCase() !== 'GND') nodes.add(n); });
     });
 
     if (sources.length === 0) {
@@ -1751,19 +1758,21 @@ export function promptTransferFunction() {
 
     Swal.fire({
         width: 380, padding: 0, background: 'none', backdrop: false, showConfirmButton: false, heightAuto: false,
+        customClass: { popup: 'spice-modal-override', htmlContainer: 'spice-modal-override' },
         html: `
+            <style>
+                .swal2-popup.spice-modal-override { padding: 0 !important; background: transparent !important; border: none !important; }
+                .swal2-html-container.spice-modal-override { padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+            </style>
             <div id="sim-tf-window" style="display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-main); pointer-events: auto; overflow: hidden;">
-                
                 <div id="swal-drag-handle-tf" style="cursor: move; background: #2c3e50; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 2px solid #3498db;">
                     <span style="font-size: 15px; font-weight: bold; display:flex; align-items:center; gap:8px; color: #ffffff;"> 
                         <i data-lucide="bar-chart-2" style="color: #3498db; width: 18px; height: 18px;"></i> SPICE Transfer Function
                     </span>
-                    <div style="flex-grow: 1;"></div>
                     <button onclick="Swal.close()" style="background:none; border:none; color:#ffffff; font-size:18px; cursor:pointer; padding:0; line-height:1;" title="Close Window">✖</button>
                 </div>
 
                 <div style="padding: 18px; text-align: left; font-size: 13px; color: var(--text-main);">
-                    
                     <p style="color: var(--text-main); font-weight: 500; margin-top: 0; line-height: 1.5; font-size: 13px; margin-bottom: 15px;">
                         Select your input and output to calculate the SPICE Transfer Function.
                     </p>
@@ -1800,27 +1809,22 @@ export function promptTransferFunction() {
             if (AppState && AppState.graph) {
                 AppState.graph.getElements().forEach(el => {
                     let view = el.findView(AppState.paper);
-                    if (view && view.el) {
-                        view.el.style.filter = '';
-                        view.el.style.transition = '';
-                    }
+                    if (view && view.el) { view.el.style.filter = ''; view.el.style.transition = ''; }
                 });
             }
         },
         didOpen: () => {
             if (typeof lucide !== 'undefined') lucide.createIcons();
             const popup = Swal.getPopup(); 
+            const htmlContainer = Swal.getHtmlContainer();
             const handle = document.getElementById('swal-drag-handle-tf');
             
-            // THE FIX: Nuke all Swal wrapper whitespace
             popup.style.background = 'transparent'; 
             popup.style.boxShadow = 'none';
-            popup.style.padding = '0';
-            
-            const htmlContainer = Swal.getHtmlContainer();
+            popup.style.setProperty('padding', '0', 'important');
             if (htmlContainer) {
-                htmlContainer.style.margin = '0';
-                htmlContainer.style.padding = '0';
+                htmlContainer.style.setProperty('padding', '0', 'important');
+                htmlContainer.style.setProperty('margin', '0', 'important');
                 htmlContainer.style.overflow = 'hidden';
             }
 
@@ -1828,7 +1832,6 @@ export function promptTransferFunction() {
             const updateHighlights = () => {
                 let outVar = document.getElementById('tf-out').value;
                 let inSrc = document.getElementById('tf-in').value;
-
                 let overlay = document.getElementById('tf-annotation-overlay');
                 if (!overlay) {
                     overlay = document.createElement('div');
@@ -1836,13 +1839,11 @@ export function promptTransferFunction() {
                     overlay.style.cssText = 'position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000; overflow:visible;';
                     document.getElementById('paper-container').appendChild(overlay);
                 }
-                
                 overlay.innerHTML = '<svg id="tf-hl-svg" xmlns="http://www.w3.org/2000/svg" style="position:absolute; top:0; left:0; width:100%; height:100%; overflow:visible; pointer-events:none;"><g id="tf-hl-layer"></g></svg>';
                 let hlLayer = overlay.querySelector('#tf-hl-layer');
 
                 activeGlowElements.forEach(el => { if (el && el.style) el.style.filter = ''; }); 
                 activeGlowElements = [];
-
                 if (!topo) return;
                 let matrix = AppState.paper.matrix();
                 let getNet = (id) => topo.netMap.get(topo.uf.find(id));
@@ -1867,13 +1868,10 @@ export function promptTransferFunction() {
                     topo.terminals.forEach(term => {
                         let termNet = getNet(term.id);
                         if (termNet !== null && termNet !== undefined && String(termNet) === String(net)) {
-                            let cx = term.x * matrix.a + matrix.e;
-                            let cy = term.y * matrix.d + matrix.f;
+                            let cx = term.x * matrix.a + matrix.e; let cy = term.y * matrix.d + matrix.f;
                             let glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                             glow.setAttribute('cx', cx); glow.setAttribute('cy', cy);
-                            glow.setAttribute('r', '15'); 
-                            glow.setAttribute('fill', 'var(--warning)'); 
-                            glow.setAttribute('opacity', '0.6');
+                            glow.setAttribute('r', '15'); glow.setAttribute('fill', 'var(--warning)'); glow.setAttribute('opacity', '0.6');
                             hlLayer.appendChild(glow);
                         }
                     });
@@ -1888,21 +1886,14 @@ export function promptTransferFunction() {
             updateHighlights();
 
             document.getElementById('btn-tf-cancel').onclick = () => Swal.close();
-            
             document.getElementById('btn-tf-calc').onclick = () => {
                 try {
                     let outVar = document.getElementById('tf-out').value;
                     if (outVar === 'custom') outVar = document.getElementById('tf-out-custom').value.trim();
                     let inSrc = document.getElementById('tf-in').value;
-                    
                     if (!outVar || !inSrc) return;
-                    
                     Swal.close(); 
-                    
-                    setTimeout(() => {
-                        executeTransferFunction(outVar, inSrc);
-                    }, 150);
-
+                    setTimeout(() => { executeTransferFunction(outVar, inSrc); }, 150);
                 } catch(e) { console.error("TF UI Click Error:", e); }
             };
 
@@ -1911,11 +1902,8 @@ export function promptTransferFunction() {
             const onMouseUp = () => { isDragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
             handle.addEventListener('mousedown', (e) => {
                 if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return; 
-                isDragging = true; 
-                const rect = popup.getBoundingClientRect(); 
-                popup.style.margin = '0'; popup.style.position = 'fixed'; 
-                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; 
-                startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
+                isDragging = true; const rect = popup.getBoundingClientRect(); popup.style.margin = '0'; popup.style.position = 'fixed'; 
+                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             });
         }
@@ -2083,7 +2071,12 @@ export function showTransferFunctionResults(outVar, inSrc, gain, zIn, zOut) {
 
     Swal.fire({
         width: 400, padding: 0, background: 'none', backdrop: false, showConfirmButton: false, heightAuto: false,
+        customClass: { popup: 'spice-modal-override', htmlContainer: 'spice-modal-override' },
         html: `
+            <style>
+                .swal2-popup.spice-modal-override { padding: 0 !important; background: transparent !important; border: none !important; }
+                .swal2-html-container.spice-modal-override { padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+            </style>
             <div id="sim-tf-res-window" style="display: flex; flex-direction: column; background: var(--bg-app); border-radius: 6px; box-shadow: 0 4px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-main); pointer-events: auto; overflow: hidden;">
                 <div id="swal-drag-handle-tf-res" style="cursor: move; background: #2c3e50; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 2px solid #3498db;">
                     <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px; color: #ffffff;"> 
@@ -2107,17 +2100,15 @@ export function showTransferFunctionResults(outVar, inSrc, gain, zIn, zOut) {
         didOpen: () => {
             if (typeof lucide !== 'undefined') lucide.createIcons();
             const popup = Swal.getPopup(); 
+            const htmlContainer = Swal.getHtmlContainer();
             const handle = document.getElementById('swal-drag-handle-tf-res');
             
-            // THE FIX: Nuke all Swal wrapper whitespace
             popup.style.background = 'transparent'; 
             popup.style.boxShadow = 'none';
-            popup.style.padding = '0';
-            
-            const htmlContainer = Swal.getHtmlContainer();
+            popup.style.setProperty('padding', '0', 'important');
             if (htmlContainer) {
-                htmlContainer.style.margin = '0';
-                htmlContainer.style.padding = '0';
+                htmlContainer.style.setProperty('padding', '0', 'important');
+                htmlContainer.style.setProperty('margin', '0', 'important');
                 htmlContainer.style.overflow = 'hidden';
             }
             
@@ -2131,17 +2122,11 @@ export function showTransferFunctionResults(outVar, inSrc, gain, zIn, zOut) {
                 
                 if (window.showSaveFilePicker) {
                     try {
-                        const fileHandle = await window.showSaveFilePicker({
-                            suggestedName: 'spice_transfer_function.csv',
-                            types: [{ description: 'CSV Data', accept: { 'text/csv': ['.csv'] } }],
-                        });
-                        const writable = await fileHandle.createWritable();
-                        await writable.write(csv);
-                        await writable.close();
+                        const fileHandle = await window.showSaveFilePicker({ suggestedName: 'spice_transfer_function.csv', types: [{ description: 'CSV Data', accept: { 'text/csv': ['.csv'] } }] });
+                        const writable = await fileHandle.createWritable(); await writable.write(csv); await writable.close();
                     } catch (err) { if (err.name !== 'AbortError') console.error(err); }
                 } else {
-                    const blob = new Blob([csv], { type: 'text/csv' });
-                    downloadFile(URL.createObjectURL(blob), 'spice_transfer_function.csv', true);
+                    const blob = new Blob([csv], { type: 'text/csv' }); downloadFile(URL.createObjectURL(blob), 'spice_transfer_function.csv', true);
                 }
             };
 
@@ -2150,11 +2135,8 @@ export function showTransferFunctionResults(outVar, inSrc, gain, zIn, zOut) {
             const onMouseUp = () => { isDragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
             handle.addEventListener('mousedown', (e) => {
                 if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return; 
-                isDragging = true; 
-                const rect = popup.getBoundingClientRect(); 
-                popup.style.margin = '0'; popup.style.position = 'fixed'; 
-                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; 
-                startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
+                isDragging = true; const rect = popup.getBoundingClientRect(); popup.style.margin = '0'; popup.style.position = 'fixed'; 
+                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             });
         }

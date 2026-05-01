@@ -430,7 +430,7 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
         html += `</div>`;
 
         html += `<div style="flex-grow: 1; background: var(--bg-panel);">`;
-        html += `<svg width="${svgWidth}" height="${svgHeight}" style="font-family: var(--font-code); background: var(--bg-panel); display: block;">`;
+        html += `<svg width="${svgWidth}" height="${svgHeight}" style="font-family: var(--font-code); background: var(--bg-panel); display: block;" xmlns="http://www.w3.org/2000/svg">`;
         
         for (let i = 0; i < numRows; i++) {
             let baseY = 20 + (i * rowHeight);
@@ -508,61 +508,104 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
 
     let filterChecksHtml = '';
     allProbeNetIds.forEach(id => {
-        filterChecksHtml += `<label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 12px; margin:0; transition:background 0.2s; font-size:12px; color:var(--text-main);"><input type="checkbox" class="timing-filter-chk" value="${id}" checked style="margin:0;"> ${probes[id]}</label>`;
+        filterChecksHtml += `<label style="display:flex; align-items:center; gap:8px; cursor:pointer; padding:6px 12px; margin:0; font-size:12px; color:var(--text-main);"><input type="checkbox" class="timing-filter-chk" value="${id}" checked style="margin:0;"> ${probes[id]}</label>`;
     });
 
+    // Helper for export button hover effects
+	const btnHover = `onmouseover="this.style.background='rgba(128, 128, 128, 0.2)'" onmouseout="this.style.background='transparent'"`;
+
     Swal.fire({
-        width: 'auto', padding: '0', background: 'transparent', backdrop: false, showConfirmButton: false, heightAuto: false,
+        width: 'auto', 
+        padding: 0, 
+        background: 'transparent', 
+        backdrop: false, 
+        showConfirmButton: false, 
+        heightAuto: false,
+        customClass: {
+            popup: 'timing-modal-override',
+            htmlContainer: 'timing-modal-override'
+        },
         html: `
-            <div id="timing-true-window" style="width: 1000px; max-width: 95vw; height: auto; min-height: 200px; max-height: 80vh; resize: both; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); border: 1px solid var(--border-main); pointer-events: auto;">
-                <div id="timing-drag-handle" style="flex: 0 0 40px; cursor: move; background: var(--bg-toolbar); color: var(--text-inverse); padding: 0 15px; display: flex; justify-content: space-between; align-items: center; user-select: none;">
-                    <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:8px;"><i data-lucide="clock" style="width: 18px; height: 18px;"></i> Digital Timing Diagram </span>
-                    <div style="display:flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <div style="display:flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 4px;">
+            <style>
+                .swal2-popup.timing-modal-override { padding: 0 !important; background: transparent !important; border: none !important; }
+                .swal2-html-container.timing-modal-override { padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+            </style>
+            <div id="timing-true-window" style="width: 1000px; max-width: 95vw; height: auto; min-height: 200px; max-height: 80vh; resize: both; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-main); pointer-events: auto;">
+                
+                <div id="timing-drag-handle" style="flex: 0 0 42px; cursor: move; background: var(--bg-toolbar); color: var(--text-inverse); padding: 0 10px; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 1px solid var(--border-main);">
+                    
+                    <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:6px; flex-shrink: 0; white-space: nowrap;">
+                        <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--primary);"></i> Timing
+                    </span>
+                    
+                    <div style="display:flex; gap: 8px; align-items: center; flex-grow: 1; justify-content: flex-end; overflow: visible;">
+                        
+                        <div style="display:flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 4px; white-space: nowrap;">
                             <span style="font-size: 11px; font-weight: bold;">Crop (ns):</span>
-                            <input type="number" id="timing-start" value="0" min="0" step="1" style="width: 60px; font-size: 11px; padding: 1px 4px; border-radius: 3px; border: none; outline: none; background: var(--bg-panel); color: var(--text-main);">
-                            <span style="font-size: 11px; font-weight: bold;">to</span>
-                            <input type="number" id="timing-stop" value="${totalNs}" min="0" step="1" style="width: 60px; font-size: 11px; padding: 1px 4px; border-radius: 3px; border: none; outline: none; background: var(--bg-panel); color: var(--text-main);">
+                            <input type="number" id="timing-start" value="0" min="0" step="1" style="width: 45px; font-size: 11px; padding: 1px 2px; border-radius: 3px; border: none; outline: none; background: var(--bg-panel); color: var(--text-main); text-align: center;">
+                            <span style="font-size: 11px; font-weight: bold;">-</span>
+                            <input type="number" id="timing-stop" value="${totalNs}" min="0" step="1" style="width: 45px; font-size: 11px; padding: 1px 2px; border-radius: 3px; border: none; outline: none; background: var(--bg-panel); color: var(--text-main); text-align: center;">
                         </div>
-                        <div class="toolbar-dropdown" style="margin: 0;">
-                            <button class="tool-btn" style="padding: 2px 10px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.2); border: none; color: var(--text-inverse); display: flex; align-items: center; gap: 4px;">
+                        
+                        <!-- EXPORT DROPDOWN -->
+                        <div style="position: relative; margin: 0; white-space: nowrap;">
+                            <button id="btn-export-toggle" style="padding: 3px 8px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.2); border: none; border-radius: 4px; color: var(--text-inverse); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                                <i data-lucide="download" style="width: 12px; height: 12px;"></i> Export ▼
+                            </button>
+                            <div id="menu-export" style="display: none; position: absolute; right: 0; top: calc(100% + 5px); background: var(--bg-panel); box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid var(--border-main); border-radius: 4px; padding: 5px 0; z-index: 10000; min-width: 180px;">
+                                <button id="btn-export-dig-csv" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export CSV</button>
+                                <button id="btn-export-dig-png" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export PNG</button>
+                                <button id="btn-export-dig-tex" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export TikZ (.sty)</button>
+                                <button id="btn-export-dig-standalone-tex" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export Standalone LaTeX</button>
+                                <button id="btn-export-dig-mat" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export MATLAB</button>
+                            </div>
+                        </div>
+
+                        <!-- FILTER DROPDOWN -->
+                        <div style="position: relative; margin: 0; white-space: nowrap;">
+                            <button id="btn-filter-toggle" style="padding: 3px 8px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.2); border: none; border-radius: 4px; color: var(--text-inverse); display: flex; align-items: center; gap: 4px; cursor: pointer;">
                                 <i data-lucide="filter" style="width: 12px; height: 12px;"></i> Filter ▼
                             </button>
-                            <div class="toolbar-dropdown-content" style="right: 0; left: auto; max-height: 250px; overflow-y: auto; background: var(--bg-panel); box-shadow: 0 4px 10px rgba(0,0,0,0.3); border-radius: 4px; padding: 5px 0;">
+                            <div id="menu-filter" style="display: none; position: absolute; right: 0; top: calc(100% + 5px); max-height: 250px; overflow-y: auto; background: var(--bg-panel); box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid var(--border-main); border-radius: 4px; padding: 5px 0; z-index: 10000; min-width: 160px;">
                                 ${filterChecksHtml}
                             </div>
                         </div>
-                        <div style="display:flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 4px;">
-                            <span style="font-size: 11px; font-weight: bold;">Grid:</span>
-                            <select id="timing-grid" style="font-size: 11px; margin: 0; padding: 1px; border-radius: 3px; border: none; background: var(--bg-panel); color: var(--text-main); outline: none; cursor: pointer;">
-                                <option value="0">Off</option> <option value="1">Coarse</option> <option value="2" selected>Medium</option> <option value="4">Fine</option> <option value="10">Ultra</option>
+                        
+                        <div style="display:flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 4px; white-space: nowrap;">
+                            <i data-lucide="grid" style="width: 12px; height: 12px;"></i>
+                            <select id="timing-grid" style="font-size: 11px; margin: 0; padding: 0; border-radius: 3px; border: none; background: transparent; color: var(--text-inverse); outline: none; cursor: pointer; font-weight: bold;">
+                                <option value="0" style="color: black;">Off</option> <option value="1" style="color: black;">Coarse</option> <option value="2" selected style="color: black;">Medium</option> <option value="4" style="color: black;">Fine</option> <option value="10" style="color: black;">Ultra</option>
                             </select>
                         </div>
-                        <div style="display:flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 4px;" title="Vertical Zoom">
+                        
+                        <div style="display:flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 4px; white-space: nowrap;" title="Vertical Zoom">
                             <i data-lucide="move-vertical" style="width: 12px; height: 12px;"></i>
-                            <input type="range" id="timing-vzoom" min="20" max="120" step="5" value="45" style="width: 50px; cursor: ew-resize; margin: 0;">
+                            <input type="range" id="timing-vzoom" min="20" max="120" step="5" value="45" style="width: 45px; cursor: ew-resize; margin: 0;">
                         </div>
-                        <div style="display:flex; align-items: center; gap: 5px; background: rgba(0,0,0,0.2); padding: 2px 10px; border-radius: 4px;" title="Horizontal Zoom">
+                        
+                        <div style="display:flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 4px; white-space: nowrap;" title="Horizontal Zoom">
                             <i data-lucide="move-horizontal" style="width: 12px; height: 12px;"></i>
-                            <input type="range" id="timing-zoom" min="1" max="100" step="1" value="1" style="width: 60px; cursor: ew-resize; margin: 0;">
-                            <span id="timing-zoom-val" style="font-size: 11px; font-weight: bold; width: 25px; text-align: right;">1x</span>
+                            <input type="range" id="timing-zoom" min="1" max="100" step="1" value="1" style="width: 45px; cursor: ew-resize; margin: 0;">
                         </div>
-                        <button onclick="Swal.close()" style="background: none; border: none; color: white; cursor: pointer; font-weight: bold; font-size: 16px; line-height: 1; padding: 0 0 0 5px;" title="Close">✖</button>
                     </div>
+                    
+                    <button onclick="Swal.close()" style="flex-shrink: 0; background: none; border: none; color: var(--text-inverse); cursor: pointer; font-weight: bold; font-size: 18px; line-height: 1; padding: 0 0 0 10px; margin-left: 10px;" title="Close Window">✖</button>
                 </div>
+                
                 <div id="timing-diagram-container" style="flex: 1; overflow: auto; background: var(--bg-panel); position: relative; display: flex; flex-direction: column;"></div>
             </div>
         `,
         didOpen: () => {
-			lucide.createIcons();
-            const popup = Swal.getPopup(); const htmlContainer = Swal.getHtmlContainer(); const handle = document.getElementById('timing-drag-handle');
-            const container = document.getElementById('timing-diagram-container'); const windowContainer = document.getElementById('timing-true-window');
-            const zoomSlider = document.getElementById('timing-zoom'); const vZoomSlider = document.getElementById('timing-vzoom');
-            const zoomVal = document.getElementById('timing-zoom-val'); const gridSelect = document.getElementById('timing-grid');
-            const startInput = document.getElementById('timing-start'); const stopInput = document.getElementById('timing-stop');
-            
-            popup.style.background = 'transparent'; popup.style.boxShadow = 'none';
-            if (htmlContainer) { htmlContainer.style.overflow = 'visible'; htmlContainer.style.padding = '0'; htmlContainer.style.margin = '0'; }
+            lucide.createIcons();
+            const popup = Swal.getPopup(); 
+            const handle = document.getElementById('timing-drag-handle');
+            const container = document.getElementById('timing-diagram-container'); 
+            const windowContainer = document.getElementById('timing-true-window');
+            const zoomSlider = document.getElementById('timing-zoom'); 
+            const vZoomSlider = document.getElementById('timing-vzoom');
+            const gridSelect = document.getElementById('timing-grid');
+            const startInput = document.getElementById('timing-start'); 
+            const stopInput = document.getElementById('timing-stop');
 
             let currentHZoom = 1.0; let currentVZoom = 45; let currentGrid = 2; let currentStartNs = 0; let currentStopNs = totalNs;
             let currentWidth = container.clientWidth; let currentHeight = container.clientHeight; let visibleProbes = new Set(allProbeNetIds);
@@ -577,7 +620,7 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
             });
             resizeObserver.observe(windowContainer);
 
-            zoomSlider.addEventListener('input', (e) => { currentHZoom = parseFloat(e.target.value); zoomVal.innerText = currentHZoom + 'x'; refreshDiagram(); });
+            zoomSlider.addEventListener('input', (e) => { currentHZoom = parseFloat(e.target.value); refreshDiagram(); });
             vZoomSlider.addEventListener('input', (e) => { currentVZoom = parseInt(e.target.value); refreshDiagram(); });
             gridSelect.addEventListener('change', (e) => { currentGrid = parseInt(e.target.value); refreshDiagram(); });
 
@@ -589,6 +632,220 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
 
             startInput.addEventListener('change', handleCropChange); stopInput.addEventListener('change', handleCropChange);
             document.querySelectorAll('.timing-filter-chk').forEach(chk => { chk.addEventListener('change', (e) => { if (e.target.checked) visibleProbes.add(e.target.value); else visibleProbes.delete(e.target.value); refreshDiagram(); }); });
+
+            // --- JAVASCRIPT DROPDOWN TOGGLE LOGIC ---
+            const btnExportToggle = document.getElementById('btn-export-toggle');
+            const menuExport = document.getElementById('menu-export');
+            const btnFilterToggle = document.getElementById('btn-filter-toggle');
+            const menuFilter = document.getElementById('menu-filter');
+
+            const closeAllMenus = () => {
+                if(menuExport) menuExport.style.display = 'none';
+                if(menuFilter) menuFilter.style.display = 'none';
+            };
+
+            if (btnExportToggle) {
+                btnExportToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    let isVis = menuExport.style.display === 'block';
+                    closeAllMenus();
+                    if (!isVis) menuExport.style.display = 'block';
+                });
+            }
+
+            if (btnFilterToggle) {
+                btnFilterToggle.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    let isVis = menuFilter.style.display === 'block';
+                    closeAllMenus();
+                    if (!isVis) menuFilter.style.display = 'block';
+                });
+            }
+
+            if (menuFilter) menuFilter.addEventListener('click', (e) => e.stopPropagation());
+            popup.addEventListener('click', closeAllMenus);
+            
+            document.querySelectorAll('#menu-export button').forEach(btn => {
+                btn.addEventListener('click', closeAllMenus);
+            });
+
+            // --- ADVANCED EXPORT HANDLERS ---
+            async function downloadData(content, defaultFilename, mimeType, description) {
+                if (window.showSaveFilePicker) {
+                    try {
+                        const handle = await window.showSaveFilePicker({
+                            suggestedName: defaultFilename,
+                            types: [{ description: description, accept: { [mimeType]: [`.${defaultFilename.split('.').pop()}`] } }]
+                        });
+                        const writable = await handle.createWritable();
+                        await writable.write(content);
+                        await writable.close();
+                    } catch (e) {
+                        if (e.name !== 'AbortError') console.error(e);
+                    }
+                } else {
+                    const blob = new Blob([content], { type: mimeType });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = defaultFilename;
+                    document.body.appendChild(a); a.click();
+                    document.body.removeChild(a); URL.revokeObjectURL(url);
+                }
+            }
+
+            document.getElementById('btn-export-dig-csv').onclick = () => {
+                let active = allProbeNetIds.filter(id => visibleProbes.has(id));
+                let times = new Set([currentStartNs, currentStopNs]);
+                active.forEach(id => {
+                    history[id].time.forEach(t => { let t_ns = t * 1e9; if(t_ns >= currentStartNs && t_ns <= currentStopNs) times.add(t_ns); });
+                });
+                let sortedTimes = Array.from(times).sort((a,b) => a - b);
+                
+                let csv = "Time (ns)," + active.map(id => probes[id]).join(",") + "\n";
+                sortedTimes.forEach(t => {
+                    let row = [t];
+                    active.forEach(id => row.push(getStateAtTime(history[id], t)));
+                    csv += row.join(",") + "\n";
+                });
+                downloadData(csv, "digital_timing.csv", "text/csv", "CSV Data File");
+            };
+
+            function generateTikzCore(active, windowNs) {
+                let allTimes = new Set([currentStartNs, currentStopNs]);
+                active.forEach(id => {
+                    history[id].time.forEach(t => { 
+                        let tns = t * 1e9; 
+                        if (tns >= currentStartNs && tns <= currentStopNs) allTimes.add(Math.round(tns * 1000) / 1000); 
+                    });
+                });
+                let sortedTimes = Array.from(allTimes).sort((a, b) => a - b);
+                
+                let minDelta = windowNs;
+                for (let i = 1; i < sortedTimes.length; i++) {
+                    let d = sortedTimes[i] - sortedTimes[i-1];
+                    if (d > 0.01 && d < minDelta) minDelta = d;
+                }
+
+                let maxChars = 150; 
+                let sampleStep = Math.max(minDelta, windowNs / maxChars);
+                let samples = Math.floor(windowNs / sampleStep);
+                if (samples < 1) samples = 1;
+
+                let tex = "";
+                for (let i = 0; i < active.length; i += 4) {
+                    let chunk = active.slice(i, i + 4);
+                    let args = [];
+                    for (let j = 0; j < 4; j++) {
+                        if (j < chunk.length) {
+                            // Reorder logic: Output the UI-Top signal as the LaTeX-Top signal
+                            let netId = chunk[chunk.length - 1 - j];
+                            let name = probes[netId];
+                            let stream = "";
+                            for (let k = 0; k < samples; k++) {
+                                let t = currentStartNs + k * sampleStep + (sampleStep / 2);
+                                let state = getStateAtTime(history[netId], t);
+                                stream += (state === 1 ? '1' : (state === 0 ? '0' : 'X'));
+                            }
+                            args.push(`{${stream}-${name}}`); 
+                        } else {
+                            args.push(`{}`);
+                        }
+                    }
+                    
+                    // Maintain precise stacking spacing for multiple chunks
+                    let offset = 2 * (chunk.length - 1) + 2 * i; 
+                    tex += `\\timingdiagram{(0, -${offset})}${args[0]}${args[1]}${args[2]}${args[3]}{gridon}{}\n`;
+                }
+                return tex;
+            }
+
+            document.getElementById('btn-export-dig-tex').onclick = () => {
+                let active = allProbeNetIds.filter(id => visibleProbes.has(id));
+                let tex = "% Auto-generated Adaptive Timing Diagram (requires tikz_electronic_parts.sty)\n\\begin{tikzpictureJL}\n";
+                tex += generateTikzCore(active, currentStopNs - currentStartNs);
+                tex += "\\end{tikzpictureJL}";
+                downloadData(tex, "digital_timing.tex", "text/plain", "LaTeX File");
+            };
+
+            document.getElementById('btn-export-dig-standalone-tex').onclick = () => {
+                let active = allProbeNetIds.filter(id => visibleProbes.has(id));
+                let tex = `\\documentclass{standalone}\n\n% Required packages for the style file\n\\usepackage{amsmath}\n\\usepackage{tikz}\n\\usepackage{xstring}\n\\usepackage{xparse}\n\\usepackage{etoolbox}\n\\usepackage{calculator}\n\\usepackage{accents}\n\\usepackage{xcolor}\n\n% Load your specific electronic parts style file\n\\usepackage{tikz_electronic_parts}\n\\standaloneenv{tikzpictureJL}\n\n\\begin{document}\n\\settikzlinewidth{1.2}\n\\tikzset{every picture/.style={line width=\\tikzlinewidth}}\n\n\\begin{tikzpictureJL}[scale=0.245]\n`;
+                tex += generateTikzCore(active, currentStopNs - currentStartNs);
+                tex += `\\end{tikzpictureJL}\n\n\\end{document}`;
+                downloadData(tex, "digital_timing_standalone.tex", "text/plain", "LaTeX Standalone File");
+            };
+
+            document.getElementById('btn-export-dig-mat').onclick = () => {
+                let active = allProbeNetIds.filter(id => visibleProbes.has(id));
+                let mat = "% MATLAB Digital Timing Diagram\nfigure;\nhold on;\n";
+                active.forEach((netId, idx) => {
+                    let h = history[netId];
+                    let offset = (active.length - 1 - idx) * 1.5; 
+                    let tArr = [currentStartNs];
+                    let yArr = [getStateAtTime(h, currentStartNs) === 1 ? 1 + offset : 0 + offset];
+                    
+                    h.time.forEach((t_sec, i) => {
+                        let t_ns = t_sec * 1e9;
+                        if(t_ns > currentStartNs && t_ns <= currentStopNs) {
+                            tArr.push(t_ns);
+                            yArr.push(h.states[i] === 1 ? 1 + offset : 0 + offset);
+                        }
+                    });
+                    tArr.push(currentStopNs);
+                    yArr.push(yArr[yArr.length-1]);
+                    
+                    mat += `t_${idx} = [${tArr.join(', ')}];\n`;
+                    mat += `y_${idx} = [${yArr.join(', ')}];\n`;
+                    mat += `stairs(t_${idx}, y_${idx}, 'LineWidth', 1.5, 'DisplayName', '${probes[netId]}');\n`;
+                });
+                mat += "yticks([]); ylabel('Signals'); xlabel('Time (ns)');\nlegend('show');\n";
+                downloadData(mat, "digital_timing.m", "text/plain", "MATLAB File");
+            };
+
+            document.getElementById('btn-export-dig-png').onclick = () => {
+                let svgEl = container.querySelector('svg');
+                if (!svgEl) return;
+                
+                let svgData = new XMLSerializer().serializeToString(svgEl)
+                    .replace(/var\(--bg-panel\)/g, '#ffffff')
+                    .replace(/var\(--bg-app\)/g, '#f8f9fa')
+                    .replace(/var\(--border-main\)/g, '#bdc3c7')
+                    .replace(/var\(--text-main\)/g, '#2c3e50')
+                    .replace(/var\(--border-light\)/g, '#ecf0f1');
+                    
+                let img = new Image();
+                img.onload = () => {
+                    let cvs = document.createElement('canvas');
+                    cvs.width = svgEl.getAttribute('width') || 800;
+                    cvs.height = svgEl.getAttribute('height') || 600;
+                    let ctx = cvs.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, cvs.width, cvs.height);
+                    ctx.drawImage(img, 0, 0);
+                    
+                    cvs.toBlob(async (blob) => {
+                        if (window.showSaveFilePicker) {
+                            try {
+                                const handle = await window.showSaveFilePicker({
+                                    suggestedName: 'digital_timing.png',
+                                    types: [{ description: 'PNG Image', accept: { 'image/png': ['.png'] } }]
+                                });
+                                const writable = await handle.createWritable();
+                                await writable.write(blob);
+                                await writable.close();
+                            } catch (e) {
+                                if (e.name !== 'AbortError') console.error(e);
+                            }
+                        } else {
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.download = 'digital_timing.png';
+                            a.href = url; a.click(); URL.revokeObjectURL(url);
+                        }
+                    });
+                };
+                img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+            };
 
             let isDragging = false, startX, startY, initialLeft, initialTop;
             const onMouseMove = (e) => { if (!isDragging) return; popup.style.left = (initialLeft + (e.clientX - startX)) + 'px'; popup.style.top = (initialTop + (e.clientY - startY)) + 'px'; };
