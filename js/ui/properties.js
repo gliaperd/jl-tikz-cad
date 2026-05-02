@@ -4,6 +4,26 @@ import { saveState } from './actions.js';
 import { exportLatex } from '../parsers/latex.js';
 import { getVisualOrigin, applyRobustScale, updateElementLabel, assembleIcon, updateGhostDotsVisibility } from './canvas.js';
 
+// --- 📚 STANDARD SPICE MODEL LIBRARY (CATEGORIZED) ---
+window.SPICE_MODEL_LIBRARY = {
+    "D": { // Diodes
+        "1N4148": ".model 1N4148 D (IS=4.352n RS=0.6458 N=1.906 TT=3.48n CJO=2.595p VJ=0.6385 M=0.262 EG=1.11 XTI=3.0 BV=110 IBV=0.0001)",
+        "1N4004": ".model 1N4004 D (IS=18.8n RS=0 N=2 BV=400 IBV=5.00u CJO=30p VJ=0.333 M=0.333 TT=2.88u)"
+    },
+    "Q": { // Bipolar Transistors (NPN / PNP)
+        "2N3904": ".model 2N3904 NPN (IS=1E-14 VAF=100 BF=300 IKF=0.4 XTB=1.5 BR=4 CJC=4E-12 CJE=8E-12 RB=20 RC=0.1 RE=0.1 TR=250E-9 TF=350E-12 ITF=1 VTF=2 XTF=3 VJC=0.75 VJE=0.75)",
+        "2N3906": ".model 2N3906 PNP (IS=1E-14 VAF=100 BF=200 IKF=0.4 XTB=1.5 BR=4 CJC=4.5E-12 CJE=10E-12 RB=20 RC=0.1 RE=0.1 TR=250E-9 TF=350E-12 ITF=1 VTF=2 XTF=3 VJC=0.75 VJE=0.75)"
+    },
+    "M": { // MOSFETs
+        "2N7002": ".model 2N7002 VDMOS (Rg=120 Vto=1.6 Rd=1.5 Rs=0.5 Rb=0.1 Kp=0.17 mtri=1.2 Cgdmax=20p Cgdmin=2p Cgs=25p Cjo=25p Is=10p m=0.3 VJ=0.75)",
+        "BSS84": ".model BSS84 VDMOS (pchan Rg=120 Vto=-1.6 Rd=1.5 Rs=0.5 Rb=0.1 Kp=0.17 mtri=1.2 Cgdmax=20p Cgdmin=2p Cgs=25p Cjo=25p Is=10p m=0.3 VJ=0.75)"
+    },
+    "X": { // Subcircuits (Op-Amps, ICs)
+        "OPAMP_IDEAL": ".subckt OPAMP_IDEAL in_p in_n out\nE1 out 0 in_p in_n 1Meg\n.ends",
+        "LM741_MACRO": ".subckt LM741_MACRO in_p in_n out\n* Simplified 3-pin LM741 Macro\nRin in_p in_n 2Meg\nE1 out 0 in_p in_n 200k\nRout out 0 75\n.ends"
+    }
+};
+
 // --- NATIVE GEOMETRY PARSER ---
 export function parseGeomArgs(data, argsArray) {
     let angle = 0;

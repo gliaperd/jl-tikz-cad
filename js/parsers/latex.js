@@ -86,56 +86,118 @@ export function forceExportLatex() {
             if (flipH && flipV) flipStr = 'hv'; else if (flipH) flipStr = 'h'; else if (flipV) flipStr = 'v';
 
             const data = JL_DATABASE[macro];
-            const argsCount = (data && data.argsCount) ? data.argsCount : 7;
-            const argNames = (data && data.argNames) ? data.argNames : [];
             
-            let args = [];
-            for (let i = 0; i < argsCount; i++) {
-                let argDef = argNames[i] || { name: '', optional: false };
-                let desc = argDef.name.toLowerCase();
-                let customArgs = el.get('customArgs') || [];
-                let innerVal = "...";
-
-                if (desc.includes('position')) innerVal = `(${tx},${ty})`;
-                else if (desc.includes('rotation') && desc.includes('flip')) innerVal = `${rot},${flipStr}`;
-                else if (desc.includes('rotation') || desc.includes('angle')) innerVal = `${rot}`;            
-                else if (desc.includes('flip')) innerVal = `${flipStr}`;        
-                else {
-                    if (customArgs[i] !== undefined) innerVal = customArgs[i];
-                    else {
-                        if (desc === 'name') innerVal = `$NAME$`;
-                        else if (desc === 'text') innerVal = ``; 
-                        else if (desc.includes('grid')) innerVal = `type "gridon" to show grid`;
-                        else if (desc.includes('show')) innerVal = `type "show" to display (0,0)`;
-                        else if (argDef.name.includes('/')) innerVal = argDef.name.split('/')[0].trim(); 
-                        else innerVal = argDef.name ? argDef.name : "...";
-                    }
+            // ========================================================
+            // THE UNROLL ENGINE: Convert custom subcircuits to raw TikZ!
+            // ========================================================
+            if (data && data.isCustomSubcircuit) {
+                let sx = flipH ? -1 : 1;
+                let sy = flipV ? -1 : 1;
+                let currentScale = el.get('customScale') || 1;
+                let scaleStr = currentScale !== 1 ? `, scale=${currentScale}` : '';
+                
+                let unrolled = `  % --- Subcircuit: ${el.get('displayedText')} ---\n`;
+                unrolled += `  \\begin{scope}[shift={(${tx},${ty})}, rotate=${rot}, xscale=${sx}, yscale=${sy}${scaleStr}]\n`;
+                unrolled += `    \\getzoomfactor\n`;
+                
+                // 1. Draw the vector paths natively
+                let tikzPath = data.iconBase.replace(/\/\*TEXT:[^\*]+\*\//g, '').trim();
+                if (tikzPath) unrolled += `    ${svgToTikz(tikzPath, {sw: "1.5", stroke: "", dashed: false, solid: false})}\n`;
+                
+                // 2. Draw the pin labels
+                let textRegex = /M\s+([-+]?[\d\.]+)\s+([-+]?[\d\.]+).*?\/\*TEXT:([^,]+),([^,]+),(.*)\*\//g;
+                let tMatch;
+                while ((tMatch = textRegex.exec(data.iconBase)) !== null) {
+                    let px = (parseFloat(tMatch[1]) / 10).toFixed(2);
+                    let py = (-parseFloat(tMatch[2]) / 10).toFixed(2);
+                    let tStyle = tMatch[4];
+                    let tStr = tMatch[5];
+                    let formatStart = tStyle === 'bold' ? "\\textbf{" : (tStyle === 'italic' ? "\\textit{" : "");
+                    let formatEnd = formatStart ? "}" : "";
+                    unrolled += `    \\node[draw=none, align=center] at (${px}, ${py}) {${formatStart}${tStr}${formatEnd}};\n`;
                 }
                 
-                let exportVal = innerVal;
-                if (argDef.optional) args.push(`[${exportVal}]`);
-                else args.push(`{${exportVal}}`);
-            }
+                // 3. Register the connection pins
+                if (data.pins) {
+                    unrolled += `    % coordinate pins\n`;
+                    data.pins.forEach(p => {
+                        let px = (p.x / 10).toFixed(2);
+                        let py = (-p.y / 10).toFixed(2);
+                        unrolled += `    \\coordinate (${p.id}) at (${px}, ${py});\n`;
+                    });
+                }
+                
+                // 4. Drop the main label at the bottom center
+                let mainLabel = el.get('displayedText');
+                if (mainLabel && !el.get('customHideLabel')) {
+                    let bW = el.get('baseWidth') || 120;
+                    let bH = el.get('baseHeight') || 80;
+                    let lblX = (bW / 20).toFixed(2);
+                    let lblY = (-(bH / 10) - 1.0).toFixed(2);
+                    unrolled += `    \\node[draw=none, align=center] at (${lblX}, ${lblY}) {${mainLabel}};\n`;
+                }
+                
+                unrolled += `  \\end{scope}\n`;
+                
+                let idStr = ` % id:${el.id}`;
+                let htmlIdSpan = `<span class="sync-id" contenteditable="false" style="display: none; user-select: none; pointer-events: none;">${idStr}</span>`;
+                
+                line = unrolled + idStr + "\n";
+                htmlBlock = highlightLatex(escapeHTML(unrolled)) + htmlIdSpan + "\n";
 
-            let currentScale = el.get('customScale') || 1;
-            let cleanMacroLine = "  \\" + macro + args.join("");
-            let idStr = ` % id:${el.id}`;
-            
-            // THE FIX: The Invisibility Cloak! We force display:none right here.
-            let htmlIdSpan = `<span class="sync-id" contenteditable="false" style="display: none; user-select: none; pointer-events: none;">${idStr}</span>`;
-            
-            let finalRawLine = cleanMacroLine + idStr + "\n";
-            let finalHtmlLine = highlightLatex(escapeHTML(cleanMacroLine)) + htmlIdSpan + "\n";
-
-            if (currentScale !== 1) {
-                let scaleOn = `  \\setscale{${currentScale}}\n`;
-                let scaleOff = `  \\setscale{1}\n`;
-                line = scaleOn + finalRawLine + scaleOff;
-                htmlBlock = highlightLatex(escapeHTML(scaleOn)) + finalHtmlLine + highlightLatex(escapeHTML(scaleOff));
             } else {
-                line = finalRawLine; htmlBlock = finalHtmlLine;
-            }
-        }
+                // ========================================================
+                // STANDARD LATEX MACRO EXPORTER
+                // ========================================================
+                const argsCount = (data && data.argsCount) ? data.argsCount : 7;
+                const argNames = (data && data.argNames) ? data.argNames : [];
+                
+                let args = [];
+                for (let i = 0; i < argsCount; i++) {
+                    let argDef = argNames[i] || { name: '', optional: false };
+                    let desc = argDef.name.toLowerCase();
+                    let customArgs = el.get('customArgs') || [];
+                    let innerVal = "...";
+
+                    if (desc.includes('position')) innerVal = `(${tx},${ty})`;
+                    else if (desc.includes('rotation') && desc.includes('flip')) innerVal = `${rot},${flipStr}`;
+                    else if (desc.includes('rotation') || desc.includes('angle')) innerVal = `${rot}`;            
+                    else if (desc.includes('flip')) innerVal = `${flipStr}`;        
+                    else {
+                        if (customArgs[i] !== undefined) innerVal = customArgs[i];
+                        else {
+                            if (desc === 'name') innerVal = `$NAME$`;
+                            else if (desc === 'text') innerVal = ``; 
+                            else if (desc.includes('grid')) innerVal = `type "gridon" to show grid`;
+                            else if (desc.includes('show')) innerVal = `type "show" to display (0,0)`;
+                            else if (argDef.name.includes('/')) innerVal = argDef.name.split('/')[0].trim(); 
+                            else innerVal = argDef.name ? argDef.name : "...";
+                        }
+                    }
+                    
+                    let exportVal = innerVal;
+                    if (argDef.optional) args.push(`[${exportVal}]`);
+                    else args.push(`{${exportVal}}`);
+                }
+
+                let currentScale = el.get('customScale') || 1;
+                let cleanMacroLine = "  \\" + macro + args.join("");
+                let idStr = ` % id:${el.id}`;
+                let htmlIdSpan = `<span class="sync-id" contenteditable="false" style="display: none; user-select: none; pointer-events: none;">${idStr}</span>`;
+                
+                let finalRawLine = cleanMacroLine + idStr + "\n";
+                let finalHtmlLine = highlightLatex(escapeHTML(cleanMacroLine)) + htmlIdSpan + "\n";
+
+                if (currentScale !== 1) {
+                    let scaleOn = `  \\setscale{${currentScale}}\n`;
+                    let scaleOff = `  \\setscale{1}\n`;
+                    line = scaleOn + finalRawLine + scaleOff;
+                    htmlBlock = highlightLatex(escapeHTML(scaleOn)) + finalHtmlLine + highlightLatex(escapeHTML(scaleOff));
+                } else {
+                    line = finalRawLine; htmlBlock = finalHtmlLine;
+                }
+            } 
+		}
         outText += line;
         if (isSelected(el.id)) outHTML += `<span class="highlight">${htmlBlock}</span>`;
         else outHTML += htmlBlock;
@@ -455,4 +517,98 @@ ${indentedTikz}
         // Trigger the smart Save Dialog
         saveFileAs(finalOutput, filename, 'text/plain', 'LaTeX Document');
     });
+}
+
+// --- Advanced SVG to TikZ Converter ---
+export function svgToTikz(pathStr, styles) {
+    let x=0, y=0;
+    let tikz = "";
+    let tokens = pathStr.match(/[a-zA-Z]|[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+    if(!tokens) return "";
+    
+    let i = 0, cmd = '';
+    
+    function angle(u, v) {
+        let dot = u[0]*v[0] + u[1]*v[1];
+        let len = Math.sqrt(u[0]*u[0]+u[1]*u[1]) * Math.sqrt(v[0]*v[0]+v[1]*v[1]);
+        let ang = Math.acos(Math.max(-1, Math.min(1, dot/len)));
+        return (u[0]*v[1] - u[1]*v[0] < 0) ? -ang : ang;
+    }
+
+    while(i < tokens.length) {
+        let token = tokens[i];
+        if(/[a-zA-Z]/.test(token)) { cmd = token; i++; }
+        
+        if(cmd === 'M' || cmd === 'L') { 
+            x = parseFloat(tokens[i]); y = parseFloat(tokens[i+1]); 
+            tikz += (cmd==='M'?'':`-- `) + `(${x/10}, ${-y/10}) `; i+=2; 
+            if(cmd === 'M') cmd = 'L'; 
+        }
+        else if(cmd === 'm' || cmd === 'l') { 
+            x += parseFloat(tokens[i]); y += parseFloat(tokens[i+1]); 
+            tikz += (cmd==='m'?'':`-- `) + `(${x/10}, ${-y/10}) `; i+=2; 
+            if(cmd === 'm') cmd = 'l';
+        }
+        else if(cmd === 'C' || cmd === 'c') {
+            let cx1 = parseFloat(tokens[i]), cy1 = parseFloat(tokens[i+1]);
+            let cx2 = parseFloat(tokens[i+2]), cy2 = parseFloat(tokens[i+3]);
+            let ex = parseFloat(tokens[i+4]), ey = parseFloat(tokens[i+5]);
+            if(cmd === 'c') { cx1+=x; cy1+=y; cx2+=x; cy2+=y; ex+=x; ey+=y; }
+            tikz += `.. controls (${(cx1/10).toFixed(2)}, ${(-cy1/10).toFixed(2)}) and (${(cx2/10).toFixed(2)}, ${(-cy2/10).toFixed(2)}) .. (${(ex/10).toFixed(2)}, ${(-ey/10).toFixed(2)}) `;
+            x = ex; y = ey; i+=6;
+        }
+        else if(cmd === 'Q' || cmd === 'q') {
+            let cx = parseFloat(tokens[i]), cy = parseFloat(tokens[i+1]);
+            let ex = parseFloat(tokens[i+2]), ey = parseFloat(tokens[i+3]);
+            if(cmd === 'q') { cx+=x; cy+=y; ex+=x; ey+=y; }
+            tikz += `.. controls (${(cx/10).toFixed(2)}, ${(-cy/10).toFixed(2)}) .. (${(ex/10).toFixed(2)}, ${(-ey/10).toFixed(2)}) `;
+            x = ex; y = ey; i+=4;
+        }
+        else if(cmd === 'A' || cmd === 'a') {
+            let rx = parseFloat(tokens[i])/10, ry = parseFloat(tokens[i+1])/10;
+            let xrot = parseFloat(tokens[i+2]), fA = parseFloat(tokens[i+3]), fS = parseFloat(tokens[i+4]);
+            let ex = (cmd === 'a' ? x : 0) + parseFloat(tokens[i+5]);
+            let ey = (cmd === 'a' ? y : 0) + parseFloat(tokens[i+6]);
+            
+            let x1 = x/10, y1 = -y/10, x2 = ex/10, y2 = -ey/10;
+            let phi = -xrot * Math.PI / 180, fS_tikz = 1 - fS; 
+            
+            let dx = (x1 - x2)/2, dy = (y1 - y2)/2;
+            let x1p = Math.cos(phi)*dx + Math.sin(phi)*dy;
+            let y1p = -Math.sin(phi)*dx + Math.cos(phi)*dy;
+            let rxSq = rx*rx, rySq = ry*ry, x1pSq = x1p*x1p, y1pSq = y1p*y1p;
+            
+            let radCheck = x1pSq/rxSq + y1pSq/rySq;
+            if (radCheck > 1) { rx *= Math.sqrt(radCheck); ry *= Math.sqrt(radCheck); rxSq=rx*rx; rySq=ry*ry; }
+            
+            let sign = (fA === fS_tikz) ? -1 : 1;
+            let sq = Math.max(0, ((rxSq*rySq) - (rxSq*y1pSq) - (rySq*x1pSq)) / ((rxSq*y1pSq) + (rySq*x1pSq)));
+            let coef = sign * Math.sqrt(sq);
+            let cxp = coef * ((rx * y1p) / ry);
+            let cyp = coef * (-(ry * x1p) / rx);
+            
+            let vx1 = (x1p - cxp)/rx, vy1 = (y1p - cyp)/ry;
+            let vx2 = (-x1p - cxp)/rx, vy2 = (-y1p - cyp)/ry;
+            
+            let startAng = angle([1,0], [vx1, vy1]) * 180/Math.PI;
+            let deltaAng = angle([vx1, vy1], [vx2, vy2]) * 180/Math.PI;
+            
+            if (fS_tikz === 0 && deltaAng > 0) deltaAng -= 360;
+            if (fS_tikz === 1 && deltaAng < 0) deltaAng += 360;
+            let endAng = startAng + deltaAng;
+            
+            tikz += `arc (${startAng.toFixed(1)}:${endAng.toFixed(1)}:${rx.toFixed(3)} and ${ry.toFixed(3)}) `;
+            x = ex; y = ey; i+=7;
+        }
+        else if(cmd === 'Z' || cmd === 'z') { tikz += `-- cycle `; cmd=''; }
+        else { i++; } 
+    }
+    let extra = "";
+    if (styles) {
+        if (styles.dashed) extra += ", dashed";
+        if (styles.solid) extra += ", fill=black";
+        if (styles.rounded) extra += ", line cap=round, line join=round";
+        return `\\draw [line width=\\linewidthscalefactor * \\zoomfactor * ${styles.sw}pt${extra}] ${tikz.trim()};`;
+    }
+    return `\\draw [line width=\\linewidthscalefactor * \\zoomfactor * 1.5pt] ${tikz.trim()};`;
 }

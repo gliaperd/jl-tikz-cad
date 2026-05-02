@@ -7,6 +7,7 @@ import { syncFromLatex, runLinterUI, copyLatexToClipboard } from '../parsers/lat
 import { importProject, openExportDialog, saveProjectToFile } from '../parsers/io.js';
 import { runSimulation, clearSimAnnotations, openSpiceNetlistEditor, promptTheveninNode, promptTransferFunction } from '../engines/spice.js';
 import { refreshComponentViews, updateGhostDotsVisibility, applyTheme } from './canvas.js'; 
+import { packCurrentCircuit } from '../engines/packer.js';
 
 export function initializeToolbar() {
     // Editing Tools
@@ -118,4 +119,33 @@ export function initializeToolbar() {
 	document.getElementById('btn-sync-latex').addEventListener('click', syncFromLatex);
     document.getElementById('btn-check-syntax').addEventListener('click', () => runLinterUI());
     document.getElementById('btn-copy-latex').addEventListener('click', copyLatexToClipboard);
+	
+	// --- Circuit "Pack" Option ---
+	document.getElementById('btn-pack').addEventListener('click', () => {
+        Swal.fire({
+            title: 'Pack Subcircuit',
+            text: 'Enter a name for your custom component. The app will generate a symbol using your ioports.',
+            input: 'text',
+            inputLabel: 'Component Name',
+            inputPlaceholder: 'e.g. My Custom Filter',
+            showCancelButton: true,
+            confirmButtonText: 'Pack Component',
+            confirmButtonColor: 'var(--primary)',
+            didOpen: () => {
+                // Ensure Lucide icons render in the Swal if you added any
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            },
+            preConfirm: (name) => {
+                if (!name || name.trim() === '') {
+                    Swal.showValidationMessage('Please enter a component name.');
+                    return false;
+                }
+                return name.trim();
+            }
+        }).then(result => {
+            if (result.isConfirmed) {
+                packCurrentCircuit(result.value);
+            }
+        });
+    });
 }

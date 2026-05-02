@@ -216,7 +216,7 @@ export function generateSpiceNetlistStr(customSim) {
 
     elements.forEach(el => {
         let macro = el.get('latexMacro');
-        if (macro === 'freetext' || macro === 'connectordot' || macro === 'groundterminal') return;
+        if (macro === 'freetext' || macro === 'connectordot' || macro === 'groundterminal' || macro === 'ioport' || macro === 'ioportdot') return;
 
         let dbData = JL_DATABASE[macro];
         let baseName = (el.get('displayedText') || "comp").replace(/\s+/g, '');
@@ -231,6 +231,18 @@ export function generateSpiceNetlistStr(customSim) {
         let spiceData = el.get('spiceData') || {};
         let simData = el.get('simData') || {}; // <-- ADDED: Fetch simData for the switch properties
         template = template.replace(/\{NAME\}/g, name);
+		
+		// ==========================================
+        // NEW: DYNAMIC OP-AMP PIN SWAPPING
+        // ==========================================
+        if (macro === 'opamplifier') {
+            let args = el.get('customArgs') || [];
+            if (args[2] === 'flip') {
+                // If flipped visually, swap the physical SPICE connections!
+                template = template.replace('{pin1}', '{TEMP}').replace('{pin2}', '{pin1}').replace('{TEMP}', '{pin2}');
+            }
+        }
+        // ==========================================
 
         el.getPorts().forEach(port => {
             let pt = window.getAbsolutePinCoord(el, port.id);
@@ -277,9 +289,21 @@ export function generateSpiceNetlistStr(customSim) {
             }
             // ==========================================
 
-            if (param === 'MODEL' && val === "") {
+            if (param === 'MODEL') {
                 let userModels = AppState.spiceSimConfig.modelsContent || "";
-                if (val.startsWith('WIZ_')) {
+                
+                // 1. Fetch from standard Library (e.g. LM741_MACRO, 2N3904)
+                if (val && !val.startsWith('WIZ_')) {
+                    let lib = window.SPICE_MODEL_LIBRARY || {};
+                    for (let cat in lib) {
+                        if (lib[cat][val]) {
+                            if (!userModels.includes(val)) includedModels.add(lib[cat][val]);
+                            break;
+                        }
+                    }
+                } 
+                // 2. Generate Wizard Models dynamically
+                else if (val.startsWith('WIZ_')) {
                     let isZener = macro.includes('zener'); let isMOS = macro.includes('mos'); let isBJT = macro.includes('bipolar'); let isDiode = macro.includes('diode') && !isZener;
                     let modelStr = `.model ${val} `;
                     if (isZener) modelStr += `D (BV=${spiceData['WIZ_VZ'] || '5.1'} IBV=1m IS=1e-14 N=1)`;
@@ -293,7 +317,7 @@ export function generateSpiceNetlistStr(customSim) {
                         modelStr += `D (IS=1e-14 VJ=${spiceData['WIZ_VJ'] || '0.7'})`;
                     }
                     if (!userModels.includes(val)) includedModels.add(modelStr);
-                } 
+                }
             }
             // Track warnings globally so the UI can see them
             if (!window.spiceFallbacksUsed) window.spiceFallbacksUsed = [];
@@ -1236,25 +1260,58 @@ export function openSpiceNetlistEditor() {
 
     let cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    Swal.fire({
+Swal.fire({
         title: '<div style="display:flex; align-items:center; justify-content:center; gap:8px;"><i data-lucide="file-code" style="width: 20px; height: 20px;"></i> SPICE Netlist Editor</div>',
         width: '800px',
         html: `
-            <div style="text-align:left; font-size:13px; color:var(--text-main);">
-                <p style="margin-top:0; color:var(--text-muted); font-size: 12px;">You can manually edit the generated netlist before running the simulation.<br><b>Note:</b> Edits made here are temporary and will not be saved back to the canvas.</p>
-                <textarea id="custom-netlist-editor" spellcheck="false" style="width: 100%; height: 400px; font-family: var(--font-code); font-size: 13px; padding: 10px; box-sizing: border-box; border: 1px solid var(--border-main); border-radius: 4px; white-space: pre; overflow: auto; background: var(--bg-app); color: var(--text-main); outline: none;">${cleanNetlist}</textarea>
+            <!-- FIX 1: Moved the paragraph OUTSIDE the flex container -->
+            <p style="margin-top:0; color:var(--text-muted); font-size: 13px; text-align: left; margin-bottom: 12px;">
+                You can manually edit the generated netlist before running the simulation.<br>
+                <b>Note:</b> Edits made here are temporary and will not be saved back to the canvas.
+            </p>
+            <div style="display: flex; height: 400px; border: 1px solid var(--border-main); border-radius: 6px; overflow: hidden; text-align: left; background: var(--bg-panel);">
+                <!-- Line Numbers Gutter -->
+                <div id="spice-lines" style="width: 40px; background: var(--bg-app); color: var(--text-muted); padding: 10px 5px; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right; overflow: hidden; user-select: none; border-right: 1px solid var(--border-main);">
+                    1
+                </div>
+                <!-- Text Editor -->
+                <textarea id="custom-netlist-editor" spellcheck="false" style="flex: 1; border: none; outline: none; padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; background: transparent; color: var(--text-main); resize: none; white-space: pre; overflow-wrap: normal; overflow-x: auto;">${cleanNetlist}</textarea>
             </div>
         `,
         showCancelButton: true,
         showDenyButton: true,
-		denyButtonColor: 'var(--bg-btn)',
+        denyButtonColor: '#34495e', // A nice neutral dark gray for the Save button
         confirmButtonText: '<div style="display:flex; align-items:center; gap:6px;"><i data-lucide="play" style="width:14px; height:14px;"></i> Run Simulation</div>',
         denyButtonText: '<div style="display:flex; align-items:center; gap:6px;"><i data-lucide="save" style="width:14px; height:14px;"></i> Save to File</div>',
         cancelButtonText: 'Cancel',
         didOpen: () => {
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            
+            const editor = document.getElementById('custom-netlist-editor');
+            const lines = document.getElementById('spice-lines');
+
+            // Function to update the line numbers based on text breaks
+            const updateLines = () => {
+                const lineCount = editor.value.split('\n').length;
+                lines.innerHTML = Array(lineCount).fill(0).map((_, i) => i + 1).join('<br>');
+            };
+
+            // Sync scrolling
+            editor.addEventListener('scroll', () => {
+                lines.scrollTop = editor.scrollTop;
+            });
+
+            // Update numbers on typing
+            editor.addEventListener('input', updateLines);
+            
+            // Initialize
+            updateLines();
         },
         preConfirm: () => {
+            return document.getElementById('custom-netlist-editor').value;
+        },
+        // FIX 2: Capture the value before the DOM is destroyed!
+        preDeny: () => {
             return document.getElementById('custom-netlist-editor').value;
         }
     }).then((result) => {
@@ -1270,8 +1327,11 @@ export function openSpiceNetlistEditor() {
             runSimulation(detectedMode, customCode);
             
         } else if (result.isDenied) {
-            let code = document.getElementById('custom-netlist-editor').value;
-            saveFileAs('circuit.cir', code, 'text/plain', 'SPICE Netlist', '.cir');
+            // Read the text we successfully captured in preDeny
+            let code = result.value; 
+            
+            // FIX 3: Passed arguments in the correct order: (content, filename, mimetype, description)
+            saveFileAs(code, 'circuit.cir', 'text/plain', 'SPICE Netlist');
         }
     });
 }

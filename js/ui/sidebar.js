@@ -33,7 +33,7 @@ export function initializeSidebar() {
     });
 }
 
-function populateSidebar() {
+export function populateSidebar() {
     if (typeof JL_DATABASE === 'undefined') return;
     const list = document.getElementById('items-container');
     list.innerHTML = ''; 

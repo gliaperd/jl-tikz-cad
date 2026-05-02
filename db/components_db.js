@@ -2236,14 +2236,14 @@ const JL_DATABASE = {
                 "id": "pin1",
                 "x": 0.0,
                 "y": -20.0,
-                "label": "non-inverting input",
+                "label": "input-1",
                 "dir": "R"
             },
             {
                 "id": "pin2",
                 "x": 0.0,
                 "y": 20.0,
-                "label": "inverting input",
+                "label": "input-2",
                 "dir": "R"
             },
             {
@@ -2257,7 +2257,7 @@ const JL_DATABASE = {
                 "id": "$4",
                 "x": 60.0,
                 "y": -50.0,
-                "label": "",
+                "label": "$4",
                 "dir": "T",
                 "condition": "4!="
             },
@@ -2265,7 +2265,7 @@ const JL_DATABASE = {
                 "id": "-$4",
                 "x": 60.0,
                 "y": 50.0,
-                "label": "",
+                "label": "-$4",
                 "dir": "B",
                 "condition": "4!="
             }

@@ -8,6 +8,7 @@ import { extractStaticTexts } from './helpers.js';
 import { saveState, clearSelection, zoomFit } from '../ui/actions.js';
 import { clearSimAnnotations } from '../engines/spice.js';
 import { forceExportLatex } from './latex.js';
+import { populateSidebar } from '../ui/sidebar.js'; 
 
 export async function saveFileAs(content, defaultFilename, mimeType, description) {
     if (window.showSaveFilePicker) {
@@ -54,136 +55,110 @@ export function saveProjectToFile() {
 }
 
 export function importProject(e) { 
-    // Bulletproof: check if 'e' is the Event, or the actual <input> element
     const inputElement = e.target || e;
-    const f = inputElement.files ? inputElement.files[0] : null; 
+    const files = inputElement.files; 
+    if(!files || files.length === 0) return; 
     
-    if(!f) return; 
-    
-    const r = new FileReader(); 
-    r.onload = ev => {
-        const fileContent = ev.target.result.trim();
-        const isJSON = fileContent.startsWith('{'); 
+    // Read all files asynchronously
+    let readPromises = Array.from(files).map(file => {
+        return new Promise((resolve) => {
+            const r = new FileReader();
+            r.onload = ev => resolve({ name: file.name, content: ev.target.result.trim() });
+            r.readAsText(file);
+        });
+    });
 
-        try {
-            // =========================================================
-            // BRANCH C: RAW LATEX CODE DETECTED
-            // =========================================================
-            if (!isJSON && fileContent.includes('\\begin{tikzpictureJL}')) {
-                executeLatexConversion(fileContent);
-                return; 
-            }
+    Promise.all(readPromises).then(results => {
+        let subcircuitsImported = 0;
+        let masterSchematicData = null;
+        let isVirtuoso = false;
+        let isLatex = false;
 
-            // =========================================================
-            // JSON PARSING
-            // =========================================================
-            let parsedData = JSON.parse(fileContent);
+        // 1. Process all files
+        results.forEach(fileData => {
+            let fileContent = fileData.content;
+            let isJSON = fileContent.startsWith('{'); 
 
-            // =========================================================
-            // BRANCH A: VIRTUOSO SCHEMATIC DETECTED
-            // =========================================================
-            if (parsedData.instances && parsedData.wires) {
-                const uniqueCells = new Set();
-                
-                // Fallback check in case VIRTUOSO_MAP isn't strictly imported
-                let vMap = window.VIRTUOSO_MAP || (typeof VIRTUOSO_MAP !== 'undefined' ? VIRTUOSO_MAP : {});
-                
-                parsedData.instances.forEach(inst => { 
-                    if (vMap[inst.cell] || true) uniqueCells.add(inst.cell); 
-                });
-
-                // Build a clean, styled HTML string for the checkboxes
-                let checkboxesHtml = '<div style="font-size: 13px; color: var(--text-main); margin-bottom: 12px;">Select which components should display their parameter values on the canvas:</div>';
-                
-                checkboxesHtml += '<div style="display:flex; flex-direction:column; gap:10px; text-align:left; background:var(--bg-app); border: 1px solid var(--border-light); padding:15px; border-radius:6px; max-height:250px; overflow-y:auto;">';
-                
-                // Fixed I/O Pins option
-                checkboxesHtml += `<label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:not-allowed; font-weight:600; color:var(--text-muted);">
-                                       <input type="checkbox" id="v-opt-pins" checked disabled style="margin:0; width:14px; height:14px;"> 
-                                       I/O Pins (Always Show Names)
-                                   </label>`;
-                
-                checkboxesHtml += `<hr style="margin:2px 0; border:none; border-top:1px solid var(--border-main);">`;
-                
-                // Dynamic Component Options
-                uniqueCells.forEach(cell => {
-                    if (!['ipin', 'opin', 'iopin'].includes(cell)) {
-                        checkboxesHtml += `<label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-main);">
-                                               <input type="checkbox" class="v-val-toggle" value="${cell}" checked style="margin:0; width:14px; height:14px;"> 
-                                               Display values for <b style="font-weight:600;">${cell}</b>
-                                           </label>`;
+            try {
+                if (!isJSON && fileContent.includes('\\begin{tikzpictureJL}')) {
+                    masterSchematicData = fileContent;
+                    isLatex = true;
+                } else if (isJSON) {
+                    let parsedData = JSON.parse(fileContent);
+                    
+                    // Route Subcircuits directly to the Database (Silently!)
+                    if (parsedData.type === "subcircuit") {
+                        importSubcircuitToDatabase(parsedData, true);
+                        subcircuitsImported++;
+                    } 
+                    // Route Virtuoso Maps
+                    else if (parsedData.instances && parsedData.wires) {
+                        masterSchematicData = parsedData;
+                        isVirtuoso = true;
+                    } 
+                    // Route Native JL Schematics
+                    else if (Array.isArray(parsedData.cells)) {
+                        masterSchematicData = parsedData;
                     }
+                }
+            } catch (err) {
+                console.error(`Import Error on ${fileData.name}:`, err);
+            }
+        });
+
+        // 2. Refresh the UI once if any subcircuits were bulk loaded
+        if (subcircuitsImported > 0) {
+            populateSidebar();
+            if (!masterSchematicData) {
+                Swal.fire({ toast: true, position: 'bottom-end', icon: 'success', title: `${subcircuitsImported} Component(s) added to Palette!`, showConfirmButton: false, timer: 3000 });
+            }
+        }
+
+        // 3. Load the Master Schematic (if one was included in the selection)
+        if (masterSchematicData) {
+            if (isLatex) {
+                executeLatexConversion(masterSchematicData);
+            } else if (isVirtuoso) {
+                // (Your existing Virtuoso logic goes here...)
+                const uniqueCells = new Set();
+                let vMap = window.VIRTUOSO_MAP || (typeof VIRTUOSO_MAP !== 'undefined' ? VIRTUOSO_MAP : {});
+                masterSchematicData.instances.forEach(inst => { if (vMap[inst.cell] || true) uniqueCells.add(inst.cell); });
+                let checkboxesHtml = '<div style="font-size: 13px; color: var(--text-main); margin-bottom: 12px;">Select which components should display their parameter values on the canvas:</div><div style="display:flex; flex-direction:column; gap:10px; text-align:left; background:var(--bg-app); border: 1px solid var(--border-light); padding:15px; border-radius:6px; max-height:250px; overflow-y:auto;"><label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:not-allowed; font-weight:600; color:var(--text-muted);"><input type="checkbox" id="v-opt-pins" checked disabled style="margin:0; width:14px; height:14px;">I/O Pins (Always Show Names)</label><hr style="margin:2px 0; border:none; border-top:1px solid var(--border-main);">';
+                uniqueCells.forEach(cell => {
+                    if (!['ipin', 'opin', 'iopin'].includes(cell)) checkboxesHtml += `<label style="font-size:12px; display:flex; align-items:center; gap:8px; cursor:pointer; color:var(--text-main);"><input type="checkbox" class="v-val-toggle" value="${cell}" checked style="margin:0; width:14px; height:14px;">Display values for <b style="font-weight:600;">${cell}</b></label>`;
                 });
                 checkboxesHtml += '</div>';
 
                 Swal.fire({
-                    title: '<div style="font-size: 18px;">Virtuoso Schematic Detected!</div>',
-                    html: checkboxesHtml, // <--- Now just passing the styled variable
-                    showCancelButton: true, 
-                    confirmButtonText: 'Import to Canvas', 
-                    confirmButtonColor: 'var(--primary)',
-                    background: 'var(--bg-panel)', // Ensures the popup body matches your theme
-                    color: 'var(--text-main)'
+                    title: '<div style="font-size: 18px;">Virtuoso Schematic Detected!</div>', html: checkboxesHtml, showCancelButton: true, confirmButtonText: 'Import to Canvas', confirmButtonColor: 'var(--primary)', background: 'var(--bg-panel)', color: 'var(--text-main)'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         const allowedCells = new Set(['ipin', 'opin', 'iopin']);
                         document.querySelectorAll('.v-val-toggle').forEach(cb => { if (cb.checked) allowedCells.add(cb.value); });
-                        
-                        // Fire the Virtuoso parser
-                        if (typeof executeVirtuosoConversion === 'function') {
-                            executeVirtuosoConversion(parsedData, allowedCells);
-                        } else if (window.executeVirtuosoConversion) {
-                            window.executeVirtuosoConversion(parsedData, allowedCells);
-                        } else {
-                            Swal.fire('Error', 'Virtuoso conversion engine is missing!', 'error');
-                        }
+                        if (typeof executeVirtuosoConversion === 'function') executeVirtuosoConversion(masterSchematicData, allowedCells);
+                        else if (window.executeVirtuosoConversion) window.executeVirtuosoConversion(masterSchematicData, allowedCells);
                     }
                 });
-                return;
+            } else {
+                // Native JointJS
+                // Phantom Dot Cleanup
+                masterSchematicData.cells = masterSchematicData.cells.filter(cell => {
+                    if (cell.type === 'standard.Link' && cell.source && cell.target) {
+                        if (cell.source.x === cell.target.x && cell.source.y === cell.target.y && (!cell.vertices || cell.vertices.length === 0)) return false; 
+                    }
+                    return true; 
+                });
+
+                AppState.graph.fromJSON(masterSchematicData); 
+                if (window.syncVisibilityFromUI) window.syncVisibilityFromUI();
+                let loadedConfig = AppState.graph.get('spiceSimConfig');
+                if (loadedConfig) { window.spiceSimConfig = { ...window.spiceSimConfig, ...loadedConfig }; AppState.spiceSimConfig = window.spiceSimConfig; }
+                if (window.finalizeCanvasAndMath) setTimeout(() => window.finalizeCanvasAndMath('Project loaded successfully!'), 50);
+                setTimeout(() => { forceExportLatex(); }, 50);
             }
-
-            // =========================================================
-            // BRANCH B: NATIVE JOINTJS CIRCUIT DETECTED
-            // =========================================================
-            if (!parsedData || !Array.isArray(parsedData.cells)) throw new Error("Invalid project file format.");
-
-            // Phantom Dot Cleanup
-            parsedData.cells = parsedData.cells.filter(cell => {
-                if (cell.type === 'standard.Link' && cell.source && cell.target) {
-                    if (cell.source.x === cell.target.x && cell.source.y === cell.target.y && (!cell.vertices || cell.vertices.length === 0)) return false; 
-                }
-                return true; 
-            });
-
-            // Use the Modular AppState to load the graph!
-            AppState.graph.fromJSON(parsedData); 
-            if (window.syncVisibilityFromUI) window.syncVisibilityFromUI();
-            
-            // Restore the simulation settings
-            let loadedConfig = AppState.graph.get('spiceSimConfig');
-            if (loadedConfig) {
-                window.spiceSimConfig = { ...window.spiceSimConfig, ...loadedConfig };
-                AppState.spiceSimConfig = window.spiceSimConfig; // Keep modules in sync
-            }
-            
-            // Route to the new unified finalizer!
-            if (window.finalizeCanvasAndMath) {
-                setTimeout(() => window.finalizeCanvasAndMath('Project loaded successfully!'), 50);
-            }
-			
-			// Force the LaTeX window to populate instantly!
-			setTimeout(() => {
-				forceExportLatex();
-			}, 50);
-
-        } catch (err) {
-            console.error("Import Error:", err);
-            Swal.fire({ icon: 'error', title: 'Import Failed', text: err.message || "Failed to load the circuit file." });
         }
-    }; 
-    r.readAsText(f); 
-    
-    // Clear the input so the same file can be loaded twice
+    });
+
     if (inputElement) inputElement.value = '';
 }
 
@@ -1111,4 +1086,78 @@ function downloadFile(content, fileName, isUrl = false) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+}
+
+// --- SUBCIRCUIT IMPORTER ---
+export function importSubcircuitToDatabase(jsonData, isSilent = false) { 
+    let ppu = typeof AppState !== 'undefined' ? AppState.PPU_MULT : 4;
+
+    let w = jsonData.symbol.width / ppu;
+    let h = jsonData.symbol.height / ppu;
+
+    // 1. Draw the main bounding box for the symbol
+    let iconPath = `M 0 0 L ${w} 0 L ${w} ${h} L 0 ${h} Z`;
+
+    // 2. Map the ports and draw little wire stubs for the pins
+    let pins = jsonData.symbol.ports.map(p => {
+        let px = p.x / ppu;
+        let py = p.y / ppu;
+        let pinX = p.x;
+        let pinY = p.y;
+
+        if (p.dir === 'L') { iconPath += ` M ${px} ${py} L ${px - 10} ${py}`; pinX -= 40; }
+        if (p.dir === 'R') { iconPath += ` M ${px} ${py} L ${px + 10} ${py}`; pinX += 40; }
+        if (p.dir === 'T') { iconPath += ` M ${px} ${py} L ${px} ${py - 10}`; pinY -= 40; }
+        if (p.dir === 'B') { iconPath += ` M ${px} ${py} L ${px} ${py + 10}`; pinY += 40; }
+
+        return {
+            id: p.id,
+            x: pinX,     
+            y: pinY,     
+            dir: p.dir,
+            label: p.id
+        };
+    });
+
+    // 3. Inject it directly into the global database!
+    JL_DATABASE[jsonData.macroName] = {
+        name: jsonData.macroName,
+        displayName: jsonData.displayName,
+        category: "Custom Subcircuits",
+        
+        isCustomSubcircuit: true, // Tells latex.js to unroll this into raw SVG drawing paths
+        
+        argsCount: 5, 
+        argNames: [
+            { name: "position", optional: false },
+            { name: "name", optional: false },
+            { name: "rotation,flip", optional: false },
+            { name: "grid", optional: false },
+            { name: "show", optional: false }
+        ],
+        argDefs: [
+            { idx: 3, type: "rotflip", label: "Rotation & Flip", defVal: "0,none", options: "" }
+        ],
+        
+        iconBase: iconPath,
+        filled: false,
+        pins: pins,
+        spiceTemplate: jsonData.spiceTemplate,
+        spiceModel: jsonData.spiceModel,
+        internalSchematic: jsonData.internalSchematic,
+        labelAnchor: { dir: 'B', auto: true } 
+    };
+
+    // 4. Handle UI notifications based on the silent flag
+    if (!isSilent) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true, position: 'bottom-end', icon: 'success', 
+                title: `${jsonData.displayName} added to library!`, 
+                showConfirmButton: false, timer: 2000 
+            });
+        }
+        // Refresh the sidebar so the user can drag it onto the canvas instantly
+        if (typeof populateSidebar === 'function') populateSidebar(); 
+    }
 }

@@ -4104,7 +4104,10 @@
                             } else {
                                 comment = " %" + dirStr + condTag;
                             }
-                            newPinsStr += `        \\coordinate (${p.id}) at (${tikzX}, ${tikzY});${comment}\n`;
+                            
+                            // --- ADDED: Auto-comment dynamic coordinate pins! ---
+                            let hidePrefix = p.id.includes('$') ? "% " : "";
+                            newPinsStr += `        ${hidePrefix}\\coordinate (${p.id}) at (${tikzX}, ${tikzY});${comment}\n`;
                         });
                     }
 
@@ -4175,7 +4178,9 @@
                             else if (p.desc || p.label) comment = " % " + (p.desc ? p.desc.trim() + " " : "") + (p.label ? `(${p.label.trim()})` : "") + dirStr + condStr;
                             else comment = " %" + dirStr + condStr;
                             
-                            lines.push(`        ${prefix}\\coordinate (${p.id}) at (${tikzX}, ${tikzY});${suffix}${comment}`);
+                            // --- ADDED: Auto-comment dynamic coordinate pins! ---
+                            let hidePrefix = p.id.includes('$') ? "% " : "";
+                            lines.push(`        ${hidePrefix}${prefix}\\coordinate (${p.id}) at (${tikzX}, ${tikzY});${suffix}${comment}`);
                             
                             // --- NEW: Auto-generate visible LaTeX nodes for dynamic text pins! ---
                             if (p.id.includes('$')) {
