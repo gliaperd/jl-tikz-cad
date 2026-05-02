@@ -233,24 +233,39 @@ export function initializeProperties() {
         let spiceParams = [];
         let savedSpiceData = el.get('spiceData') || {};
 
+        // 1. Extract dynamic SPICE parameters from the template curly braces
         if (spiceTemplate) {
             let matches = [...spiceTemplate.matchAll(/\{([^}]+)\}/g)];
             let pinIds = (data.pins || []).map(p => p.id); 
             matches.forEach(m => {
                 let varName = m[1];
-                if (!pinIds.includes(varName) && !spiceParams.includes(varName) && varName !== 'NAME') {
+                // We exclude pins, the NAME variable, AND the RESISTANCE variable for switches 
+                // (since we calculate RESISTANCE dynamically via simData under the hood).
+                if (!pinIds.includes(varName) && !spiceParams.includes(varName) && varName !== 'NAME' && !varName.startsWith('RES')) {
                     spiceParams.push(varName);
                 }
             });
         }
 
-        if (spiceParams.length > 0) {
+        let propDefs = data.propDefs || [];
+        let savedSimData = el.get('simData') || {};
+
+        // 2. Separate explicitly defined properties by their type
+        let spicePropDefs = propDefs.filter(p => p.type === 'SPICE');
+        let simPropDefs = propDefs.filter(p => p.type === 'SIM' || !p.type);
+
+        // ==========================================
+        // RENDER SPICE PANEL
+        // ==========================================
+        // Show panel if we have dynamic template vars OR explicitly defined SPICE properties
+        if (spiceParams.length > 0 || spicePropDefs.length > 0) {
             htmlForm += `<div style="margin-top: 15px; border-top: 2px solid var(--primary); padding-top: 12px; margin-bottom: 5px;">
                             <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--primary); margin-bottom: 10px;">
                                 <i data-lucide="zap" style="width:14px; height:14px;"></i> SPICE Parameters
                             </label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
             
+            // Render Dynamic Template Vars
             spiceParams.forEach(param => {
                 let currentVal = savedSpiceData[param] !== undefined ? savedSpiceData[param] : "";
                 
@@ -398,20 +413,32 @@ export function initializeProperties() {
                     </div>`;
                 }
             });
+            
+            // Render Explicitly Tagged SPICE Properties
+            spicePropDefs.forEach(prop => {
+                // Since they are SPICE related but stored in simData, we pull from savedSimData
+                let currentVal = savedSimData[prop.id] !== undefined ? savedSimData[prop.id] : prop.defVal;
+                htmlForm += `
+                <div>
+                    <label style="display:block; margin-bottom: 4px; font-weight: 600; color: var(--text-main); font-size: 11px;">${prop.label}</label>
+                    <input type="text" id="swal-simprop-${prop.id}" class="swal2-input" style="${inputCSS} border-left: 3px solid var(--primary);" value="${currentVal}">
+                </div>`;
+            });
+            
             htmlForm += `</div></div>`;
         }
 
-        let propDefs = data.propDefs || [];
-        let savedSimData = el.get('simData') || {};
-
-        if (propDefs.length > 0) {
+        // ==========================================
+        // RENDER SIMULATION (LOGIC/TIMING) PANEL
+        // ==========================================
+        if (simPropDefs.length > 0) {
             htmlForm += `<div style="margin-top: 15px; border-top: 2px solid var(--success); padding-top: 12px; margin-bottom: 5px;">
                             <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--success); margin-bottom: 10px;">
                                 <i data-lucide="clock" style="width:14px; height:14px;"></i> Simulation Properties
                             </label>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
             
-            propDefs.forEach(prop => {
+            simPropDefs.forEach(prop => {
                 let currentVal = savedSimData[prop.id] !== undefined ? savedSimData[prop.id] : prop.defVal;
                 htmlForm += `
                 <div>

@@ -171,13 +171,18 @@ export function formatEng(val, unit = 'V') {
     let abs = Math.abs(val);
     let sign = val < 0 ? "-" : "";
     
-    if (abs >= 1e6) return sign + (abs / 1e6).toFixed(2) + " M" + unit;
-    if (abs >= 1e3) return sign + (abs / 1e3).toFixed(2) + " k" + unit;
-    if (abs >= 1) return sign + abs.toFixed(2) + " " + unit;
-    if (abs >= 1e-3) return sign + (abs * 1e3).toFixed(2) + " m" + unit;
-    if (abs >= 1e-6) return sign + (abs * 1e6).toFixed(2) + " u" + unit;
-    if (abs >= 1e-9) return sign + (abs * 1e9).toFixed(2) + " n" + unit;
-    if (abs >= 1e-12) return sign + (abs * 1e12).toFixed(2) + " p" + unit;
+    // We use 0.995 thresholds so that numbers like 0.999e-6 get correctly 
+    // bumped up into the 'micro' bracket as 1.00 µ instead of 1000.00 n
+    if (abs >= 0.995e9) return sign + (abs / 1e9).toFixed(2) + " G" + unit;
+    if (abs >= 0.995e6) return sign + (abs / 1e6).toFixed(2) + " M" + unit;
+    if (abs >= 0.995e3) return sign + (abs / 1e3).toFixed(2) + " k" + unit;
+    if (abs >= 0.995) return sign + abs.toFixed(2) + " " + unit;
+    if (abs >= 0.995e-3) return sign + (abs * 1e3).toFixed(2) + " m" + unit;
+    if (abs >= 0.995e-6) return sign + (abs * 1e6).toFixed(2) + " µ" + unit;
+    if (abs >= 0.995e-9) return sign + (abs * 1e9).toFixed(2) + " n" + unit;
+    if (abs >= 0.995e-12) return sign + (abs * 1e12).toFixed(2) + " p" + unit;
+    if (abs >= 0.995e-15) return sign + (abs * 1e15).toFixed(2) + " f" + unit;
+    
     return val.toExponential(2) + " " + unit;
 }
 
@@ -222,8 +227,9 @@ export function generateSpiceNetlistStr(customSim) {
             return;
         }
 
-        let template = dbData.spiceTemplate;
+        let template = dbData.spiceTemplate.replace(/\\n/g, '\n');
         let spiceData = el.get('spiceData') || {};
+        let simData = el.get('simData') || {}; // <-- ADDED: Fetch simData for the switch properties
         template = template.replace(/\{NAME\}/g, name);
 
         el.getPorts().forEach(port => {
@@ -237,18 +243,41 @@ export function generateSpiceNetlistStr(customSim) {
         remainingParams.forEach(param => {
             let val = spiceData[param] !== undefined ? spiceData[param] : "";
 
-            if (param === 'MODEL' && val === "") {
-                let prefixMatch = dbData.spiceTemplate.match(/^([a-zA-Z])_/);
-                let compType = prefixMatch ? prefixMatch[1].toUpperCase() : null;
-                let isP = el.get('customArgs') && el.get('customArgs')[2] === 'p'; 
+            // ==========================================
+            // ADDED: DYNAMIC SWITCH RESISTANCE LOGIC
+            // ==========================================
+            if (param.startsWith('RES') && macro.includes('switch')) {
+                let args = el.get('customArgs') || [];
+                let ron = simData['RON'] || '1m'; 
+                let roff = simData['ROFF'] || '100Meg';
                 
-                if (compType === 'D') { val = "D_IDEAL"; includedModels.add(".model D_IDEAL D"); } 
-                else if (compType === 'Q') { val = isP ? "PNP_IDEAL" : "NPN_IDEAL"; includedModels.add(isP ? ".model PNP_IDEAL PNP" : ".model NPN_IDEAL NPN"); } 
-                else if (compType === 'M') { val = isP ? "PMOS_IDEAL" : "NMOS_IDEAL"; includedModels.add(isP ? ".model PMOS_IDEAL PMOS" : ".model NMOS_IDEAL NMOS"); }
-                else if (compType === 'X') { val = "OPAMP_IDEAL"; includedModels.add(".subckt OPAMP_IDEAL in_p in_n out\nE1 out 0 in_p in_n 1Meg\n.ends"); }
+                // 1. Handle SPDT (3-port) Switch
+                if (macro === 'mechanicalswitchthreeport') {
+                    let state = args[2] ? args[2].toString().toLowerCase() : 'state1';
+                    if (param === 'RES1') val = (state === 'state1') ? ron : roff;
+                    if (param === 'RES2') val = (state === 'state2') ? ron : roff;
+                } 
+                // 2. Handle Controlled Switch Box (Logic 0/1 + N/P type)
+                else if (macro === 'controlledswitchbox') {
+                    let ctrlVal = args[2] ? args[2].toString() : '0';
+                    let type = args[3] ? args[3].toString().toLowerCase() : 'n';
+                    
+                    // Determine if the bridge is visually closed
+                    let isClosed = false;
+                    if (type === 'n' && ctrlVal.includes('1')) isClosed = true;
+                    if (type === 'p' && ctrlVal.includes('0')) isClosed = true;
+                    
+                    val = isClosed ? ron : roff;
+                }
+                // 3. Handle Standard Mechanical / Controlled Switches
+                else {
+                    let state = args[2] ? args[2].toString().toLowerCase() : 'open'; 
+                    val = (state === 'closed') ? ron : roff;
+                }
             }
+            // ==========================================
 
-            if (param === 'MODEL' && val !== "") {
+            if (param === 'MODEL' && val === "") {
                 let userModels = AppState.spiceSimConfig.modelsContent || "";
                 if (val.startsWith('WIZ_')) {
                     let isZener = macro.includes('zener'); let isMOS = macro.includes('mos'); let isBJT = macro.includes('bipolar'); let isDiode = macro.includes('diode') && !isZener;
@@ -860,6 +889,43 @@ export function annotateDCOperatingPointFromRaw(rawOutput, topo) {
         let rawKey = Object.keys(rawCurrents).find(k => k.includes(searchPattern) || k === `V_${baseName}` || k === `I_${baseName}` || k === baseName);
         let currentVal = rawKey ? rawCurrents[rawKey] : undefined;
 
+        // SPICE templates for these parts use {pin2} {pin1} instead of {pin1} {pin2}. 
+        // We flip the sign so the UI vector math draws the arrow correctly.
+        if (currentVal !== undefined && (macro === 'dcbattery' || macro === 'dcvoltagesource')) {
+            currentVal = -currentVal;
+        }
+
+        // --- NEW: Find the matching Power value ---
+        let rawPKey = Object.keys(powers).find(k => k.includes(searchPattern) || k === `V_${baseName}` || k === `I_${baseName}` || k === baseName);
+        let powerVal = rawPKey ? powers[rawPKey] : undefined;
+
+        // --- ADDED: Calculate power manually if NGSpice didn't provide it ---
+        if (powerVal === undefined && currentVal !== undefined) {
+            try {
+                let getNetForPin = (pt) => {
+                    let cluster = topo.terminals.find(t => Math.abs(t.x - pt.x) < 5 && Math.abs(t.y - pt.y) < 5);
+                    return cluster ? topo.netMap.get(topo.uf.find(cluster.id)) : null;
+                };
+
+                let pt1 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, 'pin1') : null;
+                let pt2 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, 'pin2') : null;
+                
+                if (pt1 && pt2) {
+                    let net1 = getNetForPin(pt1);
+                    let net2 = getNetForPin(pt2);
+                    
+                    // Fetch the voltages at the two pins (default to 0 if grounded or disconnected)
+                    let v1 = (String(net1) === '0' || !net1) ? 0.0 : (voltages[net1] || 0.0);
+                    let v2 = (String(net2) === '0' || !net2) ? 0.0 : (voltages[net2] || 0.0);
+                    
+                    // Power = |V_drop| * |I|
+                    powerVal = Math.abs(v1 - v2) * Math.abs(currentVal);
+                }
+            } catch (err) {
+                console.warn("Could not calculate power for " + baseName, err);
+            }
+        }
+
         let spiceData = el.get('spiceData') || {};
         let valText = spiceData['VALUE'];
         if (!valText) {
@@ -869,11 +935,13 @@ export function annotateDCOperatingPointFromRaw(rawOutput, topo) {
             else valText = "";
         }
 
-        if (currentVal !== undefined) {
+        // --- NEW: Include power in the object ---
+        if (currentVal !== undefined || powerVal !== undefined) {
             beautifulCurrents[el.id] = { 
                 name: `${baseName} (${shortId})`, 
                 compVal: valText,
-                val: currentVal 
+                val: currentVal,
+                power: powerVal
             };
         }
     });
@@ -906,11 +974,26 @@ export function showDCOperatingPointTable(opData, topo) {
 
     for (let [compId, data] of Object.entries(opData.currents || {})) {
         let displayName = data.compVal ? `${data.name} <span style="color:var(--text-muted); font-weight:normal;">(${data.compVal})</span>` : data.name;
-        tableHtml += `<tr style="border-bottom: 1px solid var(--border-main); cursor: pointer; transition: background 0.15s;" data-comp-id="${compId}" class="dc-table-row">
-            <td style="padding: 8px; font-weight: 600;">${displayName}</td>
-            <td style="padding: 8px; color: var(--text-muted);">Current</td>
-            <td style="padding: 8px; text-align: right; font-family: var(--font-code);">${formatEng(data.val, 'A')}</td>
-        </tr>`;
+        
+        // 1. Render Current Row
+        if (data.val !== undefined) {
+            tableHtml += `<tr style="border-bottom: 1px solid var(--border-main); cursor: pointer; transition: background 0.15s;" data-comp-id="${compId}" class="dc-table-row">
+                <td style="padding: 8px; font-weight: 600;">${displayName}</td>
+                <td style="padding: 8px; color: var(--text-muted);">Current</td>
+                <td style="padding: 8px; text-align: right; font-family: var(--font-code);">${formatEng(data.val, 'A')}</td>
+            </tr>`;
+        }
+
+        // 2. Render Power Row (using var(--warning) for a nice visual distinction)
+        if (data.power !== undefined) {
+            // SPICE conventionally reports negative power for generating sources and positive for consuming loads.
+            // You can use Math.abs(data.power) here if you just want pure dissipation magnitudes.
+            tableHtml += `<tr style="border-bottom: 1px solid var(--border-main); cursor: pointer; transition: background 0.15s;" data-comp-id="${compId}" class="dc-table-row">
+                <td style="padding: 8px; font-weight: 600;">${displayName}</td>
+                <td style="padding: 8px; color: var(--warning);">Power</td>
+                <td style="padding: 8px; text-align: right; font-family: var(--font-code);">${formatEng(data.power, 'W')}</td>
+            </tr>`;
+        }
     }
 
     tableHtml += `</tbody></table></div>`;
@@ -1003,32 +1086,43 @@ export function showDCOperatingPointTable(opData, topo) {
 
                             if (net) {
                                 let v = String(net) === '0' ? 0.0 : opData.nodes[net];
+                                let drawnBadges = []; // <-- NEW: Array to track badge locations
+                                
                                 topo.terminals.forEach(term => {
                                     let termNet = getNet(term.id);
                                     if (termNet !== null && termNet !== undefined && String(termNet) === String(net)) {
                                         let cx = term.x * matrix.a + matrix.e; let cy = term.y * matrix.d + matrix.f;
+                                        
+                                        // Always draw the blue glow so the wire path is fully highlighted
                                         let glow = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
                                         glow.setAttribute('cx', cx); glow.setAttribute('cy', cy);
                                         glow.setAttribute('r', '15'); glow.setAttribute('fill', '#3498db'); glow.setAttribute('opacity', '0.5');
                                         currentHlLayer.appendChild(glow);
 
                                         if (v !== undefined) {
-                                            let targetX = cx + 25, targetY = cy - 35; 
-                                            let lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                                            lineEl.setAttribute('x1', cx); lineEl.setAttribute('y1', cy); 
-                                            lineEl.setAttribute('x2', targetX); lineEl.setAttribute('y2', targetY);
-                                            lineEl.setAttribute('stroke', '#7f8c8d'); lineEl.setAttribute('stroke-width', '1.5'); 
-                                            currentHlLayer.appendChild(lineEl); 
+                                            // NEW: Spatial filter - only draw text if no other badge is within 70 pixels
+                                            let isTooClose = drawnBadges.some(b => Math.hypot(b.x - cx, b.y - cy) < 70);
+                                            
+                                            if (!isTooClose) {
+                                                drawnBadges.push({ x: cx, y: cy }); // Record this location
 
-                                            let dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-                                            dotEl.setAttribute('cx', cx); dotEl.setAttribute('cy', cy); 
-                                            dotEl.setAttribute('r', '3'); dotEl.setAttribute('fill', '#7f8c8d'); 
-                                            currentHlLayer.appendChild(dotEl);
+                                                let targetX = cx + 25, targetY = cy - 35; 
+                                                let lineEl = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                                                lineEl.setAttribute('x1', cx); lineEl.setAttribute('y1', cy); 
+                                                lineEl.setAttribute('x2', targetX); lineEl.setAttribute('y2', targetY);
+                                                lineEl.setAttribute('stroke', '#7f8c8d'); lineEl.setAttribute('stroke-width', '1.5'); 
+                                                currentHlLayer.appendChild(lineEl); 
 
-                                            let badge = document.createElement('div');
-                                            badge.style.cssText = `position:absolute; left:${targetX}px; top:${targetY}px; transform:translate(-50%, -50%); background:#3498db; color:#ffffff; padding:4px 7px; border-radius:4px; font-size:11px; font-family:monospace; font-weight:bold; border:1px solid #2980b9; pointer-events:none; z-index:1105; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space:nowrap;`;
-                                            badge.innerText = formatEng(v, 'V'); 
-                                            currentOverlay.appendChild(badge); activeBadges.push(badge); 
+                                                let dotEl = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                                                dotEl.setAttribute('cx', cx); dotEl.setAttribute('cy', cy); 
+                                                dotEl.setAttribute('r', '3'); dotEl.setAttribute('fill', '#7f8c8d'); 
+                                                currentHlLayer.appendChild(dotEl);
+
+                                                let badge = document.createElement('div');
+                                                badge.style.cssText = `position:absolute; left:${targetX}px; top:${targetY}px; transform:translate(-50%, -50%); background:#3498db; color:#ffffff; padding:4px 7px; border-radius:4px; font-size:11px; font-family:monospace; font-weight:bold; border:1px solid #2980b9; pointer-events:none; z-index:1105; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space:nowrap;`;
+                                                badge.innerText = formatEng(v, 'V'); 
+                                                currentOverlay.appendChild(badge); activeBadges.push(badge); 
+                                            }
                                         }
                                     }
                                 });
@@ -1097,7 +1191,10 @@ export function showDCOperatingPointTable(opData, topo) {
             document.getElementById('btn-export-dc-csv').onclick = async () => {
                 let csv = "Item,Parameter,Type,Value\n";
                 for (let [n, v] of Object.entries(opData.nodes||{})) csv += `Net ${n},,Voltage,${formatEng(v, 'V')}\n`;
-                for (let [c, data] of Object.entries(opData.currents||{})) csv += `"${data.name}","${data.compVal || ''}",Current,${formatEng(data.val, 'A')}\n`;
+                for (let [c, data] of Object.entries(opData.currents||{})) {
+                    if (data.val !== undefined) csv += `"${data.name}","${data.compVal || ''}",Current,${formatEng(data.val, 'A')}\n`;
+                    if (data.power !== undefined) csv += `"${data.name}","${data.compVal || ''}",Power,${formatEng(data.power, 'W')}\n`;
+                }
                 if (window.showSaveFilePicker) {
                     try {
                         const fileHandle = await window.showSaveFilePicker({ suggestedName: 'dc_operating_point.csv', types: [{ description: 'CSV Data', accept: { 'text/csv': ['.csv'] } }] });

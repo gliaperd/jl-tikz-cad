@@ -125,10 +125,34 @@ def generate_db(sty_file):
                         if 'propDefs' not in comp_data:
                             comp_data['propDefs'] = []
                         
+                        prop_type = "SIM" # Default to simulation if not specified
+                        
+                        # Handle the 4-part format: type=SPICE | RON | Label | Default
+                        if len(parts) >= 4 and 'type=' in parts[0].lower():
+                            prop_type = parts[0].split('=')[1].strip().upper()
+                            id_str = parts[1].strip()
+                            label_str = parts[2].strip()
+                            def_val = parts[3].strip()
+                        else:
+                            # Handle the standard 3-part format: ID | Label | Default
+                            id_str = parts[0].strip()
+                            label_str = parts[1].strip()
+                            def_val = parts[2].strip()
+                            
+                            # Catch inline types just in case (e.g., "RON type=SPICE")
+                            if 'type=' in id_str.lower():
+                                type_parts = id_str.split()
+                                for p in type_parts:
+                                    if p.lower().startswith('type='):
+                                        prop_type = p.split('=')[1].strip().upper()
+                                    else:
+                                        id_str = p.strip()
+                        
                         comp_data['propDefs'].append({
-                            "id": parts[0].strip(),
-                            "label": parts[1].strip(),
-                            "defVal": parts[2].strip()
+                            "type": prop_type,
+                            "id": id_str,
+                            "label": label_str,
+                            "defVal": def_val
                         })
                 except Exception as e:
                     print(f"Error parsing property_def in {name}: {e}")

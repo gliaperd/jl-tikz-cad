@@ -39,6 +39,21 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "spiceTemplate": "R_{NAME} {pin1} {pin2} {RESISTANCE}",
+        "propDefs": [
+            {
+                "type": "SPICE",
+                "id": "RON",
+                "label": "Closed Resistance (\u03a9)",
+                "defVal": "1m"
+            },
+            {
+                "type": "SPICE",
+                "id": "ROFF",
+                "label": "Open Resistance (\u03a9)",
+                "defVal": "100Meg"
+            }
+        ],
         "iconBase": "M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0",
         "iconBaseStyle": "fill=solid",
         "filled": true,
@@ -136,6 +151,21 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "state1"
         },
+        "spiceTemplate": "R_{NAME}_1 {pin3} {pin1} {RES1}\\nR_{NAME}_2 {pin3} {pin2} {RES2}",
+        "propDefs": [
+            {
+                "type": "SPICE",
+                "id": "RON",
+                "label": "Closed Resistance (\u03a9)",
+                "defVal": "1m"
+            },
+            {
+                "type": "SPICE",
+                "id": "ROFF",
+                "label": "Open Resistance (\u03a9)",
+                "defVal": "100Meg"
+            }
+        ],
         "argDefs": [
             {
                 "idx": 3,
@@ -235,6 +265,21 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "open"
         },
+        "spiceTemplate": "R_{NAME} {pin1} {pin2} {RESISTANCE}",
+        "propDefs": [
+            {
+                "type": "SPICE",
+                "id": "RON",
+                "label": "Closed Resistance (\u03a9)",
+                "defVal": "1m"
+            },
+            {
+                "type": "SPICE",
+                "id": "ROFF",
+                "label": "Open Resistance (\u03a9)",
+                "defVal": "100Meg"
+            }
+        ],
         "argDefs": [
             {
                 "idx": 3,
@@ -760,6 +805,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "R_{NAME} {pin1} {pin2} {VALUE}",
         "previewArgs": {
             "3": "0",
             "4": "on"
@@ -853,6 +899,7 @@ const JL_DATABASE = {
             "4": "sine",
             "5": "0"
         },
+        "spiceTemplate": "V_{NAME} {pin1} {pin2} {SIGNAL}",
         "argDefs": [
             {
                 "idx": 3,
@@ -961,13 +1008,16 @@ const JL_DATABASE = {
             "3": "4",
             "4": "0"
         },
+        "spiceTemplate": "V_{NAME} {pin1} 0 PULSE({V_LOW} {V_HIGH} {DELAY} {TRISE} {TFALL} {WIDTH} {PERIOD})",
         "propDefs": [
             {
+                "type": "SIM",
                 "id": "FREQ",
                 "label": "Frequency (Hz)",
                 "defVal": "1Meg"
             },
             {
+                "type": "SIM",
                 "id": "INIT",
                 "label": "Initial State (0/1)",
                 "defVal": "0"
@@ -1599,6 +1649,7 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "spiceTemplate": "V_{NAME} {pin2} {pin1} {VOLTAGE}",
         "argDefs": [
             {
                 "idx": 3,
@@ -2580,6 +2631,7 @@ const JL_DATABASE = {
             "dir": "T"
         },
         "flippable": false,
+        "spiceTemplate": "V_{NAME} {pin1} 0 {VOLTAGE}",
         "argDefs": [
             {
                 "idx": 3,
@@ -3314,6 +3366,7 @@ const JL_DATABASE = {
         ],
         "propDefs": [
             {
+                "type": "SIM",
                 "id": "DELAY",
                 "label": "Gate Delay (s)",
                 "defVal": "5n"
@@ -4304,6 +4357,7 @@ const JL_DATABASE = {
         "flippable": false,
         "propDefs": [
             {
+                "type": "SIM",
                 "id": "DELAY",
                 "label": "Gate Delay (s)",
                 "defVal": "5n"
@@ -4561,6 +4615,7 @@ const JL_DATABASE = {
         ],
         "propDefs": [
             {
+                "type": "SIM",
                 "id": "DELAY",
                 "label": "Gate Delay (s)",
                 "defVal": "5n"
@@ -6155,6 +6210,7 @@ const JL_DATABASE = {
         "previewArgs": {
             "4": "fixed"
         },
+        "spiceTemplate": "R_{NAME} {pin1} {pin2} {VALUE}",
         "argDefs": [
             {
                 "idx": 3,
@@ -6481,6 +6537,7 @@ const JL_DATABASE = {
             "3": "n",
             "4": "case, arrow"
         },
+        "spiceTemplate": "M_{NAME} {D} {G} {S} 0 {MODEL} W={W} L={L}",
         "argDefs": [
             {
                 "idx": 3,
@@ -6610,7 +6667,7 @@ const JL_DATABASE = {
     },
     "testprobe": {
         "name": "testprobe",
-        "displayName": "testprobe",
+        "displayName": "Test Probe",
         "argsCount": 5,
         "enabled": "true",
         "category": "Simulation/Solvers",
@@ -6620,12 +6677,14 @@ const JL_DATABASE = {
             4
         ],
         "labelAnchor": {
-            "x": 0.0,
-            "y": 45.0,
+            "auto": true,
             "dir": "T"
         },
         "flippable": false,
         "spiceTemplate": "I_PROBE_{NAME} {pin1} 0 DC 0",
+        "previewArgs": {
+            "3": "0,none"
+        },
         "argDefs": [
             {
                 "idx": 3,
@@ -6634,8 +6693,21 @@ const JL_DATABASE = {
                 "defVal": "0,none"
             }
         ],
-        "iconBase": "M 0 0 L 0 15 M 0 15 L -12 27 L 0 39 L 12 27 Z M -5 32 L 5 32 M 0 32 L 0 22",
+        "iconBase": "M 0 -15 L 0 0",
+        "iconBaseStyle": "stroke=#0924f1",
         "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke=#0421fb, fill=solid, rounded=true",
+                "path": "M 0 -38.50 L -12 -26.50 L 0 -14.50 L 12 -26.50 Z"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke=#ffffff",
+                "path": "M -5 -30 L 5 -30 M 0 -20 L 0 -30"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",

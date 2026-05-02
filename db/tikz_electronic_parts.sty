@@ -90,6 +90,10 @@
 % arg_def: 4 | text | state tag | 
 % arg_def: 5 | rotation | Rotation | 0
 
+% spice_template: R_{NAME} {pin1} {pin2} {RESISTANCE}
+% property_def: type=SPICE | RON | Closed Resistance (Ω) | 1m
+% property_def: type=SPICE | ROFF | Open Resistance (Ω) | 100Meg
+
 
 % icon_base: [fill=solid] M 30 0 L 40 0 M 30 0 A 1 1 0 1 0 28 -1 A 1 1 0 1 0 30 0 Z M 0 0 L 10.5 0 // base
 % add_icon: 3==closed : [fill=solid] M 10 0 L 27 -2 M 28 -1 A 1 1 0 1 0 27 -3 A 1 1 0 1 0 28 -1 Z // closed
@@ -141,6 +145,10 @@
 % label_anchor: B
 % flip: disabled
 % preview_args: 3=state1
+
+% spice_template: R_{NAME}_1 {pin3} {pin1} {RES1}\nR_{NAME}_2 {pin3} {pin2} {RES2}
+% property_def: type=SPICE | RON | Closed Resistance (Ω) | 1m
+% property_def: type=SPICE | ROFF | Open Resistance (Ω) | 100Meg
 
 % arg_def: 3 | select | state1/state2 | state1 | state1, state2
 % arg_def: 4 | rotation | Rotation | 0
@@ -195,6 +203,10 @@
 % label_anchor: B
 % flip: disabled
 % preview_args: 3=open
+
+% spice_template: R_{NAME} {pin1} {pin2} {RESISTANCE}
+% property_def: type=SPICE | RON | Closed Resistance (Ω) | 1m
+% property_def: type=SPICE | ROFF | Open Resistance (Ω) | 100Meg
 
 % arg_def: 3 | select | closed/open | open | closed, open
 % arg_def: 4 | text | control_terminal | 
@@ -609,6 +621,7 @@
 % scales: 0.5, 1, 2, 4
 % label_anchor: B
 % flip: disabled
+% spice_template: R_{NAME} {pin1} {pin2} {VALUE}
 % preview_args: 3=0, 4=on
 
 % arg_def: 3 | rotation | Rotation | 0
@@ -663,6 +676,7 @@
 % label_anchor: B
 % flip: disabled
 % preview_args: 3=horizontal, 4=sine, 5=0
+% spice_template: V_{NAME} {pin1} {pin2} {SIGNAL}
 
 % arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical
 % arg_def: 4 | select | waveform | sine | sine, square, triangle
@@ -744,6 +758,7 @@
 % label_anchor: B
 % flip: disabled
 % preview_args: 3=4, 4=0
+% spice_template: V_{NAME} {pin1} 0 PULSE({V_LOW} {V_HIGH} {DELAY} {TRISE} {TFALL} {WIDTH} {PERIOD})
 
 % property_def: FREQ | Frequency (Hz) | 1Meg
 % property_def: INIT | Initial State (0/1) | 0
@@ -1277,6 +1292,7 @@
 % scales: 1, 2, 4
 % label_anchor: B
 % flip: disabled
+% spice_template: V_{NAME} {pin2} {pin1} {VOLTAGE}
 
 % arg_def: 3 | select | horizontal/vertical/none | horizontal | horizontal, vertical, none 
 % arg_def: 3 | select | fixed/variable | fixed | fixed, variable
@@ -2098,6 +2114,7 @@
 % scales: 1, 2, 4
 % label_anchor: 0 -1 T
 % flip: disabled
+% spice_template: V_{NAME} {pin1} 0 {VOLTAGE}
 
 % arg_def: 3 | rotation | Rotation | 0
 
@@ -5373,6 +5390,7 @@
 % label_anchor: 40 7 B
 % flip: disabled
 % preview_args: 4=fixed
+% spice_template: R_{NAME} {pin1} {pin2} {VALUE}
 
 % arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, none
 % arg_def: 4 | select | fixed/variable | fixed | fixed,variable
@@ -5688,6 +5706,7 @@
 % label_anchor: -10 -25 L
 % flip: enabled
 % preview_args: 3=n, 4=case, arrow
+% spice_template: M_{NAME} {D} {G} {S} 0 {MODEL} W={W} L={L}
 
 % arg_def: 3 | select | n/p | n | n,p
 % arg_def: 4 | flags | terminal names / case | | terminals, case
@@ -5803,20 +5822,23 @@
 % ==========================================================
 % Test Probe (For Thevenin/Norton/Digital Logic Analysis)
 % ==========================================================
+%% Test Probe
 \newcommand{\testprobe}[5]{%{position}{name}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Simulation/Solvers
 % scales: 1, 2, 4
-% label_anchor: 0 45 T
+% label_anchor: T
 % flip: disabled
 % spice_template: I_PROBE_{NAME} {pin1} 0 DC 0
+% preview_args: 3=0,none
 
 % arg_def: 3 | rotflip | Rotation & Flip | 0,none
 
-% icon_base: M 0 0 L 0 15 M 0 15 L -12 27 L 0 39 L 12 27 Z M -5 32 L 5 32 M 0 32 L 0 22
-	\begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
+% icon_base: [stroke=#0924f1] M 0 -15 L 0 0 // base
+% add_icon: 1~= : [stroke=#0421fb, fill=solid, rounded=true] M 0 -38.50 L -12 -26.50 L 0 -14.50 L 12 -26.50 Z // fill
+% add_icon: 1~= : [stroke=#ffffff] M -5 -30 L 5 -30 M 0 -20 L 0 -30 // T
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5]
         \getzoomfactor
-        \coordinate (pin1) at (0,0);
         % The wire lead
         \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round] (0,0) -- (0, 1.5);
         % The probe body
@@ -5825,6 +5847,8 @@
         \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round] (-0.5, 3.2) -- (0.5, 3.2);
         \draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round] (0, 3.2) -- (0, 2.2);
         \node[draw=none, anchor=south] at (0,4.5) {#2};
+            \coordinate (pin1) at (0.00, 0.00); % [R]
     \end{scope}
 }
+
 
