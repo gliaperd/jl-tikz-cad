@@ -41,6 +41,7 @@ export const AppState = {
     // Memory
     selectedElements: [],
     selectedLinks: [],
+	hierarchyStack: [],
     clipboard: [],
     
     // Undo/Redo Engine

@@ -37,6 +37,21 @@ export async function saveFileAs(content, defaultFilename, mimeType, description
 
 // --- PROJECT FILE EXPORT (.json) ---
 export function saveProjectToFile() { 
+    // =========================================================================
+    // FIX: PREVENT SAVING WHILE DESCENDED
+    // =========================================================================
+    if (AppState.hierarchyStack && AppState.hierarchyStack.length > 0) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Cannot Save Project Here',
+                html: 'You are currently editing inside a subcircuit!<br><br>Please click <b>Save & Return</b> (or Cancel) to ascend to the Main Schematic before saving your project file.'
+            });
+        }
+        return;
+    }
+    // =========================================================================
+
     const latexOutput = document.getElementById('latex-output');
     const currentLatex = latexOutput ? latexOutput.innerText : "";
     
@@ -47,7 +62,7 @@ export function saveProjectToFile() {
     // Convert the entire JointJS graph to a JSON string
     const jsonString = JSON.stringify(AppState.graph.toJSON());
     
-    // Trigger the actual download (using the saveFileAs function already in io.js)
+    // Trigger the actual download
     saveFileAs(jsonString, 'circuit.json', 'application/json', 'JointJS Diagram');
     
     // Clear the autosave since we just did a hard save!
@@ -116,6 +131,17 @@ export function importProject(e) {
 
         // 3. Load the Master Schematic (if one was included in the selection)
         if (masterSchematicData) {
+            
+            // =========================================================================
+            // FIX: RESET HIERARCHY STATE ON NEW PROJECT LOAD
+            // =========================================================================
+            if (AppState.hierarchyStack) {
+                AppState.hierarchyStack = [];
+            }
+            let hBar = document.getElementById('hierarchy-bar');
+            if (hBar) hBar.style.display = 'none';
+            // =========================================================================
+
             if (isLatex) {
                 executeLatexConversion(masterSchematicData);
             } else if (isVirtuoso) {
@@ -148,6 +174,43 @@ export function importProject(e) {
                     }
                     return true; 
                 });
+
+                // =========================================================================
+                // NEW: MISSING COMPONENT SCANNER
+                // =========================================================================
+                let missingDependencies = new Set();
+                
+                if (masterSchematicData && masterSchematicData.cells) {
+                    masterSchematicData.cells.forEach(cell => {
+                        if (cell.type !== 'standard.Link' && cell.latexMacro) {
+                            // Ignore standard structural macros
+                            if (!['connectordot', 'freetext', 'groundterminal', 'ioport', 'ioportdot'].includes(cell.latexMacro)) {
+                                if (!JL_DATABASE[cell.latexMacro]) {
+                                    missingDependencies.add(cell.latexMacro);
+                                }
+                            }
+                        }
+                    });
+                }
+
+                if (missingDependencies.size > 0) {
+                    let missingListHtml = `<ul style="text-align: left; font-family: var(--font-code); font-size: 13px; color: var(--danger); margin-top: 10px;">`;
+                    missingDependencies.forEach(dep => {
+                        missingListHtml += `<li>${dep}.json</li>`;
+                    });
+                    missingListHtml += `</ul>`;
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Missing Custom Libraries',
+                            html: `This schematic uses custom subcircuits that are not currently loaded in your palette.<br>
+                                   <br>Please drag and drop the following files onto the canvas to view and edit them:<br>
+                                   ${missingListHtml}`
+                        });
+                    }
+                }
+                // =========================================================================
 
                 AppState.graph.fromJSON(masterSchematicData); 
                 if (window.syncVisibilityFromUI) window.syncVisibilityFromUI();
@@ -1161,3 +1224,46 @@ export function importSubcircuitToDatabase(jsonData, isSilent = false) {
         if (typeof populateSidebar === 'function') populateSidebar(); 
     }
 }
+
+// =========================================================================
+// GLOBAL DRAG AND DROP HANDLER
+// =========================================================================
+window.addEventListener('DOMContentLoaded', () => {
+    const dropZone = document.body;
+
+    // 1. Prevent the browser from opening the file!
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // 2. Add a visual cue when dragging over the window
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            // Dim the whole app slightly to indicate it's ready to receive a file
+            document.body.style.filter = 'brightness(0.7)'; 
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => {
+            // Restore brightness
+            document.body.style.filter = 'none'; 
+        }, false);
+    });
+
+    // 3. Route the dropped files to our existing importer
+    dropZone.addEventListener('drop', (e) => {
+        let dt = e.dataTransfer;
+        let files = dt.files;
+
+        if (files && files.length > 0) {
+            // We pass a mock event object so importProject can read it just like an <input>
+            importProject({ files: files });
+        }
+    }, false);
+});

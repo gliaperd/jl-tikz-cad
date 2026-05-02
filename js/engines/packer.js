@@ -186,3 +186,184 @@ export function packCurrentCircuit(customName) {
     });
 }
 
+// =========================================================================
+// HIERARCHY NAVIGATION (WHITE BOX EDITING ENGINE)
+// =========================================================================
+
+// Ensure the hierarchy stack exists
+if (typeof AppState !== 'undefined' && !AppState.hierarchyStack) {
+    AppState.hierarchyStack = [];
+}
+
+window.descendIntoSubcircuit = function(element) {
+    let macro = element.get('latexMacro');
+    let data = JL_DATABASE[macro];
+    
+    if (!data || !data.isCustomSubcircuit || !data.internalSchematic) {
+        return Swal.fire('Error', 'This component does not have an internal schematic to edit.', 'error');
+    }
+
+    // =========================================================================
+    // NEW: DEEP DEPENDENCY PRE-FLIGHT CHECK
+    // =========================================================================
+    // We must ensure the user has loaded all required sub-components into the palette
+    // BEFORE we attempt to render the internal schematic on the canvas.
+    let missingDependencies = new Set();
+    
+    // Parse the internal schematic JSON to see what components it requires
+    if (data.internalSchematic && data.internalSchematic.cells) {
+        data.internalSchematic.cells.forEach(cell => {
+            if (cell.type !== 'standard.Link' && cell.latexMacro) {
+                // If it's a custom block but we don't have it in the database...
+                if (!JL_DATABASE[cell.latexMacro]) {
+                    missingDependencies.add(cell.latexMacro);
+                }
+            }
+        });
+    }
+
+    if (missingDependencies.size > 0) {
+        let missingListHtml = `<ul style="text-align: left; font-family: monospace; font-size: 13px; color: var(--danger); margin-top: 10px;">`;
+        missingDependencies.forEach(dep => {
+            missingListHtml += `<li>${dep}.json</li>`;
+        });
+        missingListHtml += `</ul>`;
+
+        return Swal.fire({
+            icon: 'warning',
+            title: 'Missing Dependencies',
+            html: `You cannot edit this subcircuit because it contains nested components that are not currently loaded in your palette.<br>
+                   <br>Please drag and drop the following files onto the canvas to load them:<br>
+                   ${missingListHtml}`
+        });
+    }
+    // =========================================================================
+
+    // 1. Save the current top-level state to the stack
+    AppState.hierarchyStack.push({
+        macroName: macro,
+        parentState: AppState.graph.toJSON(),
+        elementId: element.id,
+        displayName: data.displayName
+    });
+
+    // 2. Clear the canvas and load the subcircuit
+    AppState.graph.clear();
+    AppState.graph.fromJSON(data.internalSchematic);
+    
+    // 3. Show the Breadcrumb Bar
+    let bar = document.getElementById('hierarchy-bar');
+    let breadcrumbs = document.getElementById('hierarchy-breadcrumbs');
+    if (bar && breadcrumbs) {
+        bar.style.display = 'flex';
+        breadcrumbs.innerText = `Main Schematic > ${data.displayName}`;
+    }
+    
+    if (window.resetView) window.resetView();
+};
+
+window.ascendHierarchy = function(saveChanges) {
+    if (!AppState.hierarchyStack || AppState.hierarchyStack.length === 0) return;
+
+    let currentState = AppState.hierarchyStack.pop();
+    
+    if (saveChanges) {
+        JL_DATABASE[currentState.macroName].internalSchematic = AppState.graph.toJSON();
+        
+        if (typeof generateSpiceNetlistStr === 'function') {
+            let netlistData = generateSpiceNetlistStr("\n.op\n.end\n");
+            
+            if (netlistData && (!netlistData.errors || netlistData.errors.length === 0)) {
+                let ioPorts = AppState.graph.getElements().filter(e => e.get('latexMacro') === 'ioport' || e.get('latexMacro') === 'ioportdot');
+                
+                // --- UPGRADE 1: Bulletproof Geometric Pin Mapping ---
+                let portNames = [];
+                let portNetMap = {};
+                let topo = netlistData.topo;
+
+                ioPorts.forEach(p => {
+                    let args = p.get('customArgs') || [];
+                    let pName = args[1] || p.get('displayedText') || "P";
+                    portNames.push(pName);
+
+                    if (topo) {
+                        let bbox = p.getBBox();
+                        // Expand the capture zone to catch wires snapped nearby
+                        bbox.x -= 10; bbox.y -= 10; bbox.width += 20; bbox.height += 20;
+                        
+                        let foundNet = null;
+                        topo.terminals.forEach(t => {
+                            if (t.x >= bbox.x && t.x <= bbox.x + bbox.width && t.y >= bbox.y && t.y <= bbox.y + bbox.height) {
+                                foundNet = topo.netMap.get(topo.uf.find(t.id));
+                            }
+                        });
+                        
+                        if (foundNet !== null && String(foundNet) !== '0') {
+                            portNetMap[String(foundNet)] = pName;
+                        }
+                    }
+                });
+                
+                let portNameList = portNames.join(" ");
+                
+                // --- UPGRADE 2: Aggressive Anti-Nesting Filter ---
+                let rawCode = netlistData.code;
+                let pureCircuitCode = rawCode.split("* --- Component Models & Subcircuits ---")[0];
+                let spiceLines = pureCircuitCode.split('\n');
+                let internalSpice = [];
+                let skipBlock = false;
+                
+                for (let line of spiceLines) {
+                    let trimmed = line.trim();
+                    if (trimmed.startsWith('*') || trimmed.startsWith('.op') || trimmed === '.end' || trimmed === '') continue;
+                    
+                    // Strip user-pasted models out of the internal body!
+                    if (trimmed.toLowerCase().startsWith('.subckt') || trimmed.toLowerCase().startsWith('.model')) skipBlock = true;
+                    if (skipBlock) {
+                        if (trimmed.toLowerCase() === '.ends') skipBlock = false;
+                        continue;
+                    }
+                    
+                    // Translate the internal numeric nodes to port names!
+                    let parts = trimmed.split(/\s+/);
+                    let translatedParts = parts.map((part, idx) => {
+                        if (idx > 0 && portNetMap[part]) return portNetMap[part];
+                        return part;
+                    });
+                    
+                    internalSpice.push(translatedParts.join(" "));
+                }
+                
+                let extraModels = document.getElementById('sim-models') ? document.getElementById('sim-models').value.trim() : '';
+                let requiredLibModels = new Set();
+                let lib = window.SPICE_MODEL_LIBRARY || {};
+                
+                AppState.graph.getElements().forEach(el => {
+                    let modelVal = (el.get('spiceData') || {})['MODEL'];
+                    if (modelVal && !modelVal.startsWith('WIZ_')) {
+                        for (let cat in lib) {
+                            if (lib[cat][modelVal]) requiredLibModels.add(lib[cat][modelVal]);
+                        }
+                    }
+                });
+                
+                let combinedSpiceModel = `.subckt ${currentState.macroName} ${portNameList}\n${internalSpice.join('\n')}\n.ends`;
+                if (extraModels || requiredLibModels.size > 0) {
+                    combinedSpiceModel += `\n\n* --- Dependencies for ${currentState.macroName} ---\n${extraModels}\n`;
+                    requiredLibModels.forEach(m => combinedSpiceModel += m + '\n');
+                }
+                
+                JL_DATABASE[currentState.macroName].spiceModel = combinedSpiceModel;
+            } else {
+                Swal.fire({toast: true, position: 'bottom-end', icon: 'warning', title: 'Saved, but internal SPICE has errors.', showConfirmButton: false, timer: 3000});
+            }
+        }
+    }
+
+    AppState.graph.clear();
+    AppState.graph.fromJSON(currentState.parentState);
+
+    let bar = document.getElementById('hierarchy-bar');
+    if (bar) bar.style.display = 'none';
+};
+
