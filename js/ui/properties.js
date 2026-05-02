@@ -440,22 +440,26 @@ export function initializeProperties() {
 
             Swal.fire({
                 html: `
-                    <div id="swal-drag-handle" style="cursor: grab; background: var(--bg-app); padding: 6px; border-radius: 4px; font-size: 12px; color: var(--text-muted); margin-bottom: 15px; display: flex; justify-content: center; align-items: center; gap: 8px; border: 1px solid var(--border-main);">
-                        <i data-lucide="grip-horizontal" style="width: 16px; height: 16px;"></i> Drag to move
-                    </div>
-                    <div style="font-size: 16px; font-weight: 600; user-select: none; margin-bottom: 15px; color: var(--text-main); border-bottom: 1px solid var(--border-main); padding-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                        <i data-lucide="sliders-horizontal" style="width: 18px; height: 18px;"></i> Properties: ${data.name || "Component"}
-                    </div>
-                    ${htmlForm}
-                `,
+					<!-- CLEAN DRAG HANDLE -->
+					<div id="swal-drag-handle-props" style="cursor: move; background: var(--bg-toolbar); padding: 12px 15px; margin: -1em -1em 15px -1em; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 1px solid var(--border-main); border-radius: 4px 4px 0 0;">
+						<span style="font-size: 14px; font-weight: bold; color: #ffffff; display: flex; align-items: center; gap: 8px;">
+							<i data-lucide="settings" style="width: 16px; height: 16px; color: var(--primary);"></i> Edit ${data.displayName || macro}
+						</span>
+					</div>
+					
+					${htmlForm}
+				`,
                 showCancelButton: true,
                 confirmButtonText: 'Save',
                 cancelButtonText: 'Cancel',
                 backdrop: false,
                 heightAuto: false,
-                didOpen: () => {
+				didOpen: () => {
                     if (typeof lucide !== 'undefined') lucide.createIcons();
                     
+                    const popup = Swal.getPopup();
+                    
+                    // 1. The Descend Button
                     let descendBtn = document.getElementById('btn-swal-descend');
                     if (descendBtn) {
                         descendBtn.onclick = () => {
@@ -463,6 +467,94 @@ export function initializeProperties() {
                             if (window.descendIntoSubcircuit) window.descendIntoSubcircuit(el);
                         };
                     }
+
+                    // 2. The NEW Stealth Drag Logic
+                    const handle = document.getElementById('swal-drag-handle-props');
+                    let isDragging = false, startX, startY, initialLeft, initialTop;
+                    
+                    const onMouseMove = (e) => { 
+                        if (!isDragging) return; 
+                        popup.style.left = (initialLeft + (e.clientX - startX)) + 'px'; 
+                        popup.style.top = (initialTop + (e.clientY - startY)) + 'px'; 
+                    };
+                    
+                    const onMouseUp = () => { 
+                        isDragging = false; 
+                        document.removeEventListener('mousemove', onMouseMove); 
+                        document.removeEventListener('mouseup', onMouseUp); 
+                    };
+                    
+                    if (handle) {
+                        handle.addEventListener('mousedown', (e) => {
+                            // Don't drag if they clicked a button inside the header
+                            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return; 
+                            isDragging = true; 
+                            
+                            const rect = popup.getBoundingClientRect(); 
+                            popup.style.margin = '0'; 
+                            popup.style.position = 'fixed'; 
+                            popup.style.left = rect.left + 'px'; 
+                            popup.style.top = rect.top + 'px'; 
+                            
+                            startX = e.clientX; 
+                            startY = e.clientY; 
+                            initialLeft = rect.left; 
+                            initialTop = rect.top;
+                            
+                            document.addEventListener('mousemove', onMouseMove); 
+                            document.addEventListener('mouseup', onMouseUp);
+                        });
+                    }
+
+                    // 3. RESTORED: The Live Preview Logic
+                    // This listens to every input/select in the modal and updates the canvas instantly
+                    const updatePreview = () => {
+                        let newArgs = [];
+                        for (let i = 0; i < argsCount; i++) {
+                            let desc = ((data.argNames && data.argNames[i]) ? (typeof data.argNames[i] === 'string' ? data.argNames[i] : (data.argNames[i].name || '')) : '').toLowerCase();
+                            if (desc.includes('position')) {
+                                newArgs.push(""); 
+                            } else {
+                                let customDefs = data.argDefs ? data.argDefs.filter(d => d.idx === (i + 1)) : [];
+                                if (customDefs.length > 1) {
+                                    let subVals = [];
+                                    for (let j = 0; j < customDefs.length; j++) {
+                                        let subEl = popup.querySelector(`#swal-input-${i}-sub-${j}`);
+                                        if (subEl) subVals.push(subEl.value);
+                                    }
+                                    newArgs.push(subVals.join(','));
+                                } else {
+                                    let subEl = popup.querySelector(`#swal-input-${i}`);
+                                    newArgs.push(subEl ? subEl.value : "");
+                                }
+                            }
+                        }
+
+                        // Apply the new geometric args (rotation, flip, etc.)
+                        let geom = parseGeomArgs(data, newArgs);
+                        el.set('angle', geom.angle);
+                        el.set('flipH', geom.flipH);
+                        el.set('flipV', geom.flipV);
+                        
+                        // Reassemble the icon geometry
+                        assembleIcon(el, newArgs);
+
+                        // Update the text labels
+                        for (let i = 0; i < argsCount; i++) {
+                            let desc = ((data.argNames && data.argNames[i]) ? (typeof data.argNames[i] === 'string' ? data.argNames[i] : (data.argNames[i].name || '')) : '').toLowerCase();
+                            if (desc === 'name' || desc === 'text') {
+                                let newName = newArgs[i] === '$NAME$' ? data.name : newArgs[i];
+                                updateElementLabel(el, newName);
+                            }
+                        }
+                    };
+
+                    // Bind the preview function to all inputs
+                    let inputs = popup.querySelectorAll('input, select');
+                    inputs.forEach(input => {
+                        input.addEventListener('input', updatePreview);
+                        input.addEventListener('change', updatePreview);
+                    });
                 },
                 preConfirm: () => {
                     const popup = Swal.getPopup();

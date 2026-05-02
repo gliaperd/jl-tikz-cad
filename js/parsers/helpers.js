@@ -234,6 +234,34 @@ export function extractTopology() {
         if (!netMap.has(root)) { netMap.set(root, netCounter.toString()); netCounter++; }
     });
 
+    // =====================================================================
+    // VIRTUAL NET LABEL PROMOTION
+    // Overwrite the numerical IDs with the user's custom string labels!
+    // =====================================================================
+    AppState.graph.getElements().forEach(el => {
+        if (el.get('latexMacro') === 'netlabel') {
+            let args = el.get('customArgs') || [];
+            let customName = args[1] || el.get('displayedText');
+            if (customName) {
+                // Find where the tip of the label is pointing
+                let pt = getAbsolutePinCoord(el, 'pin1');
+                
+                // Use tolerance < 10 for safety when dropped directly on pins
+                let cluster = terminals.find(t => Math.abs(t.x - pt.x) < 10 && Math.abs(t.y - pt.y) < 10);
+                
+                if (cluster) {
+                    let root = uf.find(cluster.id);
+                    // Overwrite the number (e.g., "3") with the string (e.g., "A")
+                    // But never overwrite Ground ("0")!
+                    if (netMap.has(root) && netMap.get(root) !== "0") {
+                        netMap.set(root, customName.replace(/\s+/g, '_'));
+                    }
+                }
+            }
+        }
+    });
+    // =====================================================================
+
     return { uf, netMap, terminals, gndNodes };
 }
 

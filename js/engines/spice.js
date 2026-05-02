@@ -192,7 +192,8 @@ export function generateSpiceNetlistStr(customSim) {
 
     let topo = window.extractTopology();
     let getNetForPin = (pt) => {
-        let cluster = topo.terminals.find(t => Math.abs(t.x - pt.x) < 5 && Math.abs(t.y - pt.y) < 5);
+        // INCREASED TOLERANCE TO 10: Ensures direct pin-to-pin drops connect perfectly!
+        let cluster = topo.terminals.find(t => Math.abs(t.x - pt.x) < 10 && Math.abs(t.y - pt.y) < 10);
         return cluster ? topo.netMap.get(topo.uf.find(cluster.id)) : null;
     };
 
@@ -216,7 +217,7 @@ export function generateSpiceNetlistStr(customSim) {
 
     elements.forEach(el => {
         let macro = el.get('latexMacro');
-        if (macro === 'freetext' || macro === 'connectordot' || macro === 'groundterminal' || macro === 'ioport' || macro === 'ioportdot') return;
+        if (macro === 'freetext' || macro === 'connectordot' || macro === 'groundterminal' || macro === 'ioport' || macro === 'ioportdot' || macro === 'netlabel') return;
 
         let dbData = JL_DATABASE[macro];
         let baseName = (el.get('displayedText') || "comp").replace(/\s+/g, '');
@@ -1004,7 +1005,7 @@ export function showDCOperatingPointTable(opData, topo) {
             tableHtml += `<tr style="border-bottom: 1px solid var(--border-main); cursor: pointer; transition: background 0.15s;" data-comp-id="${compId}" class="dc-table-row">
                 <td style="padding: 8px; font-weight: 600;">${displayName}</td>
                 <td style="padding: 8px; color: var(--text-muted);">Current</td>
-                <td style="padding: 8px; text-align: right; font-family: var(--font-code);">${formatEng(data.val, 'A')}</td>
+                <td style="padding: 8px; text-align: right; font-family: var(--font-code);">${formatEng(Math.abs(data.val), 'A')}</td>
             </tr>`;
         }
 
@@ -1015,7 +1016,7 @@ export function showDCOperatingPointTable(opData, topo) {
             tableHtml += `<tr style="border-bottom: 1px solid var(--border-main); cursor: pointer; transition: background 0.15s;" data-comp-id="${compId}" class="dc-table-row">
                 <td style="padding: 8px; font-weight: 600;">${displayName}</td>
                 <td style="padding: 8px; color: var(--warning);">Power</td>
-                <td style="padding: 8px; text-align: right; font-family: var(--font-code);">${formatEng(data.power, 'W')}</td>
+                <td style="padding: 8px; text-align: right; font-family: var(--font-code);">${formatEng(Math.abs(data.power), 'W')}</td>
             </tr>`;
         }
     }
@@ -1216,8 +1217,8 @@ export function showDCOperatingPointTable(opData, topo) {
                 let csv = "Item,Parameter,Type,Value\n";
                 for (let [n, v] of Object.entries(opData.nodes||{})) csv += `Net ${n},,Voltage,${formatEng(v, 'V')}\n`;
                 for (let [c, data] of Object.entries(opData.currents||{})) {
-                    if (data.val !== undefined) csv += `"${data.name}","${data.compVal || ''}",Current,${formatEng(data.val, 'A')}\n`;
-                    if (data.power !== undefined) csv += `"${data.name}","${data.compVal || ''}",Power,${formatEng(data.power, 'W')}\n`;
+                    if (data.val !== undefined) csv += `"${data.name}","${data.compVal || ''}",Current,${formatEng(Math.abs(data.val), 'A')}\n`;
+                    if (data.power !== undefined) csv += `"${data.name}","${data.compVal || ''}",Power,${formatEng(Math.abs(data.power), 'W')}\n`;
                 }
                 if (window.showSaveFilePicker) {
                     try {

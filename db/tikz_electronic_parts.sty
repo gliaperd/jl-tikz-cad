@@ -5851,4 +5851,27 @@
     \end{scope}
 }
 
+%% Net Label
+\newcommand{\netlabel}[3]{%{position}{name}{rotation,flip}
+% enabled
+% category: Basic Components
+% scales: 1, 1.5, 2
+% label_anchor: R
+% flip: disabled
+% hide_label: true
+% arg_def: 3 | rotflip | Rotation & Flip | 0,none
+
+
+% icon_base: [rounded=true] M 0 0 L 8 0 M 23.50 -5 L 13.50 -5 L 8.50 0 L 13.50 5 L 23.50 5 L 23.50 -5
+   \IfSubStr{#5}{h}{\edef\xscalevalue{-1}}{\edef\xscalevalue{1}}
+   \IfSubStr{#5}{v}{\edef\yscalevalue{-1}}{\edef\yscalevalue{1}}
+   \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#5, xscale=\xscalevalue, yscale=\yscalevalue]
+        \getzoomfactor
+        \draw [line width=\linewidthscalefactor * \zoomfactor * 1.8pt, line cap=round, line join=round] (0, 0) -- (0.8, 0) (2.35, 0.5) -- (1.35, 0.5) -- (0.85, 0) -- (1.35, -0.5) -- (2.35, -0.5) -- (2.35, 0.5);
+        % coordinate pins
+        \coordinate (pin1) at (0.00, 0.00); % [R]
+        % \coordinate ($2) at (3.00, 0.00); % [R]
+        \node[draw=none, align=center] at ($2) {\textbf{#2}};
+    \end{scope}
+}
 

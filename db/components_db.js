@@ -6739,5 +6739,64 @@ const JL_DATABASE = {
                 "dir": "R"
             }
         ]
+    },
+    "netlabel": {
+        "name": "netlabel",
+        "displayName": "Net Label",
+        "argsCount": 3,
+        "enabled": "true",
+        "category": "Basic Components",
+        "scales": [
+            1,
+            1.5,
+            2
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "R"
+        },
+        "flippable": false,
+        "hideLabel": true,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M 0 0 L 8 0 M 23.50 -5 L 13.50 -5 L 8.50 0 L 13.50 5 L 23.50 5 L 23.50 -5",
+        "iconBaseStyle": "rounded=true",
+        "filled": false,
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "rotation,flip",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 0.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            },
+            {
+                "id": "$2",
+                "x": 30.0,
+                "y": -0.0,
+                "label": "$2",
+                "dir": "R"
+            }
+        ]
     }
 };
