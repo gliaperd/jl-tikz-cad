@@ -8,6 +8,7 @@ import { importProject, openExportDialog, saveProjectToFile } from '../parsers/i
 import { runSimulation, clearSimAnnotations, openSpiceNetlistEditor, promptTheveninNode, promptTransferFunction } from '../engines/spice.js';
 import { refreshComponentViews, updateGhostDotsVisibility, applyTheme } from './canvas.js'; 
 import { packCurrentCircuit } from '../engines/packer.js';
+import { promptDCSweep } from '../engines/spice.js';
 
 export function initializeToolbar() {
     // Editing Tools
@@ -58,6 +59,7 @@ export function initializeToolbar() {
     document.getElementById('btn-sim-op').addEventListener('click', () => runSimulation('op'));
     document.getElementById('btn-sim-tran').addEventListener('click', () => runSimulation('tran'));
     document.getElementById('btn-sim-ac').addEventListener('click', () => runSimulation('ac'));
+	document.getElementById('btn-sim-dcsweep').addEventListener('click', promptDCSweep);
     document.getElementById('btn-sim-netlist').addEventListener('click', openSpiceNetlistEditor);
     document.getElementById('btn-sim-logic').addEventListener('click', runDigitalSimulation);
     document.getElementById('btn-sim-settings').addEventListener('click', openSimulationSettings);

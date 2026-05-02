@@ -871,18 +871,46 @@ export function addComponent(type, dropX = null, dropY = null) {
 // Bind the drag-and-drop zone
 export function setupDropzone() {
     const container = document.getElementById('paper-container');
-    container.addEventListener('dragover', (e) => {
-        e.preventDefault(); 
-        e.dataTransfer.dropEffect = 'copy';
-    });
 
-    container.addEventListener('drop', (e) => {
-        e.preventDefault();
-        const type = e.dataTransfer.getData('application/jl-component');
-        if (type) {
-            addComponent(type, e.clientX, e.clientY);
+    // Helper: Check if the drag contains a palette component
+    const isComponentDrag = (e) => {
+        if (!e.dataTransfer || !e.dataTransfer.types) return false;
+        // Search the transfer types to see if it's a JL Component
+        for (let i = 0; i < e.dataTransfer.types.length; i++) {
+            if (e.dataTransfer.types[i] === 'application/jl-component') return true;
         }
-    });
+        return false;
+    };
+
+    // The Interceptor: Catches the drag at the absolute root of the DOM
+    const handleGlobalDrag = (e) => {
+        if (isComponentDrag(e)) {
+            // 1. Kill the event so the JSON file importer never sees it!
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+
+            // 2. Handle the component drop logic manually
+            if (e.type === 'dragover') {
+                e.dataTransfer.dropEffect = 'copy';
+            } 
+            else if (e.type === 'drop') {
+                // Only drop if their mouse is actually over the canvas container
+                if (container.contains(e.target) || e.target === container) {
+                    const type = e.dataTransfer.getData('application/jl-component');
+                    if (type) {
+                        addComponent(type, e.clientX, e.clientY);
+                    }
+                }
+            }
+        }
+    };
+
+    // Attach to the Window in the Capture Phase (runs before all other scripts)
+    window.addEventListener('dragenter', handleGlobalDrag, true);
+    window.addEventListener('dragover', handleGlobalDrag, true);
+    window.addEventListener('dragleave', handleGlobalDrag, true);
+    window.addEventListener('drop', handleGlobalDrag, true);
 }
 
 export function getVisualOrigin(el, customPos = null) {

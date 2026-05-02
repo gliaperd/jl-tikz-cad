@@ -444,6 +444,10 @@ export async function runSimulation(mode, customNetlist = null) {
             // Bring up the terminal. If it errors out, the border will start flashing red!
             if (typeof SimLog !== 'undefined' && SimLog.show) SimLog.show();
 
+            // --- NEW: Detect Test Probe for Plot Filtering ---
+            let probeMatch = cleanNetlist.match(/I_PROBE_[a-zA-Z0-9_]+\s+([^\s]+)/i);
+            window.activeProbeNode = probeMatch ? probeMatch[1].toLowerCase() : null;
+
             Module.FS.writeFile('/circuit.cir', cleanNetlist);
             Module.ccall('ngSpice_Command', 'number', ['string'], ['destroy all']);
             Module.ccall('ngSpice_Command', 'number', ['string'], ['remcirc']);
@@ -472,7 +476,9 @@ export async function runSimulation(mode, customNetlist = null) {
                     }
                 } else {
                     let parsedData = parseSpiceRaw(rawOutput);
-                    let title = mode === 'tran' ? 'Transient Analysis' : 'AC Analysis';
+                    // NEW: Recognize 'dc' mode and label it appropriately
+                    let title = mode === 'tran' ? 'Transient Analysis' : (mode === 'dc' ? 'DC Sweep Analysis' : 'AC Analysis');
+                    
                     if (typeof plotSimulationResults === 'function') {
                         plotSimulationResults(parsedData, title);
                     } else {
@@ -509,6 +515,47 @@ function parseSpiceValue(valStr) {
     return parseFloat(valStr);
 }
 
+// --- NEW: Trace Name Beautifier ---
+function beautifyTraceName(rawName) {
+    let n = rawName;
+    
+    let isV = n.toLowerCase().startsWith('v(');
+    let isI = n.toLowerCase().startsWith('i(');
+    
+    if (!isV && !isI) {
+        // Handle raw component names (often used as the X-axis label in DC sweeps)
+        if (n.match(/^[a-zA-Z]_[a-zA-Z0-9]+_[a-zA-Z0-9]{4}$/i)) {
+            let p = n.replace(/^[a-zA-Z]_/i, '');     // Strip V_, I_, etc.
+            p = p.replace(/_[a-zA-Z0-9]{4}$/i, '');   // Strip the 4-char DOM hash
+            return p.charAt(0).toUpperCase() + p.slice(1);
+        }
+        return n; 
+    }
+    
+    let inner = n.substring(2, n.length - 1);
+    
+    // 1. Clean NGSpice internal array syntax (e.g. @device[current])
+    if (inner.startsWith('@')) inner = inner.substring(1);
+    inner = inner.replace(/\[[^\]]+\]$/, ''); 
+    
+    // 2. Remove SPICE device class prefixes attached with a dot (e.g. r.device, e.device)
+    inner = inner.replace(/(^|\.)[a-z]\./gi, '$1'); 
+    
+    // 3. Split by '.' to navigate the subcircuit hierarchy
+    let parts = inner.split('.');
+    let cleanParts = parts.map(part => {
+        let p = part;
+        p = p.replace(/^[a-zA-Z]_/i, '');         // Remove JL CAD prefix (X_, V_, R_, C_)
+        p = p.replace(/^probe_/i, '');            // Remove the 'probe_' text
+        p = p.replace(/_[a-zA-Z0-9]{4}$/i, '');     // Remove the 4-char DOM hash
+        return p;
+    });
+    
+    // Join them back together with a clean hierarchy arrow
+    let beautifulInner = cleanParts.join(' ➔ ');
+    return isV ? `V(${beautifulInner})` : `I(${beautifulInner})`;
+}
+
 function parseSpiceRaw(rawOutput) {
     let lines = rawOutput.split('\n');
     let mode = ''; 
@@ -536,7 +583,9 @@ function parseSpiceRaw(rawOutput) {
         if (mode === 'vars') {
             let parts = l.split(/\s+/);
             if (parts.length >= 3 && !isNaN(parts[0])) {
-                vars.push({ idx: parseInt(parts[0]), name: parts[1], type: parts[2] });
+                // --- THE FIX: Pass the raw name through our Beautifier ---
+                let cleanName = beautifyTraceName(parts[1]);
+                vars.push({ idx: parseInt(parts[0]), name: cleanName, type: parts[2] });
             }
         } else if (mode === 'vals') {
             // Safety Check: If we hit a text header like "Plotname:", stop trying to parse numbers!
@@ -562,12 +611,40 @@ function parseSpiceRaw(rawOutput) {
 }
 
 function plotSimulationResults(parsedData, title) {
-	// --- THE FIX: Nuke lingering Chart.js instances before proceeding! ---
+    // --- THE FIX: Nuke lingering Chart.js instances before proceeding! ---
     if (window.simChartInstance) {
         window.simChartInstance.destroy();
         window.simChartInstance = null;
     }
-	
+
+    // --- UPGRADED: SMART PROBE FILTER FOR DC SWEEPS ---
+    if (title.includes('DC Sweep')) {
+        let keepIndices = [0]; // Always keep the X-axis (swept source)
+        let targetNode = window.activeProbeNode; // Grab the node we detected earlier
+        
+        for (let i = 1; i < parsedData.vars.length; i++) {
+            let vName = parsedData.vars[i].name.toLowerCase();
+            
+            if (targetNode) {
+                // If a probe is on the canvas, ONLY keep the voltage trace for that specific node
+                if (vName === `v(${targetNode})`) {
+                    keepIndices.push(i);
+                }
+            } else {
+                // If no probe exists, fall back to keeping all voltages
+                if (vName.startsWith('v(')) {
+                    keepIndices.push(i);
+                }
+            }
+        }
+        
+        // Apply the filter (safeguard: ensure we actually kept a trace)
+        if (keepIndices.length > 1) {
+            parsedData.vars = keepIndices.map(idx => parsedData.vars[idx]);
+            parsedData.points = parsedData.points.map(pt => keepIndices.map(idx => pt[idx]));
+        }
+    }
+    
     window.currentSimData = parsedData;
     window.currentSimTitle = title;
     window.currentSimIsAC = title.includes('AC');
@@ -615,7 +692,13 @@ function plotSimulationResults(parsedData, title) {
 
     let xScale = isAC ? { mult: 1, prefix: '' } : getScale(maxX);
     let yScale = getScale(maxY);
-    let xUnit = isAC ? 'Hz' : 's';
+    
+    // NEW: Check the title we just passed in to see if it's a sweep
+    let isDC = window.currentSimTitle.includes('DC Sweep');
+    
+    // If it's DC, check if the swept variable (xVar) starts with 'i' (Current) or 'v' (Voltage)
+    let xUnit = isAC ? 'Hz' : (isDC ? (xVar.name.toLowerCase().startsWith('i') ? 'A' : 'V') : 's');
+    
     let isAllV = parsedData.vars.slice(1).every(v => v.name.toLowerCase().startsWith('v'));
     let isAllI = parsedData.vars.slice(1).every(v => v.name.toLowerCase().startsWith('i'));
     let yUnit = isAllV ? 'V' : (isAllI ? 'A' : '');
@@ -932,8 +1015,13 @@ export function annotateDCOperatingPointFromRaw(rawOutput, topo) {
                     return cluster ? topo.netMap.get(topo.uf.find(cluster.id)) : null;
                 };
 
-                let pt1 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, 'pin1') : null;
-                let pt2 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, 'pin2') : null;
+                // Dynamically grab the first two available ports
+                let ports = el.getPorts();
+                let p1Id = ports.length > 0 ? ports[0].id : 'pin1';
+                let p2Id = ports.length > 1 ? ports[1].id : 'pin2';
+                
+                let pt1 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, p1Id) : null;
+                let pt2 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, p2Id) : null;
                 
                 if (pt1 && pt2) {
                     let net1 = getNetForPin(pt1);
@@ -1167,8 +1255,19 @@ export function showDCOperatingPointTable(opData, topo) {
                                     if (compData && compData.val !== undefined) {
                                         let currentVal = compData.val; let arrowStr = "";
                                         if (Math.abs(currentVal) > 1e-12) {
-                                            let pt1 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, 'pin1') : null;
-                                            let pt2 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, 'pin2') : null;
+                                            let pt1 = null, pt2 = null;
+                                            try {
+                                                // Dynamically grab the first two available ports instead of hardcoding 'pin1'
+                                                let ports = el.getPorts();
+                                                let p1Id = ports.length > 0 ? ports[0].id : 'pin1';
+                                                let p2Id = ports.length > 1 ? ports[1].id : 'pin2';
+                                                
+                                                pt1 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, p1Id) : null;
+                                                pt2 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, p2Id) : null;
+                                            } catch (err) {
+                                                // Safely swallow the error. The logic will gracefully fall back to the bounding-box center!
+                                            }
+                                            
                                             if (pt1 && pt2) {
                                                 let dx = pt2.x - pt1.x; let dy = pt2.y - pt1.y;
                                                 if (Math.abs(dx) > Math.abs(dy)) arrowStr = (dx > 0) ? (currentVal > 0 ? "→ " : "← ") : (currentVal > 0 ? "← " : "→ ");
@@ -1379,26 +1478,20 @@ export function promptTheveninNode() {
 }
 
 export function executeTheveninSolver(targetNode) {
-    if (typeof Module === 'undefined') {
-        console.error("[Thevenin Tool] Fatal Error: WASM Module is undefined.");
-        return;
-    }
+    if (typeof Module === 'undefined') return console.error("[Thevenin Tool] Fatal Error.");
 
     Swal.fire({ title: 'Calculating Vth and Rth...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
 
     setTimeout(() => {
         try {
-            // THE FIX: The Virtual RAM Patch!
             try { Module.FS.mkdir('/tmp'); } catch(e) {}
-            let safeRam = "MemTotal:       524288 kB\nMemFree:        524288 kB\nMemAvailable:   524288 kB\n";
-            try { Module.FS.writeFile('/tmp/meminfo', safeRam); } catch(e) {}
+            try { Module.FS.writeFile('/tmp/meminfo', "MemTotal: 524288 kB\nMemFree: 524288 kB\nMemAvailable: 524288 kB\n"); } catch(e) {}
 
             if (!isSpiceInitialized) {
                 let sendCharCallback = Module.addFunction(function(textPtr) {
                     let msg = Module.UTF8ToString(textPtr).trim();
                     if (!msg) return 0;
-                    let isErr = msg.startsWith('stderr Error') || (msg.startsWith('stderr') && msg.toLowerCase().includes('error'));
-                    if (isErr) {
+                    if (msg.startsWith('stderr Error') || msg.toLowerCase().includes('error')) {
                         window.spiceErrorFlag = true;
                         window.spiceErrorMsg = msg.replace('stderr Error', '').trim();
                     }
@@ -1411,30 +1504,20 @@ export function executeTheveninSolver(targetNode) {
             window.spiceErrorFlag = false;
             window.spiceErrorMsg = "";
 
-            let netlistData = generateSpiceNetlistStr("");
+            // --- THE FIX: PASS COMMANDS DIRECTLY INTO THE GENERATOR ---
+            let customCommands = `\nI_THEV_TEST ${targetNode} 0 DC 0\n.control\nset filetype=ascii\nop\nwrite /output_op.raw\ntf v(${targetNode}) I_THEV_TEST\nwrite /output_tf.raw\n.endc\n.end\n`;
+            let netlistData = generateSpiceNetlistStr(customCommands);
+            
             if (netlistData.errors && netlistData.errors.length > 0) {
                 Swal.fire('Error', 'Fix schematic errors before running the solver.', 'error');
                 return;
             }
 
-            // Inject 0A dummy source and lock execution in a control block
-            let customCommands = `
-I_THEV_TEST ${targetNode} 0 DC 0
-.control
-set filetype=ascii
-op
-write /output_op.raw
-tf v(${targetNode}) I_THEV_TEST
-write /output_tf.raw
-.endc
-.end
-`;
-            let tfNetlist = netlistData.code.replace('.end', customCommands);
-            tfNetlist = tfNetlist.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            // No more .replace('.end') hacks!
+            let tfNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
             try { Module.FS.unlink('/output_op.raw'); } catch(e) {}
             try { Module.FS.unlink('/output_tf.raw'); } catch(e) {}
-
             Module.FS.writeFile('/circuit_thev.cir', tfNetlist);
             Module.ccall('ngSpice_Command', 'number', ['string'], ['destroy all']);
             Module.ccall('ngSpice_Command', 'number', ['string'], ['remcirc']);
@@ -1898,7 +1981,9 @@ export function promptTransferFunction() {
         let parts = l.split(/\s+/);
         if (parts.length < 3) return;
         let compName = parts[0].toUpperCase();
-        if (compName.startsWith('V') || compName.startsWith('I')) sources.push(compName);
+        if ((compName.startsWith('V') || compName.startsWith('I')) && !compName.includes('_PROBE_') && !compName.includes('_THEV_')) {
+            sources.push(compName);
+        }
         let possibleNodes = (compName.startsWith('Q') || compName.startsWith('M') || compName.startsWith('J')) ? [parts[1], parts[2], parts[3]] : [parts[1], parts[2]];
         possibleNodes.forEach(n => { if (n && String(n) !== '0' && n.toUpperCase() !== 'GND') nodes.add(n); });
     });
@@ -2069,13 +2154,8 @@ export function promptTransferFunction() {
 }
 
 export function executeTransferFunction(outVar, inSrc) {
-    if (typeof Module === 'undefined') {
-        console.error("[TF Tool] Fatal Error: WASM Module is undefined.");
-        return;
-    }
+    if (typeof Module === 'undefined') return console.error("[TF Tool] Fatal Error.");
     
-    console.log(`[TF Tool] Starting execution for ${outVar} / ${inSrc}`);
-
     if (typeof SimLog !== 'undefined') {
         SimLog.show();
         SimLog.print(`\n> Executing Transfer Function (.tf) for ${outVar} / ${inSrc}...`);
@@ -2083,19 +2163,14 @@ export function executeTransferFunction(outVar, inSrc) {
 
     setTimeout(() => {
         try {
-            // THE FIX: The Missing Linux RAM Patch!
             try { Module.FS.mkdir('/tmp'); } catch(e) {}
-            let safeRam = "MemTotal:       524288 kB\nMemFree:        524288 kB\nMemAvailable:   524288 kB\n";
-            try { Module.FS.writeFile('/tmp/meminfo', safeRam); } catch(e) {}
-            console.log("[TF Tool] Virtual RAM patch applied.");
+            try { Module.FS.writeFile('/tmp/meminfo', "MemTotal: 524288 kB\nMemFree: 524288 kB\nMemAvailable: 524288 kB\n"); } catch(e) {}
 
             if (!isSpiceInitialized) {
-                console.log("[TF Tool] Initializing SPICE Engine...");
                 let sendCharCallback = Module.addFunction(function(textPtr) {
                     let msg = Module.UTF8ToString(textPtr).trim();
                     if (!msg) return 0;
-                    let isErr = msg.startsWith('stderr Error') || (msg.startsWith('stderr') && msg.toLowerCase().includes('error'));
-                    if (isErr) {
+                    if (msg.startsWith('stderr Error') || msg.toLowerCase().includes('error')) {
                         window.spiceErrorFlag = true;
                         window.spiceErrorMsg = msg.replace('stderr Error', '').trim();
                     }
@@ -2103,34 +2178,24 @@ export function executeTransferFunction(outVar, inSrc) {
                 }, 'iiii'); 
                 Module.ccall('ngSpice_Init', 'number', ['number','number','number','number','number','number','number'], [sendCharCallback, 0, 0, 0, 0, 0, 0]);
                 isSpiceInitialized = true;
-                console.log("[TF Tool] SPICE Engine Initialized.");
             }
 
             window.spiceErrorFlag = false;
             window.spiceErrorMsg = "";
 
-            let netlistData = generateSpiceNetlistStr("");
+            // --- THE FIX: PASS COMMANDS DIRECTLY INTO THE GENERATOR ---
+            let customCommands = `\n.control\ntf ${outVar} ${inSrc}\nset filetype=ascii\nwrite /output_tf_tool.raw\n.endc\n.end\n`;
+            let netlistData = generateSpiceNetlistStr(customCommands);
+            
             if (netlistData.errors && netlistData.errors.length > 0) {
-                if (typeof SimLog !== 'undefined') {
-                    SimLog.print(`Schematic contains errors. Fix them before running.`, true);
-                }
+                if (typeof SimLog !== 'undefined') SimLog.print(`Schematic contains errors. Fix them before running.`, true);
                 return;
             }
-            console.log("[TF Tool] Netlist Generated successfully.");
 
-            let customCommands = `
-.control
-tf ${outVar} ${inSrc}
-set filetype=ascii
-write /output_tf_tool.raw
-.endc
-.end
-`;
-            let tfNetlist = netlistData.code.replace('.end', customCommands);
-            tfNetlist = tfNetlist.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            // No more .replace('.end') hacks!
+            let tfNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
             try { Module.FS.unlink('/output_tf_tool.raw'); } catch(e) {}
-
             Module.FS.writeFile('/circuit_tf_tool.cir', tfNetlist);
             Module.ccall('ngSpice_Command', 'number', ['string'], ['destroy all']);
             Module.ccall('ngSpice_Command', 'number', ['string'], ['remcirc']);
@@ -2299,5 +2364,167 @@ export function showTransferFunctionResults(outVar, inSrc, gain, zIn, zOut) {
             });
         }
     });
+}
+
+// -----------------------------------------
+// 7. DC SWEEP ANALYSIS
+// -----------------------------------------
+export function promptDCSweep() {
+    // 1. Silently generate the netlist to see mathematical reality
+    let netlistData = generateSpiceNetlistStr("");
+    if (!netlistData || !netlistData.code) {
+        return Swal.fire('Empty Circuit', 'Please build a circuit first before running a sweep.', 'warning');
+    }
+
+    let sources = [];
+    let lines = netlistData.code.split('\n');
+    
+    // 2. Scrape the raw text for independent Voltage (V) and Current (I) sources
+    for (let line of lines) {
+        let l = line.trim();
+        
+        // Stop scanning when we hit the library models or expanded subcircuits
+        if (l.includes('Component Models & Subcircuits')) break;
+        
+        // Match any line starting with V or I, followed by alphanumeric chars, followed by a space
+        let match = l.match(/^([VI][a-zA-Z0-9_]+)\s/i);
+        if (match) {
+            let sourceName = match[1].toUpperCase();
+            
+            // Exclude hidden system probes used by our other tools
+            if (!sourceName.includes('_PROBE_') && !sourceName.includes('_THEV_')) {
+                sources.push(sourceName);
+            }
+        }
+    }
+
+    let sourceOptions = sources.map(s => `<option value="${s}">${s}</option>`).join('');
+    sourceOptions += `<option value="CUSTOM">-- Type Manually... --</option>`;
+
+    const btnPrimary = "flex: 1; border: 1px solid rgba(255,255,255,0.2); background: var(--primary); color: #ffffff; border-radius: 4px; padding: 8px 10px; cursor: pointer; font-size: 13px; font-weight: bold; transition: opacity 0.2s;";
+    const btnClose = "flex: 1; border: 1px solid #555; background: #333333; color: #ffffff; border-radius: 4px; padding: 8px 10px; cursor: pointer; font-size: 13px; font-weight: bold; transition: opacity 0.2s;";
+    const inputCSS = "width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid var(--border-main); border-radius: 4px; background: var(--bg-app); color: var(--text-main); font-family: var(--font-code);";
+
+    Swal.fire({
+        width: 380, padding: 0, background: 'none', backdrop: false, showConfirmButton: false, heightAuto: false,
+        customClass: { popup: 'spice-modal-override', htmlContainer: 'spice-modal-override' },
+        html: `
+            <style>
+                .swal2-popup.spice-modal-override { padding: 0 !important; background: transparent !important; border: none !important; }
+                .swal2-html-container.spice-modal-override { padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
+            </style>
+            <div id="sim-dcsweep-window" style="display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-main); pointer-events: auto; overflow: hidden;">
+                <div id="swal-drag-handle-dcsweep" style="cursor: move; background: #2c3e50; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 2px solid #3498db;">
+                    <span style="font-size: 15px; font-weight: bold; display:flex; align-items:center; gap:8px; color: #ffffff;"> 
+                        <i data-lucide="line-chart" style="color: #3498db; width: 18px; height: 18px;"></i> DC Sweep Analysis
+                    </span>
+                    <button onclick="Swal.close()" style="background:none; border:none; color:#ffffff; font-size:18px; cursor:pointer; padding:0; line-height:1;" title="Close Window">✖</button>
+                </div>
+                
+                <div style="padding: 18px; text-align: left; font-size: 13px; color: var(--text-main);">
+                    <p style="color: var(--text-main); font-weight: 500; margin-top: 0; line-height: 1.5; font-size: 13px; margin-bottom: 15px;">
+                        Sweep a source across a range of values to plot the circuit's DC transfer characteristic.
+                    </p>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px; color: var(--primary);">Source to Sweep</label>
+                        ${sources.length > 0 
+                            ? `<select id="swp-source-sel" style="${inputCSS}" onchange="document.getElementById('swp-source-custom-wrap').style.display = this.value === 'CUSTOM' ? 'block' : 'none';">${sourceOptions}</select>`
+                            : `<input type="hidden" id="swp-source-sel" value="CUSTOM">`
+                        }
+                        <div id="swp-source-custom-wrap" style="display: ${sources.length > 0 ? 'none' : 'block'}; margin-top: 8px;">
+                            <input id="swp-source-custom" placeholder="e.g., V1 or I_SOURCE" style="${inputCSS}">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Start</label>
+                            <input id="swp-start" style="${inputCSS}" value="0">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Stop</label>
+                            <input id="swp-stop" style="${inputCSS}" value="5">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Step</label>
+                            <input id="swp-step" style="${inputCSS}" value="0.1">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px;">
+                        <button id="btn-swp-calc" style="${btnPrimary}" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">Run Sweep</button>
+                        <button id="btn-swp-cancel" style="${btnClose}" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        `,
+        didOpen: () => {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            const popup = Swal.getPopup(); 
+            const handle = document.getElementById('swal-drag-handle-dcsweep');
+            
+            popup.style.background = 'transparent'; 
+            popup.style.boxShadow = 'none';
+            popup.style.setProperty('padding', '0', 'important');
+            const htmlContainer = Swal.getHtmlContainer();
+            if (htmlContainer) {
+                htmlContainer.style.setProperty('padding', '0', 'important');
+                htmlContainer.style.setProperty('margin', '0', 'important');
+                htmlContainer.style.overflow = 'hidden';
+            }
+            
+            document.getElementById('btn-swp-cancel').onclick = () => Swal.close();
+            
+            // Handle the submission, prioritizing the text box if "CUSTOM" is selected
+            document.getElementById('btn-swp-calc').onclick = () => {
+                let srcVal = document.getElementById('swp-source-sel').value;
+                if (srcVal === 'CUSTOM') {
+                    srcVal = document.getElementById('swp-source-custom').value.trim();
+                }
+
+                let params = {
+                    source: srcVal,
+                    start: document.getElementById('swp-start').value.trim(),
+                    stop: document.getElementById('swp-stop').value.trim(),
+                    step: document.getElementById('swp-step').value.trim()
+                };
+                Swal.close();
+                setTimeout(() => executeDCSweep(params), 150);
+            };
+
+            let isDragging = false, startX, startY, initialLeft, initialTop;
+            const onMouseMove = (e) => { if (!isDragging) return; popup.style.left = (initialLeft + (e.clientX - startX)) + 'px'; popup.style.top = (initialTop + (e.clientY - startY)) + 'px'; };
+            const onMouseUp = () => { isDragging = false; document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+            handle.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button')) return; 
+                isDragging = true; const rect = popup.getBoundingClientRect(); popup.style.margin = '0'; popup.style.position = 'fixed'; 
+                popup.style.left = rect.left + 'px'; popup.style.top = rect.top + 'px'; startX = e.clientX; startY = e.clientY; initialLeft = rect.left; initialTop = rect.top;
+                document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
+            });
+        }
+    });
+}
+
+export function executeDCSweep(params) {
+    if (!params.source) return Swal.fire('Error', 'You must specify a source to sweep.', 'error');
+
+    // Force SPICE to save all branch currents so we can plot them too
+    let dcCommand = `\n.options savecurrents\n.dc ${params.source} ${params.start} ${params.stop} ${params.step}\n.end\n`;
+    
+    let netlistData = generateSpiceNetlistStr(dcCommand);
+    
+    if (netlistData.errors && netlistData.errors.length > 0) {
+        let errorHtml = `<ul style="text-align: left; font-size: 13px; color: var(--danger);">` + 
+                        netlistData.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + 
+                        `</ul>`;
+        Swal.fire('Schematic Error', 'Please fix the following issues:<br><br>' + errorHtml, 'error');
+        return;
+    }
+    
+    let cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    
+    // Pass 'dc' into your robust WASM runner!
+    runSimulation('dc', cleanNetlist);
 }
 

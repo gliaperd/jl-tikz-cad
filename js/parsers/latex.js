@@ -96,8 +96,14 @@ export function forceExportLatex() {
                 let currentScale = el.get('customScale') || 1;
                 let scaleStr = currentScale !== 1 ? `, scale=${currentScale}` : '';
                 
+                let idStr = ` % id:${el.id}`;
+                let htmlIdSpan = `<span class="sync-id" contenteditable="false" style="display: none; user-select: none; pointer-events: none;">${idStr}</span>`;
+                
                 let unrolled = `  % --- Subcircuit: ${el.get('displayedText')} ---\n`;
-                unrolled += `  \\begin{scope}[shift={(${tx},${ty})}, rotate=${rot}, xscale=${sx}, yscale=${sy}${scaleStr}]\n`;
+                
+                // THE FIX: Attach the hidden ID directly to the scope line so the Sync Parser can find it!
+                let scopeLine = `  \\begin{scope}[shift={(${tx},${ty})}, rotate=${rot}, xscale=${sx}, yscale=${sy}${scaleStr}]`;
+                unrolled += scopeLine + idStr + "\n";
                 unrolled += `    \\getzoomfactor\n`;
                 
                 // 1. Draw the vector paths natively
@@ -139,11 +145,8 @@ export function forceExportLatex() {
                 
                 unrolled += `  \\end{scope}\n`;
                 
-                let idStr = ` % id:${el.id}`;
-                let htmlIdSpan = `<span class="sync-id" contenteditable="false" style="display: none; user-select: none; pointer-events: none;">${idStr}</span>`;
-                
-                line = unrolled + idStr + "\n";
-                htmlBlock = highlightLatex(escapeHTML(unrolled)) + htmlIdSpan + "\n";
+                line = unrolled;
+                htmlBlock = highlightLatex(escapeHTML(unrolled)).replace(escapeHTML(idStr), htmlIdSpan) + "\n";
 
             } else {
                 // ========================================================
@@ -291,6 +294,34 @@ export function syncFromLatex() {
     const lines = text.split('\n');
 
     lines.forEach(line => {
+        // --- NEW: Custom Subcircuit Scope Parser ---
+        let scopeMatch = line.match(/\\begin\{scope\}\[shift=\{\(([-+]?[\d\.]+)\s*,\s*([-+]?[\d\.]+)\)\}(.*)\] % id:([a-zA-Z0-9-]+)/);
+        if (scopeMatch) {
+            let px = parseFloat(scopeMatch[1]) * AppState.EXPORT_DIV;
+            let py = -parseFloat(scopeMatch[2]) * AppState.EXPORT_DIV;
+            let cellId = scopeMatch[4].trim();
+            let cell = AppState.graph.getCell(cellId);
+            
+            if (cell) {
+                let oldVis = getVisualOrigin(cell);
+                let p = cell.position();
+                cell.position(p.x + (px - oldVis.x), p.y + (py - oldVis.y));
+                
+                // Extract rotation if edited
+                let rotMatch = scopeMatch[3].match(/rotate=([-+]?[\d\.]+)/);
+                if (rotMatch) {
+                    let newAngle = (360 - (parseFloat(rotMatch[1]) || 0)) % 360;
+                    let oldPin = getVisualOrigin(cell);
+                    cell.rotate(newAngle, true);
+                    let newPin = getVisualOrigin(cell);
+                    let pos = cell.position();
+                    cell.position(pos.x + (oldPin.x - newPin.x), pos.y + (oldPin.y - newPin.y));
+                }
+            }
+            return; // Skip standard macro parsing
+        }
+
+        // --- Standard Macro Parser ---
         let match = line.match(/\\([a-zA-Z0-9]+)(.*)% id:([a-zA-Z0-9-]+)/);
         if (match) {
             let macro = match[1].trim(); let argsStr = match[2].trim(); let cellId = match[3].trim();
