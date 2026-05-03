@@ -6743,7 +6743,7 @@ const JL_DATABASE = {
     "netlabel": {
         "name": "netlabel",
         "displayName": "Net Label",
-        "argsCount": 3,
+        "argsCount": 5,
         "enabled": "true",
         "category": "Basic Components",
         "scales": [
@@ -6778,7 +6778,15 @@ const JL_DATABASE = {
                 "optional": false
             },
             {
-                "name": "rotation,flip",
+                "name": "rotation,flip(h, v, hv, or none)",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
                 "optional": false
             }
         ],

@@ -211,7 +211,20 @@ export function initializeProperties() {
                                     </select>
                                 </div>
                                 <input type="hidden" id="${inputId}" value="${safeActiveVal}">`;
-                        }
+                        }						
+						else if (customDef.type === 'rotation') {
+							htmlForm += `<input type="number" id="${inputId}" class="swal2-input rot-input-field" style="${inputCSS}" value="${activeVal || '0'}">`;
+						}
+						else if (customDef.type === 'flip') {
+							let f = activeVal || 'none';
+							htmlForm += `
+								<select id="${inputId}" data-old-val="${f}" class="swal2-input" style="${inputCSS}" onchange="syncSeparateFlip('${inputId}', this)">
+									<option value="none" ${f==='none'?'selected':''}>None</option>
+									<option value="h" ${f==='h'?'selected':''}>Flip H</option>
+									<option value="v" ${f==='v'?'selected':''}>Flip V</option>
+									<option value="hv" ${f==='hv'?'selected':''}>Flip HV</option>
+								</select>`;
+						}
                         else { 
                             htmlForm += `<input id="${inputId}" class="swal2-input" style="${inputCSS}" value="${activeVal}">`;
                         }
