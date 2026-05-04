@@ -560,6 +560,9 @@ export function initializeProperties() {
                                 updateElementLabel(el, newName);
                             }
                         }
+						// Re-highlight the view because changing the model forces a re-render
+                        let view = AppState.paper.findViewByModel(el);
+                        if (view) view.highlight();
                     };
 
                     // Bind the preview function to all inputs
@@ -628,8 +631,37 @@ export function initializeProperties() {
                     }
                     exportLatex(); saveState();
                 }
+				else if (result.isDismissed) {
+                    // Revert the main properties
+                    el.set('labelOffsetX', originalState.lblX);
+                    el.set('labelOffsetY', originalState.lblY);
+                    el.set('customHideLabel', originalState.hideLbl);
+                    el.set('spiceData', originalState.spiceData);
+                    el.set('simData', originalState.simData);
+                    el.set('customArgs', originalState.args);
+                    el.set('angle', originalState.angle); 
+                    el.set('flipH', originalState.flipH); 
+                    el.set('flipV', originalState.flipV);
+                    
+                    // Rebuild the SVG with the old arguments
+                    assembleIcon(el, originalState.args);
+                    if (originalState.scale !== currentScale) {
+                        applyRobustScale(el, originalState.scale);
+                    }
+                    
+                    // Restore original labels
+                    for (let i = 0; i < argsCount; i++) {
+                        let desc = ((data.argNames && data.argNames[i]) ? (typeof data.argNames[i] === 'string' ? data.argNames[i] : (data.argNames[i].name || '')) : '').toLowerCase();
+                        if (desc === 'name' || desc === 'text') {
+                            let oldName = originalState.args[i] === '$NAME$' ? data.name : originalState.args[i];
+                            updateElementLabel(el, oldName);
+                        }
+                    }                 
+                }
+				// Restore the blue bounding box once more
+                    let view = AppState.paper.findViewByModel(el);
+                    if (view) view.highlight();
             });
-
         } catch (error) {
             console.error("Properties Error:", error);
             Swal.fire('Error', `Failed to open properties:<br><b style="color:#e74c3c; font-size:12px;">${error.message}</b>`, 'error');

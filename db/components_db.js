@@ -2056,6 +2056,14 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "2n"
+            }
+        ],
         "iconBase": "M -40 0 L -20 0 M 20 0 L 40 0",
         "iconBaseStyle": "rounded=true",
         "filled": false,
@@ -2960,6 +2968,14 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "18n"
+            }
+        ],
         "iconBase": "M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10",
         "filled": false,
         "iconLayers": [
@@ -3094,6 +3110,14 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "22n"
+            }
+        ],
         "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2;\nlet tikz = new TikZBuilder();\n\nlet startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);\n\nif (n > 4) {\nlet endY = startY + n - 1;\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(-2, y).to(-1, y);\ntikz.pin('pin' + (i+1), -2, y, 'L', '');\n}\ntikz.draw(-1, startY).to(-1, endY);\ntikz.draw(-1, 2).to(1, 2);\ntikz.draw(-0.2, 1.5).to(0.2, 2.5);\ntikz.text(0, 3.0, n.toString(), 10, 'normal');\n} else {\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(0, y).to(1, y);\ntikz.pin('pin' + (i+1), 0, y, 'L', '');\n}\n}\n\ntikz.draw(1, 0).to(4, 0).arc(4, 2, 2, -90, 90).to(4, 4).to(1, 4).cycle();\ntikz.text(2.5, 2, args[2] || \"\", 12, 'bold');\n\ntikz.draw(6, 2).to(7, 2);\ntikz.pin('pinRight', 7, 2, 'R', '');\nreturn tikz.export();",
         "argNames": [
             {
@@ -3164,6 +3188,14 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "22n"
+            }
+        ],
         "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2;\nlet tikz = new TikZBuilder();\n\nlet startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);\n\nif (n > 4) {\nlet endY = startY + n - 1;\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(-2, y).to(-1, y);\ntikz.pin('pin' + (i+1), -2, y, 'L', '');\n}\ntikz.draw(-1, startY).to(-1, endY);\ntikz.draw(-1, 2).to(1, 2);\ntikz.draw(-0.2, 1.5).to(0.2, 2.5);\ntikz.text(0, 3.0, n.toString(), 10, 'normal');\n} else {\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(0, y).to(1, y);\ntikz.pin('pin' + (i+1), 0, y, 'L', '');\n}\n}\n\ntikz.draw(1, 0).to(4, 0).arc(4, 2, 2, -90, 90).to(4, 4).to(1, 4).cycle();\ntikz.text(2.5, 2, args[2] || \"\", 12, 'bold');\n\ntikz.circle(6.25, 2, 0.25);\ntikz.draw(6.5, 2).to(7.5, 2);\ntikz.pin('pinRight', 7.5, 2, 'R', '');\nreturn tikz.export();",
         "argNames": [
             {
@@ -3230,6 +3262,14 @@ const JL_DATABASE = {
                 "type": "rotation",
                 "label": "Rotation",
                 "defVal": "0"
+            }
+        ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "18n"
             }
         ],
         "iconBase": "M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10 M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20",
@@ -3369,7 +3409,7 @@ const JL_DATABASE = {
                 "type": "SIM",
                 "id": "DELAY",
                 "label": "Gate Delay (s)",
-                "defVal": "5n"
+                "defVal": "12n"
             }
         ],
         "iconBase": "M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20",
@@ -3477,6 +3517,14 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "12n"
+            }
+        ],
         "iconBase": "M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20",
         "filled": false,
         "iconLayers": [
@@ -3574,6 +3622,14 @@ const JL_DATABASE = {
                 "label": "string for inverted inputs",
                 "defVal": "000",
                 "options": "000, 001, 010, 011, 100, 101, 110, 111"
+            }
+        ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "18n"
             }
         ],
         "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
@@ -3702,6 +3758,14 @@ const JL_DATABASE = {
                 "options": "000, 001, 010, 011, 100, 101, 110, 111"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "18n"
+            }
+        ],
         "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20",
         "filled": false,
         "iconLayers": [
@@ -3828,6 +3892,14 @@ const JL_DATABASE = {
                 "options": "00, 01, 10, 11"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "12n"
+            }
+        ],
         "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
         "filled": false,
         "iconLayers": [
@@ -3935,6 +4007,14 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "22n"
+            }
+        ],
         "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2;\nlet tikz = new TikZBuilder();\n\nlet startY = 2 - Math.floor(n/2) + ((n % 2 === 0) ? 0.5 : 0);\n\nif (n > 4) {\nlet endY = startY + n - 1;\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\ntikz.draw(-2, y).to(-1, y);\ntikz.pin('pin' + (i+1), -2, y, 'L', '');\n}\ntikz.draw(-1, startY).to(-1, endY);\nlet endX = -1.236 + 3; // \u03a4\u03bf\u03bc\u03ae \u03bc\u03b5 \u03c4\u03b7\u03bd \u03ba\u03b1\u03bc\u03c0\u03cd\u03bb\u03b7 \u03c3\u03c4\u03bf \u03ba\u03ad\u03bd\u03c4\u03c1\u03bf (y=2)\ntikz.draw(-1, 2).to(endX, 2);\ntikz.draw(-0.2, 1.5).to(0.2, 2.5);\ntikz.text(0, 3.0, n.toString(), 10, 'normal');\n} else {\nfor(let i=0; i<n; i++) {\nlet y = startY + i;\nlet dy = y - 2;\nlet endX = -1.236 + Math.sqrt(9 - dy*dy);\ntikz.draw(0, y).to(endX, y);\ntikz.pin('pin' + (i+1), 0, y, 'L', '');\n}\n}\n\n// THE FIX: sweep-flag is 0 so the arc bows INWARD (concave) relative to the inputs!\ntikz.path += `M ${tikz.pt(1, 4)} C ${tikz.pt(4, 4)} ${tikz.pt(5, 3)} ${tikz.pt(6, 2)} C ${tikz.pt(5, 1)} ${tikz.pt(4, 0)} ${tikz.pt(1, 0)} A 30 30 0 0 0 ${tikz.pt(1, 4)} Z `;\ntikz.text(3.5, 2, args[2] || \"\", 12, 'bold');\n\ntikz.draw(6, 2).to(7, 2);\ntikz.pin('pinRight', 7, 2, 'R', '');\nreturn tikz.export();",
         "argNames": [
             {
@@ -3995,6 +4075,14 @@ const JL_DATABASE = {
                 "label": "string for inverted inputs",
                 "defVal": "00",
                 "options": "00, 01, 10, 11"
+            }
+        ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "12n"
             }
         ],
         "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20",
@@ -4090,6 +4178,14 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "4"
         },
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "22n"
+            }
+        ],
         "argDefs": [
             {
                 "idx": 3,
@@ -4164,6 +4260,14 @@ const JL_DATABASE = {
                 "label": "string for inverted inputs",
                 "defVal": "00",
                 "options": "00, 01, 10, 11"
+            }
+        ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "18n"
             }
         ],
         "iconBase": "M 8 -39.50 Q 23 -19.50 8 0.50 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20",
@@ -4265,6 +4369,14 @@ const JL_DATABASE = {
                 "options": "00, 01, 10, 11"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "18n"
+            }
+        ],
         "iconBase": "M 8 -39.50 Q 23 -19.50 8 0.50 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 64 -20 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 70 -20 L 66 -20",
         "filled": false,
         "iconLayers": [
@@ -4361,6 +4473,12 @@ const JL_DATABASE = {
                 "id": "DELAY",
                 "label": "Gate Delay (s)",
                 "defVal": "5n"
+            },
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "10n"
             }
         ],
         "argDefs": [
@@ -4456,6 +4574,14 @@ const JL_DATABASE = {
         ],
         "iconBase": "M 0 -10 L 10 -10 M 10 -20 L 10 0 L 29 -10 Z M 33.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 40 -10 L 35 -10",
         "filled": false,
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "10n"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -4532,6 +4658,14 @@ const JL_DATABASE = {
         ],
         "iconBase": "M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20",
         "filled": false,
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "10n"
+            }
+        ],
         "argNames": [
             {
                 "name": "position",
@@ -4618,7 +4752,7 @@ const JL_DATABASE = {
                 "type": "SIM",
                 "id": "DELAY",
                 "label": "Gate Delay (s)",
-                "defVal": "5n"
+                "defVal": "30n"
             }
         ],
         "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20",
@@ -4765,6 +4899,14 @@ const JL_DATABASE = {
                 "options": "enable"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "30n"
+            }
+        ],
         "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,S*/ M 15 -20 L 15 -20 /*TEXT:10,normal,R*/ M 55 -80 L 55 -80 /*TEXT:10,normal,Q*/ M 55 -20 L 55 -20 /*TEXT:10,normal,Q*/ M 52 -26 L 57.50 -26",
         "filled": false,
         "iconLayers": [
@@ -4855,6 +4997,14 @@ const JL_DATABASE = {
             "dir": "T"
         },
         "flippable": false,
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "30n"
+            }
+        ],
         "argDefs": [
             {
                 "idx": 3,
@@ -5023,6 +5173,14 @@ const JL_DATABASE = {
                 "options": "positive"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "30n"
+            }
+        ],
         "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,D*/ M 28 -20.50 L 28 -20.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50",
         "filled": false,
         "iconLayers": [
@@ -5147,6 +5305,14 @@ const JL_DATABASE = {
                 "options": "enable"
             }
         ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "30n"
+            }
+        ],
         "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,D*/ M 55 -80 L 55 -80 /*TEXT:10,normal,Q*/ M 55 -20 L 55 -20 /*TEXT:10,normal,Q*/ M 52 -26 L 57.50 -26",
         "filled": false,
         "iconLayers": [
@@ -5242,6 +5408,14 @@ const JL_DATABASE = {
                 "label": "positive/negative trigger",
                 "defVal": "positive",
                 "options": "positive"
+            }
+        ],
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "30n"
             }
         ],
         "iconBase": "M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,T*/ M 28 -20.50 L 28 -20.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50",
@@ -5365,6 +5539,14 @@ const JL_DATABASE = {
             "4": "0",
             "5": "bottom"
         },
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "25n"
+            }
+        ],
         "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2; // Fallback to 2 inputs\nlet spacing = (n === 2) ? 2 : 1;\nlet yOffset = (n === 2) ? -1 : 0;\nlet isTop = args[5] === 'top';\n\nlet numSelects = Math.ceil(Math.log2(n));\nlet w = numSelects + 1; // Width of the mux body\nlet h = (n === 2) ? n*spacing: (n + 1)*spacing;  // Height of the mux body\n\nlet tikz = new TikZBuilder();\n\n// 1. Draw Inputs & Input Pins\nfor (let i = 1; i <= n; i++) {\ntikz.draw(0, i*spacing+yOffset).to(1, i*spacing+yOffset);\ntikz.pin('pin' + i, 0, i*spacing+yOffset, 'L', '');\n}\n\n// 2. Draw Select Lines & Select Pins\nlet selY2 = isTop ? (h + 1) : -1; // The outer tip of the pin\n\nfor (let i = 1; i <= numSelects; i++) {\nlet selX = 1 + i;\n\n// --- THE EXACT SLANT INTERSECTION ---\n// Because the slope is 0.4, for every 'i' units we move right,\n// the slant moves exactly 0.4 * i units vertically!\nlet selY1 = isTop ? (h - 0.4 * i) : (0.4 * i);\n\ntikz.draw(selX, selY1).to(selX, selY2);\ntikz.pin('pinSelect' + i, selX, selY2, isTop ? 'T' : 'B', '');\n}\n\n// 3. Draw Output & Output Pin\nlet outY = Math.ceil((n + 1) / 2);\ntikz.draw(w + 1, outY).to(w + 2, outY);\ntikz.pin('pinOutput', w + 2, outY, 'R', '');\n\n// 4. Draw Trapezoid Box\ntikz.draw(1, 0)\n.to(1, h)\n.to(w + 1, h - 0.4 * w)\n.to(w + 1, 0.4 * w)\n.cycle();\n\n// 5. Add the Center Text Label\n// X center is halfway between the left edge (1) and right edge (w + 1)\n// Y center is halfway down the height (h)\nlet centerX = 1 + (w / 2);\nlet centerY = h / 2;\n\ntikz.text(centerX, centerY, n+\":1\", 9, 'normal');\n\nreturn tikz.export();",
         "argDefs": [
             {
@@ -5437,6 +5619,14 @@ const JL_DATABASE = {
             "dir": "B"
         },
         "flippable": false,
+        "propDefs": [
+            {
+                "type": "SIM",
+                "id": "DELAY",
+                "label": "Gate Delay (s)",
+                "defVal": "25n"
+            }
+        ],
         "shapeGenerator": "\nlet n = parseInt(args[3]);\nif (isNaN(n) || n < 2) n = 2; // Fallback to 2 outputs\nlet spacing = (n === 2) ? 2 : 1;\nlet yOffset = (n === 2) ? -1 : 0;\nlet isTop = args[5] === 'top';\n\nlet numSelects = Math.ceil(Math.log2(n));\nlet w = numSelects + 1; // Width of the mux body\nlet h = (n === 2) ? n*spacing: (n + 1)*spacing;  // Height of the mux body\n\nlet tikz = new TikZBuilder();\n\n// 1. Draw Outputs & Output Pins\nfor (let i = 1; i <= n; i++) {\ntikz.draw(w+1, i*spacing+yOffset).to(w+2, i*spacing+yOffset);\ntikz.pin('pin' + i, w+2, i*spacing+yOffset, 'L', '');\n}\n\n// 2. Draw Select Lines & Select Pins\nlet selY2 = isTop ? (h + 1) : -1; // The outer tip of the pin\n\nfor (let i = 1; i <= numSelects; i++) {\nlet selX = 1 + i;\n\nlet selY1 = isTop ? (h-0.4*(w-i)) : (0.4*(w-i));\n\ntikz.draw(selX, selY1).to(selX, selY2);\ntikz.pin('pinSelect' + i, selX, selY2, isTop ? 'T' : 'B', '');\n}\n\n// 3. Draw Input & Input Pin\nlet outY = Math.ceil((n + 1) / 2);\ntikz.draw(0, outY).to(1, outY);\ntikz.pin('pinOutput', 0, outY, 'R', '');\n\n// 4. Draw Trapezoid Box\ntikz.draw(1, h - 0.4 * w)\n.to(w+1, h)\n.to(w+1, 0)\n.to(1, 0.4 * w)\n.cycle();\n\n// 5. Add the Center Text Label\n// X center is halfway between the left edge (1) and right edge (w + 1)\n// Y center is halfway down the height (h)\nlet centerX = 1 + (w / 2);\nlet centerY = h / 2;\n\ntikz.text(centerX, centerY, \"1:\"+n, 9, 'normal');\n\nreturn tikz.export();",
         "argDefs": [
             {

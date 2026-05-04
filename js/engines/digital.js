@@ -189,6 +189,20 @@ function executeDigitalBatch(stopStr, stepStr, maxStepsStr) {
         let netId = topo.netMap.get(topo.uf.find(gndStr));
         if (netId) nets[netId] = 0;
     });
+	
+	// --- NEW INITIALIZATION BLOCK ---
+    // Break symmetry for ring oscillators and uninitialized latches.
+    // By assigning alternating 0s and 1s, we prevent nodes from locking 
+    // in an 'undefined' state or oscillating in perfect unison.
+    let initToggle = 0;
+    let uniqueNets = new Set(topo.netMap.values());
+    uniqueNets.forEach(netId => {
+        if (nets[netId] === undefined) {
+            nets[netId] = initToggle;
+            initToggle = 1 - initToggle;
+        }
+    });
+    // -----------------------------------------
 
     AppState.graph.getElements().forEach(el => {
         if (el.get('latexMacro') === 'testprobe') {
@@ -259,7 +273,7 @@ function executeDigitalBatch(stopStr, stepStr, maxStepsStr) {
 
             // 3. Resolve Cascading Logic Instantly!
             let logicChanged = true;
-            let maxIters = 10;
+            let maxIters = 50;
             let iters = 0;
             
             while (logicChanged && iters < maxIters) {

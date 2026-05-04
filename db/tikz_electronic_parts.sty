@@ -62,6 +62,7 @@
 % Helper macro to keep text upright between 90 and 270 degrees
 \makeatletter
 \newcommand{\getreadableangle}[2]{%
+% disabled!
     \edef\tempangle{#1}%
     \ifx\tempangle\@empty
         \edef\tempangle{0}%
@@ -1711,6 +1712,7 @@
 % arg_def: 3 | select | symbol | normal | plain, normal, diamond
 % arg_def: 4 | rotation | Rotation | 0
 
+% property_def: DELAY | Gate Delay (s) | 2n
 
 % icon_base: [rounded=true] M -40 0 L -20 0 M 20 0 L 40 0 // base
 % add_icon: 3==diamond : [rounded=true] M 0 -16 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M -20 0 L -20 -20 L 20 0 L 20 -20 L -20 0 M -20 0 L -20 20 M -20 20 L 20 0 M 20 0 L 20 20 M 20 20 L -20 0 M 0 -50 L 0 -20 M 0 10 L 0 50 // diamond
@@ -2509,6 +2511,8 @@
 % arg_def: 1 | select | string for inverted inputs | 000 | 000, 001, 010, 011, 100, 101, 110, 111
 % arg_def: 4 | rotation | Rotation | 0
 
+% property_def: DELAY | Gate Delay (s) | 18n
+
 
 % icon_base: M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20 M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10 // base
 % add_icon: 1==000 : M 0 -30 L 15 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10 // 000
@@ -2587,6 +2591,8 @@
 
 % arg_def: 3 | text | number of inputs | 4
 % arg_def: 4 | rotation | Rotation | 0
+
+% property_def: DELAY | Gate Delay (s) | 22n
 
 % shape_generator:
 % let n = parseInt(args[3]);
@@ -2674,6 +2680,8 @@
 
 % arg_def: 3 | text | number of inputs | 4
 % arg_def: 4 | rotation | Rotation | 0
+
+% property_def: DELAY | Gate Delay (s) | 22n
 
 % shape_generator:
 % let n = parseInt(args[3]);
@@ -2764,6 +2772,7 @@
 % arg_def: 1 | select | string for inverted inputs | 000 | 000, 001, 010, 011, 100, 101, 110, 111
 % arg_def: 4 | rotation | Rotation | 0
 
+% property_def: DELAY | Gate Delay (s) | 18n
 
 % icon_base: M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 0 -30 L 10 -30 M 0 -20 L 10 -20 M 0 -10 L 10 -10 M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20 // base
 % add_icon: 1==000 : M 0 -30 L 15 -30 M 0 -20 L 15 -20 M 0 -10 L 15 -10 // 000
@@ -2844,8 +2853,7 @@
 % arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
 % arg_def: 4 | rotation | Rotation | 0
 
-% property_def: DELAY | Gate Delay (s) | 5n
-
+% property_def: DELAY | Gate Delay (s) | 12n
 
 % icon_base: M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20 // base
 % add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
@@ -2910,6 +2918,7 @@
 % arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
 % arg_def: 4 | rotation | Rotation | 0
 
+% property_def: DELAY | Gate Delay (s) | 12n
 
 % icon_base: M 16 -40 L 35 -40 C 45 -40 55 -20 55 -20 C 55 -20 45 0 35 0 L 16 0 Z M 59 -20 m -4 0 a 4 4 0 1 0 8 0 a 4 4 0 1 0 -8 0 M 63 -20 L 70 -20 // base
 % add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
@@ -2975,6 +2984,7 @@
 
 % arg_def: 1 | select | string for inverted inputs | 000 | 000, 001, 010, 011, 100, 101, 110, 111
 
+% property_def: DELAY | Gate Delay (s) | 18n
 
 % icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20 // base
 % add_icon: 1==000 : M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 // 000
@@ -3051,6 +3061,7 @@
 
 % arg_def: 1 | select | string for inverted inputs | 000 | 000, 001, 010, 011, 100, 101, 110, 111
 
+% property_def: DELAY | Gate Delay (s) | 18n
 
 % icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20 // base
 % add_icon: 1==000 : M 0 -30 L 16 -30 M 0 -20 L 18 -20 M 0 -10 L 16 -10 // 000
@@ -3129,6 +3140,7 @@
 
 % arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
 
+% property_def: DELAY | Gate Delay (s) | 12n
 
 % icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20 // base
 % add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
@@ -3192,6 +3204,8 @@
 
 % arg_def: 3 | text | number of inputs | 4
 % arg_def: 4 | rotation | Rotation | 0
+
+% property_def: DELAY | Gate Delay (s) | 22n
 
 % shape_generator:
 % let n = parseInt(args[3]);
@@ -3291,6 +3305,7 @@
 
 % arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
 
+% property_def: DELAY | Gate Delay (s) | 12n
 
 % icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 63.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 M 70 -20 L 66.50 -20 // base
 % add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
@@ -3370,6 +3385,8 @@
 % label_anchor: B
 % flip: disabled
 % preview_args: 3=4
+
+% property_def: DELAY | Gate Delay (s) | 22n
 
 % arg_def: 3 | text | number of inputs | 4
 % arg_def: 4 | rotation | Rotation | 0
@@ -3475,6 +3492,7 @@
 
 % arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
 
+% property_def: DELAY | Gate Delay (s) | 18n
 
 % icon_base: M 8 -39.50 Q 23 -19.50 8 0.50 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 60 -20 L 70 -20 // base
 % add_icon: 1==00 : M 0 -30 L 13 -30 M 0 -10 L 13 -10 // 00
@@ -3538,6 +3556,7 @@
 
 % arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
 
+% property_def: DELAY | Gate Delay (s) | 18n
 
 % icon_base: M 8 -39.50 Q 23 -19.50 8 0.50 M 15 -40 Q 30 -20 15 0 C 40 0 50 -10 60 -20 C 50 -30 40 -40 15 -40 Z M 64 -20 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 70 -20 L 66 -20 // base
 % add_icon: 1==00 : M 0 -30 L 13 -30 M 0 -10 L 13 -10 // 00
@@ -3606,8 +3625,9 @@
 % arg_def: 3 | rotation | Rotation | 0
 % arg_def: 4 | select | color (LaTeX only) | nocolor | nocolor, color
 
-
 % icon_base: M 43 -20 L 50 -20 M 0 -20 L 10 -20 M 10 0 L 10 -40 L 35 -20 Z M 39.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // base
+
+% property_def: DELAY | Gate Delay (s) | 10n
 
 % calculate the readable label angle
 	\getreadableangle{#3}{\readablelabelangle}
@@ -3654,8 +3674,9 @@
 % arg_def: 3 | rotation | Rotation | 0
 % arg_def: 4 | flags | color (LaTeX only) | nocolor | nocolor
 
-
 % icon_base: M 0 -10 L 10 -10 M 10 -20 L 10 0 L 29 -10 Z M 33.50 -10 m -2.50 0 a 2.50 2.50 0 1 0 5 0 a 2.50 2.50 0 1 0 -5 0 M 40 -10 L 35 -10
+
+% property_def: DELAY | Gate Delay (s) | 10n
 
 % calculate the readable label angle
 	\getreadableangle{#3}{\readablelabelangle}
@@ -3702,8 +3723,9 @@
 % arg_def: 3 | rotation | Rotation | 0
 % arg_def: 4 | flags | Color (LaTeX only) | nocolor | nocolor
 
-
 % icon_base: M 0 -20 L 15 -20 M 15 0 L 15 -40 L 40 -20 Z M 40 -20 L 50 -20 // base
+
+% property_def: DELAY | Gate Delay (s) | 10n
 
 % calculate the readable label angle
 	\getreadableangle{#3}{\readablelabelangle}
@@ -3749,7 +3771,7 @@
 % arg_def: 4 | select | reset | noreset | reset, resetn, noreset
 % arg_def: 5 | select | negative, positive trigger | positive | negative, positive
 
-% property_def: DELAY | Gate Delay (s) | 5n
+% property_def: DELAY | Gate Delay (s) | 30n
 
 
 % icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -45 L 15 -50 L 10 -55 M 60 -80 L 70 -80 M 60 -20 L 70 -20 // base
@@ -3835,6 +3857,8 @@
 % arg_def: 3 | rotation | Rotation | 0
 % arg_def: 4 | flags | enable |  | enable
 
+% property_def: DELAY | Gate Delay (s) | 30n
+
 
 % icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,S*/ M 15 -20 L 15 -20 /*TEXT:10,normal,R*/ M 55 -80 L 55 -80 /*TEXT:10,normal,Q*/ M 55 -20 L 55 -20 /*TEXT:10,normal,Q*/ M 52 -26 L 57.50 -26 // base
 % add_icon: 4==enable : M 0 -50 L 10 -50 M 20 -50 L 20 -50 /*TEXT:10,normal,EN*/ // enable
@@ -3889,6 +3913,8 @@
 % scales: 1, 2, 4
 % label_anchor: T
 % flip: disabled
+
+% property_def: DELAY | Gate Delay (s) | 30n
 
 % arg_def: 3 | rotation | Rotation | 0
 % arg_def: 4 | select | reset | noreset | reset, resetn, noreset
@@ -3977,6 +4003,7 @@
 % arg_def: 4 | select | reset | noreset | reset, resetn, noreset
 % arg_def: 5 | flags | positive/negative trigger | positive | positive
 
+% property_def: DELAY | Gate Delay (s) | 30n
 
 % icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,D*/ M 28 -20.50 L 28 -20.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50 // base
 % add_icon: 4==reset : M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ // clr
@@ -4055,6 +4082,7 @@
 % arg_def: 3 | rotation | Rotation | 0
 % arg_def: 4 | flags | enable |  | enable
 
+% property_def: DELAY | Gate Delay (s) | 30n
 
 % icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,D*/ M 55 -80 L 55 -80 /*TEXT:10,normal,Q*/ M 55 -20 L 55 -20 /*TEXT:10,normal,Q*/ M 52 -26 L 57.50 -26 // base
 % add_icon: 4==enable : M 0 -20 L 10 -20 M 20 -20 L 20 -20 /*TEXT:10,normal,EN*/ // enable
@@ -4111,6 +4139,7 @@
 % arg_def: 4 | select | reset | noreset | reset, resetn, noreset
 % arg_def: 5 | flags | positive/negative trigger | positive | positive
 
+% property_def: DELAY | Gate Delay (s) | 30n
 
 % icon_base: M 10 0 L 60 0 L 60 -100 L 10 -100 Z M 0 -80 L 10 -80 M 0 -20 L 10 -20 M 10 -15 L 15 -20 L 10 -25 M 60 -80 L 70 -80 M 60 -20 L 70 -20 M 15 -80 L 15 -80 /*TEXT:10,normal,T*/ M 28 -20.50 L 28 -20.50 /*TEXT:10,normal,CLK*/ M 54 -80 L 54 -80 /*TEXT:10,normal,Q*/ M 54 -20 L 54 -20 /*TEXT:10,normal,Q*/ M 50.50 -25.50 L 57 -25.50 // base
 % add_icon: 4==reset : M 35 0 L 35 10 M 35 -5 L 35 -5 /*TEXT:10,normal,clr*/ // clr
@@ -4187,6 +4216,8 @@
 % label_anchor: 15 2 L
 % flip: disabled
 % preview_args: 3=2, 4=0, 5=bottom
+
+% property_def: DELAY | Gate Delay (s) | 25n
 
 % shape_generator:
 % let n = parseInt(args[3]);
@@ -4368,6 +4399,8 @@
 % scales: 1, 2, 4
 % label_anchor: B
 % flip: disabled
+
+% property_def: DELAY | Gate Delay (s) | 25n
 
 % shape_generator:
 % let n = parseInt(args[3]);
