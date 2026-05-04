@@ -18,9 +18,16 @@ window.SPICE_MODEL_LIBRARY = {
         "2N7002": ".model 2N7002 VDMOS (Rg=120 Vto=1.6 Rd=1.5 Rs=0.5 Rb=0.1 Kp=0.17 mtri=1.2 Cgdmax=20p Cgdmin=2p Cgs=25p Cjo=25p Is=10p m=0.3 VJ=0.75)",
         "BSS84": ".model BSS84 VDMOS (pchan Rg=120 Vto=-1.6 Rd=1.5 Rs=0.5 Rb=0.1 Kp=0.17 mtri=1.2 Cgdmax=20p Cgdmin=2p Cgs=25p Cjo=25p Is=10p m=0.3 VJ=0.75)"
     },
-    "X": { // Subcircuits (Op-Amps, ICs)
+    "X": { // Subcircuits (Op-Amps, ICs, Logic Macros)
         "OPAMP_IDEAL": ".subckt OPAMP_IDEAL in_p in_n out\nE1 out 0 in_p in_n 1Meg\n.ends",
-        "LM741_MACRO": ".subckt LM741_MACRO in_p in_n out\n* Simplified 3-pin LM741 Macro\nRin in_p in_n 2Meg\nE1 out 0 in_p in_n 200k\nRout out 0 75\n.ends"
+        "LM741_MACRO": ".subckt LM741_MACRO in_p in_n out\n* Simplified 3-pin LM741 Macro\nRin in_p in_n 2Meg\nE1 out 0 in_p in_n 200k\nRout out 0 75\n.ends",
+        
+        // --- Mixed-Signal Digital Macros ---
+        "INV_MACRO": ".subckt INV_MACRO in out\nB1 int_node 0 V=(V(in)<2.5)*5\nR1 int_node out 1k\nC1 out 0 10p\n.ends",
+        
+        "AND2_MACRO": ".subckt AND2_MACRO in1 in2 out i1=0 i2=0\n* Evaluates standard and inverted inputs via absolute value math\nB1 int_node 0 V=(abs({i1} - (V(in1)>2.5)) * abs({i2} - (V(in2)>2.5))) * 5\nR1 int_node out 1k\nC1 out 0 12p\n.ends",
+        
+        "OR2_MACRO": ".subckt OR2_MACRO in1 in2 out i1=0 i2=0\nB1 int_node 0 V=((abs({i1} - (V(in1)>2.5)) + abs({i2} - (V(in2)>2.5))) > 0) * 5\nR1 int_node out 1k\nC1 out 0 12p\n.ends"
     }
 };
 
@@ -42,8 +49,11 @@ export function parseGeomArgs(data, argsArray) {
 
         // 1. Strict capture for Horizontal/Vertical dropdowns
         if (desc.includes('horizontal') && desc.includes('vertical')) {
-            if (val === 'vertical') explicitAngle = 270;
-            else if (val === 'horizontal') explicitAngle = 0;
+            // THE FIX: Split the string in case multiple dropdowns share this argument index
+            let valParts = val.split(',').map(s => s.trim());
+            
+            if (valParts.includes('vertical')) explicitAngle = 270;
+            else if (valParts.includes('horizontal')) explicitAngle = 0;
         }
 
         // 2. Standard TikZ rotation/flip parsing
@@ -436,7 +446,7 @@ export function initializeProperties() {
             if (simPropDefs.length > 0) {
                 htmlForm += `<div style="margin-top: 15px; border-top: 2px solid var(--success); padding-top: 12px; margin-bottom: 5px;">
                                 <label style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--success); margin-bottom: 10px;">
-                                    <i data-lucide="clock" style="width:14px; height:14px;"></i> Simulation Properties
+                                    <i data-lucide="clock" style="width:14px; height:14px;"></i> Digital Timing Analysis Simulation Properties
                                 </label>
                                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">`;
                 simPropDefs.forEach(prop => {

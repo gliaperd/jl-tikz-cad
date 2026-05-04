@@ -812,6 +812,8 @@
 
 % property_def: FREQ | Frequency (Hz) | 1Meg
 % property_def: INIT | Initial State (0/1) | 0
+% property_def: TR | Rise Time (s) | 10n
+% property_def: TF | Fall Time (s) | 10n
 
 % icon_base: M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M 20 0 L 30 0 M -10 -5 L -5 -5 L -5 5 L 5 5 L 5 -5 L 10 -5
 
@@ -2854,6 +2856,7 @@
 % arg_def: 4 | rotation | Rotation | 0
 
 % property_def: DELAY | Gate Delay (s) | 12n
+% spice_template: X_{NAME} {pin1} {pin2} {pin3} AND2_MACRO i1={INV1} i2={INV2}
 
 % icon_base: M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20 // base
 % add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
@@ -3141,6 +3144,7 @@
 % arg_def: 1 | select | string for inverted inputs | 00 | 00, 01, 10, 11
 
 % property_def: DELAY | Gate Delay (s) | 12n
+% spice_template: X_{NAME} {pin1} {pin2} {pin3} OR2_MACRO i1={INV1} i2={INV2}
 
 % icon_base: M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20 // base
 % add_icon: 1==00 : M 0 -30 L 16 -30 M 0 -10 L 16 -10 // 00
@@ -3628,6 +3632,7 @@
 % icon_base: M 43 -20 L 50 -20 M 0 -20 L 10 -20 M 10 0 L 10 -40 L 35 -20 Z M 39.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0 // base
 
 % property_def: DELAY | Gate Delay (s) | 10n
+% spice_template: X_{NAME} {pin1} {pin2} INV_MACRO
 
 % calculate the readable label angle
 	\getreadableangle{#3}{\readablelabelangle}

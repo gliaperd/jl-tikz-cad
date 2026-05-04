@@ -229,8 +229,22 @@ export function generateSpiceNetlistStr(customSim) {
         }
 
         let template = dbData.spiceTemplate.replace(/\\n/g, '\n');
-        let spiceData = el.get('spiceData') || {};
-        let simData = el.get('simData') || {}; // <-- ADDED: Fetch simData for the switch properties
+        
+        // CLONE the data to avoid permanently mutating the saved component state!
+        let spiceData = { ...(el.get('spiceData') || {}) }; 
+        let simData = el.get('simData') || {};
+
+        // --- NEW: Map inverted bubbles to SPICE variables ---
+        let args = el.get('customArgs') || [];
+        let invStr = args[0] && typeof args[0] === 'string' ? args[0] : "";
+        
+        if (macro.includes('two') || macro.includes('three')) {
+            spiceData['INV1'] = invStr[0] === '1' ? '1' : '0';
+            spiceData['INV2'] = invStr[1] === '1' ? '1' : '0';
+            if (invStr.length >= 3) spiceData['INV3'] = invStr[2] === '1' ? '1' : '0';
+        }
+        // -----------------------------------------------------
+
         template = template.replace(/\{NAME\}/g, name);
 		
 		// ==========================================
@@ -336,6 +350,18 @@ export function generateSpiceNetlistStr(customSim) {
             }
             template = template.replace(new RegExp(`\\{${param}\\}`, 'g'), val);
         });
+
+        // --- NEW: Auto-include hardcoded logic macros (like AND2_MACRO) ---
+        if (window.SPICE_MODEL_LIBRARY && window.SPICE_MODEL_LIBRARY["X"]) {
+            let subcircuits = window.SPICE_MODEL_LIBRARY["X"];
+            for (let macroKey in subcircuits) {
+                // If the template explicitly calls for this macro, inject its definition!
+                if (template.includes(macroKey)) {
+                    includedModels.add(subcircuits[macroKey]);
+                }
+            }
+        }
+        // -----------------------------------------------------------------
 
         let missingMatches = template.match(/\{([^}]+)\}/g);
         if (missingMatches) missingMatches.forEach(m => errors.push(`Component <b>${name}</b> is missing value for parameter: <b>${m}</b>.`));

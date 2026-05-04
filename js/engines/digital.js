@@ -6,10 +6,30 @@ function getInvertStr(el) { return (el.get('customArgs') || [])[0] || ""; }
 function applyInv(val, char) { return char === '1' ? (val === 1 ? 0 : (val === 0 ? 1 : undefined)) : val; }
 
 export const LOGIC_MODELS = {
-    'andtwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); return [(i0==1 && i1==1)?1:0]; }},
-    'nandtwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); return [(i0==1 && i1==1)?0:1]; }},
-    'ortwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); return [(i0==1 || i1==1)?1:0]; }},
-    'nortwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); return [(i0==1 || i1==1)?0:1]; }},
+    'andtwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { 
+        let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); 
+        if (i0 === 0 || i1 === 0) return [0]; // Dominant 0 forces output to 0
+        if (i0 === undefined || i1 === undefined) return [undefined]; // Transition propagates
+        return [1]; 
+    }},
+    'nandtwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { 
+        let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); 
+        if (i0 === 0 || i1 === 0) return [1]; 
+        if (i0 === undefined || i1 === undefined) return [undefined]; 
+        return [0]; 
+    }},
+    'ortwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { 
+        let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); 
+        if (i0 === 1 || i1 === 1) return [1]; // Dominant 1 forces output to 1
+        if (i0 === undefined || i1 === undefined) return [undefined]; 
+        return [0]; 
+    }},
+    'nortwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { 
+        let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); 
+        if (i0 === 1 || i1 === 1) return [0]; 
+        if (i0 === undefined || i1 === undefined) return [undefined]; 
+        return [1]; 
+    }},
     'xortwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); return [(i0!==undefined && i1!==undefined && i0!==i1)?1:0]; }},
     'xnortwo': { inputs: ['pin1', 'pin2'], outputs: ['pin3'], eval: (i, st, li, el) => { let s=getInvertStr(el); let i0=applyInv(i[0], s[0]), i1=applyInv(i[1], s[1]); return [(i0!==undefined && i1!==undefined && i0===i1)?1:0]; }},
     
@@ -262,9 +282,28 @@ function executeDigitalBatch(stopStr, stepStr, maxStepsStr) {
                     let period = 1.0 / freq;
                     let init = parseInt(simData['INIT']) || 0;
                     
+                    // --- NEW: Fetch Rise and Fall times (default to 0) ---
+                    let tRise = parseSpiceToNumber(simData['TR'] || "0");
+                    let tFall = parseSpiceToNumber(simData['TF'] || "0");
+
                     let phase = (t + 1e-12) % period; 
-                    let isPhaseHigh = phase < (period / 2);
-                    let expectedState = init === 1 ? (isPhaseHigh ? 1 : 0) : (isPhaseHigh ? 0 : 1);
+                    
+                    // Determine which transition happens at which phase boundary
+                    let transAtZero = init === 1 ? tRise : tFall;
+                    let transAtHalf = init === 1 ? tFall : tRise;
+
+                    let expectedState;
+                    
+                    // --- NEW: Inject 'undefined' (X) during transition windows ---
+                    if (phase < transAtZero) {
+                        expectedState = undefined; 
+                    } else if (phase < (period / 2)) {
+                        expectedState = init; 
+                    } else if (phase < (period / 2) + transAtHalf) {
+                        expectedState = undefined; 
+                    } else {
+                        expectedState = init === 1 ? 0 : 1; 
+                    }
                     
                     let outNet = getNetId(el, 'pin1');
                     if (outNet) nets[outNet] = expectedState;
@@ -331,23 +370,23 @@ function executeDigitalBatch(stopStr, stepStr, maxStepsStr) {
 
                         model.outputs.forEach((pinId, idx) => {
                             let netId = getNetId(el, pinId);
-                            if (netId && outStates[idx] !== undefined) {
+                            
+                            // THE FIX: Removed the '!== undefined' check so X-states can propagate!
+                            if (netId) {
                                 
-                                // Only process if state wants to change
-                                if (nets[netId] !== outStates[idx]) {
+                                // Find the last scheduled event for this net
+                                let lastScheduled = events.slice().reverse().find(e => e.netId === netId);
+                                let futureState = lastScheduled ? lastScheduled.state : nets[netId];
+                                
+                                // Only schedule if the new state differs from the end of the pipeline
+                                if (futureState !== outStates[idx]) {
                                     
                                     if (delaySec < dt) {
-                                        // 🌟 THE FIX: Instant Propagation for sub-step delays!
                                         nets[netId] = outStates[idx];
                                         logicChanged = true;
                                         events = events.filter(e => e.netId !== netId);
                                     } else {
-                                        // 🌟 Real Macro Delay: Put it in the queue
-                                        let targetEvent = events.find(e => e.netId === netId);
-                                        if (!targetEvent || targetEvent.state !== outStates[idx]) {
-                                            events = events.filter(e => e.netId !== netId);
-                                            events.push({ time: t + delaySec, netId: netId, state: outStates[idx] });
-                                        }
+                                        events.push({ time: t + delaySec, netId: netId, state: outStates[idx] });
                                     }
                                 }
                             }
@@ -393,7 +432,7 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
         return state;
     }
 
-    function generateDiagramHTML(zoomFactor, containerWidth, gridDensity, containerHeight, rowHeight, visibleProbes, startNs, stopNs) {
+    function generateDiagramHTML(zoomFactor, containerWidth, gridDensity, containerHeight, rowHeight, visibleProbes, startNs, stopNs, renderStyle) {
         let activeProbes = allProbeNetIds.filter(id => visibleProbes.has(id));
         
         if (startNs < 0) startNs = 0;
@@ -438,8 +477,18 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
                 let color = TRACE_COLORS[origIndex % TRACE_COLORS.length];
                 content = probes[netId];
                 colorStyle = `color: ${color}; border-left: 4px solid ${color};`;
+                
+                // Add the flex row with the name and the 0/1 markers
+                html += `<div style="height: ${rowHeight}px; display: flex; align-items: center; justify-content: space-between; padding-left: 10px; padding-right: 6px; background: ${i % 2 === 0 ? 'var(--bg-panel)' : 'var(--bg-app)'}; box-sizing: border-box; ${colorStyle}">
+                            <span style="font-weight: bold; font-size: 13px;">${content}</span>
+                            <div style="display: flex; flex-direction: column; justify-content: space-between; height: ${rowHeight * 0.6}px; font-size: 9px; font-weight: bold; color: var(--text-muted); line-height: 1;">
+                                <span>1</span>
+                                <span>0</span>
+                            </div>
+                         </div>`;
+            } else {
+                html += `<div style="height: ${rowHeight}px; background: ${i % 2 === 0 ? 'var(--bg-panel)' : 'var(--bg-app)'}; box-sizing: border-box; ${colorStyle}"></div>`;
             }
-            html += `<div style="height: ${rowHeight}px; display: flex; align-items: center; padding-left: 10px; background: ${i % 2 === 0 ? 'var(--bg-panel)' : 'var(--bg-app)'}; font-weight: bold; font-size: 13px; box-sizing: border-box; ${colorStyle}">${content}</div>`;
         }
         html += `</div>`;
 
@@ -492,27 +541,74 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
             let initialState = getStateAtTime(h, startNs);
             let lastState = initialState;
             
+            // --- NEW: Trackers for rectangles ---
+            let lastX = 0; 
+            let rectsHtml = ""; 
+            
+            // If the simulation starts in a 'U' state for the analyzer, don't put the pen down yet
             let initialY = initialState === 1 ? highY : (initialState === 0 ? lowY : midY);
-            let pathD = `M 0 ${initialY} `;
+            let pathD = (initialState === 'U' && renderStyle !== 'datasheet') ? "" : `M 0 ${initialY} `;
 
             for (let i = 0; i < h.time.length; i++) {
                 let t_ns = h.time[i] * 1e9;
                 if (t_ns <= startNs) continue; 
                 if (t_ns > stopNs) break;      
                 
-                let state = h.states[i];
+                let state = h.states[i] !== undefined ? h.states[i] : 'U';
                 let xCurrent = (t_ns - startNs) * pixelsPerNs;
                 let y = state === 1 ? highY : (state === 0 ? lowY : midY);
                 let yPrev = lastState === 1 ? highY : (lastState === 0 ? lowY : midY);
                 
-                pathD += `L ${xCurrent} ${yPrev} L ${xCurrent} ${y} `;
+                if (renderStyle === 'datasheet') {
+                    if (state === 'U') {
+                        pathD += `L ${xCurrent} ${yPrev} `;
+                    } else if (lastState === 'U') {
+                        pathD += `L ${xCurrent} ${y} `;
+                    } else {
+                        pathD += `L ${xCurrent} ${yPrev} L ${xCurrent} ${y} `;
+                    }
+                } else {
+                    // Logic Analyzer Style (Hide the line in the 'U' state)
+                    if (lastState === 'U') {
+                        rectsHtml += `<rect x="${lastX}" y="${highY}" width="${xCurrent - lastX}" height="${lowY - highY}" fill="var(--warning)" opacity="0.3" stroke="none" />`;
+                        if (state !== 'U') {
+                            // Pick up the pen and move to the start of the new valid state
+                            pathD += `M ${xCurrent} ${y} `;
+                        }
+                    } else {
+                        // Draw the horizontal line for the valid state
+                        pathD += `L ${xCurrent} ${yPrev} `;
+                        if (state !== 'U') {
+                            // Instant vertical jump to the new valid state
+                            pathD += `L ${xCurrent} ${y} `;
+                        } else {
+                            // Pick up the pen, do not draw a vertical line into the U state
+                            pathD += `M ${xCurrent} ${midY} `;
+                        }
+                    }
+                }
+                
                 lastState = state;
+                lastX = xCurrent;
             }
             
             let finalX = windowNs * pixelsPerNs;
-            let finalY = lastState === 1 ? highY : (lastState === 0 ? lowY : midY);
-            pathD += `L ${finalX} ${finalY}`;
+            
+            // Handle the trailing state at the end of the viewing window
+            if (renderStyle !== 'datasheet') {
+                if (lastState === 'U') {
+                    rectsHtml += `<rect x="${lastX}" y="${highY}" width="${finalX - lastX}" height="${lowY - highY}" fill="var(--warning)" opacity="0.3" stroke="none" />`;
+                } else {
+                    let finalY = lastState === 1 ? highY : (lastState === 0 ? lowY : midY);
+                    pathD += `L ${finalX} ${finalY}`;
+                }
+            } else {
+                let finalY = lastState === 1 ? highY : (lastState === 0 ? lowY : midY);
+                pathD += `L ${finalX} ${finalY}`;
+            }
 
+            // Inject the rectangles right before the line path so they sit behind the trace
+            html += rectsHtml;
             html += `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="2.5" stroke-linejoin="round"/>`;
         });
 
@@ -591,6 +687,15 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
                                 <option value="0" style="color: black;">Off</option> <option value="1" style="color: black;">Coarse</option> <option value="2" selected style="color: black;">Medium</option> <option value="4" style="color: black;">Fine</option> <option value="10" style="color: black;">Ultra</option>
                             </select>
                         </div>
+						
+						<!-- FORMAT TOGGLE -->
+                        <div style="display:flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 4px; white-space: nowrap;">
+                            <i data-lucide="activity" style="width: 12px; height: 12px;"></i>
+                            <select id="timing-style" style="font-size: 11px; margin: 0; padding: 0; border-radius: 3px; border: none; background: transparent; color: var(--text-inverse); outline: none; cursor: pointer; font-weight: bold;">
+                                <option value="datasheet" style="color: black;" selected>Datasheet</option>
+                                <option value="analyzer" style="color: black;">Analyzer</option>
+                            </select>
+                        </div>
                         
                         <div style="display:flex; align-items: center; gap: 3px; background: rgba(0,0,0,0.2); padding: 3px 8px; border-radius: 4px; white-space: nowrap;" title="Vertical Zoom">
                             <i data-lucide="move-vertical" style="width: 12px; height: 12px;"></i>
@@ -622,9 +727,10 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
             const stopInput = document.getElementById('timing-stop');
 
             let currentHZoom = 1.0; let currentVZoom = 45; let currentGrid = 2; let currentStartNs = 0; let currentStopNs = totalNs;
-            let currentWidth = container.clientWidth; let currentHeight = container.clientHeight; let visibleProbes = new Set(allProbeNetIds);
+            let currentStyle = 'datasheet';
+			let currentWidth = container.clientWidth; let currentHeight = container.clientHeight; let visibleProbes = new Set(allProbeNetIds);
 
-            const refreshDiagram = () => { container.innerHTML = generateDiagramHTML(currentHZoom, currentWidth, currentGrid, currentHeight, currentVZoom, visibleProbes, currentStartNs, currentStopNs); };
+            const refreshDiagram = () => { container.innerHTML = generateDiagramHTML(currentHZoom, currentWidth, currentGrid, currentHeight, currentVZoom, visibleProbes, currentStartNs, currentStopNs, currentStyle); };
             refreshDiagram();
 
             const resizeObserver = new ResizeObserver(() => {
@@ -637,6 +743,14 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
             zoomSlider.addEventListener('input', (e) => { currentHZoom = parseFloat(e.target.value); refreshDiagram(); });
             vZoomSlider.addEventListener('input', (e) => { currentVZoom = parseInt(e.target.value); refreshDiagram(); });
             gridSelect.addEventListener('change', (e) => { currentGrid = parseInt(e.target.value); refreshDiagram(); });
+			
+			const styleSelect = document.getElementById('timing-style');
+            if (styleSelect) {
+                styleSelect.addEventListener('change', (e) => { 
+                    currentStyle = e.target.value; 
+                    refreshDiagram(); 
+                });
+            }
 
             const handleCropChange = () => {
                 let st = parseFloat(startInput.value); let sp = parseFloat(stopInput.value);
@@ -724,68 +838,111 @@ function renderBatchTimingDiagram(probes, history, maxTime) {
                 downloadData(csv, "digital_timing.csv", "text/csv", "CSV Data File");
             };
 
+            // --- UPGRADED TIKZ GENERATOR ---
             function generateTikzCore(active, windowNs) {
-                let allTimes = new Set([currentStartNs, currentStopNs]);
-                active.forEach(id => {
-                    history[id].time.forEach(t => { 
-                        let tns = t * 1e9; 
-                        if (tns >= currentStartNs && tns <= currentStopNs) allTimes.add(Math.round(tns * 1000) / 1000); 
-                    });
-                });
-                let sortedTimes = Array.from(allTimes).sort((a, b) => a - b);
-                
-                let minDelta = windowNs;
-                for (let i = 1; i < sortedTimes.length; i++) {
-                    let d = sortedTimes[i] - sortedTimes[i-1];
-                    if (d > 0.01 && d < minDelta) minDelta = d;
-                }
-
-                let maxChars = 150; 
-                let sampleStep = Math.max(minDelta, windowNs / maxChars);
-                let samples = Math.floor(windowNs / sampleStep);
-                if (samples < 1) samples = 1;
-
                 let tex = "";
-                for (let i = 0; i < active.length; i += 4) {
-                    let chunk = active.slice(i, i + 4);
-                    let args = [];
-                    for (let j = 0; j < 4; j++) {
-                        if (j < chunk.length) {
-                            // Reorder logic: Output the UI-Top signal as the LaTeX-Top signal
-                            let netId = chunk[chunk.length - 1 - j];
-                            let name = probes[netId];
-                            let stream = "";
-                            for (let k = 0; k < samples; k++) {
-                                let t = currentStartNs + k * sampleStep + (sampleStep / 2);
-                                let state = getStateAtTime(history[netId], t);
-                                stream += (state === 1 ? '1' : (state === 0 ? '0' : 'X'));
+                let tikzColors = ['red', 'blue', 'green!70!black', 'orange', 'purple', 'brown', 'cyan', 'darkgray'];
+                
+                active.forEach((netId, idx) => {
+                    let h = history[netId];
+                    let origIndex = allProbeNetIds.indexOf(netId);
+                    let color = tikzColors[origIndex % tikzColors.length];
+                    let name = probes[netId];
+                    
+                    // Space traces out vertically
+                    let baseY = -2.5 * idx;
+                    let lowY = baseY;
+                    let midY = baseY + 0.5;
+                    let highY = baseY + 1;
+                    
+                    tex += `% Trace: ${name}\n`;
+                    tex += `\\node[left, font=\\sffamily\\bfseries, text=${color}] at (0, ${midY}) {${name}};\n`;
+                    tex += `\\node[left, font=\\tiny\\sffamily, text=gray] at (0, ${highY}) {1};\n`;
+                    tex += `\\node[left, font=\\tiny\\sffamily, text=gray] at (0, ${lowY}) {0};\n`;
+                    tex += `\\draw[gray!30, dashed, line width=0.5pt] (0, ${lowY}) -- (${windowNs}, ${lowY});\n`;
+                    
+                    let initialState = getStateAtTime(h, currentStartNs);
+                    let lastState = initialState;
+                    let lastX = 0;
+                    
+                    let initialY = initialState === 1 ? highY : (initialState === 0 ? lowY : midY);
+                    let pathD = (initialState === 'U' && currentStyle !== 'datasheet') ? "" : `(0, ${initialY})`;
+                    let rectsTex = "";
+                    
+                    for (let i = 0; i < h.time.length; i++) {
+                        let t_ns = h.time[i] * 1e9;
+                        if (t_ns <= currentStartNs) continue; 
+                        if (t_ns > currentStopNs) break;
+                        
+                        let state = h.states[i] !== undefined ? h.states[i] : 'U';
+                        let xCurrent = t_ns - currentStartNs;
+                        let y = state === 1 ? highY : (state === 0 ? lowY : midY);
+                        let yPrev = lastState === 1 ? highY : (lastState === 0 ? lowY : midY);
+                        
+                        if (currentStyle === 'datasheet') {
+                            if (state === 'U') {
+                                pathD += ` -- (${xCurrent}, ${yPrev})`;
+                            } else if (lastState === 'U') {
+                                pathD += ` -- (${xCurrent}, ${y})`;
+                            } else {
+                                pathD += ` -- (${xCurrent}, ${yPrev}) -- (${xCurrent}, ${y})`;
                             }
-                            args.push(`{${stream}-${name}}`); 
                         } else {
-                            args.push(`{}`);
+                            // Logic Analyzer Style
+                            if (lastState === 'U') {
+                                rectsTex += `\\fill[gray, opacity=0.3] (${lastX}, ${lowY}) rectangle (${xCurrent}, ${highY});\n`;
+                                if (state !== 'U') pathD += ` (${xCurrent}, ${y})`; // Put pen down
+                            } else {
+                                pathD += ` -- (${xCurrent}, ${yPrev})`;
+                                if (state !== 'U') {
+                                    pathD += ` -- (${xCurrent}, ${y})`;
+                                }
+                            }
                         }
+                        
+                        lastState = state;
+                        lastX = xCurrent;
                     }
                     
-                    // Maintain precise stacking spacing for multiple chunks
-                    let offset = 2 * (chunk.length - 1) + 2 * i; 
-                    tex += `\\timingdiagram{(0, -${offset})}${args[0]}${args[1]}${args[2]}${args[3]}{gridon}{}\n`;
-                }
+                    let finalX = windowNs;
+                    if (currentStyle !== 'datasheet') {
+                        if (lastState === 'U') {
+                            rectsTex += `\\fill[gray, opacity=0.3] (${lastX}, ${lowY}) rectangle (${finalX}, ${highY});\n`;
+                        } else {
+                            let finalY = lastState === 1 ? highY : (lastState === 0 ? lowY : midY);
+                            if (pathD !== "") pathD += ` -- (${finalX}, ${finalY})`;
+                        }
+                    } else {
+                        let finalY = lastState === 1 ? highY : (lastState === 0 ? lowY : midY);
+                        pathD += ` -- (${finalX}, ${finalY})`;
+                    }
+                    
+                    tex += rectsTex;
+                    if (pathD !== "") {
+                        tex += `\\draw[color=${color}, line width=1.5pt, line join=round] ${pathD};\n`;
+                    }
+                    tex += `\n`;
+                });
+                
                 return tex;
             }
 
             document.getElementById('btn-export-dig-tex').onclick = () => {
                 let active = allProbeNetIds.filter(id => visibleProbes.has(id));
-                let tex = "% Auto-generated Adaptive Timing Diagram (requires tikz_electronic_parts.sty)\n\\begin{tikzpictureJL}\n";
-                tex += generateTikzCore(active, currentStopNs - currentStartNs);
-                tex += "\\end{tikzpictureJL}";
+                let windowNs = currentStopNs - currentStartNs;
+                // Add xscale=0.2 so 50ns fits nicely in 10cm wide on the LaTeX page
+                let tex = "% Auto-generated Native TikZ Timing Diagram\n\\begin{tikzpicture}[xscale=0.2, yscale=1]\n";
+                tex += generateTikzCore(active, windowNs);
+                tex += "\\end{tikzpicture}";
                 downloadData(tex, "digital_timing.tex", "text/plain", "LaTeX File");
             };
 
             document.getElementById('btn-export-dig-standalone-tex').onclick = () => {
                 let active = allProbeNetIds.filter(id => visibleProbes.has(id));
-                let tex = `\\documentclass{standalone}\n\n% Required packages for the style file\n\\usepackage{amsmath}\n\\usepackage{tikz}\n\\usepackage{xstring}\n\\usepackage{xparse}\n\\usepackage{etoolbox}\n\\usepackage{calculator}\n\\usepackage{accents}\n\\usepackage{xcolor}\n\n% Load your specific electronic parts style file\n\\usepackage{tikz_electronic_parts}\n\\standaloneenv{tikzpictureJL}\n\n\\begin{document}\n\\settikzlinewidth{1.2}\n\\tikzset{every picture/.style={line width=\\tikzlinewidth}}\n\n\\begin{tikzpictureJL}[scale=0.245]\n`;
-                tex += generateTikzCore(active, currentStopNs - currentStartNs);
-                tex += `\\end{tikzpictureJL}\n\n\\end{document}`;
+                let windowNs = currentStopNs - currentStartNs;
+                let tex = `\\documentclass[border=5mm]{standalone}\n\\usepackage{tikz}\n\\begin{document}\n\\begin{tikzpicture}[xscale=0.2, yscale=1]\n`;
+                tex += generateTikzCore(active, windowNs);
+                tex += `\\end{tikzpicture}\n\\end{document}`;
                 downloadData(tex, "digital_timing_standalone.tex", "text/plain", "LaTeX Standalone File");
             };
 

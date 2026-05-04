@@ -1021,6 +1021,18 @@ const JL_DATABASE = {
                 "id": "INIT",
                 "label": "Initial State (0/1)",
                 "defVal": "0"
+            },
+            {
+                "type": "SIM",
+                "id": "TR",
+                "label": "Rise Time (s)",
+                "defVal": "10n"
+            },
+            {
+                "type": "SIM",
+                "id": "TF",
+                "label": "Fall Time (s)",
+                "defVal": "10n"
             }
         ],
         "iconBase": "M 0 0 m -20 0 a 20 20 0 1 0 40 0 a 20 20 0 1 0 -40 0 M 20 0 L 30 0 M -10 -5 L -5 -5 L -5 5 L 5 5 L 5 -5 L 10 -5",
@@ -3412,6 +3424,7 @@ const JL_DATABASE = {
                 "defVal": "12n"
             }
         ],
+        "spiceTemplate": "X_{NAME} {pin1} {pin2} {pin3} AND2_MACRO i1={INV1} i2={INV2}",
         "iconBase": "M 16 -40 L 40 -40 C 55 -40 60 -20 60 -20 C 60 -20 55 0 40 0 L 16 0 Z M 60 -20 L 70 -20",
         "filled": false,
         "iconLayers": [
@@ -3900,6 +3913,7 @@ const JL_DATABASE = {
                 "defVal": "12n"
             }
         ],
+        "spiceTemplate": "X_{NAME} {pin1} {pin2} {pin3} OR2_MACRO i1={INV1} i2={INV2}",
         "iconBase": "M 10 -40 Q 25 -20 10 0 C 35 0 50 -10 60 -20 C 50 -30 35 -40 10 -40 Z M 60 -20 L 70 -20",
         "filled": false,
         "iconLayers": [
@@ -4498,6 +4512,7 @@ const JL_DATABASE = {
         ],
         "iconBase": "M 43 -20 L 50 -20 M 0 -20 L 10 -20 M 10 0 L 10 -40 L 35 -20 Z M 39.50 -20 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
         "filled": false,
+        "spiceTemplate": "X_{NAME} {pin1} {pin2} INV_MACRO",
         "argNames": [
             {
                 "name": "position",
