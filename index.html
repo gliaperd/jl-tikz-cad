@@ -62,21 +62,36 @@
     
     <div class="v-separator"></div>
     
-    <div class="toolbar-dropdown">
+<div class="toolbar-dropdown">
         <button class="tool-btn" style="font-weight:bold;"><i data-lucide="zap"></i>Simulate ▼</button>
-        <div class="toolbar-dropdown-content" style="min-width: 190px;">
-            <div class="menu-item" id="btn-sim-op"><i data-lucide="zap"></i>DC Operating Point</div>
-            <div class="menu-item" id="btn-sim-tran"><i data-lucide="activity"></i>Transient Analysis</div>
-            <div class="menu-item" id="btn-sim-ac"><i data-lucide="waves"></i>AC Analysis</div>
-			<div class="menu-item" id="btn-sim-dcsweep"><i data-lucide="line-chart"></i>DC Sweep Analysis</div>
-			<div class="menu-item" id="btn-sim-thevenin"><i data-lucide="wand-2"></i>Thevenin/Norton Eq.</div>
-			<div class="menu-item" id="btn-sim-xferfnc"><i data-lucide="square-function"></i>SPICE Transfer Function (DC)</div>
-            <div class="menu-item" id="btn-sim-netlist"><i data-lucide="file-code"></i>View/Edit Netlist</div>
-			<div class="menu-item" id="btn-sim-settings"><i data-lucide="settings"></i>SPICE Simulation Settings</div>
-			<div style="border-top: 1px solid #ecf0f1; margin: 4px 0;"></div>
-            <div class="menu-item" id="btn-sim-logic"><i data-lucide="clock"></i>Digital Timing Analysis</div>
-            <div style="border-top: 1px solid #ecf0f1; margin: 4px 0;"></div>			
-			<div class="menu-item" id="btn-sim-clear"><i data-lucide="eraser"></i>Clear Annotations</div>
+        <div class="toolbar-dropdown-content" style="min-width: 240px;">
+            
+            <!-- ANALOG & MIXED-SIGNAL (SPICE ENGINE) -->
+            <div style="padding: 6px 12px; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Analog & Mixed-Signal</div>
+            <div class="menu-item" id="btn-sim-tran"><i data-lucide="activity"></i>Transient (Time) Analysis</div>
+            <div class="menu-item" id="btn-sim-op"><i data-lucide="crosshair"></i>DC Operating Point</div>
+            <div class="menu-item" id="btn-sim-dcsweep"><i data-lucide="line-chart"></i>DC Sweep Analysis</div>
+            <div class="menu-item" id="btn-sim-ac"><i data-lucide="waves"></i>AC (Frequency) Analysis</div>
+            
+            <div style="border-top: 1px solid var(--border-main); margin: 4px 0;"></div>
+
+            <!-- PURE DIGITAL (EVENT ENGINE) -->
+            <div style="padding: 6px 12px; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Pure Digital</div>
+            <div class="menu-item" id="btn-sim-logic"><i data-lucide="clock"></i>Logic Analyzer (Timing)</div>
+            
+            <div style="border-top: 1px solid var(--border-main); margin: 4px 0;"></div>
+
+            <!-- SOLVERS -->
+            <div style="padding: 6px 12px; font-size: 10px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Advanced Solvers</div>
+            <div class="menu-item" id="btn-sim-thevenin"><i data-lucide="wand-2"></i>Thevenin/Norton Equivalent</div>
+            <div class="menu-item" id="btn-sim-xferfnc"><i data-lucide="square-function"></i>DC Transfer Function</div>
+            
+            <div style="border-top: 1px solid var(--border-main); margin: 4px 0;"></div>
+
+            <!-- UTILITIES -->
+            <div class="menu-item" id="btn-sim-settings"><i data-lucide="settings"></i>Simulation Settings</div>
+            <div class="menu-item" id="btn-sim-netlist"><i data-lucide="file-code"></i>View/Edit SPICE Netlist</div>
+            <div class="menu-item" id="btn-sim-clear"><i data-lucide="eraser"></i>Clear Canvas Annotations</div>
         </div>
     </div>
     
@@ -236,10 +251,10 @@
                 <div style="font-weight: 600; color: var(--text-main); margin-bottom: 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-main); padding-bottom: 6px;">
                     <i data-lucide="activity" style="width: 14px; height: 14px;"></i> Transient (.tran)
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 8px;">
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Step</label><input type="text" id="sim-tran-step" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
-                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Stop</label><input type="text" id="sim-tran-stop" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">                    
                     <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Start</label><input type="text" id="sim-tran-start" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Stop</label><input type="text" id="sim-tran-stop" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
+                    <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Step</label><input type="text" id="sim-tran-step" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
                 </div>
             </div>
 
@@ -259,6 +274,26 @@
                     <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Points</label><input type="text" id="sim-ac-pts" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
                     <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Start</label><input type="text" id="sim-ac-start" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
                     <div style="display:flex; align-items:center; gap:5px;"><label style="width:55px; font-size:11px; font-weight:600; color:var(--text-muted);">Stop</label><input type="text" id="sim-ac-stop" style="flex:1; min-width: 0; padding:4px 6px; font-size:12px; box-sizing:border-box; border:1px solid var(--border-main); border-radius:3px; outline: none; background: var(--bg-panel); color: var(--text-main);"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: MIXED-SIGNAL LOGIC LEVELS -->
+        <div style="margin-bottom: 15px; padding: 12px; border: 1px solid var(--border-main); border-radius: 6px; background: var(--bg-app);">
+            <div style="font-weight: 600; color: var(--text-main); margin-bottom: 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--border-main); padding-bottom: 6px;">
+                <i data-lucide="cpu" style="width: 14px; height: 14px;"></i> Mixed-Signal Logic Levels (SPICE)
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <!-- Stacked Layout: Label on top, Input below -->
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">Logic 1 Voltage (V)</label>
+                    <input type="text" id="sim-logic-high" style="width: 100%; padding: 6px; font-size: 12px; box-sizing: border-box; border: 1px solid var(--border-main); border-radius: 3px; outline: none; background: var(--bg-panel); color: var(--text-main);" placeholder="5.0">
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 11px; font-weight: 600; color: var(--text-muted);">Threshold Voltage (V)</label>
+                    <input type="text" id="sim-logic-thresh" style="width: 100%; padding: 6px; font-size: 12px; box-sizing: border-box; border: 1px solid var(--border-main); border-radius: 3px; outline: none; background: var(--bg-panel); color: var(--text-main);" placeholder="2.5">
                 </div>
             </div>
         </div>

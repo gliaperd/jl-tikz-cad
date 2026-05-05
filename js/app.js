@@ -50,7 +50,7 @@ Swal.fire = function(...args) {
 function checkUnsavedWork() {
     const autosave = localStorage.getItem('jlcad_autosave');
     
-    // Check if it exists AND isn't just an empty graph
+    // Check if it exists AND isn't just an empty graph/object
     if (autosave && autosave.length > 20) { 
         Swal.fire({
             title: 'Unsaved Work Detected',
@@ -62,12 +62,29 @@ function checkUnsavedWork() {
             allowOutsideClick: false // Force them to choose
         }).then((result) => {
             if (result.isConfirmed) {
-                // Restore the state
-                AppState.graph.fromJSON(JSON.parse(autosave));
+                try {
+                    let parsedData = JSON.parse(autosave);
+                    
+                    // --- THE FIX: Load settings BEFORE loading the graph ---
+                    if (parsedData.circuit) {
+                        // 1. Restore settings first
+                        AppState.spiceSimConfig = parsedData.spiceConfig || {}; 
+                        
+                        // 2. Now load the graph (if it triggers a save, the settings are safe!)
+                        AppState.graph.fromJSON(parsedData.circuit);
+                    } 
+                    // Fallback for old legacy saves
+                    else {
+                        AppState.spiceSimConfig = {}; 
+                        AppState.graph.fromJSON(parsedData);
+                    }
+                } catch (err) {
+                    console.error("Failed to parse autosave data:", err);
+                }
                 
                 // Clean up the UI
                 clearSelection();
-				clearSimAnnotations();
+                clearSimAnnotations();
                 exportLatex();
                 
                 // Give JointJS a fraction of a second to render before calculating bounding boxes for zoom

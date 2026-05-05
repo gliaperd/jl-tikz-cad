@@ -300,6 +300,10 @@
 % flip: disabled
 % preview_args: 4=n, 5=0
 
+% spice_template: R_{NAME} {pin1} {pin2} {RESISTANCE}
+% property_def: type=SPICE | RON | Closed Resistance (Ω) | 1m
+% property_def: type=SPICE | ROFF | Open Resistance (Ω) | 100Meg
+
 % arg_def: 3 | text | control value | 
 % arg_def: 4 | select | type | n | n, p
 % arg_def: 5 | rotation | Rotation | 0
@@ -435,7 +439,6 @@
 % flip: disabled
 
 % arg_def: 3 | rotflip | Rotation & Flip | 0,none
-
 
 % icon_base: M 0 0 L 0 15 // The vertical entry lead
 % add_icon: 1~= : [stroke-width=4.5] M -15 15 L 15 15 // Top bar (Thickest)
@@ -1711,6 +1714,8 @@
 % flip: disabled
 % preview_args: 3=normal
 
+% spice_template: X_{NAME} {pin1} {pin2} {pin3} {pin4} PASSGATE_MACRO
+
 % arg_def: 3 | select | symbol | normal | plain, normal, diamond
 % arg_def: 4 | rotation | Rotation | 0
 
@@ -1995,6 +2000,9 @@
 % arg_def: 3 | select | horizontal/vertical  |  | horizontal, vertical, 
 % arg_def: 4 | rotation | Rotation | 0
 
+% spice_template: D_{NAME} {pin1} {pin2} {MODEL}
+% property_def: type=SPICE | MODEL | SPICE Model | WIZ_ZENER
+% property_def: type=SPICE | WIZ_VZ | Zener Voltage (Vz) | 5.1
 
 % icon_base: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0 // base
 % add_icon: 1~= : [stroke-width=2.7] M 31 -15 L 36 -15 L 36 15 L 41 15 // cathode
@@ -2154,8 +2162,103 @@
 						}
 						{
 						}
-		        \coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
+		\coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
         \coordinate (pin2) at (5.00, 0.00); % right terminal (cathode) [R]
+    \end{scope}
+}
+
+%% LED (SPICE)
+\newcommand{\leddiodespice}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
+% enabled
+% category: Diodes
+% scales: 1, 2, 4
+% label_anchor: B
+% flip: disabled
+% spice_template: X_{NAME} {pin1} {pin2} {pin3} LED_MACRO
+
+% arg_def: 3 | select | horizontal/vertical |  | horizontal, vertical,
+% arg_def: 4 | rotation | Rotation | 0
+
+% icon_base: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0 // base
+% add_icon: 1~= : [stroke-width=2.9] M 36.50 -15 L 36.50 15 // cathode
+% add_icon: 1~= : [rounded=true] M 25 -18.50 L 30 -18.50 L 30 -13.50 M 25 -12.5 L 29 -17.5 // rays
+
+% calculate the readable label angle
+	\getreadableangle{#4}{\readablelabelangle}
+
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
+				\getzoomfactor
+				% draw input/output terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,0)  -- (5,0);
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1.5)  -- (1,1.5) -- (3.5,0) -- cycle;
+				% draw cathode
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 3pt] (3.5,-1.5)  -- (3.5,1.5);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\ifstrequal{#4}{0}
+								{
+									% draw light ray
+										\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (2.2,1.1)  -- (2.7,1.8);
+									\node[draw=none, align=center] at (2,-2) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{180}
+								{
+									% draw light ray
+										\draw [->,yscale=-1, line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (2.2,1.1)  -- (2.7,1.8);
+									\node[draw=none, align=center] at (2,2) {#2};	
+								}
+								{
+								}
+						}
+						{
+							\ifstrequal{#3}{vertical}
+							{
+								\ifstrequal{#4}{90}
+									{
+										% draw light ray
+											\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (2.2,1.1)  -- (2.7,1.8);
+										\node[draw=none, anchor=west] at (2,-1) {#2};	
+									}
+									{
+									}
+								\ifstrequal{#4}{-90}
+									{
+										% draw light ray
+											\draw [->,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (2.2,1.1)  -- (2.7,1.8);
+										\node[draw=none, anchor=east] at (2,-1) {#2};	
+									}
+									{
+									}							
+							}
+							{
+								\node[draw=none, align=center, rotate=\readablelabelangle] at (2,-2) {#2};	
+							}					
+						}				
+				% draw grid
+					\ifstrequal{#5}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (5,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#6}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+		% --- NEW: Optical Port Marker and Pin ---
+			\filldraw[color=orange!30] (3, 2) circle (0.2);
+			\draw[color=orange, line width=\linewidthscalefactor * \zoomfactor * 1pt] (3, 2) circle (0.2);
+        \coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
+        \coordinate (pin2) at (5.00, 0.00); % right terminal (cathode) [R]
+        \coordinate (pin3) at (3.00, 2.00); % top terminal (optical out)  [T]
     \end{scope}
 }
 
@@ -2167,7 +2270,7 @@
 % label_anchor: B
 % flip: disabled
 
-% arg_def: 3 | select | horizontal/vertical  |  | horizontal, vertical, 
+% arg_def: 3 | select | horizontal/vertical  | horizontal | horizontal, vertical, 
 % arg_def: 4 | rotation | Rotation | 0
 
 
@@ -2247,6 +2350,148 @@
 						}
 		        \coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
         \coordinate (pin2) at (5.00, 0.00); % right terminal (cathode) [R]
+    \end{scope}
+}
+
+%% Photodiode (SPICE)
+\newcommand{\photodiodespice}[6]{%{position}{name}{horizontal/vertical}{rotation}{grid}{show (0,0)}
+% enabled
+% category: Diodes
+% scales: 1, 2, 4
+% label_anchor: B
+% flip: disabled
+
+% spice_template: X_{NAME} {pin1} {pin2} {pin3} PD_MACRO
+
+% arg_def: 3 | select | horizontal/vertical | horizontal | horizontal, vertical,
+% arg_def: 4 | rotation | Rotation | 0
+
+% icon_base: M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0 // base
+% add_icon: 1~= : [stroke-width=2.9] M 36.50 -15 L 36.50 15 // cathode
+% add_icon: 1~= : [rounded=true] M 29 -12 L 24 -12 L 24 -17 M 25 -12.5 L 29 -17.5 // rays
+
+% calculate the readable label angle
+	\getreadableangle{#4}{\readablelabelangle}
+
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#4]
+				\getzoomfactor
+				% draw input/output terminals
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (0,0)  -- (1,0);
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (3.5,0)  -- (5,0);
+				% draw body
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 1.5pt] (1,-1.5)  -- (1,1.5) -- (3.5,0) -- cycle;
+				% draw cathode
+					\draw [line width=\linewidthscalefactor * \zoomfactor * 3pt] (3.5,-1.5)  -- (3.5,1.5);
+				% draw name
+					\ifstrequal{#3}{horizontal}
+						{
+							\ifstrequal{#4}{0}
+								{
+									% draw light ray
+										\draw [<-,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (2.2,1.1)  -- (2.7,1.8);
+									\node[draw=none, align=center] at (2,-2) {#2};	
+								}
+								{
+								}
+							\ifstrequal{#4}{180}
+								{
+									% draw light ray
+										\draw [<-,yscale=-1, line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (2.2,1.1)  -- (2.7,1.8);
+									\node[draw=none, align=center] at (2,2) {#2};	
+								}
+								{
+								}
+						}
+						{
+							\ifstrequal{#3}{vertical}
+							{
+								\ifstrequal{#4}{90}
+									{
+										% draw light ray
+											\draw [<-,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (2.2,1.1)  -- (2.7,1.8);
+										\node[draw=none, anchor=west] at (2,-1) {#2};	
+									}
+									{
+									}
+								\ifstrequal{#4}{-90}
+									{
+										% draw light ray
+											\draw [<-,line width=\linewidthscalefactor * \zoomfactor * 0.7pt] (2.2,1.1)  -- (2.7,1.8);
+										\node[draw=none, anchor=east] at (2,-1) {#2};	
+									}
+									{
+									}							
+							}
+							{
+								\node[draw=none, align=center, rotate=\readablelabelangle] at (2,-2) {#2};	
+							}					
+						}				
+				% draw grid
+					\ifstrequal{#5}{gridon}
+						{
+							\draw[step=1cm,color=gray] (0,-2) grid (5,3);
+						}
+						{
+						}
+				% draw (0,0)
+					\ifstrequal{#6}{show}
+						{
+							\node[draw=none, align=center, color=red] at (0,0) {#1};
+						}
+						{
+						}
+		% --- NEW: Optical Port Marker and Pin ---
+			\filldraw[color=orange!30] (3, 2) circle (0.2);
+			\draw[color=orange, line width=\linewidthscalefactor * \zoomfactor * 1pt] (3, 2) circle (0.2);
+        \coordinate (pin1) at (0.00, 0.00); % left terminal (anode) [R]
+        \coordinate (pin2) at (5.00, 0.00); % right terminal (cathode) [R]
+        \coordinate (pin3) at (3.00, 2.00); % top terminal (optical in)  [T]
+    \end{scope}
+}
+
+%% Optical Waveguide
+\newcommand{\waveguide}[6]{%{position}{name}{rotation}{grid}{show (0,0)}
+% enabled
+% category: Optoelectronics
+% scales: 1, 2, 4
+% label_anchor: B
+% flip: disabled
+
+% arg_def: 3 | rotation | Rotation | 0
+
+% spice_template: X_{NAME} {pin1} {pin2} WAVEGUIDE_MACRO loss={LOSS} delay={DELAY}
+% property_def: type=SPICE | LOSS | Attenuation (Ohms) | 10
+% property_def: type=SPICE | DELAY | Optical Delay (F) | 1p
+
+% icon_base: [stroke=#e67e22] M 0 0 C 10 10 15 -10 25 0 M 25 0 C 35 10 40 -10 50 0 M 50 0 C 60 10 65 -10 80 0
+
+% calculate the readable label angle
+    \getreadableangle{#3}{\readablelabelangle}
+
+    \begin{scope}[shift={#1}, scale=\jlcscale, rotate=#3]
+        \getzoomfactor
+        
+        % Draw a beautiful wavy orange line to represent light waves
+        \draw [line width=\linewidthscalefactor * \zoomfactor * 2pt, color=orange] 
+            (0,0) .. controls (1.5, 1.5) and (2.5, -1.5) .. (4,0) 
+                  .. controls (5.5, 1.5) and (6.5, -1.5) .. (8,0);
+
+        % Draw name
+        \node[draw=none, align=center, rotate=\readablelabelangle] at (4,1.5) {#2};
+
+        \ifstrequal{#5}{gridon}
+            {
+                \draw[step=1cm,color=gray] (0,-2) grid (8,2);
+            }
+            {}
+        \ifstrequal{#6}{show}
+            {
+                \node[draw=none, align=center, color=red] at (0,0) {#1};
+            }
+            {}
+
+        \coordinate (pin1) at (0.00, 0.00); % Optical In [R]
+        \coordinate (pin2) at (8.00, 0.00); % Optical Out [R]
     \end{scope}
 }
 
@@ -6139,10 +6384,7 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% ==========================================================
-% Test Probe (For Thevenin/Norton/Digital Logic Analysis)
-% ==========================================================
-%% Test Probe
+%% Voltage Probe
 \newcommand{\testprobe}[5]{%{position}{name}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
 % enabled
 % category: Simulation/Solvers
@@ -6189,6 +6431,43 @@
 				\node[draw=none, anchor=south, rotate=\readablelabelangle] at (0,4.5) {#2};
             \coordinate (pin1) at (0.00, 0.00); % [R]
     \end{scope}
+}
+
+%% Current Probe
+\newcommand{\currentprobe}[5]{%{position}{name}{rotation,flip(h, v, hv, or none)}{grid}{show (0,0)}
+% enabled
+% category: Simulation/Solvers
+% scales: 1, 2, 4
+% label_anchor: T
+% flip: disabled
+% spice_template: V_CPROBE_{NAME} {pin1} {pin2} DC 0
+% preview_args: 3=0,none
+% arg_def: 3 | rotflip | Rotation & Flip | 0,none
+
+% icon_base: [stroke=#0924f1] M -16 0 L -8 0 M 8 0 L 16 0 // wires
+% add_icon: 1~= : [stroke=#0421fb, fill=solid, rounded=true] M -8 0 A 8 8 0 1 0 8 0 A 8 8 0 1 0 -8 0 Z // circle
+% add_icon: 1~= : [stroke=#ffffff, fill=solid, rounded=true] M -3 -4 L 4 0 L -3 4 Z // arrow inside
+	\StrBefore{#3}{,}[\rotationvalue]
+	\StrBehind{#3}{,}[\flipvalue]
+	\IfSubStr{\flipvalue}{h}{\edef\xscalevalue{-1}}{\edef\xscalevalue{1}}
+	\IfSubStr{\flipvalue}{v}{\edef\yscalevalue{-1}}{\edef\yscalevalue{1}}
+	
+	\getreadableangle{\rotationvalue}{\readablelabelangle}	
+		
+	\begin{scope}[shift={#1}, scale=\jlcscale, rotate=\rotationvalue, xscale=\xscalevalue , yscale=\yscalevalue]
+		\getzoomfactor
+		% Wires
+		\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round] (-2,0) -- (-0.8,0);
+		\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round] (0.8,0) -- (2,0);
+		% Circular body
+		\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, fill=white] (0,0) circle (0.8);
+		% Arrow indicating current direction
+		\draw[line width=\linewidthscalefactor * \zoomfactor * 1.5pt, line cap=round, line join=round] (-0.3, -0.4) -- (0.4, 0) -- (-0.3, 0.4);
+		
+		\node[draw=none, anchor=south, rotate=\readablelabelangle] at (0,1.2) {#2};
+		\coordinate (pin1) at (-2, 0.00); % [L]
+		\coordinate (pin2) at (2, 0.00);  % [R]
+	\end{scope}
 }
 
 %% Net Label

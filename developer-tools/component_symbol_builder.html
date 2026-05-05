@@ -2517,8 +2517,8 @@
             
             // --- ΔΙΑΒΑΣΜΑ PINS ΚΑΙ TIKZ BODY ---
 			// THE FIX: Bulletproof extraction of the native TikZ body that survives \r\n and blank lines.
-			// We look for the first \IfSubStr or \begin{scope} that is NOT preceded by a % on the same line.
-			let tikzStartMatch = code.match(/(?:^|\n)[ \t]*(\\IfSubStr|\\begin\{scope\}|\\StrBehind|\\StrBefore|\\LOG|\\MAX|\\IfEq|\\IfStrEq)/);
+			// We look for the first \IfSubStr, \begin{scope}, \getreadableangle, or its comment.
+			let tikzStartMatch = code.match(/(?:^|\n)[ \t]*(%\s*calculate the readable label angle|\\getreadableangle|\\IfSubStr|\\begin\{scope\}|\\StrBehind|\\StrBefore|\\LOG|\\MAX|\\IfEq|\\IfStrEq)/);
             if (tikzStartMatch) {
                 let rawTikz = code.substring(tikzStartMatch.index);
                 rawTikz = rawTikz.replace(/\}\s*$/, ''); 
@@ -4116,6 +4116,9 @@
                     lines.push('    ' + finalBody.trim());
                     lines.push(`}`);
                 } else {
+                    // --- THE FIX: Inject the readable angle logic for brand new components! ---
+                    lines.push(`   % calculate the readable label angle`);
+                    lines.push(`   \\getreadableangle{#5}{\\readablelabelangle}`);
                     lines.push(`   \\IfSubStr{#5}{h}{\\edef\\xscalevalue{-1}}{\\edef\\xscalevalue{1}}`);
                     lines.push(`   \\IfSubStr{#5}{v}{\\edef\\yscalevalue{-1}}{\\edef\\yscalevalue{1}}`);
                     lines.push(`   \\begin{scope}[shift={#1}, scale=\\jlcscale, rotate=#5, xscale=\\xscalevalue, yscale=\\yscalevalue]`);

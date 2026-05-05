@@ -9,7 +9,13 @@ export function saveState() {
     if (AppState.historyIndex < AppState.historyStack.length - 1) {
         AppState.historyStack = AppState.historyStack.slice(0, AppState.historyIndex + 1);
     }
-    const currentState = JSON.stringify(AppState.graph.toJSON());
+    
+    // --- NEW: Wrap both the graph and config into a single Save Package ---
+    const currentState = JSON.stringify({
+        circuit: AppState.graph.toJSON(),
+        spiceConfig: AppState.spiceSimConfig || {}
+    });
+    
     AppState.historyStack.push(currentState);
     localStorage.setItem('jlcad_autosave', currentState);
     
@@ -21,9 +27,19 @@ export function undo() {
     if (AppState.historyIndex <= 0) return; 
     AppState.isHistoryOperating = true;
     AppState.historyIndex--;
-    AppState.graph.fromJSON(JSON.parse(AppState.historyStack[AppState.historyIndex]));
+    
+    // --- NEW: Smart Unpack for Undo ---
+    let parsedData = JSON.parse(AppState.historyStack[AppState.historyIndex]);
+    if (parsedData.circuit) {
+        AppState.graph.fromJSON(parsedData.circuit);
+        AppState.spiceSimConfig = parsedData.spiceConfig || {};
+    } else {
+        // Fallback just in case they have an old history state cached
+        AppState.graph.fromJSON(parsedData);
+    }
+
     clearSelection();
-	clearSimAnnotations();
+    clearSimAnnotations();
     exportLatex();
     AppState.isHistoryOperating = false;
 }
@@ -32,9 +48,18 @@ export function redo() {
     if (AppState.historyIndex >= AppState.historyStack.length - 1) return;
     AppState.isHistoryOperating = true;
     AppState.historyIndex++;
-    AppState.graph.fromJSON(JSON.parse(AppState.historyStack[AppState.historyIndex]));
+    
+    // --- NEW: Smart Unpack for Redo ---
+    let parsedData = JSON.parse(AppState.historyStack[AppState.historyIndex]);
+    if (parsedData.circuit) {
+        AppState.graph.fromJSON(parsedData.circuit);
+        AppState.spiceSimConfig = parsedData.spiceConfig || {};
+    } else {
+        AppState.graph.fromJSON(parsedData);
+    }
+
     clearSelection();
-	clearSimAnnotations();
+    clearSimAnnotations();
     exportLatex();
     AppState.isHistoryOperating = false;
 }

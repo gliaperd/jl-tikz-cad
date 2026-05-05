@@ -3,6 +3,16 @@ import { AppState, THEME_COLORS } from '../state.js';
 import { parseSpiceToNumber } from '../parsers/helpers.js';
 import { saveFileAs } from '../parsers/io.js';
 
+let spiceWorker = null;
+
+export function abortSpiceSimulation() {
+    if (spiceWorker) {
+        console.warn("🗡️ Terminating SPICE Web Worker...");
+        spiceWorker.terminate(); // Instantly kills the background thread
+        spiceWorker = null;      // Clears it so a fresh one spawns next time
+    }
+}
+
 // --- SIMULATION LOG ENGINE ---
 let latexWindowWasVisible = false;
 let outputPanelWasCollapsed = false; // Tracks the user's UI state
@@ -189,6 +199,11 @@ export function formatEng(val, unit = 'V') {
 export function generateSpiceNetlistStr(customSim) {
     let elements = AppState.graph.getElements();
     if (elements.length === 0) return { errors: ["Empty Canvas"] };
+	
+	let config = AppState.spiceSimConfig || {};
+    // Grab user settings or fallback to standard 5V CMOS logic
+    let vHigh = config.logicHighVoltage || "5.0";
+    let vThresh = config.logicThresholdVoltage || "2.5";
 
     let topo = window.extractTopology();
     let getNetForPin = (pt) => {
@@ -378,6 +393,9 @@ export function generateSpiceNetlistStr(customSim) {
     spiceCode += "\n* --- Simulation Commands ---\n";
     spiceCode += (customSim || ".op\n.end") + "\n";
 
+    // --- NEW: Global replacement of the Mixed-Signal tokens ---
+    spiceCode = spiceCode.replace(/\{V_HIGH\}/g, vHigh).replace(/\{V_TH\}/g, vThresh);
+
     return { code: spiceCode, topo: topo, errors: errors };
 }
 
@@ -414,118 +432,128 @@ export async function runSimulation(mode, customNetlist = null) {
         }
     }
 
-    Swal.fire({ title: 'Simulating...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    // --- DEFINE cleanNetlist ---
+    let cleanNetlist = "";
+    let topo = null;
 
-    setTimeout(() => {
-        try {
-            try { Module.FS.mkdir('/tmp'); } catch(e) {}
-            let safeRam = "MemTotal:       524288 kB\nMemFree:        524288 kB\nMemAvailable:   524288 kB\n";
-            try { Module.FS.writeFile('/tmp/meminfo', safeRam); } catch(e) {}
+    if (customNetlist) {
+        cleanNetlist = customNetlist.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        if (typeof window.extractTopology === 'function') topo = window.extractTopology(); 
+    } else {
+        let simCommands = "\n" + buildSpiceCommands(mode);
+        let netlistData = generateSpiceNetlistStr(simCommands); 
 
-            window.spiceErrorFlag = false;
-            window.spiceErrorMsg = "";
-
-            if (!isSpiceInitialized) {
-                let sendCharCallback = Module.addFunction(function(textPtr) {
-                    let msg = Module.UTF8ToString(textPtr).trim();
-                    if (!msg) return 0;
-                    
-                    console.warn("[SPICE]:", msg); 
-                    
-                    let isErr = msg.startsWith('stderr Error') || (msg.startsWith('stderr') && msg.toLowerCase().includes('error'));
-                    
-                    if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print(msg.replace('stderr', '').trim(), isErr);
-
-                    if (isErr) {
-                        window.spiceErrorFlag = true;
-                        window.spiceErrorMsg = msg.replace('stderr Error', '').trim();
-                    }
-                    return 0; 
-                }, 'iiii'); 
-                Module.ccall('ngSpice_Init', 'number', ['number','number','number','number','number','number','number'], [sendCharCallback, 0, 0, 0, 0, 0, 0]);
-                isSpiceInitialized = true;
-            }
-
-            let cleanNetlist = "";
-            let topo = null;
-
-            if (customNetlist) {
-                cleanNetlist = customNetlist.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-                if (typeof window.extractTopology === 'function') topo = window.extractTopology(); 
-            } else {
-                let simCommands = "\n" + buildSpiceCommands(mode);
-                let netlistData = generateSpiceNetlistStr(simCommands); 
-
-                if (netlistData.errors && netlistData.errors.length > 0) {
-                    let errorHtml = `<ul style="text-align: left; font-size: 13px; color: var(--danger);">` + 
-                                    netlistData.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + 
-                                    `</ul>`;
-                    Swal.fire('Error', 'There are errors in the schematic.<br><br>' + errorHtml, 'error');
-                    return;
-                }
-                cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-                topo = netlistData.topo;
-            }
-
-            // Bring up the terminal. If it errors out, the border will start flashing red!
-            if (typeof SimLog !== 'undefined' && SimLog.show) SimLog.show();
-
-            // --- NEW: Detect Test Probe for Plot Filtering ---
-            let probeMatch = cleanNetlist.match(/I_PROBE_[a-zA-Z0-9_]+\s+([^\s]+)/i);
-            window.activeProbeNode = probeMatch ? probeMatch[1].toLowerCase() : null;
-
-            Module.FS.writeFile('/circuit.cir', cleanNetlist);
-            Module.ccall('ngSpice_Command', 'number', ['string'], ['destroy all']);
-            Module.ccall('ngSpice_Command', 'number', ['string'], ['remcirc']);
-            Module.ccall('ngSpice_Command', 'number', ['string'], ['source /circuit.cir']);
-
-            // KILLED THE SWAL: We just cleanly abort and let the terminal flash
-            if (window.spiceErrorFlag) {
-                Swal.close(); 
-                return;
-            }
-
-            if (mode === 'op') Module.ccall('ngSpice_Command', 'number', ['string'], ['op']);
-            else Module.ccall('ngSpice_Command', 'number', ['string'], ['run']);
-
-            Module.ccall('ngSpice_Command', 'number', ['string'], ['set filetype=ascii']);
-            try { Module.FS.unlink('/output.raw'); } catch(e) {}
-            
-            Module.ccall('ngSpice_Command', 'number', ['string'], ['write /output.raw']);
-
-            try {
-                let rawOutput = Module.FS.readFile('/output.raw', { encoding: 'utf8' });
-                
-                if (mode === 'op') {
-                    if (typeof annotateDCOperatingPointFromRaw === 'function') {
-                        annotateDCOperatingPointFromRaw(rawOutput, topo);
-                    }
-                } else {
-                    let parsedData = parseSpiceRaw(rawOutput);
-                    // NEW: Recognize 'dc' mode and label it appropriately
-                    let title = mode === 'tran' ? 'Transient Analysis' : (mode === 'dc' ? 'DC Sweep Analysis' : 'AC Analysis');
-                    
-                    if (typeof plotSimulationResults === 'function') {
-                        plotSimulationResults(parsedData, title);
-                    } else {
-                        let errMsg = "plotSimulationResults function is missing or not exported!";
-                        console.error(errMsg);
-                        if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print(errMsg, true);
-                    }
-                }
-            } catch(e) {
-                // KILLED THE SWAL: We just print to the terminal and let it flash
-                Swal.close();
-                console.error("💥 FATAL SIMULATION JS ERROR:", e);
-                if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("FATAL SIMULATION JS ERROR: " + e.message, true);
-            }
-        } catch (error) { 
-            // KILLED THE SWAL: We just print to the terminal and let it flash
-            Swal.close();
-            console.error("💥 WASM Engine Crash:", error); 
-            if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("WASM Engine Crash: " + error.message, true);
+        if (netlistData.errors && netlistData.errors.length > 0) {
+            let errorHtml = `<ul style="text-align: left; font-size: 13px; color: var(--danger);">` + 
+                            netlistData.errors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + 
+                            `</ul>`;
+            Swal.fire('Error', 'There are errors in the schematic.<br><br>' + errorHtml, 'error');
+            return;
         }
-    }, 100);
+        cleanNetlist = netlistData.code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        topo = netlistData.topo;
+    }
+    // --------------------------------------------------
+
+
+    // ==========================================================
+    // NEW: UNIVERSAL PROBE DETECTION
+    // ==========================================================
+    window.activeVProbes = {};
+    window.activeIProbes = {};
+
+    // 1. Find Voltage Probes (Matches: I_PROBE_NAME_HASH NODE 0 DC 0)
+    let vRegex = /I_PROBE_(.+)_([a-zA-Z0-9]{4})\s+([^\s]+)\s+0\s+DC/gi;
+    let vMatch;
+    while ((vMatch = vRegex.exec(cleanNetlist)) !== null) {
+        window.activeVProbes[`v(${vMatch[3].toLowerCase()})`] = `V(${vMatch[1]})`;
+    }
+
+    // 2. Find Current Probes (Matches: V_CPROBE_NAME_HASH NODE1 NODE2 DC 0)
+    let iRegex = /V_CPROBE_(.+)_([a-zA-Z0-9]{4})\s+([^\s]+)\s+([^\s]+)\s+DC/gi;
+    let iMatch;
+    while ((iMatch = iRegex.exec(cleanNetlist)) !== null) {
+        // NGSpice records current through a voltage source as i(v_source_name)
+        let devName = `v_cprobe_${iMatch[1]}_${iMatch[2]}`.toLowerCase();
+        window.activeIProbes[`i(${devName})`] = `I(${iMatch[1]})`;
+    }
+    // ==========================================================
+
+    window.isSpiceAborted = false;
+
+    Swal.fire({ 
+        title: 'Simulating...', 
+        html: 'Running SPICE engine in background...<br><span style="font-size: 12px; color: var(--text-muted);">You can safely abort at any time.</span>',
+        allowOutsideClick: false, 
+        showCancelButton: true,
+        cancelButtonColor: 'var(--danger)',
+        cancelButtonText: 'Abort',
+        didOpen: () => Swal.showLoading() 
+    }).then((result) => {
+        if (result.dismiss === Swal.DismissReason.cancel) {
+            window.isSpiceAborted = true;
+            abortSpiceSimulation();
+            Swal.fire('Aborted', 'Simulation was killed.', 'warning');
+            if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("Simulation aborted by user.", true);
+        }
+    });
+
+    if (typeof SimLog !== 'undefined' && SimLog.show) SimLog.show();
+
+    // Spawn a fresh worker if one doesn't exist
+    if (!spiceWorker) {
+        spiceWorker = new Worker('js/engines/ngspice_worker.js'); // Update this path if needed!
+        
+        // Listen for messages coming BACK from the background thread
+        spiceWorker.onmessage = function(e) {
+            const data = e.data;
+
+            if (data.type === 'LOG') {
+                // Pipe background logs directly into the UI Terminal
+                if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print(data.msg, data.isErr);
+                if (data.isErr) {
+                    window.spiceErrorFlag = true;
+                    Swal.close(); // Close spinner on error
+                }
+            } 
+            else if (data.type === 'FATAL') {
+                Swal.close();
+                console.error("💥 WASM Engine Crash:", data.msg); 
+                if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("WASM Engine Crash: " + data.msg, true);
+            }
+            else if (data.type === 'SUCCESS') {
+                if (window.spiceErrorFlag || window.isSpiceAborted) return;
+                Swal.close(); // Close the loading spinner!
+
+                let rawOutput = data.rawOutput;
+
+                try {
+                    if (mode === 'op') {
+                        if (typeof annotateDCOperatingPointFromRaw === 'function') {
+                            annotateDCOperatingPointFromRaw(rawOutput, topo);
+                        }
+                    } else {
+                        let parsedData = parseSpiceRaw(rawOutput);
+                        let title = mode === 'tran' ? 'Transient Analysis' : (mode === 'dc' ? 'DC Sweep Analysis' : 'AC Analysis');
+                        
+                        if (typeof plotSimulationResults === 'function') {
+                            plotSimulationResults(parsedData, title);
+                        }
+                    }
+                } catch(err) {
+                    console.error("💥 FATAL CHARTING ERROR:", err);
+                    if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("Charting Error: " + err.message, true);
+                }
+            }
+        };
+    }
+
+    // Send the netlist off to the background thread to do the heavy lifting!
+    spiceWorker.postMessage({ 
+        type: 'RUN_SIMULATION', 
+        netlist: cleanNetlist, 
+        mode: mode 
+    });
 }
 
 // -----------------------------------------
@@ -609,9 +637,9 @@ function parseSpiceRaw(rawOutput) {
         if (mode === 'vars') {
             let parts = l.split(/\s+/);
             if (parts.length >= 3 && !isNaN(parts[0])) {
-                // --- THE FIX: Pass the raw name through our Beautifier ---
                 let cleanName = beautifyTraceName(parts[1]);
-                vars.push({ idx: parseInt(parts[0]), name: cleanName, type: parts[2] });
+                // --- NEW: Keep a copy of the exact, raw NGSpice variable name ---
+                vars.push({ idx: parseInt(parts[0]), name: cleanName, rawName: parts[1].toLowerCase(), type: parts[2] });
             }
         } else if (mode === 'vals') {
             // Safety Check: If we hit a text header like "Plotname:", stop trying to parse numbers!
@@ -637,40 +665,42 @@ function parseSpiceRaw(rawOutput) {
 }
 
 function plotSimulationResults(parsedData, title) {
-    // --- THE FIX: Nuke lingering Chart.js instances before proceeding! ---
     if (window.simChartInstance) {
         window.simChartInstance.destroy();
         window.simChartInstance = null;
     }
 
-    // --- UPGRADED: SMART PROBE FILTER FOR DC SWEEPS ---
-    if (title.includes('DC Sweep')) {
-        let keepIndices = [0]; // Always keep the X-axis (swept source)
-        let targetNode = window.activeProbeNode; // Grab the node we detected earlier
+    // ==========================================================
+    // UNIVERSAL SMART PROBE FILTER (Tran, AC, DC Sweeps)
+    // ==========================================================
+    let hasProbes = Object.keys(window.activeVProbes).length > 0 || Object.keys(window.activeIProbes).length > 0;
+
+    if (hasProbes) {
+        let keepIndices = [0]; // Always keep the X-axis (time/freq/voltage)
         
         for (let i = 1; i < parsedData.vars.length; i++) {
-            let vName = parsedData.vars[i].name.toLowerCase();
+            let rawName = parsedData.vars[i].rawName; // Grab the unmodified SPICE name
             
-            if (targetNode) {
-                // If a probe is on the canvas, ONLY keep the voltage trace for that specific node
-                if (vName === `v(${targetNode})`) {
-                    keepIndices.push(i);
-                }
-            } else {
-                // If no probe exists, fall back to keeping all voltages
-                if (vName.startsWith('v(')) {
-                    keepIndices.push(i);
-                }
+            // Check if this trace was requested by a Voltage Probe
+            if (window.activeVProbes[rawName]) {
+                parsedData.vars[i].name = window.activeVProbes[rawName];
+                keepIndices.push(i);
+            }
+            // Check if this trace was requested by a Current Probe
+            else if (window.activeIProbes[rawName]) {
+                parsedData.vars[i].name = window.activeIProbes[rawName];
+                keepIndices.push(i);
             }
         }
         
-        // Apply the filter (safeguard: ensure we actually kept a trace)
+        // If probes matched successfully, apply the filter!
         if (keepIndices.length > 1) {
             parsedData.vars = keepIndices.map(idx => parsedData.vars[idx]);
             parsedData.points = parsedData.points.map(pt => keepIndices.map(idx => pt[idx]));
         }
     }
-    
+    // ==========================================================
+
     window.currentSimData = parsedData;
     window.currentSimTitle = title;
     window.currentSimIsAC = title.includes('AC');
@@ -739,29 +769,28 @@ function plotSimulationResults(parsedData, title) {
         }
     }
 	
-	// Helper for high-contrast export button hover effects
+    // Helper for high-contrast export button hover effects
     const btnHover = `onmouseover="this.style.background='var(--primary)'; this.style.color='#ffffff'" onmouseout="this.style.background='transparent'; this.style.color='var(--text-main)'"`;
 
     Swal.fire({
         width: 'auto', padding: 0, background: 'transparent', backdrop: false, showConfirmButton: false, heightAuto: false,
         customClass: { popup: 'spice-modal-override', htmlContainer: 'spice-modal-override' },
         
-        // --- THE FIX: Nuke Chart.js when the window closes to prevent hover crashes ---
+        // --- UPDATED: Nuke an ARRAY of Chart instances ---
         willClose: () => {
-            if (window.simChartInstance) {
-                window.simChartInstance.destroy();
-                window.simChartInstance = null;
+            if (window.simChartInstances) {
+                window.simChartInstances.forEach(chart => chart.destroy());
+                window.simChartInstances = [];
             }
         },
-        // ------------------------------------------------------------------------------
 
         html: `
             <style>
                 .swal2-popup.spice-modal-override { padding: 0 !important; background: transparent !important; border: none !important; }
                 .swal2-html-container.spice-modal-override { padding: 0 !important; margin: 0 !important; overflow: hidden !important; }
             </style>
-            <div id="sim-true-window" style="width: 800px; height: 500px; min-width: 400px; min-height: 300px; resize: both; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-main); pointer-events: auto;">
-                
+            <!-- UPDATED: Added padding-bottom: 14px; at the end -->
+			<div id="sim-true-window" style="position: relative; width: 800px; height: 500px; min-width: 400px; min-height: 300px; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-panel); border-radius: 6px; box-shadow: 0 4px 25px rgba(0,0,0,0.5); border: 1px solid var(--border-main); pointer-events: auto; padding-bottom: 14px;">
                 <div id="swal-drag-handle-sim" style="flex: 0 0 42px; cursor: move; background: var(--bg-toolbar); color: var(--text-inverse); padding: 0 10px; display: flex; justify-content: space-between; align-items: center; user-select: none; border-bottom: 1px solid var(--border-main);">
                     
                     <span style="font-size: 14px; font-weight: bold; display:flex; align-items:center; gap:6px; flex-shrink: 0; white-space: nowrap;">
@@ -769,7 +798,10 @@ function plotSimulationResults(parsedData, title) {
                     </span>
                     
                     <div style="display:flex; gap: 8px; align-items: center; flex-grow: 1; justify-content: flex-end; overflow: visible;">
-                        
+                        <button id="btn-toggle-stacked" style="padding: 3px 8px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.2); border: none; border-radius: 4px; color: var(--text-inverse); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+                            <i data-lucide="layers" style="width: 12px; height: 12px;"></i> <span id="lbl-toggle-stacked">Split View</span>
+                        </button>
+
                         <!-- EXPORT DROPDOWN -->
                         <div style="position: relative; margin: 0; white-space: nowrap;">
                             <button id="btn-export-sim-toggle" style="padding: 3px 8px; font-size: 11px; font-weight: bold; background: rgba(0,0,0,0.2); border: none; border-radius: 4px; color: var(--text-inverse); display: flex; align-items: center; gap: 4px; cursor: pointer;">
@@ -782,14 +814,22 @@ function plotSimulationResults(parsedData, title) {
                                 <button id="btn-export-png" ${btnHover} style="display:block; width:100%; text-align:left; padding:8px 12px; background:transparent; border:none; color:var(--text-main); cursor:pointer; font-size:12px; transition: background 0.1s;">Export PNG</button>
                             </div>
                         </div>
-
                     </div>
                     <button onclick="Swal.close()" style="flex-shrink: 0; background: none; border: none; color: var(--text-inverse); cursor: pointer; font-weight: bold; font-size: 18px; line-height: 1; padding: 0 0 0 10px; margin-left: 10px;" title="Close Window">✖</button>
                 </div>
                 
-                <div style="flex: 1; padding: 15px; box-sizing: border-box; overflow: hidden; background: var(--bg-panel);">
-                    <div style="position: relative; width: 100%; height: 100%;"><canvas id="simChart"></canvas></div>
-                </div>
+                <!-- UPDATED: Added flexbox to force vertical stretching -->
+				<div id="sim-chart-container" style="flex: 1; padding: 15px; box-sizing: border-box; overflow-y: auto; overflow-x: hidden; background: var(--bg-panel); display: flex; flex-direction: column;">
+					<!-- Canvases injected here via JS -->
+				</div>
+
+                <!-- UPDATED: Changed background to var(--bg-panel) -->
+				<div id="swal-resize-handle" style="position: absolute; right: 0px; bottom: 0px; width: 18px; height: 18px; cursor: se-resize; z-index: 1000; display: flex; align-items: flex-end; justify-content: flex-end; padding: 3px; background: var(--bg-panel);">
+					<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--text-muted)" stroke-width="1.5">
+						<line x1="6" y1="10" x2="10" y2="6"/>
+						<line x1="2" y1="10" x2="10" y2="2"/>
+					</svg>
+				</div>
             </div>
         `,
         didOpen: () => {
@@ -909,19 +949,107 @@ function plotSimulationResults(parsedData, title) {
                 document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp);
             });
 
-            // Render Chart
-            let ctx = document.getElementById('simChart').getContext('2d');
-            window.simChartInstance = new Chart(ctx, {
-                type: 'line', data: { datasets: datasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false },
-                    scales: {
-                        x: { type: isAC ? 'logarithmic' : 'linear', title: { display: true, text: `${xVar.name} (${xScale.prefix}${xUnit})` }, ticks: { callback: v => isAC ? v : parseFloat((v * xScale.mult).toFixed(3)) } },
-                        y: { type: 'linear', position: 'left', title: { display: true, text: `Magnitude (${yScale.prefix}${yUnit})` }, ticks: { callback: v => parseFloat((v * yScale.mult).toFixed(3)) } },
-                        y1: { type: 'linear', display: isComplex, position: 'right', title: { display: true, text: 'Phase (°)' }, grid: { drawOnChartArea: false } }
+            // --- THE NEW CHART RENDERING ENGINE ---
+            let isStackedMode = false;
+            window.simChartInstances = [];
+            const chartContainer = document.getElementById('sim-chart-container');
+
+            const renderCharts = () => {
+                // 1. Clean up old charts
+                window.simChartInstances.forEach(chart => chart.destroy());
+                window.simChartInstances = [];
+                chartContainer.innerHTML = '';
+
+                // Common axes options
+                const scalesObj = {
+                    x: { type: isAC ? 'logarithmic' : 'linear', title: { display: true, text: `${xVar.name} (${xScale.prefix}${xUnit})` }, ticks: { callback: v => isAC ? v : parseFloat((v * xScale.mult).toFixed(3)) } },
+                    y: { type: 'linear', position: 'left', title: { display: true, text: `Magnitude (${yScale.prefix}${yUnit})` }, ticks: { callback: v => parseFloat((v * yScale.mult).toFixed(3)) } },
+                    y1: { type: 'linear', display: isComplex, position: 'right', title: { display: true, text: 'Phase (°)' }, grid: { drawOnChartArea: false } }
+                };
+
+                if (!isStackedMode) {
+                    // MODE A: Single Combined Chart
+                    let canvasWrap = document.createElement('div');
+                    // UPDATED: Changed height: 100% to flex: 1
+                    canvasWrap.style.cssText = "position: relative; width: 100%; flex: 1; min-height: 300px;";
+                    let canvas = document.createElement('canvas');
+                    canvasWrap.appendChild(canvas);
+                    chartContainer.appendChild(canvasWrap);
+
+                    let chart = new Chart(canvas.getContext('2d'), {
+                        type: 'line', data: { datasets: datasets },
+                        options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, scales: scalesObj }
+                    });
+                    window.simChartInstances.push(chart);
+                } else {
+                    // MODE B: Stacked Subplots
+                    let setsPerPlot = isComplex ? 2 : 1; 
+                    let numPlots = datasets.length / setsPerPlot;
+
+                    for (let i = 0; i < numPlots; i++) {
+                        let canvasWrap = document.createElement('div');
+                        // UPDATED: Added flex: 1 and changed height to min-height
+                        canvasWrap.style.cssText = "position: relative; width: 100%; flex: 1; min-height: 200px; margin-bottom: 15px; border-bottom: 1px solid var(--border-main); padding-bottom: 10px;";
+                        let canvas = document.createElement('canvas');
+                        canvasWrap.appendChild(canvas);
+                        chartContainer.appendChild(canvasWrap);
+
+                        // Slice out the dataset(s) for this specific subplot
+                        let ds = isComplex ? [datasets[i * 2], datasets[i * 2 + 1]] : [datasets[i]];
+
+                        let chart = new Chart(canvas.getContext('2d'), {
+                            type: 'line', data: { datasets: ds },
+                            options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: { mode: 'index', intersect: false }, scales: scalesObj }
+                        });
+                        window.simChartInstances.push(chart);
                     }
                 }
+            };
+			
+			// --- NEW: CUSTOM RESIZE LOGIC ---
+            const resizer = document.getElementById('swal-resize-handle');
+            const win = document.getElementById('sim-true-window');
+            let isResizing = false, startW, startH, startMouseX, startMouseY;
+
+            const onResizeMove = (e) => { 
+                if (!isResizing) return; 
+                // Calculate new dimensions, respecting the min-width/height
+                win.style.width = Math.max(400, startW + (e.clientX - startMouseX)) + 'px'; 
+                win.style.height = Math.max(300, startH + (e.clientY - startMouseY)) + 'px'; 
+            };
+            
+            const onResizeUp = () => { 
+                isResizing = false; 
+                document.removeEventListener('mousemove', onResizeMove); 
+                document.removeEventListener('mouseup', onResizeUp); 
+                // Force Chart.js to recalculate immediately to avoid jitter
+                if (window.simChartInstances) {
+                    window.simChartInstances.forEach(c => c.resize());
+                }
+            };
+
+            resizer.addEventListener('mousedown', (e) => {
+                e.preventDefault(); 
+                e.stopPropagation(); 
+                isResizing = true; 
+                startMouseX = e.clientX; 
+                startMouseY = e.clientY; 
+                startW = win.offsetWidth; 
+                startH = win.offsetHeight; 
+                document.addEventListener('mousemove', onResizeMove); 
+                document.addEventListener('mouseup', onResizeUp);
             });
+            // --------------------------------
+			
+			// Toggle Button Listener
+            document.getElementById('btn-toggle-stacked').onclick = (e) => {
+                isStackedMode = !isStackedMode;
+                document.getElementById('lbl-toggle-stacked').innerText = isStackedMode ? 'Combine View' : 'Split View';
+                renderCharts();
+            };
+
+            // Initial Render
+            renderCharts();
         }
     });
 }

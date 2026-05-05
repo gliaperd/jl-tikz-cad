@@ -391,6 +391,21 @@ const JL_DATABASE = {
             "4": "n",
             "5": "0"
         },
+        "spiceTemplate": "R_{NAME} {pin1} {pin2} {RESISTANCE}",
+        "propDefs": [
+            {
+                "type": "SPICE",
+                "id": "RON",
+                "label": "Closed Resistance (\u03a9)",
+                "defVal": "1m"
+            },
+            {
+                "type": "SPICE",
+                "id": "ROFF",
+                "label": "Open Resistance (\u03a9)",
+                "defVal": "100Meg"
+            }
+        ],
         "argDefs": [
             {
                 "idx": 3,
@@ -2053,6 +2068,7 @@ const JL_DATABASE = {
         "previewArgs": {
             "3": "normal"
         },
+        "spiceTemplate": "X_{NAME} {pin1} {pin2} {pin3} {pin4} PASSGATE_MACRO",
         "argDefs": [
             {
                 "idx": 3,
@@ -2406,6 +2422,21 @@ const JL_DATABASE = {
                 "defVal": "0"
             }
         ],
+        "spiceTemplate": "D_{NAME} {pin1} {pin2} {MODEL}",
+        "propDefs": [
+            {
+                "type": "SPICE",
+                "id": "MODEL",
+                "label": "SPICE Model",
+                "defVal": "WIZ_ZENER"
+            },
+            {
+                "type": "SPICE",
+                "id": "WIZ_VZ",
+                "label": "Zener Voltage (Vz)",
+                "defVal": "5.1"
+            }
+        ],
         "iconBase": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0",
         "filled": false,
         "iconLayers": [
@@ -2546,6 +2577,102 @@ const JL_DATABASE = {
             }
         ]
     },
+    "leddiodespice": {
+        "name": "leddiodespice",
+        "displayName": "LED (SPICE)",
+        "argsCount": 6,
+        "enabled": "true",
+        "category": "Diodes",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "spiceTemplate": "X_{NAME} {pin1} {pin2} {pin3} LED_MACRO",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical",
+                "defVal": "",
+                "options": "horizontal, vertical,"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.9",
+                "path": "M 36.50 -15 L 36.50 15"
+            },
+            {
+                "condition": "1~=",
+                "style": "rounded=true",
+                "path": "M 25 -18.50 L 30 -18.50 L 30 -13.50 M 25 -12.5 L 29 -17.5"
+            }
+        ],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "horizontal/vertical",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 0.0,
+                "y": -0.0,
+                "label": "anode",
+                "dir": "R"
+            },
+            {
+                "id": "pin2",
+                "x": 50.0,
+                "y": -0.0,
+                "label": "cathode",
+                "dir": "R"
+            },
+            {
+                "id": "pin3",
+                "x": 30.0,
+                "y": -20.0,
+                "label": "optical out",
+                "dir": "T"
+            }
+        ]
+    },
     "photodiode": {
         "name": "photodiode",
         "displayName": "Photodiode",
@@ -2567,7 +2694,7 @@ const JL_DATABASE = {
                 "idx": 3,
                 "type": "select",
                 "label": "horizontal/vertical",
-                "defVal": "",
+                "defVal": "horizontal",
                 "options": "horizontal, vertical,"
             },
             {
@@ -2630,6 +2757,183 @@ const JL_DATABASE = {
                 "x": 50.0,
                 "y": -0.0,
                 "label": "cathode",
+                "dir": "R"
+            }
+        ]
+    },
+    "photodiodespice": {
+        "name": "photodiodespice",
+        "displayName": "Photodiode (SPICE)",
+        "argsCount": 6,
+        "enabled": "true",
+        "category": "Diodes",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "spiceTemplate": "X_{NAME} {pin1} {pin2} {pin3} PD_MACRO",
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "select",
+                "label": "horizontal/vertical",
+                "defVal": "horizontal",
+                "options": "horizontal, vertical,"
+            },
+            {
+                "idx": 4,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "iconBase": "M 0 0 L 15 0 M 15 -15 L 15 15 L 35 0 Z M 35 0 L 50 0",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke-width=2.9",
+                "path": "M 36.50 -15 L 36.50 15"
+            },
+            {
+                "condition": "1~=",
+                "style": "rounded=true",
+                "path": "M 29 -12 L 24 -12 L 24 -17 M 25 -12.5 L 29 -17.5"
+            }
+        ],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "horizontal/vertical",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 0.0,
+                "y": -0.0,
+                "label": "anode",
+                "dir": "R"
+            },
+            {
+                "id": "pin2",
+                "x": 50.0,
+                "y": -0.0,
+                "label": "cathode",
+                "dir": "R"
+            },
+            {
+                "id": "pin3",
+                "x": 30.0,
+                "y": -20.0,
+                "label": "optical in",
+                "dir": "T"
+            }
+        ]
+    },
+    "waveguide": {
+        "name": "waveguide",
+        "displayName": "Optical Waveguide",
+        "argsCount": 6,
+        "enabled": "true",
+        "category": "Optoelectronics",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "B"
+        },
+        "flippable": false,
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotation",
+                "label": "Rotation",
+                "defVal": "0"
+            }
+        ],
+        "spiceTemplate": "X_{NAME} {pin1} {pin2} WAVEGUIDE_MACRO loss={LOSS} delay={DELAY}",
+        "propDefs": [
+            {
+                "type": "SPICE",
+                "id": "LOSS",
+                "label": "Attenuation (Ohms)",
+                "defVal": "10"
+            },
+            {
+                "type": "SPICE",
+                "id": "DELAY",
+                "label": "Optical Delay (F)",
+                "defVal": "1p"
+            }
+        ],
+        "iconBase": "M 0 0 C 10 10 15 -10 25 0 M 25 0 C 35 10 40 -10 50 0 M 50 0 C 60 10 65 -10 80 0",
+        "iconBaseStyle": "stroke=#e67e22",
+        "filled": false,
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "rotation",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": 0.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            },
+            {
+                "id": "pin2",
+                "x": 80.0,
+                "y": -0.0,
+                "label": "",
                 "dir": "R"
             }
         ]
@@ -6872,7 +7176,7 @@ const JL_DATABASE = {
     },
     "testprobe": {
         "name": "testprobe",
-        "displayName": "Test Probe",
+        "displayName": "Voltage Probe",
         "argsCount": 5,
         "enabled": "true",
         "category": "Simulation/Solvers",
@@ -6939,6 +7243,88 @@ const JL_DATABASE = {
             {
                 "id": "pin1",
                 "x": 0.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "R"
+            }
+        ]
+    },
+    "currentprobe": {
+        "name": "currentprobe",
+        "displayName": "Current Probe",
+        "argsCount": 5,
+        "enabled": "true",
+        "category": "Simulation/Solvers",
+        "scales": [
+            1,
+            2,
+            4
+        ],
+        "labelAnchor": {
+            "auto": true,
+            "dir": "T"
+        },
+        "flippable": false,
+        "spiceTemplate": "V_CPROBE_{NAME} {pin1} {pin2} DC 0",
+        "previewArgs": {
+            "3": "0,none"
+        },
+        "argDefs": [
+            {
+                "idx": 3,
+                "type": "rotflip",
+                "label": "Rotation & Flip",
+                "defVal": "0,none"
+            }
+        ],
+        "iconBase": "M -16 0 L -8 0 M 8 0 L 16 0",
+        "iconBaseStyle": "stroke=#0924f1",
+        "filled": false,
+        "iconLayers": [
+            {
+                "condition": "1~=",
+                "style": "stroke=#0421fb, fill=solid, rounded=true",
+                "path": "M -8 0 A 8 8 0 1 0 8 0 A 8 8 0 1 0 -8 0 Z"
+            },
+            {
+                "condition": "1~=",
+                "style": "stroke=#ffffff, fill=solid, rounded=true",
+                "path": "M -3 -4 L 4 0 L -3 4 Z"
+            }
+        ],
+        "argNames": [
+            {
+                "name": "position",
+                "optional": false
+            },
+            {
+                "name": "name",
+                "optional": false
+            },
+            {
+                "name": "rotation,flip(h, v, hv, or none)",
+                "optional": false
+            },
+            {
+                "name": "grid",
+                "optional": false
+            },
+            {
+                "name": "show (0,0)",
+                "optional": false
+            }
+        ],
+        "pins": [
+            {
+                "id": "pin1",
+                "x": -20.0,
+                "y": -0.0,
+                "label": "",
+                "dir": "L"
+            },
+            {
+                "id": "pin2",
+                "x": 20.0,
                 "y": -0.0,
                 "label": "",
                 "dir": "R"

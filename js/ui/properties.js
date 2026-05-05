@@ -23,11 +23,21 @@ window.SPICE_MODEL_LIBRARY = {
         "LM741_MACRO": ".subckt LM741_MACRO in_p in_n out\n* Simplified 3-pin LM741 Macro\nRin in_p in_n 2Meg\nE1 out 0 in_p in_n 200k\nRout out 0 75\n.ends",
         
         // --- Mixed-Signal Digital Macros ---
-        "INV_MACRO": ".subckt INV_MACRO in out\nB1 int_node 0 V=(V(in)<2.5)*5\nR1 int_node out 1k\nC1 out 0 10p\n.ends",
+        "INV_MACRO": ".subckt INV_MACRO in out\nB1 int_node 0 V=(V(in)<{V_TH})*{V_HIGH}\nR1 int_node out 1k\nC1 out 0 10p\n.ends",
         
-        "AND2_MACRO": ".subckt AND2_MACRO in1 in2 out i1=0 i2=0\n* Evaluates standard and inverted inputs via absolute value math\nB1 int_node 0 V=(abs({i1} - (V(in1)>2.5)) * abs({i2} - (V(in2)>2.5))) * 5\nR1 int_node out 1k\nC1 out 0 12p\n.ends",
+        "AND2_MACRO": ".subckt AND2_MACRO in1 in2 out i1=0 i2=0\nB1 int_node 0 V=(abs({i1} - (V(in1)>{V_TH})) * abs({i2} - (V(in2)>{V_TH}))) * {V_HIGH}\nR1 int_node out 1k\nC1 out 0 12p\n.ends",
         
-        "OR2_MACRO": ".subckt OR2_MACRO in1 in2 out i1=0 i2=0\nB1 int_node 0 V=((abs({i1} - (V(in1)>2.5)) + abs({i2} - (V(in2)>2.5))) > 0) * 5\nR1 int_node out 1k\nC1 out 0 12p\n.ends"
+        "OR2_MACRO": ".subckt OR2_MACRO in1 in2 out i1=0 i2=0\nB1 int_node 0 V=((abs({i1} - (V(in1)>{V_TH})) + abs({i2} - (V(in2)>{V_TH}))) > 0) * {V_HIGH}\nR1 int_node out 1k\nC1 out 0 12p\n.ends",
+
+        // --- NEW: Transmission Gate Macro ---
+        "PASSGATE_MACRO": ".subckt PASSGATE_MACRO in out ctrln ctrl\nS_TG in out ctrl ctrln TG_SWITCH\n.model TG_SWITCH SW(vt=0 vh=0.1 ron=10 roff=100Meg)\n.ends",
+		
+		// --- Optoelectronics Macros ---
+        "LED_MACRO": ".subckt LED_MACRO a k opt_out\n* Vmeas measures forward current. B1 converts current > 0 into Optical Voltage\nD1 a_int k LED_MODEL\nVmeas a a_int 0\nB1 opt_out 0 V=MAX(I(Vmeas), 0) * 1000\nR_dummy opt_out 0 1G\n.model LED_MODEL D(IS=1e-19 N=1.5 VJ=1.8 RS=10)\n.ends",
+
+        "PD_MACRO": ".subckt PD_MACRO a k opt_in\nD1 a k PD_MODEL\n* G1 converts incoming Optical Voltage into reverse photocurrent\nG1 k a opt_in 0 1m\nR_dummy opt_in 0 1G\n.model PD_MODEL D(IS=1e-14 N=1 VJ=0.7 RS=10)\n.ends",
+
+        "WAVEGUIDE_MACRO": ".subckt WAVEGUIDE_MACRO in out loss=10 delay=1p\n* Models optical attenuation (R) and transit delay (C)\nR1 in out {loss}\nC1 out 0 {delay}\n.ends"
     }
 };
 
