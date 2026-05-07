@@ -2280,6 +2280,14 @@
             if (styles.rounded) parts.push(`rounded=true`); // ΝΕΟ
             return parts.length > 0 ? `[${parts.join(', ')}] ` : "";
         }
+		
+		// --- HELPER: Cleans corrupted legacy paths ---
+        // If a segment contains NaN, it is mathematically dead. This surgically 
+        // extracts and deletes only the corrupted M... command, leaving the rest intact.
+        function sanitizeImportedPath(pathStr) {
+            if (!pathStr) return "";
+            return pathStr.split(/(?=[Mm]\s)/).filter(seg => !/NaN|undefined/i.test(seg)).join(' ').trim();
+        }
 
         // --- IMPORTER ---
         function importSty() {
@@ -2470,7 +2478,8 @@
             if(baseMatch) {
                 let styleStr = baseMatch[1] ? baseMatch[1].trim() : "";
                 let fullPathPart = baseMatch[2];
-                let pathStr = fullPathPart.split('//')[0].trim();
+                // Apply the sanitizer here!
+                let pathStr = sanitizeImportedPath(fullPathPart.split('//')[0].trim());
                 let desc = fullPathPart.includes('//') ? fullPathPart.split('//')[1].trim() : "";
                 
                 let sw = "1.8", dashed = false, solid = false, stroke = "", rounded = false;
@@ -2489,7 +2498,8 @@
             while ((match = addRegex.exec(code)) !== null) {
                 let cond = match[1].trim(), styleStr = match[2] ? match[2].trim() : "";
                 let fullPathPart = match[3];
-                let pathStr = fullPathPart.split('//')[0].trim();
+                // Apply the sanitizer here!
+                let pathStr = sanitizeImportedPath(fullPathPart.split('//')[0].trim());
                 let desc = fullPathPart.includes('//') ? fullPathPart.split('//')[1].trim() : "";
                 let ruleObj = parseRuleText(cond);
                 
@@ -2588,162 +2598,144 @@
         }
 		
 
-        // --- UPGRADED TRANSLATION ALGORITHM (Supports Curves & Arcs & Text) ---
-		function translatePathString(pathStr, dx, dy) {
-			let textMatch = pathStr.match(/\/\*TEXT:.*?\*\//);
-			let textBlock = textMatch ? " " + textMatch[0] : "";
-			let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//, "");
+        // --- UPGRADED TRANSLATION ALGORITHM ---
+        function translatePathString(pathStr, dx, dy) {
+            let textBlocks = pathStr.match(/\/\*TEXT:.*?\*\//g) || [];
+            let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//g, "");
 
-			let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
-				if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
-				
-				let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
-				if (!nums) return match;
-				nums = nums.map(Number);
+            let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+                if (!nums) return match;
+                nums = nums.map(Number);
+                let isAbs = (cmd === cmd.toUpperCase());
 
-				let isAbs = (cmd === cmd.toUpperCase());
+                if (isAbs) {
+                    if (cmd === 'M' || cmd === 'L') {
+                        for (let i = 0; i < nums.length; i += 2) { nums[i] += dx; nums[i+1] += dy; }
+                    } else if (cmd === 'C') {
+                        for (let i = 0; i < nums.length; i += 6) {
+                            nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy; nums[i+4] += dx; nums[i+5] += dy;
+                        }
+                    } else if (cmd === 'Q') {
+                        for (let i = 0; i < nums.length; i += 4) {
+                            nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy;
+                        }
+                    } else if (cmd === 'A') {
+                        for (let i = 0; i < nums.length; i += 7) {
+                            nums[i+5] += dx; nums[i+6] += dy; 
+                        }
+                    }
+                }
+                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+            }).trim();
+            
+            return newPath + (textBlocks.length > 0 ? " " + textBlocks.join(" ") : "");
+        }
 
-				if (isAbs) {
-					if (cmd === 'M' || cmd === 'L') {
-						for (let i = 0; i < nums.length; i += 2) { nums[i] += dx; nums[i+1] += dy; }
-					} else if (cmd === 'C') {
-						for (let i = 0; i < nums.length; i += 6) {
-							nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy; nums[i+4] += dx; nums[i+5] += dy;
-						}
-					} else if (cmd === 'Q') {
-						for (let i = 0; i < nums.length; i += 4) {
-							nums[i] += dx; nums[i+1] += dy; nums[i+2] += dx; nums[i+3] += dy;
-						}
-					} else if (cmd === 'A') {
-						for (let i = 0; i < nums.length; i += 7) {
-							nums[i+5] += dx; nums[i+6] += dy; 
-						}
-					}
-				}
-				return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
-			}).trim();
-			
-			return newPath + textBlock;
-		}
+        // --- UPGRADED ROTATION ALGORITHM ---
+        function rotatePathString(pathStr, angleDeg, cx, cy) {
+            let textBlocks = pathStr.match(/\/\*TEXT:.*?\*\//g) || [];
+            let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//g, "");
 
-        // --- UPGRADED ROTATION ALGORITHM (Supports Curves & Arcs & Text) ---
-		function rotatePathString(pathStr, angleDeg, cx, cy) {
-			let textMatch = pathStr.match(/\/\*TEXT:.*?\*\//);
-			let textBlock = textMatch ? " " + textMatch[0] : "";
-			let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//, "");
+            let rad = angleDeg * Math.PI / 180;
+            let cos = Math.cos(rad), sin = Math.sin(rad);
 
-			let rad = angleDeg * Math.PI / 180;
-			let cos = Math.cos(rad), sin = Math.sin(rad);
+            function rot(x, y) { return [cx + (x - cx) * cos - (y - cy) * sin, cy + (x - cx) * sin + (y - cy) * cos]; }
+            function rotRel(x, y) { return [x * cos - y * sin, x * sin + y * cos]; }
 
-			function rot(x, y) {
-				let nx = (x - cx) * cos - (y - cy) * sin;
-				let ny = (x - cx) * sin + (y - cy) * cos;
-				return [nx + cx, ny + cy];
-			}
-			
-			function rotRel(x, y) { 
-				return [x * cos - y * sin, x * sin + y * cos];
-			}
+            let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+                if (!nums) return match;
+                nums = nums.map(Number);
+                let isAbs = (cmd === cmd.toUpperCase());
 
-			let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
-				if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
-				
-				let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
-				if (!nums) return match;
-				nums = nums.map(Number);
+                if (cmd === 'M' || cmd === 'L') {
+                    for (let i = 0; i < nums.length; i += 2) { 
+                        let [nx, ny] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+                        nums[i] = nx; nums[i+1] = ny;
+                    }
+                } else if (cmd === 'C') {
+                    for (let i = 0; i < nums.length; i += 6) {
+                        let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+                        let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
+                        let [nx3, ny3] = isAbs ? rot(nums[i+4], nums[i+5]) : rotRel(nums[i+4], nums[i+5]);
+                        nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2; nums[i+4]=nx3; nums[i+5]=ny3;
+                    }
+                } else if (cmd === 'Q') {
+                    for (let i = 0; i < nums.length; i += 4) {
+                        let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
+                        let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
+                        nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2;
+                    }
+                } else if (cmd === 'A') {
+                    for (let i = 0; i < nums.length; i += 7) {
+                        let [nx, ny] = isAbs ? rot(nums[i+5], nums[i+6]) : rotRel(nums[i+5], nums[i+6]);
+                        nums[i+5] = nx; nums[i+6] = ny;
+                        nums[i+2] = (nums[i+2] + angleDeg) % 360; 
+                    }
+                }
+                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+            }).replace(/\s+/g, ' ').trim();
+            
+            return newPath + (textBlocks.length > 0 ? " " + textBlocks.join(" ") : "");
+        }
+        
+        // --- UPGRADED SCALING ALGORITHM ---
+        function scalePathString(pathStr, scaleFactor, cx, cy) {
+            let textBlocks = pathStr.match(/\/\*TEXT:.*?\*\//g) || [];
+            let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//g, "");
 
-				let isAbs = (cmd === cmd.toUpperCase());
+            function scaleAbs(val, center) { return center + (val - center) * scaleFactor; }
+            function scaleRel(val) { return val * scaleFactor; }
 
-				if (cmd === 'M' || cmd === 'L') {
-					for (let i = 0; i < nums.length; i += 2) { 
-						let [nx, ny] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
-						nums[i] = nx; nums[i+1] = ny;
-					}
-				} else if (cmd === 'C') {
-					for (let i = 0; i < nums.length; i += 6) {
-						let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
-						let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
-						let [nx3, ny3] = isAbs ? rot(nums[i+4], nums[i+5]) : rotRel(nums[i+4], nums[i+5]);
-						nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2; nums[i+4]=nx3; nums[i+5]=ny3;
-					}
-				} else if (cmd === 'Q') {
-					for (let i = 0; i < nums.length; i += 4) {
-						let [nx1, ny1] = isAbs ? rot(nums[i], nums[i+1]) : rotRel(nums[i], nums[i+1]);
-						let [nx2, ny2] = isAbs ? rot(nums[i+2], nums[i+3]) : rotRel(nums[i+2], nums[i+3]);
-						nums[i]=nx1; nums[i+1]=ny1; nums[i+2]=nx2; nums[i+3]=ny2;
-					}
-				} else if (cmd === 'A') {
-					for (let i = 0; i < nums.length; i += 7) {
-						let [nx, ny] = isAbs ? rot(nums[i+5], nums[i+6]) : rotRel(nums[i+5], nums[i+6]);
-						nums[i+5] = nx; nums[i+6] = ny;
-						nums[i+2] = (nums[i+2] + angleDeg) % 360; 
-					}
-				}
-				return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
-			}).replace(/\s+/g, ' ').trim();
-			
-			return newPath + textBlock;
-		}
-		
-		
-		// --- UPGRADED SCALING ALGORITHM (Supports Curves & Arcs & Text) ---
-		function scalePathString(pathStr, scaleFactor, cx, cy) {
-			let textMatch = pathStr.match(/\/\*TEXT:.*?\*\//);
-			let textBlock = textMatch ? " " + textMatch[0] : "";
-			let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//, "");
+            let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
+                if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
+                let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
+                if (!nums) return match;
+                nums = nums.map(Number);
+                let isAbs = (cmd === cmd.toUpperCase());
 
-			function scaleAbs(val, center) { return center + (val - center) * scaleFactor; }
-			function scaleRel(val) { return val * scaleFactor; }
-
-			let newPath = cleanPath.replace(/([MmLlCcQqAaZz])([^MmLlCcQqAaZz]*)/g, (match, cmd, argsStr) => {
-				if (cmd.toUpperCase() === 'Z') return cmd + argsStr;
-				
-				let nums = argsStr.match(/[-+]?(?:\d*\.\d+|\d+)(?:[eE][-+]?\d+)?/g);
-				if (!nums) return match;
-				nums = nums.map(Number);
-
-				let isAbs = (cmd === cmd.toUpperCase());
-
-				if (cmd === 'M' || cmd === 'L') {
-					for (let i = 0; i < nums.length; i += 2) { 
-						nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
-						nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
-					}
-				} else if (cmd === 'C') {
-					for (let i = 0; i < nums.length; i += 6) {
-						nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
-						nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
-						nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
-						nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
-						nums[i+4] = isAbs ? scaleAbs(nums[i+4], cx) : scaleRel(nums[i+4]);
-						nums[i+5] = isAbs ? scaleAbs(nums[i+5], cy) : scaleRel(nums[i+5]);
-					}
-				} else if (cmd === 'Q') {
-					for (let i = 0; i < nums.length; i += 4) {
-						nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
-						nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
-						nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
-						nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
-					}
-				} else if (cmd === 'A') {
-					for (let i = 0; i < nums.length; i += 7) {
-						nums[i] = Math.abs(nums[i] * scaleFactor);     
-						nums[i+1] = Math.abs(nums[i+1] * scaleFactor); 
-						nums[i+5] = isAbs ? scaleAbs(nums[i+5], cx) : scaleRel(nums[i+5]);
-						nums[i+6] = isAbs ? scaleAbs(nums[i+6], cy) : scaleRel(nums[i+6]);
-					}
-				}
-				return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
-			}).replace(/\s+/g, ' ').trim();
-			
-			return newPath + textBlock;
-		}
-		
-		// --- UPGRADED FLIPPING ALGORITHM (Supports Curves, Arcs & Text) ---
+                if (cmd === 'M' || cmd === 'L') {
+                    for (let i = 0; i < nums.length; i += 2) { 
+                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+                    }
+                } else if (cmd === 'C') {
+                    for (let i = 0; i < nums.length; i += 6) {
+                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+                        nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
+                        nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
+                        nums[i+4] = isAbs ? scaleAbs(nums[i+4], cx) : scaleRel(nums[i+4]);
+                        nums[i+5] = isAbs ? scaleAbs(nums[i+5], cy) : scaleRel(nums[i+5]);
+                    }
+                } else if (cmd === 'Q') {
+                    for (let i = 0; i < nums.length; i += 4) {
+                        nums[i] = isAbs ? scaleAbs(nums[i], cx) : scaleRel(nums[i]);
+                        nums[i+1] = isAbs ? scaleAbs(nums[i+1], cy) : scaleRel(nums[i+1]);
+                        nums[i+2] = isAbs ? scaleAbs(nums[i+2], cx) : scaleRel(nums[i+2]);
+                        nums[i+3] = isAbs ? scaleAbs(nums[i+3], cy) : scaleRel(nums[i+3]);
+                    }
+                } else if (cmd === 'A') {
+                    for (let i = 0; i < nums.length; i += 7) {
+                        nums[i] = Math.abs(nums[i] * scaleFactor);     
+                        nums[i+1] = Math.abs(nums[i+1] * scaleFactor); 
+                        nums[i+5] = isAbs ? scaleAbs(nums[i+5], cx) : scaleRel(nums[i+5]);
+                        nums[i+6] = isAbs ? scaleAbs(nums[i+6], cy) : scaleRel(nums[i+6]);
+                    }
+                }
+                return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
+            }).replace(/\s+/g, ' ').trim();
+            
+            return newPath + (textBlocks.length > 0 ? " " + textBlocks.join(" ") : "");
+        }
+        
+        // --- UPGRADED FLIPPING ALGORITHM ---
         function flipPathString(pathStr, flipH, flipV, cx, cy) {
-            let textMatch = pathStr.match(/\/\*TEXT:.*?\*\//);
-            let textBlock = textMatch ? " " + textMatch[0] : "";
-            let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//, "");
+            let textBlocks = pathStr.match(/\/\*TEXT:.*?\*\//g) || [];
+            let cleanPath = pathStr.replace(/\/\*TEXT:.*?\*\//g, "");
 
             let sx = flipH ? -1 : 1;
             let sy = flipV ? -1 : 1;
@@ -2785,10 +2777,9 @@
                     }
                 } else if (cmd === 'A') {
                     for (let i = 0; i < nums.length; i += 7) {
-                        // When mirroring an SVG arc across exactly one axis, its sweep direction inverts
                         if (flipH !== flipV) {
-                            nums[i+2] = -nums[i+2]; // invert angle
-                            nums[i+4] = nums[i+4] === 1 ? 0 : 1; // invert sweep flag
+                            nums[i+2] = -nums[i+2]; 
+                            nums[i+4] = nums[i+4] === 1 ? 0 : 1; 
                         }
                         nums[i+5] = isAbs ? flipAbsX(nums[i+5]) : flipRelX(nums[i+5]);
                         nums[i+6] = isAbs ? flipAbsY(nums[i+6]) : flipRelY(nums[i+6]);
@@ -2797,7 +2788,7 @@
                 return cmd + ' ' + nums.map(n => n.toFixed(2).replace(/\.00$/, '')).join(' ') + ' ';
             }).replace(/\s+/g, ' ').trim();
 
-            return newPath + textBlock;
+            return newPath + (textBlocks.length > 0 ? " " + textBlocks.join(" ") : "");
         }
 		
 		

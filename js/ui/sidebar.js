@@ -2,7 +2,7 @@
 import { AppState } from '../state.js';
 import { extractStaticTexts, getPaletteIconData } from '../parsers/helpers.js';
 // We will import addComponent from canvas.js in a moment!
-import { addComponent } from './canvas.js'; 
+import { addComponent, createDragGhostSVG } from './canvas.js'; 
 
 export function initializeSidebar() {
     populateSidebar();
@@ -157,8 +157,24 @@ export function populateSidebar() {
             d.addEventListener('dragstart', (e) => {
                 e.dataTransfer.setData('application/jl-component', k);
                 e.dataTransfer.effectAllowed = 'copy';
-                const iconNode = d.querySelector('.icon-wrapper');
-                if (iconNode) e.dataTransfer.setDragImage(iconNode, 21, 21);
+                
+                // 1. Generate the exact replica SVG for the drag ghost
+                const ghostData = createDragGhostSVG(k);
+                
+                if (ghostData && ghostData.svg) {
+                    // 2. The SVG MUST be appended to the DOM for setDragImage to take the screenshot
+                    document.body.appendChild(ghostData.svg);
+                    
+                    // 3. Set the image, offsetting it by half the width/height so the mouse centers perfectly on it
+                    e.dataTransfer.setDragImage(ghostData.svg, ghostData.width / 2, ghostData.height / 2);
+                    
+                    // 4. Immediately queue the hidden SVG for garbage collection
+                    setTimeout(() => ghostData.svg.remove(), 100);
+                } else {
+                    // Fallback to the original small icon if something goes wrong
+                    const iconNode = d.querySelector('.icon-wrapper');
+                    if (iconNode) e.dataTransfer.setDragImage(iconNode, 21, 21);
+                }
             });
             
             d.onclick = () => addComponent(k);

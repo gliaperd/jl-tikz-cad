@@ -457,25 +457,44 @@ export async function runSimulation(mode, customNetlist = null) {
 
 
     // ==========================================================
-    // NEW: UNIVERSAL PROBE DETECTION
+    // NEW: BULLETPROOF PROBE DETECTION
     // ==========================================================
     window.activeVProbes = {};
     window.activeIProbes = {};
 
-    // 1. Find Voltage Probes (Matches: I_PROBE_NAME_HASH NODE 0 DC 0)
-    let vRegex = /I_PROBE_(.+)_([a-zA-Z0-9]{4})\s+([^\s]+)\s+0\s+DC/gi;
-    let vMatch;
-    while ((vMatch = vRegex.exec(cleanNetlist)) !== null) {
-        window.activeVProbes[`v(${vMatch[3].toLowerCase()})`] = `V(${vMatch[1]})`;
-    }
-
-    // 2. Find Current Probes (Matches: V_CPROBE_NAME_HASH NODE1 NODE2 DC 0)
-    let iRegex = /V_CPROBE_(.+)_([a-zA-Z0-9]{4})\s+([^\s]+)\s+([^\s]+)\s+DC/gi;
-    let iMatch;
-    while ((iMatch = iRegex.exec(cleanNetlist)) !== null) {
-        // NGSpice records current through a voltage source as i(v_source_name)
-        let devName = `v_cprobe_${iMatch[1]}_${iMatch[2]}`.toLowerCase();
-        window.activeIProbes[`i(${devName})`] = `I(${iMatch[1]})`;
+    let lines = cleanNetlist.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+        let l = lines[i].trim();
+        let upperL = l.toUpperCase();
+        
+        // 1. Find Voltage Probes (I_PROBE_NAME_HASH NODE 0 DC 0)
+        if (upperL.startsWith('I_PROBE_')) {
+            let parts = l.split(/\s+/);
+            if (parts.length >= 2) {
+                let compName = parts[0]; 
+                let rawName = compName.substring(8); // Strip "I_PROBE_"
+                let lastUnderscore = rawName.lastIndexOf('_');
+                let prettyName = lastUnderscore > 0 ? rawName.substring(0, lastUnderscore) : rawName;
+                let node = parts[1]; 
+                
+                // Map both variations to ensure Chart.js perfectly catches the NGSpice output
+                window.activeVProbes[`v(${node.toLowerCase()})`] = `V(${prettyName})`;
+                window.activeVProbes[`v(${node})`] = `V(${prettyName})`;
+            }
+        }
+        // 2. Find Current Probes (V_CPROBE_NAME_HASH NODE1 NODE2 DC 0)
+        else if (upperL.startsWith('V_CPROBE_')) {
+            let parts = l.split(/\s+/);
+            if (parts.length >= 3) {
+                let compName = parts[0];
+                let rawName = compName.substring(9); // Strip "V_CPROBE_"
+                let lastUnderscore = rawName.lastIndexOf('_');
+                let prettyName = lastUnderscore > 0 ? rawName.substring(0, lastUnderscore) : rawName;
+                let devName = compName.toLowerCase();
+                
+                window.activeIProbes[`i(${devName})`] = `I(${prettyName})`;
+            }
+        }
     }
     // ==========================================================
 
@@ -502,53 +521,53 @@ export async function runSimulation(mode, customNetlist = null) {
 
     // Spawn a fresh worker if one doesn't exist
     if (!spiceWorker) {
-        spiceWorker = new Worker('js/engines/ngspice_worker.js'); // Update this path if needed!
-        
-        // Listen for messages coming BACK from the background thread
-        spiceWorker.onmessage = function(e) {
-            const data = e.data;
-
-            if (data.type === 'LOG') {
-                // Pipe background logs directly into the UI Terminal
-                if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print(data.msg, data.isErr);
-                if (data.isErr) {
-                    window.spiceErrorFlag = true;
-                    Swal.close(); // Close spinner on error
-                }
-            } 
-            else if (data.type === 'FATAL') {
-                Swal.close();
-                console.error("💥 WASM Engine Crash:", data.msg); 
-                if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("WASM Engine Crash: " + data.msg, true);
-            }
-            else if (data.type === 'SUCCESS') {
-                if (window.spiceErrorFlag || window.isSpiceAborted) return;
-                Swal.close(); // Close the loading spinner!
-
-                let rawOutput = data.rawOutput;
-
-                try {
-                    if (mode === 'op') {
-                        if (typeof annotateDCOperatingPointFromRaw === 'function') {
-                            annotateDCOperatingPointFromRaw(rawOutput, topo);
-                        }
-                    } else {
-                        let parsedData = parseSpiceRaw(rawOutput);
-                        let title = mode === 'tran' ? 'Transient Analysis' : (mode === 'dc' ? 'DC Sweep Analysis' : 'AC Analysis');
-                        
-                        if (typeof plotSimulationResults === 'function') {
-                            plotSimulationResults(parsedData, title);
-                        }
-                    }
-                } catch(err) {
-                    console.error("💥 FATAL CHARTING ERROR:", err);
-                    if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("Charting Error: " + err.message, true);
-                }
-            }
-        };
+        spiceWorker = new Worker('js/engines/ngspice_worker.js'); 
     }
+    
+    // --- FIX: THE LISTENER MUST BE ASSIGNED EVERY RUN OUTSIDE THE IF BLOCK ---
+    // This explicitly prevents the closure bug so 'mode' and 'topo' are always updated!
+    spiceWorker.onmessage = function(e) {
+        const data = e.data;
 
-    // Send the netlist off to the background thread to do the heavy lifting!
+        if (data.type === 'LOG') {
+            if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print(data.msg, data.isErr);
+            if (data.isErr) {
+                window.spiceErrorFlag = true;
+                Swal.close(); 
+            }
+        } 
+        else if (data.type === 'FATAL') {
+            Swal.close();
+            console.error("💥 WASM Engine Crash:", data.msg); 
+            if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("WASM Engine Crash: " + data.msg, true);
+        }
+        else if (data.type === 'SUCCESS') {
+            if (window.spiceErrorFlag || window.isSpiceAborted) return;
+            Swal.close(); 
+
+            let rawOutput = data.rawOutput;
+
+            try {
+                if (mode === 'op') {
+                    if (typeof annotateDCOperatingPointFromRaw === 'function') {
+                        annotateDCOperatingPointFromRaw(rawOutput, topo);
+                    }
+                } else {
+                    let parsedData = parseSpiceRaw(rawOutput);
+                    let title = mode === 'tran' ? 'Transient Analysis' : (mode === 'dc' ? 'DC Sweep Analysis' : 'AC Analysis');
+                    
+                    if (typeof plotSimulationResults === 'function') {
+                        plotSimulationResults(parsedData, title);
+                    }
+                }
+            } catch(err) {
+                console.error("💥 FATAL CHARTING ERROR:", err);
+                if (typeof SimLog !== 'undefined' && SimLog.print) SimLog.print("Charting Error: " + err.message, true);
+            }
+        }
+    };
+
+    // Send the netlist off to the background thread!
     spiceWorker.postMessage({ 
         type: 'RUN_SIMULATION', 
         netlist: cleanNetlist, 
@@ -727,11 +746,25 @@ function plotSimulationResults(parsedData, title) {
     }
 
     let maxX = 0, maxY = 0, isComplex = false;
+    
+    // --- FIX 2: DETECT DUAL Y-AXES ---
+    let hasV = parsedData.vars.slice(1).some(v => v.name.toLowerCase().startsWith('v'));
+    let hasI = parsedData.vars.slice(1).some(v => v.name.toLowerCase().startsWith('i'));
+    let dualAxis = hasV && hasI && !isAC; // Only split Y axes for Tran/DC sweeps
+    
+    let maxV = 0, maxI = 0;
+
     for (let i = 1; i < parsedData.vars.length; i++) {
+        let isCurrent = parsedData.vars[i].name.toLowerCase().startsWith('i');
         for (let p of activePoints) {
             let xVal = getX(p), yVal = p[i], yMag = typeof yVal === 'object' ? yVal.mag : yVal;
             if (Math.abs(xVal) > maxX) maxX = Math.abs(xVal);
-            if (Math.abs(yMag) > maxY) maxY = Math.abs(yMag);
+            if (Math.abs(yMag) > maxY) maxY = Math.abs(yMag); 
+            
+            if (dualAxis) {
+                if (isCurrent && Math.abs(yMag) > maxI) maxI = Math.abs(yMag);
+                if (!isCurrent && Math.abs(yMag) > maxV) maxV = Math.abs(yMag);
+            }
             if (typeof yVal === 'object') isComplex = true;
         }
     }
@@ -748,24 +781,24 @@ function plotSimulationResults(parsedData, title) {
 
     let xScale = isAC ? { mult: 1, prefix: '' } : getScale(maxX);
     let yScale = getScale(maxY);
+    let vScale = dualAxis ? getScale(maxV) : yScale;
+    let iScale = dualAxis ? getScale(maxI) : yScale;
     
-    // NEW: Check the title we just passed in to see if it's a sweep
     let isDC = window.currentSimTitle.includes('DC Sweep');
-    
-    // If it's DC, check if the swept variable (xVar) starts with 'i' (Current) or 'v' (Voltage)
     let xUnit = isAC ? 'Hz' : (isDC ? (xVar.name.toLowerCase().startsWith('i') ? 'A' : 'V') : 's');
     
-    let isAllV = parsedData.vars.slice(1).every(v => v.name.toLowerCase().startsWith('v'));
-    let isAllI = parsedData.vars.slice(1).every(v => v.name.toLowerCase().startsWith('i'));
-    let yUnit = isAllV ? 'V' : (isAllI ? 'A' : '');
+    let yUnit = (!hasI) ? 'V' : (!hasV ? 'A' : '');
 
     for (let i = 1; i < parsedData.vars.length; i++) {
         let bc = colors[(i-1) % colors.length];
+        let isCurrent = parsedData.vars[i].name.toLowerCase().startsWith('i');
+        let axisID = dualAxis ? (isCurrent ? 'y1' : 'y') : 'y';
+
         if (isComplex) {
             datasets.push({ label: parsedData.vars[i].name + ' (Mag)', data: activePoints.map(p => ({ x: getX(p), y: (typeof p[i] === 'object' ? p[i].mag : p[i]) })), borderColor: bc, borderWidth: 2, fill: false, pointRadius: 0, tension: 0.1, yAxisID: 'y' });
             datasets.push({ label: parsedData.vars[i].name + ' (Phase)', data: activePoints.map(p => ({ x: getX(p), y: (typeof p[i] === 'object' ? p[i].phase : 0) })), borderColor: bc, borderWidth: 2, borderDash: [5, 5], fill: false, pointRadius: 0, tension: 0.1, yAxisID: 'y1' });
         } else {
-            datasets.push({ label: parsedData.vars[i].name, data: activePoints.map(p => ({ x: getX(p), y: p[i] })), borderColor: bc, borderWidth: 2, fill: false, pointRadius: 0, tension: 0.1, yAxisID: 'y' });
+            datasets.push({ label: parsedData.vars[i].name, data: activePoints.map(p => ({ x: getX(p), y: p[i] })), borderColor: bc, borderWidth: 2, fill: false, pointRadius: 0, tension: 0.1, yAxisID: axisID });
         }
     }
 	
@@ -963,9 +996,23 @@ function plotSimulationResults(parsedData, title) {
                 // Common axes options
                 const scalesObj = {
                     x: { type: isAC ? 'logarithmic' : 'linear', title: { display: true, text: `${xVar.name} (${xScale.prefix}${xUnit})` }, ticks: { callback: v => isAC ? v : parseFloat((v * xScale.mult).toFixed(3)) } },
-                    y: { type: 'linear', position: 'left', title: { display: true, text: `Magnitude (${yScale.prefix}${yUnit})` }, ticks: { callback: v => parseFloat((v * yScale.mult).toFixed(3)) } },
-                    y1: { type: 'linear', display: isComplex, position: 'right', title: { display: true, text: 'Phase (°)' }, grid: { drawOnChartArea: false } }
+                    y: { 
+                        type: 'linear', position: 'left', 
+                        title: { display: true, text: dualAxis ? `Voltage (${vScale.prefix}V)` : `Magnitude (${yScale.prefix}${yUnit})` }, 
+                        ticks: { callback: v => parseFloat((v * (dualAxis ? vScale.mult : yScale.mult)).toFixed(3)) } 
+                    }
                 };
+
+                if (dualAxis) {
+                    scalesObj.y1 = {
+                        type: 'linear', display: true, position: 'right',
+                        title: { display: true, text: `Current (${iScale.prefix}A)` },
+                        ticks: { callback: v => parseFloat((v * iScale.mult).toFixed(3)) },
+                        grid: { drawOnChartArea: false }
+                    };
+                } else if (isComplex) {
+                    scalesObj.y1 = { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Phase (°)' }, grid: { drawOnChartArea: false } };
+                }
 
                 if (!isStackedMode) {
                     // MODE A: Single Combined Chart
@@ -1162,6 +1209,7 @@ export function annotateDCOperatingPointFromRaw(rawOutput, topo) {
         let powerVal = rawPKey ? powers[rawPKey] : undefined;
 
         // --- ADDED: Calculate power manually if NGSpice didn't provide it ---
+        // --- ADDED: Calculate power manually if NGSpice didn't provide it ---
         if (powerVal === undefined && currentVal !== undefined) {
             try {
                 let getNetForPin = (pt) => {
@@ -1169,24 +1217,27 @@ export function annotateDCOperatingPointFromRaw(rawOutput, topo) {
                     return cluster ? topo.netMap.get(topo.uf.find(cluster.id)) : null;
                 };
 
-                // Dynamically grab the first two available ports
                 let ports = el.getPorts();
-                let p1Id = ports.length > 0 ? ports[0].id : 'pin1';
-                let p2Id = ports.length > 1 ? ports[1].id : 'pin2';
                 
-                let pt1 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, p1Id) : null;
-                let pt2 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, p2Id) : null;
-                
-                if (pt1 && pt2) {
-                    let net1 = getNetForPin(pt1);
-                    let net2 = getNetForPin(pt2);
+                // --- FIX: Only calculate power if the component has at least 2 pins! ---
+                if (ports.length >= 2) {
+                    let p1Id = ports[0].id;
+                    let p2Id = ports[1].id;
                     
-                    // Fetch the voltages at the two pins (default to 0 if grounded or disconnected)
-                    let v1 = (String(net1) === '0' || !net1) ? 0.0 : (voltages[net1] || 0.0);
-                    let v2 = (String(net2) === '0' || !net2) ? 0.0 : (voltages[net2] || 0.0);
+                    let pt1 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, p1Id) : null;
+                    let pt2 = window.getAbsolutePinCoord ? window.getAbsolutePinCoord(el, p2Id) : null;
                     
-                    // Power = |V_drop| * |I|
-                    powerVal = Math.abs(v1 - v2) * Math.abs(currentVal);
+                    if (pt1 && pt2) {
+                        let net1 = getNetForPin(pt1);
+                        let net2 = getNetForPin(pt2);
+                        
+                        // Fetch the voltages at the two pins (default to 0 if grounded or disconnected)
+                        let v1 = (String(net1) === '0' || !net1) ? 0.0 : (voltages[net1] || 0.0);
+                        let v2 = (String(net2) === '0' || !net2) ? 0.0 : (voltages[net2] || 0.0);
+                        
+                        // Power = |V_drop| * |I|
+                        powerVal = Math.abs(v1 - v2) * Math.abs(currentVal);
+                    }
                 }
             } catch (err) {
                 console.warn("Could not calculate power for " + baseName, err);

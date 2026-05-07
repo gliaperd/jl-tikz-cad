@@ -1,6 +1,6 @@
 // js/ui/canvas.js
 import { AppState, THEME_COLORS } from '../state.js';
-import { extractStaticTexts, evaluatePinCondition } from '../parsers/helpers.js';
+import { extractStaticTexts, evaluatePinCondition, getPaletteIconData } from '../parsers/helpers.js';
 import { exportLatex } from '../parsers/latex.js';
 import { saveState, updateToolbarState } from './actions.js';
 import { clearSimAnnotations } from '../engines/spice.js'; 
@@ -36,6 +36,38 @@ export function initializeCanvas() {
             ]
         }]
     });
+	
+	// --- NEW: Self-Healing Wire Logic ---
+    const originalRemove = joint.dia.Element.prototype.remove;
+    joint.shapes.jl.Component.prototype.remove = function(opt) {
+        if (this.get('latexMacro') === 'currentprobe' && AppState.graph) {
+            const links = AppState.graph.getConnectedLinks(this);
+            
+            if (links.length === 2) {
+                let link1 = links[0];
+                let link2 = links[1];
+                
+                // Copy the raw remote endpoint objects directly
+                let end1 = { ...(link1.source().id === this.id ? link1.target() : link1.source()) };
+                let end2 = { ...(link2.source().id === this.id ? link2.target() : link2.source()) };
+
+                // Strip any lingering connection overrides that might cause offsets
+                delete end1.connectionPoint;
+                delete end1.anchor;
+                delete end2.connectionPoint;
+                delete end2.anchor;
+
+                const theme = THEME_COLORS[AppState.theme] || THEME_COLORS.standard;
+                const healedLink = new joint.shapes.standard.Link({
+                    attrs: { line: { stroke: theme.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } }
+                });
+                
+                healedLink.source(end1).target(end2);
+                AppState.graph.addCell(healedLink);
+            }
+        }
+        return originalRemove.call(this, opt);
+    };
 
     joint.shapes.jl.ComponentView = joint.dia.ElementView.extend({
         initialize: function() {
@@ -76,6 +108,11 @@ export function initializeCanvas() {
         highlighting: {
             'default': { name: 'stroke', options: { padding: 3, rx: 5, ry: 5, attrs: { 'stroke-width': 3, stroke: THEME_COLORS.standard.highlight } } }
         }
+    });
+	
+	// listener for current probe auto-split wire
+	AppState.paper.on('element:pointerup', function(cellView) {
+        autoSplitWire(cellView.model);
     });
 
     // 3. Grid & Zoom Setup
@@ -476,13 +513,25 @@ export function assembleIcon(el, argsArray) {
     }];
 
     let staticTexts = [];
+    
+        // --- THE "NO-SHRED" SANITIZER ---
+        const sanitizePath = (pth) => {
+            if (!pth) return "";
+            // 1. Split ONLY at 'M ' or 'm ' (MoveTo commands) so we don't accidentally shred 
+            // words like "NaN" or "mal" into individual SVG command letters!
+            return pth.split(/(?=[Mm]\s)/).filter(subPath => {
+                // 2. If the sub-path contains NaN, undefined, or null, throw the whole block in the trash.
+                return !/NaN|undefined|null/i.test(subPath);
+            }).join(' ').trim();
+        };
+
     let baseExtracted = extractStaticTexts(basePath);
-    basePath = baseExtracted.cleanPath;
+    basePath = sanitizePath(baseExtracted.cleanPath);
     baseExtracted.texts.forEach((t, idx) => staticTexts.push({ ...t, id: `baseTxt_${idx}` }));
 
     matchedLayers.forEach((layer, i) => {
         let lExtracted = extractStaticTexts(layer.path);
-        layer.path = lExtracted.cleanPath;
+        layer.path = sanitizePath(lExtracted.cleanPath);
         lExtracted.texts.forEach((t, idx) => staticTexts.push({ ...t, id: `lyrTxt_${i}_${idx}` }));
         dynamicMarkup[0].children[3].children.push({ tagName: 'path', selector: `overlay_${i}`, attributes: { fill: 'transparent' } });
     });
@@ -689,8 +738,20 @@ export function addComponent(type, dropX = null, dropY = null) {
             } catch(e) { console.error("Shape Gen Error on Drop:", e); }
         }
 
+
+        // --- THE "NO-SHRED" SANITIZER ---
+        const sanitizePath = (pth) => {
+            if (!pth) return "";
+            // 1. Split ONLY at 'M ' or 'm ' (MoveTo commands) so we don't accidentally shred 
+            // words like "NaN" or "mal" into individual SVG command letters!
+            return pth.split(/(?=[Mm]\s)/).filter(subPath => {
+                // 2. If the sub-path contains NaN, undefined, or null, throw the whole block in the trash.
+                return !/NaN|undefined|null/i.test(subPath);
+            }).join(' ').trim();
+        };
+
         let extractedInit = extractStaticTexts(rawIconPath);
-        let iconPath = extractedInit.cleanPath;
+        let iconPath = sanitizePath(extractedInit.cleanPath);
 
         const sourcePins = (generatedDynamic && generatedDynamic.pins) ? generatedDynamic.pins : data.pins;
         const uniquePins = [];
@@ -708,24 +769,30 @@ export function addComponent(type, dropX = null, dropY = null) {
 
         let measurePath = iconPath;
         
-        // Safely append all overlay layers to get the true maximum bounding box
         if (data.iconLayers) {
             data.iconLayers.forEach(layer => {
                 if (layer.path) {
-                    measurePath += " " + extractStaticTexts(layer.path).cleanPath;
+                    measurePath += " " + sanitizePath(extractStaticTexts(layer.path).cleanPath);
                 }
             });
         }
+        
         let bbox = { x: 0, y: 0, width: 0, height: 0 };
         if (measurePath) {
             const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            tempPath.setAttribute('d', measurePath);
-            tempSvg.appendChild(tempPath);
-            Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
-            document.body.appendChild(tempSvg);
-            try { bbox = tempPath.getBBox(); } catch(e){}
-            document.body.removeChild(tempSvg);
+            // --- DEFENSE 2: The Try/Catch Wrap ---
+            try {
+                tempPath.setAttribute('d', measurePath);
+                tempSvg.appendChild(tempPath);
+                Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
+                document.body.appendChild(tempSvg);
+                bbox = tempPath.getBBox();
+                document.body.removeChild(tempSvg);
+            } catch(e) {
+                console.warn(`Recovered from corrupted SVG path in component drop.`);
+                if (document.body.contains(tempSvg)) document.body.removeChild(tempSvg);
+            }
         }
 
         const xs = uniquePins.map(p => p.x), ys = uniquePins.map(p => p.y);
@@ -846,6 +913,9 @@ export function addComponent(type, dropX = null, dropY = null) {
     }
 
 	AppState.graph.addCell(element); 
+	
+	// 0. auto-split wire when current probe is dropped
+    autoSplitWire(element); // Try to split a wire immediately upon drop
     
     // 1. Clear any previous selections
     AppState.selectedElements.forEach(el => { const v = AppState.paper.findViewByModel(el); if(v) v.unhighlight(); });
@@ -1247,4 +1317,363 @@ export function drawDCOperatingPoint(opData) {
             }
         }
     });
+}
+
+// current probe automatic connection/disconnection
+
+export function autoSplitWire(el) {
+    if (el.get('latexMacro') !== 'currentprobe') return;
+    
+    // 1. FORCE VISIBILITY: Temporarily show the pins so JointJS can compute their 
+    // exact physical bounding boxes, preventing the weird grid-step offsets!
+    el.getPorts().forEach(p => el.portProp(p.id, 'attrs/portBody/display', 'block'));
+
+    // 2. Wait 20ms for the browser to render the visible pins into the DOM
+    setTimeout(() => {
+        if (!AppState.graph || AppState.graph.getConnectedLinks(el).length > 0) {
+            restorePortVisibility();
+            return;
+        }
+
+        const center = el.getBBox().center();
+        const threshold = 25; // Snap tolerance in pixels
+        const links = AppState.graph.getLinks();
+        let hit = false;
+
+        for (let link of links) {
+            const linkView = link.findView(AppState.paper);
+            if (!linkView) continue;
+
+            const pts = [];
+            if (linkView.sourcePoint) pts.push(linkView.sourcePoint);
+            else if (linkView.sourceAnchor) pts.push(linkView.sourceAnchor);
+
+            const vertices = linkView.route || link.get('vertices') || [];
+            vertices.forEach(v => pts.push(v));
+
+            if (linkView.targetPoint) pts.push(linkView.targetPoint);
+            else if (linkView.targetAnchor) pts.push(linkView.targetAnchor);
+
+            if (pts.length < 2) continue;
+
+            for (let i = 0; i < pts.length - 1; i++) {
+                const p1 = pts[i];
+                const p2 = pts[i+1];
+                if (p1 && p2 && p1.x !== undefined && p2.x !== undefined) {
+                    const l2 = (p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2;
+                    let dist = l2 === 0 ? Math.hypot(center.x - p1.x, center.y - p1.y) :
+                        Math.hypot(center.x - (p1.x + Math.max(0, Math.min(1, ((center.x - p1.x) * (p2.x - p1.x) + (center.y - p1.y) * (p2.y - p1.y)) / l2)) * (p2.x - p1.x)), center.y - (p1.y + Math.max(0, Math.min(1, ((center.x - p1.x) * (p2.x - p1.x) + (center.y - p1.y) * (p2.y - p1.y)) / l2)) * (p2.y - p1.y)));
+                    
+                    if (dist < threshold) {
+                        hit = true;
+                        break;
+                    }
+                }
+            }
+
+            if (hit) {
+                const ports = el.getPorts();
+                if (ports.length < 2) break;
+
+                // Calculate distances to prevent crossing wires (The "X" overlap)
+                const elPos = el.position();
+                const p1X = elPos.x + (ports[0].args.x || 0);
+                const p1Y = elPos.y + (ports[0].args.y || 0);
+                const p2X = elPos.x + (ports[1].args.x || 0);
+                const p2Y = elPos.y + (ports[1].args.y || 0);
+
+                const srcPos = pts[0];
+                const dist1 = Math.hypot(srcPos.x - p1X, srcPos.y - p1Y);
+                const dist2 = Math.hypot(srcPos.x - p2X, srcPos.y - p2Y);
+
+                const sourcePortId = dist1 < dist2 ? ports[0].id : ports[1].id;
+                const targetPortId = dist1 < dist2 ? ports[1].id : ports[0].id;
+
+                const origSource = link.source();
+                const origTarget = link.target();
+                const theme = THEME_COLORS[AppState.theme] || THEME_COLORS.standard;
+                
+                // Copy original wire styling (e.g. orthogonal corners)
+                const originalRouter = link.get('router');
+                const originalConnector = link.get('connector');
+
+                link.remove(); // Nuke the solid wire
+
+                const commonAttrs = { 
+                    line: { stroke: theme.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } 
+                };
+
+                // Wire 1: Explicitly target the visual "portBody" magnet
+                const link1 = new joint.shapes.standard.Link({ attrs: commonAttrs });
+                if (originalRouter) link1.set('router', originalRouter);
+                if (originalConnector) link1.set('connector', originalConnector);
+                link1.source(origSource).target({ id: el.id, port: sourcePortId, magnet: 'portBody' });
+
+                // Wire 2: Explicitly target the visual "portBody" magnet
+                const link2 = new joint.shapes.standard.Link({ attrs: commonAttrs });
+                if (originalRouter) link2.set('router', originalRouter);
+                if (originalConnector) link2.set('connector', originalConnector);
+                link2.source({ id: el.id, port: targetPortId, magnet: 'portBody' }).target(origTarget);
+
+                AppState.graph.addCells([link1, link2]);
+                break; 
+            }
+        }
+
+        restorePortVisibility();
+
+    }, 20);
+
+    function restorePortVisibility() {
+        // Wait another 50ms for JointJS to finish snapping the wires before making the pins invisible again
+        setTimeout(() => {
+            let isVisible = AppState.viewOptions && AppState.viewOptions.showPins;
+            el.getPorts().forEach(p => el.portProp(p.id, 'attrs/portBody/display', isVisible ? 'block' : 'none'));
+        }, 50);
+    }
+}
+
+// ghost component symbol while dragging from the palette
+export function createDragGhostSVG(type) {
+    const data = JL_DATABASE[type];
+    if (!data) return null;
+
+    const theme = THEME_COLORS[AppState.theme] || THEME_COLORS.standard;
+    const PPU = AppState.PPU_MULT || 1;
+
+    // --- HELPER: Silences browser console errors by stripping corrupted SVG commands ---
+    const sanitizePath = (pth) => {
+        if (!pth) return "";
+        return pth.split(/(?=[MmLlCcQqAaZz])/).filter(cmd => !/NaN/i.test(cmd)).join(' ');
+    };
+
+    let iconData = getPaletteIconData(data);
+    
+    let baseExtracted = extractStaticTexts(iconData.base);
+    let basePath = sanitizePath(baseExtracted.cleanPath);
+    let allStaticTexts = [...baseExtracted.texts];
+
+    let processedLayers = iconData.layers.map(l => {
+        let lExtracted = extractStaticTexts(l.path);
+        allStaticTexts.push(...lExtracted.texts);
+        return { path: sanitizePath(lExtracted.cleanPath), style: l.style };
+    });
+
+    let combinedPathForMeasure = basePath + " " + processedLayers.map(l => l.path).join(" ");
+    let pins = data.pins || [];
+
+    if (data.shapeGenerator) {
+        try {
+            let initialArgs = [];
+            for (let i = 0; i < (data.argsCount || 7); i++) initialArgs.push("");
+            if (data.previewArgs) {
+                Object.keys(data.previewArgs).forEach(idx => { initialArgs[parseInt(idx) - 1] = data.previewArgs[idx]; });
+            }
+            
+            const buildShape = new Function('args', data.shapeGenerator);
+            let generatedDynamic = buildShape(["", ...initialArgs]);
+            
+            if (generatedDynamic.pathStr) {
+                basePath = sanitizePath(extractStaticTexts(generatedDynamic.pathStr).cleanPath);
+                combinedPathForMeasure = basePath; 
+                processedLayers = []; 
+            }
+            if (generatedDynamic.pins) {
+                pins = generatedDynamic.pins.map(p => ({ x: p.x * PPU, y: p.y * PPU }));
+            }
+        } catch (e) { }
+    }
+
+    let bbox = { x: 0, y: 0, width: 0, height: 0 };
+    if (combinedPathForMeasure) {
+        const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        try {
+            tempPath.setAttribute('d', combinedPathForMeasure);
+            tempSvg.appendChild(tempPath);
+            Object.assign(tempSvg.style, { position: 'absolute', top: '-9999px', opacity: 0.01, pointerEvents: 'none' });
+            document.body.appendChild(tempSvg);
+            bbox = tempPath.getBBox();
+            document.body.removeChild(tempSvg);
+        } catch (e) {
+            if (document.body.contains(tempSvg)) document.body.removeChild(tempSvg);
+        }
+    }
+
+    const xs = pins.map(p => p.x), ys = pins.map(p => p.y);
+    const minPinX = xs.length ? Math.min(...xs) : 0; 
+    const maxPinX = xs.length ? Math.max(...xs) : 0;
+    const minPinY = ys.length ? Math.min(...ys) : 0; 
+    const maxPinY = ys.length ? Math.max(...ys) : 0;
+
+    let hasBounds = bbox.width > 0 || bbox.height > 0;
+    const absMinX = hasBounds ? Math.min(minPinX, bbox.x * PPU) : minPinX;
+    const absMaxX = hasBounds ? Math.max(maxPinX, (bbox.x + bbox.width) * PPU) : maxPinX;
+    const absMinY = hasBounds ? Math.min(minPinY, bbox.y * PPU) : minPinY;
+    const absMaxY = hasBounds ? Math.max(maxPinY, (bbox.y + bbox.height) * PPU) : maxPinY;
+
+    const pad = 10;
+    const boxOriginX = Math.floor((absMinX - pad) / 40) * 40;
+    const boxOriginY = Math.floor((absMinY - pad) / 40) * 40;
+    const boxMaxX = Math.ceil((absMaxX + pad) / 40) * 40;
+    const boxMaxY = Math.ceil((absMaxY + pad) / 40) * 40;
+
+    const boxWidth = Math.max(boxMaxX - boxOriginX, 40);
+    const boxHeight = Math.max(boxMaxY - boxOriginY, 40);
+    const shiftX = -boxOriginX;
+    const shiftY = -boxOriginY;
+
+    // 4. Construct the physical SVG Element
+    const scale = AppState.paper ? AppState.paper.scale().sx : 1;
+    
+    // Generous padding to prevent long text from bleeding out of the SVG boundaries
+    const textPadX = 150; 
+    const textPadY = 80;  
+    const svgWidth = boxWidth + (textPadX * 2);
+    const svgHeight = boxHeight + (textPadY * 2);
+
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', svgWidth * scale);
+    svg.setAttribute('height', svgHeight * scale);
+    svg.setAttribute('viewBox', `${-textPadX} ${-textPadY} ${svgWidth} ${svgHeight}`);
+    
+    // --- FIX: Keep on-screen but invisible to prevent Chrome drag-image clipping bugs! ---
+    svg.style.position = 'absolute';
+    svg.style.top = '0px';
+    svg.style.left = '0px';
+    svg.style.opacity = '0.01';
+    svg.style.zIndex = '-9999';
+    svg.style.pointerEvents = 'none';
+
+    let baseStrokeWidth = 1.8;
+    let baseStrokeColor = theme.componentIcon;
+    if (data.iconBaseStyle) {
+        if (data.iconBaseStyle.includes('stroke-width=')) baseStrokeWidth = parseFloat(data.iconBaseStyle.match(/stroke-width=([\d\.]+)/)[1]);
+        if (data.iconBaseStyle.includes('stroke=')) baseStrokeColor = data.iconBaseStyle.match(/stroke=([^,\]]+)/)[1].trim();
+    }
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('transform', `translate(${shiftX}, ${shiftY}) scale(${PPU})`);
+
+    // Draw Base Path
+    if (basePath) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', basePath);
+        path.setAttribute('fill', data.filled ? theme.componentIcon : 'transparent');
+        path.setAttribute('stroke', type === 'freetext' ? 'transparent' : baseStrokeColor);
+        path.setAttribute('stroke-width', baseStrokeWidth);
+        path.setAttribute('vector-effect', 'non-scaling-stroke');
+        g.appendChild(path);
+    }
+
+    // Draw Layer Paths
+    processedLayers.forEach(layer => {
+        if (!layer.path) return;
+        let layerStroke = baseStrokeColor;
+        let layerStrokeWidth = baseStrokeWidth;
+        let layerFill = "transparent";
+
+        if (layer.style) {
+            layer.style.split(',').forEach(s => {
+                let parts = s.split('=');
+                if (parts.length === 2) {
+                    if (parts[0].trim() === 'stroke') layerStroke = parts[1].trim();
+                    if (parts[0].trim() === 'stroke-width') layerStrokeWidth = parseFloat(parts[1].trim());
+                    if (parts[0].trim() === 'fill') layerFill = parts[1].trim() === 'solid' ? layerStroke : parts[1].trim();
+                }
+            });
+        }
+
+        const lPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        lPath.setAttribute('d', layer.path);
+        lPath.setAttribute('fill', layerFill);
+        lPath.setAttribute('stroke', layerStroke);
+        lPath.setAttribute('stroke-width', layerStrokeWidth);
+        lPath.setAttribute('vector-effect', 'non-scaling-stroke');
+        g.appendChild(lPath);
+    });
+
+    // Draw Extracted Text Blocks
+    allStaticTexts.forEach(t => {
+        const textEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textEl.setAttribute('x', t.x);
+        textEl.setAttribute('y', t.y);
+        textEl.setAttribute('font-family', 'Arial, sans-serif');
+        textEl.setAttribute('font-size', t.size);
+        textEl.setAttribute('font-weight', t.style === 'bold' ? 'bold' : 'normal');
+        textEl.setAttribute('font-style', t.style === 'italic' ? 'italic' : 'normal');
+        textEl.setAttribute('fill', theme.componentIcon);
+        textEl.setAttribute('text-anchor', 'middle');
+        textEl.setAttribute('dominant-baseline', 'central');
+        textEl.textContent = t.str;
+        g.appendChild(textEl);
+    });
+
+    svg.appendChild(g);
+
+    // Draw Pin Rectangles
+    pins.forEach(p => {
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', p.x + shiftX - (4 * PPU));
+        rect.setAttribute('y', p.y + shiftY - (4 * PPU));
+        rect.setAttribute('width', 8 * PPU);
+        rect.setAttribute('height', 8 * PPU);
+        rect.setAttribute('fill', theme.portBody);
+        svg.appendChild(rect);
+    });
+    
+    // --- EXACT LABEL MATH REPLICATION ---
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    let textX = boxWidth / 2;
+    let textY = boxHeight / 2;
+    let align = 'middle';
+
+    if (data.labelAnchor) {
+        let currentDir = data.labelAnchor.dir;
+        
+        if (data.labelAnchor.auto) {
+            let vTopRaw = absMinY - boxOriginY;
+            let vBotRaw = absMaxY - boxOriginY;
+            let vLeftRaw = absMinX - boxOriginX;
+            let vRightRaw = absMaxX - boxOriginX;
+            
+            if (currentDir === 'T') { textX = (vLeftRaw + vRightRaw) / 2; textY = vTopRaw; }
+            else if (currentDir === 'B') { textX = (vLeftRaw + vRightRaw) / 2; textY = vBotRaw; }
+            else if (currentDir === 'L') { textX = vLeftRaw; textY = (vTopRaw + vBotRaw) / 2; }
+            else if (currentDir === 'R') { textX = vRightRaw; textY = (vTopRaw + vBotRaw) / 2; }
+        } else {
+            textX = (data.labelAnchor.x * PPU) + shiftX;
+            textY = (data.labelAnchor.y * PPU) + shiftY;
+        }
+        
+        let gap = 10 * PPU;
+        if (currentDir === 'T') textY -= gap;
+        else if (currentDir === 'B') textY += gap;
+        else if (currentDir === 'L') { textX -= gap; align = 'end'; }
+        else if (currentDir === 'R') { textX += gap; align = 'start'; }
+        
+    } else {
+        let bottomY = boxHeight / 2;
+        if (type !== 'freetext') {
+            if (pins && pins.length > 0) bottomY = Math.max(...pins.map(p => p.y + shiftY));
+            else bottomY = boxHeight;
+        }
+        textX = boxWidth / 2;
+        textY = type === 'freetext' ? boxHeight / 2 : bottomY + (10 * PPU);
+    }
+
+    text.setAttribute('x', textX);
+    text.setAttribute('y', textY); 
+    text.setAttribute('fill', theme.componentLabel);
+    text.setAttribute('font-size', 12 * PPU);
+    text.setAttribute('font-family', 'Arial, sans-serif');
+    text.setAttribute('text-anchor', align);
+    text.setAttribute('dominant-baseline', 'central');
+    text.textContent = data.name;
+    
+    if (data.hideLabel) text.setAttribute('display', 'none');
+    
+    svg.appendChild(text);
+
+    return { svg: svg, width: svgWidth * scale, height: svgHeight * scale };
 }
