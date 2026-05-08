@@ -13,7 +13,7 @@ export function initializeCanvas() {
         size: { width: 40, height: 40 },
         attrs: {
             hitbox: { width: 40, height: 40, fill: '#ffffff', 'fill-opacity': 0.01, stroke: 'none', 'pointer-events': 'all', cursor: 'pointer' },
-            dot: { cx: 20, cy: 20, r: 8, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
+            dot: { cx: 20, cy: 20, r: 9, fill: '#000000', stroke: 'none', 'pointer-events': 'none' }
         }
     }, { markup: [{ tagName: 'rect', selector: 'hitbox' }, { tagName: 'circle', selector: 'dot' }] });
     
@@ -44,25 +44,66 @@ export function initializeCanvas() {
             const links = AppState.graph.getConnectedLinks(this);
             
             if (links.length === 2) {
-                let link1 = links[0];
-                let link2 = links[1];
+                let l1 = links[0], l2 = links[1];
                 
-                // Copy the raw remote endpoint objects directly
-                let end1 = { ...(link1.source().id === this.id ? link1.target() : link1.source()) };
-                let end2 = { ...(link2.source().id === this.id ? link2.target() : link2.source()) };
+                // Identify exactly how the severed wires were routed into the probe
+                let isL1Source = l1.source().id === this.id;
+                let isL2Source = l2.source().id === this.id;
+                
+                let ext1 = isL1Source ? l1.target() : l1.source();
+                let ext2 = isL2Source ? l2.target() : l2.source();
+                
+                // Deep copy preserves logical IDs, Magnets, and Ports! (Fixes the T-Junction detachment)
+                let sourceEnd = JSON.parse(JSON.stringify(ext1));
+                let targetEnd = JSON.parse(JSON.stringify(ext2));
+                
+                // Safely extract and orient the L-Bend corners
+                let v1 = l1.vertices() || [];
+                if (isL1Source) v1.reverse(); 
+                
+                let v2 = l2.vertices() || [];
+                if (!isL2Source) v2.reverse(); 
+                
+                // The center of the probe acts as the bridge vertex!
+                const center = this.getBBox().center();
+                const px = Math.round(center.x / 10) * 10;
+                const py = Math.round(center.y / 10) * 10;
+                
+                let mergedVerts = [...v1, {x: px, y: py}, ...v2];
+                
+                // Acquire absolute endpoints to mathematically strip out overlapping colinear points
+                let v1View = AppState.paper.findViewByModel(l1);
+                let v2View = AppState.paper.findViewByModel(l2);
+                
+                if (v1View && v2View && v1View.sourcePoint && v2View.sourcePoint) {
+                    let pStart = isL1Source ? v1View.targetPoint : v1View.sourcePoint;
+                    let pEnd = isL2Source ? v2View.targetPoint : v2View.sourcePoint;
+                    
+                    let fullPath = [
+                        { x: Math.round(pStart.x/10)*10, y: Math.round(pStart.y/10)*10 },
+                        ...mergedVerts,
+                        { x: Math.round(pEnd.x/10)*10, y: Math.round(pEnd.y/10)*10 }
+                    ];
 
-                // Strip any lingering connection overrides that might cause offsets
-                delete end1.connectionPoint;
-                delete end1.anchor;
-                delete end2.connectionPoint;
-                delete end2.anchor;
+                    let cleanVerts = [];
+                    for (let i = 1; i < fullPath.length - 1; i++) {
+                        let prev = fullPath[i-1], curr = fullPath[i], next = fullPath[i+1];
+                        // Erase points that form a straight line
+                        if (prev.x === curr.x && curr.x === next.x) continue;
+                        if (prev.y === curr.y && curr.y === next.y) continue;
+                        if (curr.x === prev.x && curr.y === prev.y) continue;
+                        cleanVerts.push(curr);
+                    }
+                    mergedVerts = cleanVerts;
+                }
 
                 const theme = THEME_COLORS[AppState.theme] || THEME_COLORS.standard;
                 const healedLink = new joint.shapes.standard.Link({
-                    attrs: { line: { stroke: theme.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } }
+                    attrs: { line: { stroke: theme.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } },
+                    connector: { name: 'rounded', args: { radius: 0 } }
                 });
                 
-                healedLink.source(end1).target(end2);
+                healedLink.source(sourceEnd).target(targetEnd).vertices(mergedVerts);
                 AppState.graph.addCell(healedLink);
             }
         }
@@ -101,7 +142,10 @@ export function initializeCanvas() {
         snapLinks: { radius: 15 },
         linkPinning: false,
         defaultLink: new joint.shapes.standard.Link({
-            attrs: { line: { stroke: THEME_COLORS.standard.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } }
+            attrs: { line: { stroke: THEME_COLORS.standard.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } },
+            // THE MAGIC: Forces wires to auto-bend at 90 degrees
+            router: { name: 'orthogonal', args: { step: 10, padding: 10 } },
+            connector: { name: 'rounded', args: { radius: 0 } } // Sharp corners (set radius to 5 for curved corners!)
         }),
         useModelGeometry: true,
         cellViewNamespace: joint.shapes,
@@ -127,9 +171,76 @@ export function initializeCanvas() {
         // CALL THE NEW FUNCTION
         updateNetNamesVisibility(); 
     });
-    updateDynamicGrid();
+	// --- TOPOLOGICAL GARBAGE COLLECTOR ---
+    window.cleanOrphanedDots = () => {
+        let tol = 2;
+        let links = AppState.graph.getLinks();
+        
+        AppState.graph.getElements().forEach(dot => {
+            if (dot.get('latexMacro') !== 'connectordot') return;
+            
+            let pt = { x: dot.position().x + 20, y: dot.position().y + 20 };
+            let endpointCount = 0;
+            let passThroughCount = 0;
+            
+            links.forEach(l => {
+                let view = AppState.paper.findViewByModel(l);
+                if (!view || !view.sourcePoint || !view.targetPoint) return;
+                
+                // Snap points to grid to strip rendering offsets
+                let rawPts = [view.sourcePoint, ...(l.vertices() || []), view.targetPoint];
+                let pts = rawPts.map(p => ({ x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 }));
+                pts = pts.filter((p, i, a) => i === 0 || p.x !== a[i-1].x || p.y !== a[i-1].y);
+                if (pts.length < 2) return;
+                
+                // 1. Count True Endpoints
+                let pStart = pts[0], pEnd = pts[pts.length - 1];
+                if (Math.abs(pStart.x - pt.x) <= tol && Math.abs(pStart.y - pt.y) <= tol) endpointCount++;
+                if (Math.abs(pEnd.x - pt.x) <= tol && Math.abs(pEnd.y - pt.y) <= tol) endpointCount++;
+                
+                // 2. Count True Pass-Throughs (Strictly internal segments)
+                let isThrough = false;
+                for (let i = 0; i < pts.length - 1; i++) {
+                    let p1 = pts[i], p2 = pts[i+1];
+                    if (p1.x === p2.x && Math.abs(pt.x - p1.x) <= tol) {
+                        if (pt.y > Math.min(p1.y, p2.y) + tol && pt.y < Math.max(p1.y, p2.y) - tol) isThrough = true;
+                    } else if (p1.y === p2.y && Math.abs(pt.y - p1.y) <= tol) {
+                        if (pt.x > Math.min(p1.x, p2.x) + tol && pt.x < Math.max(p1.x, p2.x) - tol) isThrough = true;
+                    }
+                }
+                if (isThrough) passThroughCount++;
+            });
+            
+            // SURVIVAL RULES: 
+            // 1. Y-Junction (3+ ends) 
+            // 2. T-Junction (1 pass-through + 1+ ends) 
+            // 3. X-Junction (2+ pass-throughs)
+            let isValid = (endpointCount >= 3) || 
+                          (passThroughCount >= 1 && endpointCount >= 1) || 
+                          (passThroughCount >= 2);
+            
+            if (!isValid) {
+                // SAFETY DETACH: Anchor any remaining wires to the absolute grid coordinate
+                // so JointJS doesn't delete them when the dot is destroyed!
+                let connectedLinks = AppState.graph.getConnectedLinks(dot);
+                connectedLinks.forEach(l => {
+                    if (l.source().id === dot.id) l.source({ x: pt.x, y: pt.y });
+                    if (l.target().id === dot.id) l.target({ x: pt.x, y: pt.y });
+                });
+                
+                dot.remove();
+            }
+        });
+    };
 
-    // Center the canvas
+    // Attach to ANY JointJS cell deletion (Wires, Components, or Probes)
+    AppState.graph.on('remove', (cell) => {
+        // Wait 20ms for the DOM to clear before sweeping the math
+        setTimeout(() => { if (window.cleanOrphanedDots) window.cleanOrphanedDots(); }, 20);
+    });
+    updateDynamicGrid();
+	
+	// Center the canvas
     const container = document.getElementById('paper-container');
     container.scrollLeft = 2500 - (container.clientWidth / 2);
     container.scrollTop = 2500 - (container.clientHeight / 2);
@@ -150,6 +261,396 @@ export function initializeCanvas() {
 	
 	// Drop-Zone Setup
 	setupDropzone();
+	
+	// =========================================================================
+    // PROFESSIONAL EDA ROUTING ENGINE
+    // =========================================================================
+    let activeWire = null;
+    let activeWireStartConnection = null; // <--- ADD THIS LINE!
+    let lastClickTime = 0;
+    let permanentVertices = [];
+    let wireStartPt = null;
+    let bendDir = 'H';
+
+    const paperEl = document.getElementById('my-paper');
+
+    // --- MATH HELPER: Get Absolute Pin Coordinate ---
+    const getAbsolutePinCoord = (el, portId) => {
+        let port = el.getPort(portId);
+        if (!port) return null;
+        let pos = el.position();
+        let size = el.size();
+        let px = pos.x + (port.args.x || 0); 
+        let py = pos.y + (port.args.y || 0);
+        let cx = pos.x + size.width / 2; 
+        let cy = pos.y + size.height / 2;
+        let rad = (el.get('angle') || 0) * Math.PI / 180;
+        let cos = Math.cos(rad); let sin = Math.sin(rad);
+        return {
+            x: Math.round(cos * (px - cx) - sin * (py - cy) + cx),
+            y: Math.round(sin * (px - cx) + cos * (py - cy) + cy)
+        };
+    };
+	window.getAbsolutePinCoord = getAbsolutePinCoord;
+
+    // --- 1. THE GRAVITY WELL: Native JointJS Raycaster ---
+    const findClosestSnapTarget = (pt) => {
+        let bestDist = 20; 
+        let target = { type: 'empty', pt: { x: Math.round(pt.x / 10) * 10, y: Math.round(pt.y / 10) * 10 } };
+        
+        // Priority 1: Solder Dots
+        AppState.graph.getElements().forEach(el => {
+            if (el.get('latexMacro') === 'connectordot') {
+                const center = { x: el.position().x + 20, y: el.position().y + 20 };
+                const d = Math.hypot(center.x - pt.x, center.y - pt.y);
+                if (d < bestDist) {
+                    bestDist = d;
+                    target = { type: 'dot', el: el, pt: { x: Math.round(center.x/10)*10, y: Math.round(center.y/10)*10 } };
+                }
+            }
+        });
+
+        // Priority 2: Pins (Using JointJS's Native View Engine)
+        const searchArea = new joint.g.Rect(pt.x - 20, pt.y - 20, 40, 40);
+        const views = AppState.paper.findViewsInArea(searchArea);
+        
+        views.forEach(v => {
+            if (v.model.isElement() && v.model.get('latexMacro') !== 'connectordot' && v.model.get('latexMacro') !== 'freetext') {
+                // Loop through all ports on this component
+                v.model.getPorts().forEach(port => {
+                    // Ask JointJS for the exact physical rendered DOM element of this port
+                    const portNode = v.el.querySelector(`[port="${port.id}"] [joint-selector="portBody"]`);
+                    if (portNode) {
+                        // Get the exact center of that DOM element and convert it to graph coordinates
+                        const rect = portNode.getBoundingClientRect();
+                        const pinCenter = AppState.paper.clientToLocalPoint({ 
+                            x: rect.left + rect.width / 2, 
+                            y: rect.top + rect.height / 2 
+                        });
+                        
+                        const d = Math.hypot(pinCenter.x - pt.x, pinCenter.y - pt.y);
+                        
+                        // <= allows Pins to ruthlessly overwrite Wires and Dots at the exact same coordinate
+                        if (d <= bestDist) { 
+                            bestDist = d;
+                            target = { 
+                                type: 'pin', 
+                                el: v.model, 
+                                portId: port.id, 
+                                pt: { x: Math.round(pinCenter.x/10)*10, y: Math.round(pinCenter.y/10)*10 } 
+                            };
+                        }
+                    }
+                });
+            }
+        });
+
+        // Priority 3: Wires
+        views.forEach(v => {
+            if (v.model.isLink() && (!activeWire || v.model.id !== activeWire.id)) {
+                const closestPt = v.getClosestPoint(pt);
+                if (closestPt) {
+                    const d = Math.hypot(closestPt.x - pt.x, closestPt.y - pt.y);
+                    if (d < bestDist && d < 15) { // < 15 prevents overriding Pins!
+                        bestDist = d;
+                        target = { type: 'wire', el: v.model, pt: { x: Math.round(closestPt.x/10)*10, y: Math.round(closestPt.y/10)*10 } };
+                    }
+                }
+            }
+        });
+
+        return target;
+    };
+
+    // --- 2. TOPOLOGICAL SCANNER: True Nodal Degree Mathematics ---
+    const spawnJunctionIfIntersecting = (pt, activeWireObj = null) => {
+        let tol = 2; 
+        let hasDot = false;
+        let isOnPin = false;
+        let existingEndpoints = 0;
+        let isTJunction = false;
+        
+        // 1. Check existing Dots
+        AppState.graph.getElements().forEach(el => {
+            if (el.get('latexMacro') === 'connectordot' && Math.abs((el.position().x + 20) - pt.x) < tol && Math.abs((el.position().y + 20) - pt.y) < tol) {
+                hasDot = true;
+            }
+        });
+        if (hasDot) return; 
+
+        // 2. Check Pins
+        AppState.graph.getElements().forEach(el => {
+            if (el.get('latexMacro') !== 'connectordot' && el.get('latexMacro') !== 'freetext') {
+                el.getPorts().forEach(port => {
+                    const pinPt = getAbsolutePinCoord(el, port.id);
+                    if (pinPt && Math.abs(pinPt.x - pt.x) < tol && Math.abs(pinPt.y - pt.y) < tol) isOnPin = true;
+                });
+            }
+        });
+        if (isOnPin) return; // EDA Rule: Never spawn a dot on a pin!
+
+        // 3. Extract the True Entering Vector from the active wire
+        let activeDx = 0, activeDy = 0;
+        if (activeWireObj) {
+            let activePts = [activeWireObj.getSourcePoint(), ...(activeWireObj.vertices() || []), activeWireObj.getTargetPoint()];
+            activePts = activePts.map(p => ({ x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 }));
+            // THE FIX: Strip consecutive duplicates caused by L-bend logic!
+            activePts = activePts.filter((p, i, a) => i === 0 || p.x !== a[i-1].x || p.y !== a[i-1].y);
+            
+            if (activePts.length >= 2) {
+                activeDx = activePts[activePts.length-1].x - activePts[activePts.length-2].x;
+                activeDy = activePts[activePts.length-1].y - activePts[activePts.length-2].y;
+            }
+        }
+
+        // 4. Scan existing wires
+        AppState.graph.getLinks().forEach(l => {
+            if (activeWireObj && l.id === activeWireObj.id) return; 
+
+            const linkView = AppState.paper.findViewByModel(l);
+            if (!linkView || !linkView.sourcePoint || !linkView.targetPoint) return;
+
+            let rawPts = [linkView.sourcePoint, ...(l.vertices() || []), linkView.targetPoint];
+            let pts = rawPts.map(p => ({ x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 }));
+            // Clean up existing wire duplicates just in case
+            pts = pts.filter((p, i, a) => i === 0 || p.x !== a[i-1].x || p.y !== a[i-1].y);
+            if (pts.length < 2) return;
+
+            // Did we snap to an existing Endpoint?
+            let pStart = pts[0], pEnd = pts[pts.length - 1];
+            if (Math.abs(pStart.x - pt.x) <= tol && Math.abs(pStart.y - pt.y) <= tol) existingEndpoints++;
+            else if (Math.abs(pEnd.x - pt.x) <= tol && Math.abs(pEnd.y - pt.y) <= tol) existingEndpoints++;
+
+            // Did we snap STRICTLY inside a segment?
+            for (let i = 0; i < pts.length - 1; i++) {
+                let p1 = pts[i], p2 = pts[i+1];
+                
+                // Vertical Line Check
+                if (p1.x === p2.x && Math.abs(pt.x - p1.x) <= tol) {
+                    let minY = Math.min(p1.y, p2.y);
+                    let maxY = Math.max(p1.y, p2.y);
+                    if (pt.y > minY + tol && pt.y < maxY - tol) { 
+                        // It is a T-Junction if we are coming in horizontally!
+                        if (!activeWireObj || Math.abs(activeDx) > 0) isTJunction = true;
+                    }
+                }
+                // Horizontal Line Check
+                else if (p1.y === p2.y && Math.abs(pt.y - p1.y) <= tol) {
+                    let minX = Math.min(p1.x, p2.x);
+                    let maxX = Math.max(p1.x, p2.x);
+                    if (pt.x > minX + tol && pt.x < maxX - tol) { 
+                        // It is a T-Junction if we are coming in vertically!
+                        if (!activeWireObj || Math.abs(activeDy) > 0) isTJunction = true;
+                    }
+                }
+            }
+        });
+
+        // 5. SPAWN RULES
+        if (isTJunction || existingEndpoints >= 2) {
+            let dot = new joint.shapes.jl.ConnectorDot();
+            dot.addPort({ id: 'p1', group: 'absolute', args: {x: 20, y: 20}, markup: '<g/>' });
+            dot.set({'latexMacro': 'connectordot', 'offsetX': -20, 'offsetY': -20});
+            dot.position(pt.x - 20, pt.y - 20);
+            dot.attr('dot/fill', THEME_COLORS[AppState.theme].dot);
+            dot.addTo(AppState.graph);
+        }
+    };
+
+    // --- 3. POST-ROUTING AUTO-HEALER: Flawless Segment Merging ---
+    const mergeColinearWires = (newWire) => {
+        if (!newWire) return;
+        let pts = [newWire.getSourcePoint(), ...(newWire.vertices() || []), newWire.getTargetPoint()];
+        // Clean up zero-length double-click artifacts
+        pts = pts.filter((p, i, a) => i === 0 || Math.abs(p.x - a[i-1].x) > 1 || Math.abs(p.y - a[i-1].y) > 1);
+        
+        if (pts.length !== 2) return; // Only merge pure straight lines
+        
+        let w1_h = (Math.abs(pts[0].y - pts[1].y) < 1);
+        let w1_v = (Math.abs(pts[0].x - pts[1].x) < 1);
+        if (!w1_h && !w1_v) return;
+
+        let links = AppState.graph.getLinks();
+        for (let other of links) {
+            if (other.id === newWire.id) continue;
+            let oPts = [other.getSourcePoint(), ...(other.vertices() || []), other.getTargetPoint()];
+            oPts = oPts.filter((p, i, a) => i === 0 || Math.abs(p.x - a[i-1].x) > 1 || Math.abs(p.y - a[i-1].y) > 1);
+            if (oPts.length !== 2) continue; 
+            
+            let w2_h = (Math.abs(oPts[0].y - oPts[1].y) < 1);
+            let w2_v = (Math.abs(oPts[0].x - oPts[1].x) < 1);
+            
+            // Merge Horizontal Overlaps
+            if (w1_h && w2_h && Math.abs(pts[0].y - oPts[0].y) < 1) {
+                let minX1 = Math.min(pts[0].x, pts[1].x), maxX1 = Math.max(pts[0].x, pts[1].x);
+                let minX2 = Math.min(oPts[0].x, oPts[1].x), maxX2 = Math.max(oPts[0].x, oPts[1].x);
+                if (Math.max(minX1, minX2) <= Math.min(maxX1, maxX2) + 1) { 
+                    other.source({ x: Math.min(minX1, minX2), y: pts[0].y });
+                    other.target({ x: Math.max(maxX1, maxX2), y: pts[0].y });
+                    let nSrc = newWire.source(), nTgt = newWire.target();
+                    if (nSrc.id) other.source(nSrc);
+                    if (nTgt.id) other.target(nTgt);
+                    newWire.remove(); return; 
+                }
+            }
+            // Merge Vertical Overlaps
+            else if (w1_v && w2_v && Math.abs(pts[0].x - oPts[0].x) < 1) {
+                let minY1 = Math.min(pts[0].y, pts[1].y), maxY1 = Math.max(pts[0].y, pts[1].y);
+                let minY2 = Math.min(oPts[0].y, oPts[1].y), maxY2 = Math.max(oPts[0].y, oPts[1].y);
+                if (Math.max(minY1, minY2) <= Math.min(maxY1, maxY2) + 1) {
+                    other.source({ x: pts[0].x, y: Math.min(minY1, minY2) });
+                    other.target({ x: pts[0].x, y: Math.max(maxY1, maxY2) });
+                    let nSrc = newWire.source(), nTgt = newWire.target();
+                    if (nSrc.id) other.source(nSrc);
+                    if (nTgt.id) other.target(nTgt);
+                    newWire.remove(); return;
+                }
+            }
+        }
+    };
+
+    // --- 4. THE INTERCEPTOR: Seize control of the clicks ---
+    paperEl.addEventListener('mousedown', (e) => {
+        if (e.button !== 0 || AppState.currentTool !== 'wire') return;
+        e.stopPropagation(); 
+
+        const rawPt = AppState.paper.clientToLocalPoint({ x: e.clientX, y: e.clientY });
+        let snapTgt = findClosestSnapTarget(rawPt);
+        
+        if (snapTgt.type === 'empty' && e.altKey) {
+            snapTgt.pt = { x: Math.round(rawPt.x / 5) * 5, y: Math.round(rawPt.y / 5) * 5 };
+        }
+
+        const jointView = AppState.paper.findView(e.target);
+        const isComponentBody = jointView && jointView.model.isElement() && snapTgt.type === 'empty';
+
+        if (!activeWire) {
+            if (isComponentBody) return; 
+
+            const theme = THEME_COLORS[AppState.theme] || THEME_COLORS.standard;
+            permanentVertices = [];
+            wireStartPt = snapTgt.pt;
+            bendDir = 'H';
+            
+            activeWireStartConnection = snapTgt;
+
+            activeWire = new joint.shapes.standard.Link({
+                attrs: { line: { stroke: theme.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } },
+                connector: { name: 'rounded', args: { radius: 0 } }
+            });
+            
+            activeWire.source(snapTgt.pt);
+            activeWire.target(snapTgt.pt);
+            activeWire.addTo(AppState.graph);
+            
+            spawnJunctionIfIntersecting(snapTgt.pt, activeWire);
+            
+        } else {
+            let lastPt = permanentVertices.length > 0 ? permanentVertices[permanentVertices.length - 1] : wireStartPt;
+            let cornerPt = bendDir === 'H' ? { x: snapTgt.pt.x, y: lastPt.y } : { x: lastPt.x, y: snapTgt.pt.y };
+
+            const commitFinalCorner = () => {
+                if ((cornerPt.x !== lastPt.x || cornerPt.y !== lastPt.y) && (cornerPt.x !== snapTgt.pt.x || cornerPt.y !== snapTgt.pt.y)) {
+                    permanentVertices.push(cornerPt);
+                }
+            };
+
+            const finalizeWire = () => {
+                let finishedWire = activeWire;
+                activeWire = null;
+
+                if (activeWireStartConnection.type === 'pin') finishedWire.source({ id: activeWireStartConnection.el.id, port: activeWireStartConnection.portId, magnet: 'portBody', anchor: {name:'center'}, connectionPoint: {name:'anchor'} });
+                else if (activeWireStartConnection.type === 'dot') finishedWire.source({ id: activeWireStartConnection.el.id, anchor: {name:'center'}, connectionPoint: {name:'anchor'} });
+
+                if (snapTgt.type === 'pin') finishedWire.target({ id: snapTgt.el.id, port: snapTgt.portId, magnet: 'portBody', anchor: {name:'center'}, connectionPoint: {name:'anchor'} });
+                else if (snapTgt.type === 'dot') finishedWire.target({ id: snapTgt.el.id, anchor: {name:'center'}, connectionPoint: {name:'anchor'} });
+                else finishedWire.target(snapTgt.pt);
+
+                mergeColinearWires(finishedWire);
+                if (typeof saveState === 'function') saveState();
+                if (typeof exportLatex === 'function') exportLatex();
+                if (typeof updateToolbarState === 'function') updateToolbarState();
+            };
+
+            if (snapTgt.type === 'pin' || snapTgt.type === 'dot' || snapTgt.type === 'wire') {
+                commitFinalCorner();
+                activeWire.vertices(permanentVertices);
+                if (snapTgt.type !== 'dot') spawnJunctionIfIntersecting(snapTgt.pt, activeWire);
+                finalizeWire();
+            } else if (isComponentBody) {
+                return; 
+            } else {
+                let now = Date.now();
+                if (now - lastClickTime < 300) {
+                    commitFinalCorner();
+                    activeWire.vertices(permanentVertices);
+                    spawnJunctionIfIntersecting(snapTgt.pt, activeWire);
+                    finalizeWire();
+                } else {
+                    if (cornerPt.x !== lastPt.x || cornerPt.y !== lastPt.y) {
+                        permanentVertices.push(cornerPt);
+                        bendDir = bendDir === 'H' ? 'V' : 'H';
+                    }
+                }
+            }
+        }
+        lastClickTime = Date.now();
+    }, true);
+
+    // --- 5. THE L-BEND LIVE PREVIEW ENGINE ---
+    paperEl.addEventListener('mousemove', (e) => {
+        if (AppState.currentTool !== 'wire' || !activeWire) return;
+        
+        const rawPt = AppState.paper.clientToLocalPoint({ x: e.clientX, y: e.clientY });
+        let snapTgt = findClosestSnapTarget(rawPt);
+        
+        if (snapTgt.type === 'empty' && e.altKey) {
+            snapTgt.pt = { x: Math.round(rawPt.x / 5) * 5, y: Math.round(rawPt.y / 5) * 5 };
+        }
+
+        let lastPt = permanentVertices.length > 0 ? permanentVertices[permanentVertices.length - 1] : wireStartPt;
+        let tempVertex = bendDir === 'H' ? { x: snapTgt.pt.x, y: lastPt.y } : { x: lastPt.x, y: snapTgt.pt.y };
+        
+        if (snapTgt.pt.x !== lastPt.x && snapTgt.pt.y !== lastPt.y) {
+            activeWire.vertices([...permanentVertices, tempVertex]);
+        } else {
+            activeWire.vertices(permanentVertices);
+        }
+        activeWire.target(snapTgt.pt);
+    });
+
+    // 3. KEYBOARD SHORTCUTS (Spacebar = Flip Bend, Escape = Cancel)
+    document.addEventListener('keydown', (e) => {
+        if (activeWire && e.code === 'Space') {
+            e.preventDefault(); // Stop page from scrolling
+            bendDir = bendDir === 'H' ? 'V' : 'H'; 
+            // The preview will instantly snap to the flipped direction on the next pixel of mouse movement!
+        }
+        if (e.key === 'Escape' && activeWire) {
+            activeWire.remove();
+            activeWire = null;
+        }
+    });
+
+    // 4. PROFESSIONAL EDITING: Unlock interactive segment draggers!
+    AppState.paper.on('link:pointerclick', function(linkView) {
+        if (activeWire) return; // Don't show handles if we are actively routing
+        AppState.paper.hideTools(); 
+        
+        var toolsView = new joint.dia.ToolsView({
+            tools: [
+                new joint.linkTools.Vertices(), // Double click to add/remove corners
+                new joint.linkTools.Segments(), // Click and drag an entire horizontal/vertical line segment!
+                new joint.linkTools.Remove({ distance: 20 }) // Red 'X' to delete the wire
+            ]
+        });
+        linkView.addTools(toolsView);
+    });
+
+    AppState.paper.on('blank:pointerdown', () => {
+        if (!activeWire) AppState.paper.hideTools();
+    });
+    // =========================================================================
 }
 
 export function updateDynamicGrid() {
@@ -1324,8 +1825,7 @@ export function drawDCOperatingPoint(opData) {
 export function autoSplitWire(el) {
     if (el.get('latexMacro') !== 'currentprobe') return;
     
-    // 1. FORCE VISIBILITY: Temporarily show the pins so JointJS can compute their 
-    // exact physical bounding boxes, preventing the weird grid-step offsets!
+    // 1. FORCE VISIBILITY: Temporarily show the pins so JointJS can compute their exact physical bounding boxes
     el.getPorts().forEach(p => el.portProp(p.id, 'attrs/portBody/display', 'block'));
 
     // 2. Wait 20ms for the browser to render the visible pins into the DOM
@@ -1339,6 +1839,7 @@ export function autoSplitWire(el) {
         const threshold = 25; // Snap tolerance in pixels
         const links = AppState.graph.getLinks();
         let hit = false;
+        let hitSegmentIndex = -1; // <--- WE MUST TRACK EXACTLY WHICH SEGMENT WAS CUT
 
         for (let link of links) {
             const linkView = link.findView(AppState.paper);
@@ -1366,6 +1867,7 @@ export function autoSplitWire(el) {
                     
                     if (dist < threshold) {
                         hit = true;
+                        hitSegmentIndex = i; // Save the cut location!
                         break;
                     }
                 }
@@ -1375,7 +1877,6 @@ export function autoSplitWire(el) {
                 const ports = el.getPorts();
                 if (ports.length < 2) break;
 
-                // Calculate distances to prevent crossing wires (The "X" overlap)
                 const elPos = el.position();
                 const p1X = elPos.x + (ports[0].args.x || 0);
                 const p1Y = elPos.y + (ports[0].args.y || 0);
@@ -1393,9 +1894,9 @@ export function autoSplitWire(el) {
                 const origTarget = link.target();
                 const theme = THEME_COLORS[AppState.theme] || THEME_COLORS.standard;
                 
-                // Copy original wire styling (e.g. orthogonal corners)
                 const originalRouter = link.get('router');
                 const originalConnector = link.get('connector');
+                const origVertices = link.get('vertices') || []; // <--- GET ORIGINAL L-BENDS
 
                 link.remove(); // Nuke the solid wire
 
@@ -1403,17 +1904,41 @@ export function autoSplitWire(el) {
                     line: { stroke: theme.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } 
                 };
 
+                // --- THE FIX: VERTEX SLICING & ORTHOGONAL HEALING ---
+                const verts1 = origVertices.slice(0, hitSegmentIndex);
+                const verts2 = origVertices.slice(hitSegmentIndex);
+                
+                // Determine if the cut segment was perfectly horizontal or vertical
+                const pSeg1 = pts[hitSegmentIndex];
+                const pSeg2 = pts[hitSegmentIndex+1];
+                const isHorz = Math.abs(pSeg1.y - pSeg2.y) < 1;
+                const isVert = Math.abs(pSeg1.x - pSeg2.x) < 1;
+
+                const port1Abs = { x: p1X, y: p1Y };
+                const port2Abs = { x: p2X, y: p2Y };
+
+                // If the user dropped the probe slightly off-axis, inject a new corner to force 90 degrees!
+                if (isHorz && Math.abs(port1Abs.y - pSeg1.y) > 1) verts1.push({ x: port1Abs.x, y: pSeg1.y });
+                else if (isVert && Math.abs(port1Abs.x - pSeg1.x) > 1) verts1.push({ x: pSeg1.x, y: port1Abs.y });
+
+                let v2Inject = [];
+                if (isHorz && Math.abs(port2Abs.y - pSeg2.y) > 1) v2Inject.push({ x: port2Abs.x, y: pSeg2.y });
+                else if (isVert && Math.abs(port2Abs.x - pSeg2.x) > 1) v2Inject.push({ x: pSeg2.x, y: port2Abs.y });
+                const finalVerts2 = [...v2Inject, ...verts2];
+
                 // Wire 1: Explicitly target the visual "portBody" magnet
                 const link1 = new joint.shapes.standard.Link({ attrs: commonAttrs });
                 if (originalRouter) link1.set('router', originalRouter);
                 if (originalConnector) link1.set('connector', originalConnector);
                 link1.source(origSource).target({ id: el.id, port: sourcePortId, magnet: 'portBody' });
+                link1.vertices(verts1); // <--- RESTORE VERTICES
 
                 // Wire 2: Explicitly target the visual "portBody" magnet
                 const link2 = new joint.shapes.standard.Link({ attrs: commonAttrs });
                 if (originalRouter) link2.set('router', originalRouter);
                 if (originalConnector) link2.set('connector', originalConnector);
                 link2.source({ id: el.id, port: targetPortId, magnet: 'portBody' }).target(origTarget);
+                link2.vertices(finalVerts2); // <--- RESTORE VERTICES
 
                 AppState.graph.addCells([link1, link2]);
                 break; 
@@ -1425,7 +1950,6 @@ export function autoSplitWire(el) {
     }, 20);
 
     function restorePortVisibility() {
-        // Wait another 50ms for JointJS to finish snapping the wires before making the pins invisible again
         setTimeout(() => {
             let isVisible = AppState.viewOptions && AppState.viewOptions.showPins;
             el.getPorts().forEach(p => el.portProp(p.id, 'attrs/portBody/display', isVisible ? 'block' : 'none'));

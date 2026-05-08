@@ -201,13 +201,14 @@ export function generateSpiceNetlistStr(customSim) {
     if (elements.length === 0) return { errors: ["Empty Canvas"] };
 	
 	let config = AppState.spiceSimConfig || {};
-    // Grab user settings or fallback to standard 5V CMOS logic
     let vHigh = config.logicHighVoltage || "5.0";
     let vThresh = config.logicThresholdVoltage || "2.5";
 
     let topo = window.extractTopology();
+    
+    // FIX 2a: Protect against null points crashing the math!
     let getNetForPin = (pt) => {
-        // INCREASED TOLERANCE TO 10: Ensures direct pin-to-pin drops connect perfectly!
+        if (!pt) return null; 
         let cluster = topo.terminals.find(t => Math.abs(t.x - pt.x) < 10 && Math.abs(t.y - pt.y) < 10);
         return cluster ? topo.netMap.get(topo.uf.find(cluster.id)) : null;
     };
@@ -220,7 +221,10 @@ export function generateSpiceNetlistStr(customSim) {
         let macro = el.get('latexMacro');
         if (macro !== 'connectordot' && macro !== 'freetext') {
             el.getPorts().forEach(port => {
-                let pt = window.getAbsolutePinCoord(el, port.id);
+                // Safely grab the coordinate using the globally exposed canvas math
+                let pt = (typeof window.getAbsolutePinCoord === 'function') ? window.getAbsolutePinCoord(el, port.id) : null;
+                if (!pt) return; // FIX 2b: Skip missing ports gracefully
+                
                 let netId = getNetForPin(pt);
                 if (netId) netPopulation[netId] = (netPopulation[netId] || 0) + 1;
             });
@@ -275,8 +279,9 @@ export function generateSpiceNetlistStr(customSim) {
         // ==========================================
 
         el.getPorts().forEach(port => {
-            let pt = window.getAbsolutePinCoord(el, port.id);
-            let netId = getNetForPin(pt);
+            let pt = (typeof window.getAbsolutePinCoord === 'function') ? window.getAbsolutePinCoord(el, port.id) : null;
+            let netId = pt ? getNetForPin(pt) : null;
+            
             if (netId === null || netPopulation[netId] === 1) errors.push(`Component <b>${name}</b> has an unconnected/floating pin.`);
             template = template.replace(new RegExp(`\\{${port.id}\\}`, 'g'), netId || "NC");
         });
@@ -499,6 +504,7 @@ export async function runSimulation(mode, customNetlist = null) {
     // ==========================================================
 
     window.isSpiceAborted = false;
+	window.spiceErrorFlag = false;
 
     Swal.fire({ 
         title: 'Simulating...', 
@@ -747,10 +753,14 @@ function plotSimulationResults(parsedData, title) {
 
     let maxX = 0, maxY = 0, isComplex = false;
     
-    // --- FIX 2: DETECT DUAL Y-AXES ---
+    // --- NEW: Track Global Minimums to detect flatlines ---
+    let globalMinY = Infinity, globalMaxY = -Infinity;
+    let globalMinV = Infinity, globalMaxV = -Infinity;
+    let globalMinI = Infinity, globalMaxI = -Infinity;
+
     let hasV = parsedData.vars.slice(1).some(v => v.name.toLowerCase().startsWith('v'));
     let hasI = parsedData.vars.slice(1).some(v => v.name.toLowerCase().startsWith('i'));
-    let dualAxis = hasV && hasI && !isAC; // Only split Y axes for Tran/DC sweeps
+    let dualAxis = hasV && hasI && !isAC; 
     
     let maxV = 0, maxI = 0;
 
@@ -758,12 +768,24 @@ function plotSimulationResults(parsedData, title) {
         let isCurrent = parsedData.vars[i].name.toLowerCase().startsWith('i');
         for (let p of activePoints) {
             let xVal = getX(p), yVal = p[i], yMag = typeof yVal === 'object' ? yVal.mag : yVal;
+            
             if (Math.abs(xVal) > maxX) maxX = Math.abs(xVal);
             if (Math.abs(yMag) > maxY) maxY = Math.abs(yMag); 
             
+            // Track absolute ranges
+            if (yMag < globalMinY) globalMinY = yMag;
+            if (yMag > globalMaxY) globalMaxY = yMag;
+
             if (dualAxis) {
-                if (isCurrent && Math.abs(yMag) > maxI) maxI = Math.abs(yMag);
-                if (!isCurrent && Math.abs(yMag) > maxV) maxV = Math.abs(yMag);
+                if (isCurrent) {
+                    if (Math.abs(yMag) > maxI) maxI = Math.abs(yMag);
+                    if (yMag < globalMinI) globalMinI = yMag;
+                    if (yMag > globalMaxI) globalMaxI = yMag;
+                } else {
+                    if (Math.abs(yMag) > maxV) maxV = Math.abs(yMag);
+                    if (yMag < globalMinV) globalMinV = yMag;
+                    if (yMag > globalMaxV) globalMaxV = yMag;
+                }
             }
             if (typeof yVal === 'object') isComplex = true;
         }
@@ -993,13 +1015,24 @@ function plotSimulationResults(parsedData, title) {
                 window.simChartInstances = [];
                 chartContainer.innerHTML = '';
 
-                // Common axes options
+                // --- NEW: Anti-Micro-Vibration Padding ---
+                const getPadding = (min, max) => {
+                    let diff = max - min;
+                    // If the signal varies by less than 1mV, pad it to +/- 0.5 to keep the line flat!
+                    if (diff < 1e-3) return { min: min - 0.5, max: max + 0.5 };
+                    return {};
+                };
+
+                let yPad = dualAxis ? getPadding(globalMinV, globalMaxV) : getPadding(globalMinY, globalMaxY);
+                let y1Pad = dualAxis ? getPadding(globalMinI, globalMaxI) : {};
+
                 const scalesObj = {
                     x: { type: isAC ? 'logarithmic' : 'linear', title: { display: true, text: `${xVar.name} (${xScale.prefix}${xUnit})` }, ticks: { callback: v => isAC ? v : parseFloat((v * xScale.mult).toFixed(3)) } },
                     y: { 
                         type: 'linear', position: 'left', 
                         title: { display: true, text: dualAxis ? `Voltage (${vScale.prefix}V)` : `Magnitude (${yScale.prefix}${yUnit})` }, 
-                        ticks: { callback: v => parseFloat((v * (dualAxis ? vScale.mult : yScale.mult)).toFixed(3)) } 
+                        ticks: { callback: v => parseFloat((v * (dualAxis ? vScale.mult : yScale.mult)).toFixed(3)) },
+                        suggestedMin: yPad.min, suggestedMax: yPad.max // <--- INJECT PADDING
                     }
                 };
 
@@ -1008,7 +1041,8 @@ function plotSimulationResults(parsedData, title) {
                         type: 'linear', display: true, position: 'right',
                         title: { display: true, text: `Current (${iScale.prefix}A)` },
                         ticks: { callback: v => parseFloat((v * iScale.mult).toFixed(3)) },
-                        grid: { drawOnChartArea: false }
+                        grid: { drawOnChartArea: false },
+                        suggestedMin: y1Pad.min, suggestedMax: y1Pad.max // <--- INJECT PADDING
                     };
                 } else if (isComplex) {
                     scalesObj.y1 = { type: 'linear', display: true, position: 'right', title: { display: true, text: 'Phase (°)' }, grid: { drawOnChartArea: false } };

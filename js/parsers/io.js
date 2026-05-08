@@ -8,7 +8,116 @@ import { extractStaticTexts } from './helpers.js';
 import { saveState, clearSelection, zoomFit } from '../ui/actions.js';
 import { clearSimAnnotations } from '../engines/spice.js';
 import { forceExportLatex } from './latex.js';
-import { populateSidebar } from '../ui/sidebar.js'; 
+import { populateSidebar } from '../ui/sidebar.js';
+
+// =========================================================================
+// LEGACY UPGRADER: Converts segmented wires into continuous polylines
+// =========================================================================
+function upgradeSegmentedWires(cells) {
+    let wires = [];
+    let others = [];
+    
+    cells.forEach(c => {
+        if (c.type === 'standard.Link') wires.push(c);
+        else others.push(c);
+    });
+
+    let changed = true;
+    while(changed) {
+        changed = false;
+        let ptMap = {};
+        
+        const addPt = (x, y, wire, isSource) => {
+            if (x === undefined || y === undefined) return;
+            let key = `${Math.round(x/10)*10},${Math.round(y/10)*10}`;
+            if (!ptMap[key]) ptMap[key] = { wires: [], hasComponent: false, hasDot: false };
+            ptMap[key].wires.push({ wire, isSource });
+        };
+
+        wires.forEach(w => {
+            if (w.source && w.source.x !== undefined) addPt(w.source.x, w.source.y, w, true);
+            if (w.target && w.target.x !== undefined) addPt(w.target.x, w.target.y, w, false);
+        });
+
+        others.forEach(c => {
+            if (c.type === 'jl.ConnectorDot') {
+                let cx = c.position.x + 20, cy = c.position.y + 20;
+                let key = `${Math.round(cx/10)*10},${Math.round(cy/10)*10}`;
+                if (ptMap[key]) ptMap[key].hasDot = true;
+            } else if (c.type === 'jl.Component' || c.ports) {
+                let shiftX = c.shiftX || 0, shiftY = c.shiftY || 0;
+                let posX = c.position.x, posY = c.position.y;
+                if (c.basePorts) {
+                    for (let pid in c.basePorts) {
+                        let px = posX + c.basePorts[pid].x + shiftX;
+                        let py = posY + c.basePorts[pid].y + shiftY;
+                        let key = `${Math.round(px/10)*10},${Math.round(py/10)*10}`;
+                        if (ptMap[key]) ptMap[key].hasComponent = true;
+                    }
+                }
+            }
+        });
+
+        for (let key in ptMap) {
+            let data = ptMap[key];
+            if (data.hasComponent) continue; 
+            
+            // Only merge if exactly 2 wires meet in empty space
+            if (data.wires.length === 2) {
+                let w1 = data.wires[0].wire, w2 = data.wires[1].wire;
+                if (w1.id === w2.id) continue;
+
+                let pts1 = [w1.source, ...(w1.vertices || []), w1.target];
+                let pts2 = [w2.source, ...(w2.vertices || []), w2.target];
+
+                let mergedPts = [];
+                if (data.wires[0].isSource && data.wires[1].isSource) {
+                    pts1.reverse(); mergedPts = [...pts1.slice(0, -1), ...pts2];
+                } else if (!data.wires[0].isSource && data.wires[1].isSource) {
+                    mergedPts = [...pts1.slice(0, -1), ...pts2];
+                } else if (data.wires[0].isSource && !data.wires[1].isSource) {
+                    mergedPts = [...pts2.slice(0, -1), ...pts1];
+                } else {
+                    pts2.reverse(); mergedPts = [...pts1.slice(0, -1), ...pts2];
+                }
+
+                w1.source = mergedPts[0];
+                w1.target = mergedPts[mergedPts.length - 1];
+                
+                // Strip redundant colinear vertices to make the polyline perfectly clean
+                let newVerts = [];
+                for (let i = 1; i < mergedPts.length - 1; i++) {
+                    let prev = mergedPts[i-1], curr = mergedPts[i], next = mergedPts[i+1];
+                    if (prev.x !== undefined && curr.x !== undefined && next.x !== undefined) {
+                        if (prev.x === curr.x && curr.x === next.x) continue;
+                        if (prev.y === curr.y && curr.y === next.y) continue;
+                    }
+                    newVerts.push(curr);
+                }
+                w1.vertices = newVerts;
+
+                // Nuke the secondary wire
+                wires = wires.filter(w => w.id !== w2.id);
+                
+                // If the legacy circuit had a connector dot on this corner, nuke it too!
+                if (data.hasDot) {
+                    others = others.filter(c => {
+                        if (c.type === 'jl.ConnectorDot') {
+                            let cx = c.position.x + 20, cy = c.position.y + 20;
+                            let cKey = `${Math.round(cx/10)*10},${Math.round(cy/10)*10}`;
+                            if (cKey === key) return false;
+                        }
+                        return true;
+                    });
+                }
+                
+                changed = true;
+                break; 
+            }
+        }
+    }
+    return [...others, ...wires];
+} 
 
 export async function saveFileAs(content, defaultFilename, mimeType, description) {
     if (window.showSaveFilePicker) {
@@ -167,6 +276,12 @@ export function importProject(e) {
                 });
             } else {
                 // Native JointJS
+                
+                // --- NEW: UPGRADE LEGACY WIRES BEFORE LOADING ---
+                try {
+                    masterSchematicData.cells = upgradeSegmentedWires(masterSchematicData.cells);
+                } catch(e) { console.error("Legacy Upgrader Failed:", e); }
+                
                 // Phantom Dot Cleanup
                 masterSchematicData.cells = masterSchematicData.cells.filter(cell => {
                     if (cell.type === 'standard.Link' && cell.source && cell.target) {

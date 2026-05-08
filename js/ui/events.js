@@ -31,22 +31,32 @@ export function initializeEvents() {
     document.addEventListener('keyup', function(e) { isAltDown = e.altKey; });
 
     // --- TOOL SWITCHING ---
+    // Inject a global override style for the crosshair (Restricted to the canvas!)
+    if (!document.getElementById('wire-mode-style')) {
+        const style = document.createElement('style');
+        style.id = 'wire-mode-style';
+        // FIX: Only apply the crosshair to the #my-paper container and its children
+        style.innerHTML = '.wire-mode #my-paper, .wire-mode #my-paper * { cursor: crosshair !important; }';
+        document.head.appendChild(style);
+    }
+
     document.getElementById('tool-draw').addEventListener('click', function() { 
-        document.getElementById('draw-glasspane').style.display = 'block'; 
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); 
         this.classList.add('active'); 
         AppState.currentTool = 'wire';
+        document.body.classList.add('wire-mode'); // <--- ENFORCE GLOBAL CROSSHAIR
     });
     
     document.getElementById('tool-pan').addEventListener('click', function() { 
-        document.getElementById('draw-glasspane').style.display = 'none'; 
         document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active')); 
         this.classList.add('active'); 
         AppState.currentTool = 'pan';
+        document.body.classList.remove('wire-mode'); // <--- RESTORE CURSORS
     });
 
     // --- MOUSE INTERACTIONS (PAPER) ---
     AppState.paper.on('blank:pointerdown', function(evt, x, y) {
+		if (AppState.currentTool === 'wire') return;
         if (evt.button === 1 || (evt.button === 0 && evt.altKey)) {
             const translate = AppState.paper.translate();
             dragPanStart = { x: evt.clientX, y: evt.clientY, tx: translate.tx, ty: translate.ty };
@@ -105,6 +115,7 @@ export function initializeEvents() {
 
     // --- GROUP DRAGGING ---
     AppState.paper.on('cell:pointerdown', function(cellView) {
+		if (AppState.currentTool === 'wire') return;
         container.focus();
         let model = cellView.model;
         if (!AppState.selectedElements.includes(model) && !AppState.selectedLinks.includes(model)) {
@@ -231,51 +242,8 @@ export function initializeEvents() {
          }
     });
 
-    // --- WIRE DRAWING LOGIC ---
-    function isPointOnLine(pt, p1, p2) {
-        let tol = 1; 
-        if (Math.abs(p1.x - p2.x) < tol && Math.abs(pt.x - p1.x) < tol) return pt.y >= Math.min(p1.y, p2.y) - tol && pt.y <= Math.max(p1.y, p2.y) + tol;
-        if (Math.abs(p1.y - p2.y) < tol && Math.abs(pt.y - p1.y) < tol) return pt.x >= Math.min(p1.x, p2.x) - tol && pt.x <= Math.max(p1.x, p2.x) + tol;
-        
-        let cross = Math.abs((pt.y - p1.y) * (p2.x - p1.x) - (pt.x - p1.x) * (p2.y - p1.y));
-        if (cross > 50) return false; 
-        let dot = (pt.x - p1.x) * (p2.x - p1.x) + (pt.y - p1.y) * (p2.y - p1.y);
-        let lenSq = (p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2;
-        return dot >= -tol && dot <= lenSq + tol;
-    }
 
-    function getTopologicalDegree(pt) {
-        let degree = 0; let tol = 2; let hasDot = false;
-
-        AppState.graph.getElements().forEach(el => {
-            let macro = el.get('latexMacro');
-            if (macro === 'connectordot') {
-                let p = el.position();
-                if (Math.abs((p.x + 20) - pt.x) < tol && Math.abs((p.y + 20) - pt.y) < tol) hasDot = true;
-            } else if (macro !== 'freetext') {
-                el.getPorts().forEach(port => {
-                    let pinPt = getAbsolutePinCoordLocal(el, port.id);
-                    if (Math.abs(pinPt.x - pt.x) < tol && Math.abs(pinPt.y - pt.y) < tol) degree += 1;
-                });
-            }
-        });
-
-        AppState.graph.getLinks().forEach(l => {
-            let pts = [l.getSourcePoint(), ...(l.vertices() || []), l.getTargetPoint()];
-            for (let i = 0; i < pts.length - 1; i++) {
-                let p1 = pts[i], p2 = pts[i+1];
-                let onP1 = Math.abs(p1.x - pt.x) < tol && Math.abs(p1.y - pt.y) < tol;
-                let onP2 = Math.abs(p2.x - pt.x) < tol && Math.abs(p2.y - pt.y) < tol;
-                
-                if (onP1 && onP2) {} // Ignore zero-length
-                else if (onP1 || onP2) degree += 1; 
-                else if (isPointOnLine(pt, p1, p2)) degree += 2; 
-            }
-        });
-        return { degree, hasDot };
-    }
-
-    function getAbsolutePinCoordLocal(el, portId) {
+     function getAbsolutePinCoordLocal(el, portId) {
         let port = el.getPort(portId);
         let pos = el.position(); let size = el.size();
         let px = pos.x + port.args.x; let py = pos.y + port.args.y;
@@ -288,64 +256,4 @@ export function initializeEvents() {
         };
     }
 
-    const drawGlasspane = document.getElementById('draw-glasspane');
-    
-    drawGlasspane.addEventListener('mousedown', function(e) {
-        drawing = true;
-        let p = AppState.paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let snap = e.altKey ? 10 : 40; 
-        let s = { x: Math.round(p.x/snap)*snap, y: Math.round(p.y/snap)*snap }; 
-        const theme = THEME_COLORS[AppState.theme];
-        
-        wire = new joint.shapes.standard.Link({ 
-            source: s, target: s, 
-            attrs: { line: { stroke: theme.wire, strokeWidth: 1.8, targetMarker: null, 'vector-effect': 'non-scaling-stroke' } } 
-        });
-        wire.addTo(AppState.graph);
-    });
-
-    drawGlasspane.addEventListener('mousemove', function(e) {
-        if (!drawing) return;
-        let p = AppState.paper.clientToLocalPoint({x: e.clientX, y: e.clientY});
-        let snap = e.altKey ? 10 : 40;
-        let tx = Math.round(p.x/snap)*snap, ty = Math.round(p.y/snap)*snap;
-        let s = wire.source();
-        
-        if (e.altKey) {
-            wire.target({ x: tx, y: ty }, { snapping: true });
-        } else {
-            if (Math.abs(tx - s.x) > Math.abs(ty - s.y)) wire.target({ x: tx, y: s.y }, { snapping: true });
-            else wire.target({ x: s.x, y: ty }, { snapping: true });
-        }
-    });
-
-    drawGlasspane.addEventListener('mouseup', function() { 
-        if (drawing) { 
-            drawing = false; 
-            if (wire) {
-                let s = wire.source();
-                let t = wire.target();
-                
-                if (s.x === t.x && s.y === t.y) {
-                    wire.remove();
-                } else {
-                    wire.toBack(); 
-                    
-                    let endpoints = [s, t];
-                    endpoints.forEach(pt => {
-                        let topoInfo = getTopologicalDegree(pt);
-                        if (topoInfo.degree > 2 && !topoInfo.hasDot) {
-                            let dot = new joint.shapes.jl.ConnectorDot();
-                            dot.addPort({ id: 'p1', group: 'absolute', args: {x: 20, y: 20}, markup: '<g/>' });
-                            dot.set({'latexMacro': 'connectordot', 'offsetX': -20, 'offsetY': -20});
-                            dot.position(pt.x - 20, pt.y - 20);
-                            dot.attr('dot/fill', THEME_COLORS[AppState.theme].dot);
-                            dot.addTo(AppState.graph);
-                        }
-                    });
-                    exportLatex(); saveState(); 
-                }           
-            }           
-        } 
-    });
 }

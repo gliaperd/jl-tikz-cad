@@ -1842,7 +1842,7 @@ const JL_DATABASE = {
             {
                 "condition": "4~=terminals",
                 "style": "",
-                "path": "M 18 -30.50 L 18 -30.50 9 NaN mal,C*/ M 30 25 L 30 25 21 NaN mal,E*/ M -31 5.50 L -31 5.50 /*TEXT:9,normal,B*/ M 15 -30 L 15 -30 /*TEXT:9,normal,C*/ M 15 27.50 L 15 27.50 /*TEXT:9,normal,E*/"
+                "path": "M -31 5.50 L -31 5.50 /*TEXT:9,normal,B*/ M 15 -30 L 15 -30 /*TEXT:9,normal,C*/ M 15 27.50 L 15 27.50 /*TEXT:9,normal,E*/"
             }
         ],
         "argNames": [

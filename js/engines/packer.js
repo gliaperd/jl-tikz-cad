@@ -6,28 +6,214 @@ import { importSubcircuitToDatabase } from '../parsers/io.js';
 import { exportLatex } from '../parsers/latex.js'; 
 import { populateSidebar } from '../ui/sidebar.js'; 
 import { zoomFit } from '../ui/actions.js';
+import { updateElementLabel, assembleIcon } from '../ui/canvas.js';
 
-export function packCurrentCircuit(customName) {
+export function packCurrentCircuit(preProvidedName = null) {
     let elements = AppState.graph.getElements();
-    let ioPorts = [];
-    
-    // 1. Gather all Input/Output ports from the canvas
+    let links = AppState.graph.getLinks();
+
+    // ==========================================
+    // GEOMETRIC SCANNER: True Spatial Connectivity
+    // ==========================================
+    const isPointConnected = (pt, excludeId) => {
+        let tol = 2;
+        let connected = false;
+
+        // 1. Check other pins & dots
+        elements.forEach(el => {
+            if (el.id === excludeId) return;
+            if (el.get('latexMacro') === 'connectordot') {
+                if (Math.abs(el.position().x + 20 - pt.x) <= tol && Math.abs(el.position().y + 20 - pt.y) <= tol) connected = true;
+            } else if (el.get('latexMacro') !== 'freetext') {
+                el.getPorts().forEach(port => {
+                    let pinPt = window.getAbsolutePinCoord(el, port.id);
+                    if (pinPt && Math.abs(pinPt.x - pt.x) <= tol && Math.abs(pinPt.y - pt.y) <= tol) connected = true;
+                });
+            }
+        });
+
+        if (connected) return true;
+
+        // 2. Check Wires
+        links.forEach(l => {
+            if (l.id === excludeId) return;
+            const view = AppState.paper.findViewByModel(l);
+            if (!view || !view.sourcePoint || !view.targetPoint) return;
+
+            let rawPts = [view.sourcePoint, ...(l.vertices() || []), view.targetPoint];
+            let pts = rawPts.map(p => ({ x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 }));
+            pts = pts.filter((p, i, a) => i === 0 || p.x !== a[i-1].x || p.y !== a[i-1].y);
+
+            // Check endpoints
+            if (pts.length > 0) {
+                if (Math.abs(pts[0].x - pt.x) <= tol && Math.abs(pts[0].y - pt.y) <= tol) connected = true;
+                if (Math.abs(pts[pts.length-1].x - pt.x) <= tol && Math.abs(pts[pts.length-1].y - pt.y) <= tol) connected = true;
+            }
+
+            // Check segments
+            for (let i = 0; i < pts.length - 1; i++) {
+                let p1 = pts[i], p2 = pts[i+1];
+                if (p1.x === p2.x && Math.abs(pt.x - p1.x) <= tol) {
+                    if (pt.y >= Math.min(p1.y, p2.y) - tol && pt.y <= Math.max(p1.y, p2.y) + tol) connected = true;
+                } else if (p1.y === p2.y && Math.abs(pt.y - p1.y) <= tol) {
+                    if (pt.x >= Math.min(p1.x, p2.x) - tol && pt.x <= Math.max(p1.x, p2.x) + tol) connected = true;
+                }
+            }
+        });
+
+        return connected;
+    };
+
+    // ==========================================
+    // STAGE 1: FATAL PRE-FLIGHT DIAGNOSTICS
+    // ==========================================
+    let fatalFloatingPins = [];
+    let ioPortElements = [];
+
     elements.forEach(el => {
         let macro = el.get('latexMacro');
-        if (macro === 'ioport' || macro === 'ioportdot') {
-            let args = el.get('customArgs') || [];
-            let pinName = el.get('displayedText') || "P" + ioPorts.length;
-            let dir = args[2] ? args[2].toString().toLowerCase() : 'input';
-            let anchorDir = dir === 'output' ? 'R' : (dir === 'top' ? 'T' : (dir === 'bottom' ? 'B' : 'L'));
-            ioPorts.push({ name: pinName.replace(/\s+/g, '_'), dir: anchorDir, netId: el.id });
+        
+        if (macro === 'ioport' || macro === 'ioportdot') ioPortElements.push(el);
+
+        if (macro !== 'connectordot' && macro !== 'freetext') {
+            el.getPorts().forEach(port => {
+                let pt = window.getAbsolutePinCoord(el, port.id);
+                if (pt && !isPointConnected(pt, el.id)) {
+                    let compName = el.get('displayedText') || macro;
+                    let pinName = el.portProp(port.id, 'attrs/portTitle/text') || port.id;
+                    fatalFloatingPins.push(`<b>${compName}</b> (Pin: ${pinName})`);
+                }
+            });
         }
     });
 
-    if (ioPorts.length === 0) return Swal.fire('Error', 'No IO Ports found. Add at least one "ioport".', 'error');
+    if (ioPortElements.length === 0) {
+        return Swal.fire('Error', 'No IO Ports found. Add at least one "ioport" to create a subcircuit.', 'error');
+    }
 
-    // 2. Build the Visual Symbol Dimensions
-    let leftPins = ioPorts.filter(p => p.dir === 'L'), rightPins = ioPorts.filter(p => p.dir === 'R');
-    let topPins = ioPorts.filter(p => p.dir === 'T'), botPins = ioPorts.filter(p => p.dir === 'B');
+    if (fatalFloatingPins.length > 0) {
+        let errorHtml = `<div style="text-align: left; font-size: 13px;"><p>Subcircuits cannot contain floating (unconnected) pins, as this causes singular matrix errors in SPICE.</p><ul style="color: var(--danger);">` 
+            + fatalFloatingPins.map(p => `<li>${p}</li>`).join('') + `</ul></div>`;
+        return Swal.fire('Fatal Error: Floating Pins', errorHtml, 'error');
+    }
+
+    // ==========================================
+    // STAGE 2: GET NAME (If passed checks)
+    // ==========================================
+    if (!preProvidedName) {
+        Swal.fire({
+            title: 'Name Your Packed Circuit',
+            input: 'text',
+            inputPlaceholder: 'e.g. custom_amplifier',
+            showCancelButton: true,
+            confirmButtonText: 'Next',
+            confirmButtonColor: '#8e44ad'
+        }).then(result => {
+            if (result.isConfirmed && result.value) runWarningsAndCompile(result.value);
+        });
+    } else {
+        runWarningsAndCompile(preProvidedName);
+    }
+
+    // ==========================================
+    // STAGE 3 & 4: WARNINGS AND COMPILATION
+    // ==========================================
+    function runWarningsAndCompile(customName) {
+        let warningDanglingWires = 0;
+        let portsToRename = [];
+        let usedNames = new Set();
+
+        // 1. Check Dangling Wires geometrically
+        links.forEach(l => {
+            const view = AppState.paper.findViewByModel(l);
+            if (!view || !view.sourcePoint || !view.targetPoint) return;
+            let rawPts = [view.sourcePoint, ...(l.vertices() || []), view.targetPoint];
+            let pts = rawPts.map(p => ({ x: Math.round(p.x/10)*10, y: Math.round(p.y/10)*10 }));
+            pts = pts.filter((p, i, a) => i === 0 || p.x !== a[i-1].x || p.y !== a[i-1].y);
+            
+            if (pts.length > 0) {
+                if (!isPointConnected(pts[0], l.id)) warningDanglingWires++;
+                if (!isPointConnected(pts[pts.length-1], l.id)) warningDanglingWires++;
+            }
+        });
+
+        // 2. Check Unnamed / Duplicate IO Ports
+        ioPortElements.forEach((el, index) => {
+            let rawName = el.get('displayedText');
+            let needsRenaming = false;
+            
+            if (!rawName || rawName === 'ioport' || rawName === 'ioportdot') {
+                needsRenaming = true;
+                rawName = "P" + (index + 1);
+            }
+
+            let safeName = rawName.replace(/\s+/g, '_');
+            let uniqueName = safeName;
+            let counter = 1;
+            
+            while (usedNames.has(uniqueName)) {
+                uniqueName = safeName + "_" + counter;
+                counter++;
+                needsRenaming = true;
+            }
+            
+            usedNames.add(uniqueName);
+            if (needsRenaming) portsToRename.push({ el: el, newName: uniqueName });
+        });
+
+        // 3. The Gatekeeper Warning
+        if (portsToRename.length > 0 || warningDanglingWires > 0) {
+            let warnHtml = `<div style="text-align: left; font-size: 14px;">`;
+            if (portsToRename.length > 0) warnHtml += `<p><b>${portsToRename.length} Unnamed/Duplicate IO Ports</b> detected. They will be automatically renamed on the canvas to guarantee SPICE compatibility.</p>`;
+            if (warningDanglingWires > 0) warnHtml += `<p><b>${warningDanglingWires} Dangling Wire Endpoint(s)</b> detected. They lead nowhere and will be ignored by SPICE.</p>`;
+            warnHtml += `<hr><p style="margin-bottom:0;">Do you want to proceed and pack the circuit?</p></div>`;
+
+            Swal.fire({
+                title: 'Pre-Flight Warnings',
+                html: warnHtml,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f39c12',
+                cancelButtonColor: '#7f8c8d',
+                confirmButtonText: 'Auto-Fix & Pack',
+                cancelButtonText: 'Cancel'
+            }).then(result => {
+                if (result.isConfirmed) executePack(customName, ioPortElements, portsToRename);
+            });
+        } else {
+            executePack(customName, ioPortElements, []); 
+        }
+    }
+}
+
+// ==========================================
+// STAGE 5: THE CORE COMPILER
+// ==========================================
+function executePack(customName, ioPortElements, portsToRename) {
+    
+    // 1. Visually Auto-Heal the Canvas!
+    portsToRename.forEach(item => {
+        let el = item.el;
+        let args = el.get('customArgs') || [];
+        args[1] = item.newName; 
+        el.set('customArgs', args);
+        
+        if (typeof updateElementLabel === 'function') updateElementLabel(el, item.newName);
+        if (typeof assembleIcon === 'function') assembleIcon(el, args);
+    });
+
+    // 2. Gather Finalized Data
+    let finalIoPorts = [];
+    ioPortElements.forEach(el => {
+        let args = el.get('customArgs') || [];
+        let pinName = el.get('displayedText'); 
+        let dir = args[2] ? args[2].toString().toLowerCase() : 'input';
+        let anchorDir = dir === 'output' ? 'R' : (dir === 'top' ? 'T' : (dir === 'bottom' ? 'B' : 'L'));
+        finalIoPorts.push({ name: pinName, dir: anchorDir, netId: el.id });
+    });
+
+    let leftPins = finalIoPorts.filter(p => p.dir === 'L'), rightPins = finalIoPorts.filter(p => p.dir === 'R');
+    let topPins = finalIoPorts.filter(p => p.dir === 'T'), botPins = finalIoPorts.filter(p => p.dir === 'B');
     let maxVertPins = Math.max(leftPins.length, rightPins.length);
     let maxHorzPins = Math.max(topPins.length, botPins.length);
     let symbolWidth = Math.max(120, (maxHorzPins + 1) * 40), symbolHeight = Math.max(80, (maxVertPins + 1) * 40);
@@ -42,29 +228,26 @@ export function packCurrentCircuit(customName) {
     let criticalErrors = netlistData.errors ? netlistData.errors.filter(e => !e.includes("No Ground")) : [];
     if (criticalErrors.length > 0) {
         let errorHtml = `<ul style="text-align: left; font-size: 13px; color: var(--danger);">` + criticalErrors.map(e => `<li style="margin-bottom: 5px;">${e}</li>`).join('') + `</ul>`;
-        return Swal.fire('Error', 'Fix schematic errors before packing.<br><br>' + errorHtml, 'error');
+        return Swal.fire('Spice Error', 'Fix internal schematic logic before packing.<br><br>' + errorHtml, 'error');
     }
 
-    // ==============================================================
-    // 3. ROBUST ANTI-NESTING & PORT MAPPING
-    // ==============================================================
+    // 3. Geometric Port Mapping (Convert internal nodes to external ports)
     let portNames = [];
     let portNetMap = {};
     let topo = netlistData.topo;
 
-    ioPorts.forEach(p => {
+    finalIoPorts.forEach(p => {
         portNames.push(p.name);
         if (topo) {
             let portEl = AppState.graph.getCell(p.netId);
-            let bbox = portEl.getBBox();
-            bbox.x -= 10; bbox.y -= 10; bbox.width += 20; bbox.height += 20;
-            let foundNet = null;
-            topo.terminals.forEach(t => {
-                if (t.x >= bbox.x && t.x <= bbox.x + bbox.width && t.y >= bbox.y && t.y <= bbox.y + bbox.height) {
-                    foundNet = topo.netMap.get(topo.uf.find(t.id));
+            let pt = window.getAbsolutePinCoord(portEl, 'pin3') || window.getAbsolutePinCoord(portEl, 'pin1');
+            if (pt) {
+                let cluster = topo.terminals.find(t => Math.abs(t.x - pt.x) < 10 && Math.abs(t.y - pt.y) < 10);
+                if (cluster) {
+                    let foundNet = topo.netMap.get(topo.uf.find(cluster.id));
+                    if (foundNet !== null && String(foundNet) !== '0') portNetMap[String(foundNet)] = p.name;
                 }
-            });
-            if (foundNet !== null && String(foundNet) !== '0') portNetMap[String(foundNet)] = p.name;
+            }
         }
     });
 
@@ -73,11 +256,9 @@ export function packCurrentCircuit(customName) {
     let internalSpice = [];
     let skipBlock = false;
 
-    // The Filter: Cleanly skips any nested .subckt or .model blocks
     for (let line of spiceLines) {
         let trimmed = line.trim();
         if (trimmed.startsWith('*') || trimmed.startsWith('.op') || trimmed === '.end' || trimmed === '') continue;
-        
         if (trimmed.toLowerCase().startsWith('.subckt') || trimmed.toLowerCase().startsWith('.model')) skipBlock = true;
         if (skipBlock) {
             if (trimmed.toLowerCase() === '.ends') skipBlock = false;
@@ -94,7 +275,7 @@ export function packCurrentCircuit(customName) {
     let requiredLibModels = new Set();
     let lib = window.SPICE_MODEL_LIBRARY || {};
     
-    elements.forEach(el => {
+    AppState.graph.getElements().forEach(el => {
         let modelVal = (el.get('spiceData') || {})['MODEL'];
         if (modelVal && !modelVal.startsWith('WIZ_')) {
             for (let cat in lib) { if (lib[cat][modelVal]) requiredLibModels.add(lib[cat][modelVal]); }
