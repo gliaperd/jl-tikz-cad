@@ -236,7 +236,7 @@ export function forceExportLatex() {
     }
 
     paths.forEach(pathObj => {
-        let line = "  \\draw[line cap=round, line join=round] (" + pathObj.points.join(") -- (") + ");\n";
+        let line = "  \\draw[line cap=round, line join=round, line width=\\tikzlinewidth] (" + pathObj.points.join(") -- (") + ");\n";
         outText += line;
         let safeLine = highlightLatex(escapeHTML(line));
         if (pathObj.linkIds.some(id => isSelected(id))) outHTML += `<span class="highlight">${safeLine}</span>`;
