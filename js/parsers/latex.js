@@ -236,7 +236,7 @@ export function forceExportLatex() {
     }
 
     paths.forEach(pathObj => {
-        let line = "  \\draw[line cap=round, line join=round] (" + pathObj.points.join(") -- (") + ");\n";
+        let line = "  \\draw[line cap=round, line join=round, line width=\\tikzlinewidth] (" + pathObj.points.join(") -- (") + ");\n";
         outText += line;
         let safeLine = highlightLatex(escapeHTML(line));
         if (pathObj.linkIds.some(id => isSelected(id))) outHTML += `<span class="highlight">${safeLine}</span>`;
@@ -638,7 +638,7 @@ export function svgToTikz(pathStr, styles) {
     if (styles) {
         if (styles.dashed) extra += ", dashed";
         if (styles.solid) extra += ", fill=black";
-        if (styles.rounded) extra += ", line cap=round, line join=round";
+        if (styles.rounded) extra += ", line cap=round, line join=round, line width=\\tikzlinewidth";
         return `\\draw [line width=\\linewidthscalefactor * \\zoomfactor * ${styles.sw}pt${extra}] ${tikz.trim()};`;
     }
     return `\\draw [line width=\\linewidthscalefactor * \\zoomfactor * 1.5pt] ${tikz.trim()};`;
