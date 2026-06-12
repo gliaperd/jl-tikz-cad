@@ -740,15 +740,44 @@ export function updateElementLabel(el, newText) {
     let data = JL_DATABASE[macro];
     let centerX, centerY;
 
+    let rawAngle = el.get('angle') || 0;
+    let normalizedAngle = (rawAngle % 360 + 360) % 360;
+    
+    let isExplicitlyOriented = false;
+    let isVerticalMode = false;
+    if (data && data.argNames) {
+        let customArgs = el.get('customArgs') || [];
+        for (let i = 0; i < data.argsCount; i++) {
+            let desc = data.argNames[i] ? data.argNames[i].name.toLowerCase() : "";
+            if (desc.includes('horizontal') && desc.includes('vertical')) {
+                let val = customArgs[i] ? customArgs[i].toString().toLowerCase().trim() : "";
+                if (val === 'vertical') {
+                    isVerticalMode = true;
+                    isExplicitlyOriented = true; 
+                }
+                break;
+            }
+        }
+    }
+
+    let effectiveDir = "B"; 
+
     if (data && data.labelAnchor) {
         let flipH = el.get('flipH') || false;
         let flipV = el.get('flipV') || false;
         let shiftX = (el.get('baseShiftX') !== undefined ? el.get('baseShiftX') : (el.get('shiftX') || 0)) * scale;
         let shiftY = (el.get('baseShiftY') !== undefined ? el.get('baseShiftY') : (el.get('shiftY') || 0)) * scale;
 
-        let ax, ay;
-        let currentDir = data.labelAnchor.dir;
+        effectiveDir = data.labelAnchor.dir;
         
+        if (isVerticalMode) {
+            if (normalizedAngle === 90) effectiveDir = 'B';
+            else if (normalizedAngle === 270) effectiveDir = 'T';
+            else if (normalizedAngle === 0) effectiveDir = 'L';
+            else if (normalizedAngle === 180) effectiveDir = 'R';
+        }
+
+        let ax, ay;
         if (data.labelAnchor.auto) {
             let vTopRaw = el.get('baseVisualTop') || 0;
             let vBotRaw = el.get('baseVisualBottom') || (el.get('baseHeight') || 40);
@@ -756,71 +785,58 @@ export function updateElementLabel(el, newText) {
             let vRightRaw = el.get('baseVisualRight') || (el.get('baseWidth') || 40);
             
             let rawX, rawY;
-            if (currentDir === 'T') { rawX = (vLeftRaw + vRightRaw) / 2; rawY = vTopRaw; }
-            else if (currentDir === 'B') { rawX = (vLeftRaw + vRightRaw) / 2; rawY = vBotRaw; }
-            else if (currentDir === 'L') { rawX = vLeftRaw; rawY = (vTopRaw + vBotRaw) / 2; }
-            else if (currentDir === 'R') { rawX = vRightRaw; rawY = (vTopRaw + vBotRaw) / 2; }
+            if (effectiveDir === 'T') { rawX = (vLeftRaw + vRightRaw) / 2; rawY = vTopRaw; }
+            else if (effectiveDir === 'B') { rawX = (vLeftRaw + vRightRaw) / 2; rawY = vBotRaw; }
+            else if (effectiveDir === 'L') { rawX = vLeftRaw; rawY = (vTopRaw + vBotRaw) / 2; }
+            else if (effectiveDir === 'R') { rawX = vRightRaw; rawY = (vTopRaw + vBotRaw) / 2; }
             
             ax = rawX * scale; ay = rawY * scale; 
 
             if (flipH) {
                 let bw = (el.get('baseWidth') || (el.size().width / scale)) * scale;
                 ax = bw - ax;
-                if (currentDir === 'L') currentDir = 'R'; else if (currentDir === 'R') currentDir = 'L';
+                if (effectiveDir === 'L') effectiveDir = 'R'; else if (effectiveDir === 'R') effectiveDir = 'L';
             }
             if (flipV) {
                 let bh = (el.get('baseHeight') || (el.size().height / scale)) * scale;
                 ay = bh - ay;
-                if (currentDir === 'T') currentDir = 'B'; else if (currentDir === 'B') currentDir = 'T';
+                if (effectiveDir === 'T') effectiveDir = 'B'; else if (effectiveDir === 'B') effectiveDir = 'T';
             }
         } else {
             let rawX = data.labelAnchor.x * AppState.PPU_MULT;
             let rawY = data.labelAnchor.y * AppState.PPU_MULT;
             
-            if (flipH) { rawX = -rawX; if (currentDir === 'L') currentDir = 'R'; else if (currentDir === 'R') currentDir = 'L'; }
-            if (flipV) { rawY = -rawY; if (currentDir === 'T') currentDir = 'B'; else if (currentDir === 'B') currentDir = 'T'; }
+            if (flipH) { rawX = -rawX; if (effectiveDir === 'L') effectiveDir = 'R'; else if (effectiveDir === 'R') effectiveDir = 'L'; }
+            if (flipV) { rawY = -rawY; if (effectiveDir === 'T') effectiveDir = 'B'; else if (effectiveDir === 'B') effectiveDir = 'T'; }
 
             ax = (rawX * scale) + shiftX; ay = (rawY * scale) + shiftY;
         }
 
         let gap = 10 * AppState.PPU_MULT;
-        if (currentDir === 'T') ay -= gap;
-        if (currentDir === 'B') ay += gap;
-        if (currentDir === 'L') ax -= gap;
-        if (currentDir === 'R') ax += gap;
+        if (isVerticalMode) gap = 22 * AppState.PPU_MULT;
+
+        if (effectiveDir === 'T') ay -= gap;
+        if (effectiveDir === 'B') ay += gap;
+        if (effectiveDir === 'L') ax -= gap;
+        if (effectiveDir === 'R') ax += gap;
 
         centerX = ax + lblOffsetX; centerY = ay + lblOffsetY;
     } else {
-            let bottomY = el.size().height / 2; 
-            if (!isFreeText) {
-                let ports = el.getPorts();
-                if (ports && ports.length > 0) bottomY = Math.max(...ports.map(p => el.portProp(p.id, 'args/y')));
-                else bottomY = el.size().height; 
-            }
-            centerX = (el.size().width / 2) + lblOffsetX;
-            centerY = (isFreeText ? el.size().height / 2 : bottomY + (10 * AppState.PPU_MULT)) + lblOffsetY;
+        let bottomY = el.size().height / 2; 
+        if (!isFreeText) {
+            let ports = el.getPorts();
+            if (ports && ports.length > 0) bottomY = Math.max(...ports.map(p => el.portProp(p.id, 'args/y')));
+            else bottomY = el.size().height; 
         }
+        centerX = (el.size().width / 2) + lblOffsetX;
+        centerY = (isFreeText ? el.size().height / 2 : bottomY + (10 * AppState.PPU_MULT)) + lblOffsetY;
+    }
 
     let themeObj = THEME_COLORS[AppState.theme] || THEME_COLORS.standard;
     let txtColor = isFreeText ? themeObj.freeText : themeObj.componentLabel;
 
-    let rawAngle = el.get('angle') || 0;
-    let normalizedAngle = (rawAngle % 360 + 360) % 360;
     let localRot = 0;
     
-    let isExplicitlyOriented = false;
-    if (data && data.argNames) {
-        let customArgs = el.get('customArgs') || [];
-        for (let i = 0; i < data.argsCount; i++) {
-            let desc = data.argNames[i] ? data.argNames[i].name.toLowerCase() : "";
-            if (desc.includes('horizontal') && desc.includes('vertical')) {
-                let val = customArgs[i] ? customArgs[i].toString().toLowerCase().trim() : "";
-                if (val === 'vertical' || val === 'horizontal') isExplicitlyOriented = true;
-                break;
-            }
-        }
-    }
-
     if (isExplicitlyOriented) localRot = -rawAngle;
     else if (normalizedAngle >= 90 && normalizedAngle < 270) localRot = 180;
     
@@ -833,12 +849,6 @@ export function updateElementLabel(el, newText) {
     let htmlTransformX = "-50%";
     
     if (data && data.labelAnchor) {
-        let flipH = el.get('flipH') || false; let flipV = el.get('flipV') || false;
-        let effectiveDir = data.labelAnchor.dir;
-
-        if (flipH) { if (effectiveDir === 'L') effectiveDir = 'R'; else if (effectiveDir === 'R') effectiveDir = 'L'; }
-        if (flipV) { if (effectiveDir === 'T') effectiveDir = 'B'; else if (effectiveDir === 'B') effectiveDir = 'T'; }
-
         if (isExplicitlyOriented) {
             let visualDir = effectiveDir;
             if (normalizedAngle === 90) {
@@ -851,6 +861,7 @@ export function updateElementLabel(el, newText) {
                 if (effectiveDir === 'L') visualDir = 'B'; else if (effectiveDir === 'R') visualDir = 'T';
                 else if (effectiveDir === 'T') visualDir = 'L'; else if (effectiveDir === 'B') visualDir = 'R';
             }
+            
             if (visualDir === 'L') { lblAlign = "end"; htmlTransformX = "-100%"; }
             else if (visualDir === 'R') { lblAlign = "start"; htmlTransformX = "0%"; }
             else { lblAlign = "middle"; htmlTransformX = "-50%"; }
@@ -885,10 +896,14 @@ export function updateElementLabel(el, newText) {
         el.attr('label/fill', txtColor);
         el.attr('label/refX', null); el.attr('label/refX2', null); 
         el.attr('label/refY', null); el.attr('label/refY2', null); 
-        el.attr('label/x', centerX); el.attr('label/y', centerY);
+        
+        // --- THE CRITICAL FIX: Μηδενισμός x,y και χρήση translate στο transform ---
+        el.attr('label/x', 0); 
+        el.attr('label/y', 0);
         el.attr('label/dominant-baseline', 'central');
         el.attr('label/text-anchor', lblAlign);
-        el.attr('label/transform', `rotate(${localRot}, ${centerX}, ${centerY})`);
+        el.attr('label/transform', `translate(${centerX}, ${centerY}) rotate(${localRot})`);
+        
         el.attr('label/fontSize', fontSize);
         el.attr('label/opacity', isEmpty ? 0.3 : 1);
         el.set('mathHtmlMain', ''); 
@@ -1169,7 +1184,13 @@ export function assembleIcon(el, argsArray) {
         }
     });
 
-    el.set('mathHtmlPins', pinsHtml);
+	el.set('mathHtmlPins', pinsHtml);
+    
+    // --- THE FIX: Αναγκάζουμε το Label να υπολογίσει τη νέα του θέση 
+    // ΑΜΕΣΩΣ μόλις αλλάξει οποιαδήποτε παράμετρος στο Live Preview! ---
+    updateElementLabel(el);
+    // -----------------------------------------------------------------
+    
     combineMathHtml(el);
     
     if (typeof AppState.paper !== 'undefined') {
@@ -2152,9 +2173,25 @@ export function createDragGhostSVG(type) {
     let textY = boxHeight / 2;
     let align = 'middle';
 
-    if (data.labelAnchor) {
+	if (data.labelAnchor) {
         let currentDir = data.labelAnchor.dir;
         
+        // --- THE FIX: Ghost Drag Vertical Alignment ---
+        let isVerticalGhost = false;
+        if (data.argNames) {
+            for (let i = 0; i < data.argsCount; i++) {
+                let desc = data.argNames[i] ? data.argNames[i].name.toLowerCase() : "";
+                if (desc.includes('horizontal') && desc.includes('vertical')) {
+                    // Εδώ κοιτάμε τα initialArgs που ετοιμάστηκαν για το drag
+                    let val = initialArgs[i] ? initialArgs[i].toString().toLowerCase().trim() : "";
+                    if (val === 'vertical') isVerticalGhost = true;
+                    break;
+                }
+            }
+        }
+        if (isVerticalGhost && currentDir === 'B') currentDir = 'T';
+        // ----------------------------------------------
+
         if (data.labelAnchor.auto) {
             let vTopRaw = absMinY - boxOriginY;
             let vBotRaw = absMaxY - boxOriginY;
@@ -2170,7 +2207,12 @@ export function createDragGhostSVG(type) {
             textY = (data.labelAnchor.y * PPU) + shiftY;
         }
         
-        let gap = 10 * PPU;
+		let gap = 10 * PPU;
+        
+        if (isVerticalGhost && currentDir === 'T') {
+            gap = 22 * PPU;
+        }
+
         if (currentDir === 'T') textY -= gap;
         else if (currentDir === 'B') textY += gap;
         else if (currentDir === 'L') { textX -= gap; align = 'end'; }

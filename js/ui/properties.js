@@ -563,11 +563,16 @@ export function initializeProperties() {
                             }
                         }
 
-                        // Apply the new geometric args (rotation, flip, etc.)
+						// Apply the new geometric args (rotation, flip, etc.)
                         let geom = parseGeomArgs(data, newArgs);
                         el.set('angle', geom.angle);
                         el.set('flipH', geom.flipH);
                         el.set('flipV', geom.flipV);
+                        
+                        // --- THE FIX: Ενημερώνουμε ΠΡΟΣΩΡΙΝΑ το μοντέλο με τα νέα arguments 
+                        // ώστε η updateElementLabel να "διαβάσει" εγκαίρως το vertical mode! ---
+                        el.set('customArgs', newArgs);
+                        // ----------------------------------------------------------------------
                         
                         // Reassemble the icon geometry
                         assembleIcon(el, newArgs);

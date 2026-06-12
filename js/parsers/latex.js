@@ -439,7 +439,7 @@ export function validateLatexSyntax(rawText) {
     let closeBraces = (text.match(/\}/g) || []).length;
     if (openBraces !== closeBraces) errors.push(`<b>Brace Imbalance:</b> Found ${openBraces} open <code>{</code> and ${closeBraces} closed <code>}</code>.`);
     
-    const knownSystemMacros = ['begin', 'end', 'draw', 'tikzpictureJL', 'connectordot', 'setscale', 'tikzlinewidth'];
+    const knownSystemMacros = ['begin', 'end', 'draw', 'tikzpictureJL', 'connectordot', 'setscale', 'tikzlinewidth', 'settikzlinewidth'];
     const macroRegex = /\\([a-zA-Z]+)/g;
     let match;
     
